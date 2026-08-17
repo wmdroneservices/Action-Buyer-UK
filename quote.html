@@ -1,100 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Get Instant Quote | We Buy Any Drone</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WE BUY ANY DRONE - Instant Quote Wizard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .buttons { margin-top: 20px; }
+    button { padding: 10px 20px; margin-right: 10px; }
+    select, input[type="radio"] { margin-top: 8px; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
 
-<header class="header">
-  <div class="container header-container">
-    <h1 class="logo" tabindex="0">WE BUY ANY DRONE</h1>
-    <nav aria-label="Main navigation">
-      <ul class="nav-list">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="quote.html" aria-current="page">Get Instant Quote</a></li>
-        <li><a href="how-it-works.html">How It Works</a></li>
-        <li><a href="what-we-buy.html">What We Buy</a></li>
-        <li><a href="faq.html">FAQ</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
-        <li><a href="contact.html">Contact</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+<h1>WE BUY ANY DRONE</h1>
+<h2>Get An Instant Quote</h2>
 
-<main class="container">
+<form id="quote-form" novalidate>
 
-  <h2>Get An Instant Quote</h2>
-
-  <nav aria-label="Quote progress">
-    <ol class="progress-indicator" id="progress-indicator" role="list">
-      <li class="progress-step" aria-current="step">1. Manufacturer</li>
-      <li class="progress-step">2. DJI Model</li>
-      <li class="progress-step">3. Exact Package</li>
-    </ol>
-  </nav>
-
-  <form id="quote-form" novalidate aria-live="polite">
-
-    <!-- Step 1 - Manufacturer -->
-    <section data-step="1" class="wizard-step">
-      <h3>Step 1: Manufacturer</h3>
-      <fieldset>
-        <legend>Select drone manufacturer:</legend>
-        <label>
-          <input type="radio" name="manufacturer" value="dji" required />
-          DJI
-        </label>
-      </fieldset>
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-next" aria-label="Next step">Next</button>
-      </div>
-    </section>
-
-    <!-- Step 2 - DJI Model -->
-    <section data-step="2" class="wizard-step" hidden>
-      <h3>Step 2: DJI Model</h3>
-      <label for="dji-model">Select your DJI model:</label>
-      <select id="dji-model" name="djiModel" required aria-required="true">
-        <option value="">-- Select a model --</option>
-      </select>
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back" aria-label="Previous step">Back</button>
-        <button type="button" class="btn btn-next" aria-label="Next step">Next</button>
-      </div>
-    </section>
-
-    <!-- Step 3 - Exact Package -->
-    <section data-step="3" class="wizard-step" hidden>
-      <h3>Step 3: Exact Package</h3>
-      <label for="package-select">Select your package:</label>
-      <select id="package-select" name="package" required aria-required="true">
-        <option value="">-- Select package --</option>
-      </select>
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back" aria-label="Previous step">Back</button>
-        <button type="button" class="btn btn-next" aria-label="Next step">Next</button>
-      </div>
-    </section>
-
-  </form>
-
-</main>
-
-<footer class="footer" role="contentinfo">
-  <div class="container footer-container">
-    <div>
-      <strong>WE BUY ANY DRONE</strong><br />
-      Sell your DJI drone quickly and easily.
+  <!-- Step 1 -->
+  <section class="wizard-step active" data-step="1">
+    <h3>Step 1: Select Manufacturer</h3>
+    <label><input type="radio" name="manufacturer" value="dji" required> DJI</label>
+    <div class="buttons">
+      <button type="button" id="next">Next</button>
     </div>
-  </div>
-</footer>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="wizard-step" data-step="2">
+    <h3>Step 2: Select DJI Model</h3>
+    <select id="dji-model" name="djiModel" required>
+      <option value="">Choose your model...</option>
+    </select>
+    <div class="buttons">
+      <button type="button" id="back">Back</button>
+      <button type="button" id="next">Next</button>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="wizard-step" data-step="3">
+    <h3>Step 3: Select Package</h3>
+    <select id="package-select" name="package" required>
+      <option value="">Choose your package...</option>
+    </select>
+    <div class="buttons">
+      <button type="button" id="back">Back</button>
+      <button type="button" id="next">Next</button>
+    </div>
+  </section>
+
+</form>
 
 <script src="quote.js" defer></script>
-
 </body>
 </html>
