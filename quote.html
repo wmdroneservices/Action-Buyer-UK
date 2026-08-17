@@ -75,6 +75,7 @@
       <label for="dji-model">Select your DJI model:</label>
       <select id="dji-model" name="djiModel" required aria-required="true">
         <option value="">-- Select a model --</option>
+        <!-- Models populated by JS -->
       </select>
       <div class="navigation-buttons">
         <button type="button" class="btn btn-back" aria-label="Previous step">Back</button>
@@ -82,7 +83,21 @@
       </div>
     </section>
 
-    <!-- Additional steps (3-16) omitted here for brevity — keep your original ones -->
+    <!-- Step 3 - Exact Package -->
+    <section data-step="3" class="wizard-step" hidden>
+      <h3>Step 3: Exact Package</h3>
+      <label for="package-select">Select your package:</label>
+      <select id="package-select" name="package" required aria-required="true">
+        <option value="">-- Select package --</option>
+        <!-- Packages populated by JS -->
+      </select>
+      <div class="navigation-buttons">
+        <button type="button" class="btn btn-back" aria-label="Previous step">Back</button>
+        <button type="button" class="btn btn-next" aria-label="Next step">Next</button>
+      </div>
+    </section>
+
+    <!-- Additional steps (4-16) omitted for brevity; ensure all your steps exist similarly -->
 
   </form>
 
