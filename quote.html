@@ -35,11 +35,15 @@
     <li class="progress-step" aria-current="step">1. Manufacturer</li>
     <li class="progress-step">2. DJI Model</li>
     <li class="progress-step">3. Exact Package</li>
+    <li class="progress-step">4. Condition</li>
+    <li class="progress-step">5. Flight Time</li>
+    <li class="progress-step">6. Batteries</li>
   </ol>
 </nav>
 
 <form id="quote-form" novalidate aria-live="polite">
 
+  <!-- Step 1 -->
   <section data-step="1" class="wizard-step">
     <h3>Step 1: Manufacturer</h3>
     <fieldset>
@@ -54,6 +58,7 @@
     </div>
   </section>
 
+  <!-- Step 2 -->
   <section data-step="2" class="wizard-step" hidden>
     <h3>Step 2: DJI Model</h3>
     <label for="dji-model">Select your DJI model:</label>
@@ -66,6 +71,7 @@
     </div>
   </section>
 
+  <!-- Step 3 -->
   <section data-step="3" class="wizard-step" hidden>
     <h3>Step 3: Exact Package</h3>
     <label for="package-select">Select your package:</label>
@@ -78,20 +84,31 @@
     </div>
   </section>
 
-</form>
-
-</main>
-
-<footer class="footer" role="contentinfo">
-  <div class="container footer-container">
-    <div>
-      <strong>WE BUY ANY DRONE</strong><br />
-      Sell your DJI drone quickly and easily.
+  <!-- Step 4 -->
+  <section data-step="4" class="wizard-step" hidden>
+    <h3>Step 4: Condition</h3>
+    <fieldset>
+      <legend>What condition is the drone in?</legend>
+      <label><input type="radio" name="condition" value="factory-sealed" required /> Factory Sealed / Unopened</label><br />
+      <label><input type="radio" name="condition" value="opened-unused" /> Opened but Unused</label><br />
+      <label><input type="radio" name="condition" value="excellent" /> Excellent</label><br />
+      <label><input type="radio" name="condition" value="good" /> Good</label><br />
+      <label><input type="radio" name="condition" value="fair" /> Fair</label><br />
+      <label><input type="radio" name="condition" value="damaged" /> Damaged</label><br />
+      <label><input type="radio" name="condition" value="not-working" /> Not Working / Spares Only</label>
+    </fieldset>
+    <div class="navigation-buttons">
+      <button type="button" class="btn btn-back">Back</button>
+      <button type="button" class="btn btn-next">Next</button>
     </div>
-  </div>
-</footer>
+  </section>
 
-<script src="quote.js" defer></script>
-
-</body>
-</html>
+  <!-- Step 5 -->
+  <section data-step="5" class="wizard-step" hidden>
+    <h3>Step 5: Flight Time</h3>
+    <label for="flight-hours">How many total flight hours has the drone completed?</label>
+    <input type="number" id="flight-hours" name="flightHours" min="0" step="0.1" required aria-describedby="flight-hours-desc" />
+    <div id="flight-hours-desc" class="sr-only">Enter flight hours, or select a quick range below</div>
+    <fieldset>
+      <legend>Or select a quick range:</legend>
+     
