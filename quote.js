@@ -1,831 +1,2926 @@
-<!DOCTYPE html>
-<html lang="en-GB">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Get an Instant Quote | We Buy Any Drone</title>
-  <meta name="description" content="Get an instant purchase quote for your DJI drone.">
-  <link rel="stylesheet" href="style.css">
-</head>
+/* ============================================================
+   WE BUY ANY DRONE
+   INSTANT QUOTE WIZARD
+   ============================================================ */
 
-<body>
+document.addEventListener("DOMContentLoaded", function () {
 
-<header class="header">
-  <div class="container header-container">
-    <h1 class="logo">WE BUY ANY DRONE</h1>
+  "use strict";
 
-    <nav aria-label="Main navigation">
-      <ul class="nav-list">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="quote.html" aria-current="page">Get Instant Quote</a></li>
-        <li><a href="how-it-works.html">How It Works</a></li>
-        <li><a href="what-we-buy.html">What We Buy</a></li>
-        <li><a href="faq.html">FAQ</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
-        <li><a href="contact.html">Contact</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+  /* ==========================================================
+     1. MODEL DATABASE
+     ========================================================== */
 
-<main class="container">
+  const droneDatabase = {
 
-  <h2>Get An Instant Quote</h2>
+    dji: {
 
-  <nav aria-label="Quote progress">
-    <ol class="progress-indicator" id="progress-indicator">
+      "dji-mini": {
+        name: "DJI Mini",
+        category: "Mini"
+      },
 
-      <li class="progress-step">1. Manufacturer</li>
-      <li class="progress-step">2. DJI Model</li>
-      <li class="progress-step">3. Exact Package</li>
-      <li class="progress-step">4. Condition</li>
-      <li class="progress-step">5. Flight Time</li>
-      <li class="progress-step">6. Batteries</li>
-      <li class="progress-step">7. Unbound</li>
-      <li class="progress-step">8. Damage</li>
-      <li class="progress-step">9. Package Contents</li>
-      <li class="progress-step">10. Serial Numbers</li>
-      <li class="progress-step">11. Photos</li>
-      <li class="progress-step">12. Quote Result</li>
-      <li class="progress-step">13. Customer Details</li>
-      <li class="progress-step">14. Quote Submitted</li>
-      <li class="progress-step">15. Shipping Instructions</li>
-      <li class="progress-step">16. Final Inspection</li>
+      "mini-se": {
+        name: "DJI Mini SE",
+        category: "Mini"
+      },
 
-    </ol>
-  </nav>
+      "mini-2": {
+        name: "DJI Mini 2",
+        category: "Mini"
+      },
 
-  <form id="quote-form" novalidate>
+      "mini-2-se": {
+        name: "DJI Mini 2 SE",
+        category: "Mini"
+      },
 
-    <!-- STEP 1 -->
-    <section class="wizard-step" data-step="1">
+      "mini-3": {
+        name: "DJI Mini 3",
+        category: "Mini"
+      },
 
-      <h3>Step 1: Manufacturer</h3>
+      "mini-3-pro": {
+        name: "DJI Mini 3 Pro",
+        category: "Mini"
+      },
 
-      <p>Select the manufacturer of your drone.</p>
+      "mini-4-pro": {
+        name: "DJI Mini 4 Pro",
+        category: "Mini"
+      },
 
-      <fieldset>
-        <legend>Manufacturer</legend>
+      "mini-5-pro": {
+        name: "DJI Mini 5 Pro",
+        category: "Mini"
+      },
 
-        <label>
-          <input type="radio" name="manufacturer" value="dji">
-          DJI
-        </label>
+      "neo": {
+        name: "DJI Neo",
+        category: "Neo"
+      },
 
-      </fieldset>
+      "neo-2": {
+        name: "DJI Neo 2",
+        category: "Neo"
+      },
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
+      "lito-1": {
+        name: "DJI Lito 1",
+        category: "Lito"
+      },
 
-    </section>
+      "lito-x1": {
+        name: "DJI Lito X1",
+        category: "Lito"
+      },
+
+      "flip": {
+        name: "DJI Flip",
+        category: "Flip"
+      },
+
+      "air": {
+        name: "DJI Air",
+        category: "Air"
+      },
+
+      "air-2": {
+        name: "DJI Air 2",
+        category: "Air"
+      },
+
+      "air-2s": {
+        name: "DJI Air 2S",
+        category: "Air"
+      },
+
+      "air-3": {
+        name: "DJI Air 3",
+        category: "Air"
+      },
+
+      "air-3s": {
+        name: "DJI Air 3S",
+        category: "Air"
+      },
+
+      "mavic-mini": {
+        name: "DJI Mavic Mini",
+        category: "Mavic"
+      },
+
+      "mavic-pro": {
+        name: "DJI Mavic Pro",
+        category: "Mavic"
+      },
+
+      "mavic-2-pro": {
+        name: "DJI Mavic 2 Pro",
+        category: "Mavic"
+      },
+
+      "mavic-2-zoom": {
+        name: "DJI Mavic 2 Zoom",
+        category: "Mavic"
+      },
+
+      "mavic-3": {
+        name: "DJI Mavic 3",
+        category: "Mavic"
+      },
+
+      "mavic-3-classic": {
+        name: "DJI Mavic 3 Classic",
+        category: "Mavic"
+      },
+
+      "mavic-3-pro": {
+        name: "DJI Mavic 3 Pro",
+        category: "Mavic"
+      },
+
+      "mavic-3-pro-cine": {
+        name: "DJI Mavic 3 Pro Cine",
+        category: "Mavic"
+      },
+
+      "mavic-4-pro": {
+        name: "DJI Mavic 4 Pro",
+        category: "Mavic"
+      },
+
+      "fpv": {
+        name: "DJI FPV",
+        category: "FPV"
+      },
+
+      "avata": {
+        name: "DJI Avata",
+        category: "FPV"
+      },
+
+      "avata-2": {
+        name: "DJI Avata 2",
+        category: "FPV"
+      },
+
+      "avata-360": {
+        name: "DJI Avata 360",
+        category: "FPV"
+      },
+
+      "mavic-3-enterprise": {
+        name: "DJI Mavic 3 Enterprise",
+        category: "Professional"
+      },
+
+      "mavic-3-thermal": {
+        name: "DJI Mavic 3 Thermal",
+        category: "Professional"
+      },
+
+      "mavic-3-multispectral": {
+        name: "DJI Mavic 3 Multispectral",
+        category: "Professional"
+      },
+
+      "matrice-4e": {
+        name: "DJI Matrice 4E",
+        category: "Professional"
+      },
+
+      "matrice-4t": {
+        name: "DJI Matrice 4T",
+        category: "Professional"
+      },
+
+      "matrice-30": {
+        name: "DJI Matrice 30",
+        category: "Professional"
+      },
+
+      "matrice-30t": {
+        name: "DJI Matrice 30T",
+        category: "Professional"
+      },
+
+      "matrice-300-rtk": {
+        name: "DJI Matrice 300 RTK",
+        category: "Professional"
+      },
+
+      "matrice-350-rtk": {
+        name: "DJI Matrice 350 RTK",
+        category: "Professional"
+      },
+
+      "matrice-400": {
+        name: "DJI Matrice 400",
+        category: "Professional"
+      },
+
+      "inspire-1": {
+        name: "DJI Inspire 1",
+        category: "Professional"
+      },
+
+      "inspire-2": {
+        name: "DJI Inspire 2",
+        category: "Professional"
+      },
+
+      "inspire-3": {
+        name: "DJI Inspire 3",
+        category: "Professional"
+      },
+
+      "agras": {
+        name: "DJI Agras",
+        category: "Professional"
+      }
+
+    }
+
+  };
 
 
-    <!-- STEP 2 -->
-    <section class="wizard-step" data-step="2" hidden>
+  /* ==========================================================
+     2. PACKAGE DATABASE
+     ========================================================== */
 
-      <h3>Step 2: DJI Model</h3>
+  const packageDatabase = {
 
-      <label for="dji-model">Select your DJI model</label>
+    "mini-5-pro": [
 
-      <select id="dji-model" name="djiModel">
-        <option value="">-- Select a model --</option>
-      </select>
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
+      {
+        id: "standard-rc-n3",
+        name: "Standard + RC-N3",
+        contents: [
+          "Drone",
+          "RC-N3 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
 
-    </section>
+      {
+        id: "fly-more-rc-n3",
+        name: "Fly More Combo + RC-N3",
+        contents: [
+          "Drone",
+          "RC-N3 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Power Supply",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc2",
+        name: "Fly More Combo + RC 2",
+        contents: [
+          "Drone",
+          "DJI RC 2 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Power Supply",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-plus-rc2",
+        name: "Fly More Combo Plus + RC 2",
+        contents: [
+          "Drone",
+          "DJI RC 2 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Power Supply",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "mini-4-pro": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
+
+      {
+        id: "standard-rc-n2",
+        name: "Standard + RC-N2",
+        contents: [
+          "Drone",
+          "RC-N2 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "standard-rc2",
+        name: "Standard + RC 2",
+        contents: [
+          "Drone",
+          "DJI RC 2 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc-n2",
+        name: "Fly More Combo + RC-N2",
+        contents: [
+          "Drone",
+          "RC-N2 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc2",
+        name: "Fly More Combo + RC 2",
+        contents: [
+          "Drone",
+          "DJI RC 2 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "mini-3-pro": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
+
+      {
+        id: "drone-rc-n1",
+        name: "Drone + RC-N1",
+        contents: [
+          "Drone",
+          "RC-N1 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "drone-dji-rc",
+        name: "Drone + DJI RC",
+        contents: [
+          "Drone",
+          "DJI RC Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc-n1",
+        name: "Fly More Combo + RC-N1",
+        contents: [
+          "Drone",
+          "RC-N1 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-dji-rc",
+        name: "Fly More Combo + DJI RC",
+        contents: [
+          "Drone",
+          "DJI RC Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "mini-3": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
+
+      {
+        id: "standard-rc-n1",
+        name: "Standard + RC-N1",
+        contents: [
+          "Drone",
+          "RC-N1 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc-n1",
+        name: "Fly More Combo + RC-N1",
+        contents: [
+          "Drone",
+          "RC-N1 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "mini-2": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
+
+      {
+        id: "standard-rc-n1",
+        name: "Standard + RC-N1",
+        contents: [
+          "Drone",
+          "RC-N1 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more",
+        name: "Fly More Combo",
+        contents: [
+          "Drone",
+          "Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Propellers",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "neo": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone",
+          "Battery",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more",
+        name: "Fly More Combo",
+        contents: [
+          "Drone",
+          "Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "neo-2": [
+
+      {
+        id: "standard",
+        name: "Standard Package",
+        contents: [
+          "Drone",
+          "Battery",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more",
+        name: "Fly More Combo",
+        contents: [
+          "Drone",
+          "Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "flip": [
+
+      {
+        id: "standard-rc-n3",
+        name: "Standard + RC-N3",
+        contents: [
+          "Drone",
+          "RC-N3 Controller",
+          "Battery",
+          "Propellers",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc-n3",
+        name: "Fly More Combo + RC-N3",
+        contents: [
+          "Drone",
+          "RC-N3 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Cables"
+        ]
+      },
+
+      {
+        id: "fly-more-rc2",
+        name: "Fly More Combo + RC 2",
+        contents: [
+          "Drone",
+          "DJI RC 2 Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Cables"
+        ]
+      }
+
+    ],
+
+    "avata": [
+
+      {
+        id: "drone-only",
+        name: "Drone Only",
+        contents: [
+          "Drone"
+        ]
+      },
+
+      {
+        id: "fly-smart",
+        name: "Fly Smart Combo",
+        contents: [
+          "Drone",
+          "Goggles",
+          "Controller",
+          "Battery",
+          "Charger"
+        ]
+      },
+
+      {
+        id: "pro-view",
+        name: "Pro-View Combo",
+        contents: [
+          "Drone",
+          "Goggles",
+          "Controller",
+          "Battery",
+          "Charger"
+        ]
+      },
+
+      {
+        id: "explorer",
+        name: "Explorer Combo",
+        contents: [
+          "Drone",
+          "Goggles",
+          "Controller",
+          "Battery",
+          "Charger"
+        ]
+      }
+
+    ],
+
+    "avata-2": [
+
+      {
+        id: "standard",
+        name: "Standard Package",
+        contents: [
+          "Drone",
+          "Goggles",
+          "Controller",
+          "Battery",
+          "Charger"
+        ]
+      },
+
+      {
+        id: "fly-more",
+        name: "Fly More Combo",
+        contents: [
+          "Drone",
+          "Goggles",
+          "Controller",
+          "Battery 1",
+          "Battery 2",
+          "Battery 3",
+          "Charging Hub",
+          "Bag",
+          "Cables"
+        ]
+      }
+
+    ]
+
+  };
 
 
-    <!-- STEP 3 -->
-    <section class="wizard-step" data-step="3" hidden>
+  /* ==========================================================
+     3. DEFAULT PACKAGE DATABASE
+     ========================================================== */
 
-      <h3>Step 3: Exact Package</h3>
+  const defaultPackages = [
 
-      <label for="package-select">Select your package</label>
+    {
+      id: "drone-only",
+      name: "Drone Only",
+      contents: [
+        "Drone"
+      ]
+    },
 
-      <select id="package-select" name="package">
-        <option value="">-- Select a package --</option>
-      </select>
+    {
+      id: "standard",
+      name: "Standard Package",
+      contents: [
+        "Drone",
+        "Controller",
+        "Battery",
+        "Cables"
+      ]
+    },
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
+    {
+      id: "fly-more",
+      name: "Fly More Combo",
+      contents: [
+        "Drone",
+        "Controller",
+        "Battery 1",
+        "Battery 2",
+        "Battery 3",
+        "Charging Hub",
+        "Bag",
+        "Cables"
+      ]
+    }
 
-    </section>
-
-
-    <!-- STEP 4 -->
-    <section class="wizard-step" data-step="4" hidden>
-
-      <h3>Step 4: Condition</h3>
-
-      <p>What condition is the drone in?</p>
-
-      <fieldset>
-
-        <legend>Condition</legend>
-
-        <label>
-          <input type="radio" name="condition" value="factory-sealed">
-          Factory Sealed / Unopened
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="opened-unused">
-          Opened but Unused
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="excellent">
-          Excellent
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="good">
-          Good
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="fair">
-          Fair
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="damaged">
-          Damaged
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="not-working">
-          Not Working / Spares Only
-        </label>
-
-      </fieldset>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
+  ];
 
 
-    <!-- STEP 5 -->
-    <section class="wizard-step" data-step="5" hidden>
+  /* ==========================================================
+     4. PRICING DATABASE
+     ==========================================================
 
-      <h3>Step 5: Flight Time</h3>
+     IMPORTANT:
 
-      <label for="flight-hours">
-        Total flight hours completed
+     These are intentionally TBC until verified purchase prices
+     are entered.
+
+     DO NOT scatter prices through the HTML.
+
+     To add a verified price later, change basePrice from null
+     to the actual purchase price.
+
+     Example:
+
+     basePrice: 650
+
+     ========================================================== */
+
+  const pricingDatabase = {
+
+    "mini-5-pro": {
+
+      manualValuation: false,
+
+      packages: {
+
+        "drone-only": {
+          basePrice: null,
+          floorPrice: null
+        },
+
+        "standard-rc-n3": {
+          basePrice: null,
+          floorPrice: null
+        },
+
+        "fly-more-rc-n3": {
+          basePrice: null,
+          floorPrice: null
+        },
+
+        "fly-more-rc2": {
+          basePrice: null,
+          floorPrice: null
+        },
+
+        "fly-more-plus-rc2": {
+          basePrice: null,
+          floorPrice: null
+        }
+
+      }
+
+    },
+
+    "mini-4-pro": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "mini-3-pro": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "mini-3": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "mini-2": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "neo": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "neo-2": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "flip": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "avata": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    },
+
+    "avata-2": {
+
+      manualValuation: false,
+
+      packages: {}
+
+    }
+
+  };
+
+
+  /* ==========================================================
+     5. PROFESSIONAL / HIGH VALUE MODELS
+     ========================================================== */
+
+  const manualValuationCategories = [
+    "Professional"
+  ];
+
+
+  /* ==========================================================
+     6. CONDITION DEDUCTIONS
+     ========================================================== */
+
+  const conditionDeductions = {
+
+    "factory-sealed": 0,
+    "opened-unused": 0,
+    "excellent": 0,
+    "good": 0,
+    "fair": 0,
+    "damaged": 0,
+    "not-working": 0
+
+  };
+
+
+  /* ==========================================================
+     7. FLIGHT-TIME DEDUCTIONS
+     ========================================================== */
+
+  const flightDeductions = {
+
+    "0-5": 0,
+    "5-20": 0,
+    "20-50": 0,
+    "50-100": 0,
+    "100-150": 0,
+    "150-200": 0,
+    "200+": null
+
+  };
+
+
+  /* ==========================================================
+     8. BATTERY DEDUCTIONS
+     ========================================================== */
+
+  function batteryCycleDeduction(cycles) {
+
+    const number = Number(cycles);
+
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+
+    if (number <= 100) {
+      return 0;
+    }
+
+    if (number <= 200) {
+      return 0;
+    }
+
+    if (number <= 300) {
+      return 0;
+    }
+
+    return 0;
+  }
+
+
+  /* ==========================================================
+     9. DOM REFERENCES
+     ========================================================== */
+
+  const form = document.getElementById("quote-form");
+
+  if (!form) {
+    console.error("QUOTE ERROR: #quote-form was not found.");
+    return;
+  }
+
+  const steps = Array.from(
+    form.querySelectorAll(".wizard-step")
+  );
+
+  const progressItems = Array.from(
+    document.querySelectorAll(".progress-step")
+  );
+
+  const modelSelect =
+    document.getElementById("dji-model");
+
+  const packageSelect =
+    document.getElementById("package-select");
+
+  const batteriesContainer =
+    document.getElementById("batteries-container");
+
+  const addBatteryButton =
+    document.getElementById("add-battery-btn");
+
+  const packageContentsList =
+    document.getElementById("package-contents-list");
+
+  const quoteSummary =
+    document.getElementById("quote-summary");
+
+  const quoteReference =
+    document.getElementById("quote-reference");
+
+  const unboundWarning =
+    document.getElementById("unbound-warning");
+
+  const damageDetails =
+    document.getElementById("damage-details");
+
+  const ownershipWarning =
+    document.getElementById("ownership-warning");
+
+
+  /* ==========================================================
+     10. WIZARD STATE
+     ========================================================== */
+
+  let currentStep = 0;
+
+  let batteryCount = 0;
+
+  let currentPackageContents = [];
+
+
+  /* ==========================================================
+     11. SHOW STEP
+     ========================================================== */
+
+  function showStep(index) {
+
+    if (index < 0 || index >= steps.length) {
+      return;
+    }
+
+    steps.forEach(function (step, stepIndex) {
+
+      step.hidden = stepIndex !== index;
+
+    });
+
+
+    progressItems.forEach(function (item, progressIndex) {
+
+      if (progressIndex === index) {
+
+        item.setAttribute(
+          "aria-current",
+          "step"
+        );
+
+      } else {
+
+        item.removeAttribute(
+          "aria-current"
+        );
+
+      }
+
+    });
+
+
+    currentStep = index;
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+  }
+
+
+  /* ==========================================================
+     12. ERROR MESSAGE
+     ========================================================== */
+
+  function showError(message) {
+
+    alert(message);
+
+  }
+
+
+  /* ==========================================================
+     13. MANUFACTURER
+     ========================================================== */
+
+  function getSelectedManufacturer() {
+
+    const selected =
+      form.querySelector(
+        'input[name="manufacturer"]:checked'
+      );
+
+    return selected ? selected.value : "";
+
+  }
+
+
+  function validateManufacturer() {
+
+    const manufacturer =
+      getSelectedManufacturer();
+
+    if (!manufacturer) {
+
+      showError(
+        "Please select a manufacturer."
+      );
+
+      return false;
+    }
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     14. POPULATE MODELS
+     ========================================================== */
+
+  function populateModels() {
+
+    if (!modelSelect) {
+      return;
+    }
+
+    modelSelect.innerHTML =
+      '<option value="">-- Select a model --</option>';
+
+
+    const manufacturer =
+      getSelectedManufacturer();
+
+
+    if (
+      !manufacturer ||
+      !droneDatabase[manufacturer]
+    ) {
+      return;
+    }
+
+
+    const models =
+      droneDatabase[manufacturer];
+
+
+    Object.keys(models).forEach(function (modelId) {
+
+      const option =
+        document.createElement("option");
+
+      option.value = modelId;
+
+      option.textContent =
+        models[modelId].name;
+
+      modelSelect.appendChild(option);
+
+    });
+
+  }
+
+
+  /* ==========================================================
+     15. MODEL VALIDATION
+     ========================================================== */
+
+  function validateModel() {
+
+    if (!modelSelect || !modelSelect.value) {
+
+      showError(
+        "Please select your DJI model."
+      );
+
+      return false;
+    }
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     16. POPULATE PACKAGES
+     ========================================================== */
+
+  function populatePackages() {
+
+    if (!packageSelect) {
+      return;
+    }
+
+
+    packageSelect.innerHTML =
+      '<option value="">-- Select a package --</option>';
+
+
+    const modelId =
+      modelSelect.value;
+
+
+    let packages =
+      packageDatabase[modelId];
+
+
+    if (!packages) {
+      packages = defaultPackages;
+    }
+
+
+    packages.forEach(function (packageData) {
+
+      const option =
+        document.createElement("option");
+
+      option.value =
+        packageData.id;
+
+      option.textContent =
+        packageData.name;
+
+      packageSelect.appendChild(option);
+
+    });
+
+  }
+
+
+  /* ==========================================================
+     17. PACKAGE VALIDATION
+     ========================================================== */
+
+  function validatePackage() {
+
+    if (
+      !packageSelect ||
+      !packageSelect.value
+    ) {
+
+      showError(
+        "Please select the exact package."
+      );
+
+      return false;
+    }
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     18. CONDITION VALIDATION
+     ========================================================== */
+
+  function validateCondition() {
+
+    const selected =
+      form.querySelector(
+        'input[name="condition"]:checked'
+      );
+
+    if (!selected) {
+
+      showError(
+        "Please select the condition of the drone."
+      );
+
+      return false;
+    }
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     19. FLIGHT TIME
+     ========================================================== */
+
+  function getFlightRange() {
+
+    const selected =
+      form.querySelector(
+        'input[name="flightHoursRange"]:checked'
+      );
+
+    if (selected) {
+      return selected.value;
+    }
+
+    const hoursInput =
+      document.getElementById(
+        "flight-hours"
+      );
+
+    if (
+      !hoursInput ||
+      hoursInput.value === ""
+    ) {
+      return "";
+    }
+
+
+    const hours =
+      Number(hoursInput.value);
+
+
+    if (hours < 5) {
+      return "0-5";
+    }
+
+    if (hours < 20) {
+      return "5-20";
+    }
+
+    if (hours < 50) {
+      return "20-50";
+    }
+
+    if (hours < 100) {
+      return "50-100";
+    }
+
+    if (hours < 150) {
+      return "100-150";
+    }
+
+    if (hours < 200) {
+      return "150-200";
+    }
+
+    return "200+";
+
+  }
+
+
+  function validateFlightTime() {
+
+    const hoursInput =
+      document.getElementById(
+        "flight-hours"
+      );
+
+
+    const range =
+      form.querySelector(
+        'input[name="flightHoursRange"]:checked'
+      );
+
+
+    if (
+      (!hoursInput ||
+       hoursInput.value === "") &&
+      !range
+    ) {
+
+      showError(
+        "Please enter the total flight hours or select a flight-time range."
+      );
+
+      return false;
+    }
+
+
+    if (
+      hoursInput &&
+      hoursInput.value !== ""
+    ) {
+
+      const hours =
+        Number(hoursInput.value);
+
+      if (
+        !Number.isFinite(hours) ||
+        hours < 0
+      ) {
+
+        showError(
+          "Please enter a valid flight-hour figure."
+        );
+
+        return false;
+      }
+
+    }
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     20. BATTERY CREATION
+     ========================================================== */
+
+  function createBatteryEntry() {
+
+    if (!batteriesContainer) {
+      return;
+    }
+
+
+    batteryCount += 1;
+
+
+    const entry =
+      document.createElement("div");
+
+
+    entry.className =
+      "battery-entry";
+
+
+    entry.dataset.batteryNumber =
+      String(batteryCount);
+
+
+    entry.innerHTML = `
+
+      <h4>Battery ${batteryCount}</h4>
+
+      <label>
+        Battery Type
+        <input
+          type="text"
+          class="battery-type"
+          name="batteryType${batteryCount}"
+          placeholder="e.g. Intelligent Flight Battery"
+        >
       </label>
 
-      <input
-        type="number"
-        id="flight-hours"
-        name="flightHours"
-        min="0"
-        step="0.1"
-        placeholder="e.g. 4.2"
-      >
-
-      <p>Or select a quick range:</p>
-
-      <fieldset>
-
-        <legend>Flight time range</legend>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="0-5">
-          0–5 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="5-20">
-          5–20 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="20-50">
-          20–50 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="50-100">
-          50–100 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="100-150">
-          100–150 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="150-200">
-          150–200 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="200+">
-          200+ hours
-        </label>
-
-      </fieldset>
-
-      <p>
-        Where possible, please provide a photograph or screenshot
-        showing the flight-time information.
-      </p>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 6 -->
-    <section class="wizard-step" data-step="6" hidden>
-
-      <h3>Step 6: Battery Information</h3>
-
-      <p>
-        Add every battery being supplied with the drone.
-      </p>
-
-      <div id="batteries-container"></div>
+      <label>
+        Battery Cycle Count
+        <input
+          type="number"
+          class="battery-cycles"
+          name="batteryCycles${batteryCount}"
+          min="0"
+          step="1"
+          placeholder="e.g. 42"
+        >
+      </label>
 
       <button
         type="button"
-        class="btn btn-add"
-        id="add-battery-btn">
-        Add Battery
+        class="btn-remove-battery">
+        Remove Battery
       </button>
 
-      <p>
-        Please provide a photograph or screenshot showing the
-        battery cycle count where possible.
-      </p>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
+    `;
 
 
-    <!-- STEP 7 -->
-    <section class="wizard-step" data-step="7" hidden>
+    batteriesContainer.appendChild(entry);
 
-      <h3>Step 7: Unbound Status</h3>
+  }
 
-      <p>
-        Is the drone unbound from your DJI account?
-      </p>
 
-      <fieldset>
+  /* ==========================================================
+     21. BATTERY VALIDATION
+     ========================================================== */
 
-        <legend>DJI account status</legend>
+  function validateBatteries() {
 
-        <label>
-          <input type="radio" name="unbound" value="yes">
-          Yes
-        </label>
+    if (!batteriesContainer) {
 
-        <label>
-          <input type="radio" name="unbound" value="no">
-          No
-        </label>
+      showError(
+        "Battery section could not be loaded."
+      );
 
-        <label>
-          <input type="radio" name="unbound" value="unknown">
-          I Don't Know
-        </label>
+      return false;
+    }
 
-      </fieldset>
 
-      <div id="unbound-warning" hidden>
+    const batteries =
+      Array.from(
+        batteriesContainer.querySelectorAll(
+          ".battery-entry"
+        )
+      );
+
+
+    if (batteries.length === 0) {
+
+      showError(
+        "Please click Add Battery and enter at least one battery."
+      );
+
+      return false;
+    }
+
+
+    for (
+      let i = 0;
+      i < batteries.length;
+      i++
+    ) {
+
+      const type =
+        batteries[i].querySelector(
+          ".battery-type"
+        );
+
+      const cycles =
+        batteries[i].querySelector(
+          ".battery-cycles"
+        );
+
+
+      if (
+        !type ||
+        !type.value.trim()
+      ) {
+
+        showError(
+          "Please enter the battery type for every battery."
+        );
+
+        return false;
+      }
+
+
+      if (
+        !cycles ||
+        cycles.value === ""
+      ) {
+
+        showError(
+          "Please enter the battery cycle count for every battery."
+        );
+
+        return false;
+      }
+
+
+      const cycleNumber =
+        Number(cycles.value);
+
+
+      if (
+        !Number.isFinite(cycleNumber) ||
+        cycleNumber < 0
+      ) {
+
+        showError(
+          "Battery cycle counts must be zero or greater."
+        );
+
+        return false;
+      }
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     22. UNBOUND
+     ========================================================== */
+
+  function validateUnbound() {
+
+    const selected =
+      form.querySelector(
+        'input[name="unbound"]:checked'
+      );
+
+
+    if (!selected) {
+
+      showError(
+        "Please tell us whether the drone is unbound."
+      );
+
+      return false;
+    }
+
+
+    if (
+      unboundWarning &&
+      selected.value === "no"
+    ) {
+
+      unboundWarning.hidden = false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     23. DAMAGE
+     ========================================================== */
+
+  function validateDamage() {
+
+    const selected =
+      form.querySelector(
+        'input[name="damage"]:checked'
+      );
+
+
+    if (!selected) {
+
+      showError(
+        "Please tell us whether the drone has any damage."
+      );
+
+      return false;
+    }
+
+
+    if (
+      selected.value === "yes"
+    ) {
+
+      const description =
+        document.getElementById(
+          "damage-description"
+        );
+
+
+      if (
+        !description ||
+        !description.value.trim()
+      ) {
+
+        showError(
+          "Please describe the damage."
+        );
+
+        return false;
+      }
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     24. PACKAGE CONTENTS
+     ========================================================== */
+
+  function populatePackageContents() {
+
+    if (!packageContentsList) {
+      return;
+    }
+
+
+    packageContentsList.innerHTML = "";
+
+
+    const modelId =
+      modelSelect.value;
+
+
+    const packageId =
+      packageSelect.value;
+
+
+    let packages =
+      packageDatabase[modelId];
+
+
+    if (!packages) {
+      packages = defaultPackages;
+    }
+
+
+    const selectedPackage =
+      packages.find(function (item) {
+
+        return item.id === packageId;
+
+      });
+
+
+    if (!selectedPackage) {
+
+      packageContentsList.innerHTML =
+        "<p>Package contents will appear here.</p>";
+
+      return;
+
+    }
+
+
+    currentPackageContents =
+      selectedPackage.contents.slice();
+
+
+    selectedPackage.contents.forEach(
+      function (item, index) {
+
+        const wrapper =
+          document.createElement("div");
+
+        wrapper.className =
+          "package-content-item";
+
+
+        wrapper.innerHTML = `
+
+          <strong>${item}</strong>
+
+          <label>
+            <input
+              type="radio"
+              name="content-${index}"
+              value="present"
+              checked
+            >
+            Present
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="content-${index}"
+              value="missing"
+            >
+            Missing
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="content-${index}"
+              value="additional"
+            >
+            Additional
+          </label>
+
+        `;
+
+
+        packageContentsList.appendChild(
+          wrapper
+        );
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     25. SERIAL NUMBER VALIDATION
+     ========================================================== */
+
+  function validateSerialNumbers() {
+
+    const droneSerial =
+      document.getElementById(
+        "drone-serial-number"
+      );
+
+
+    if (
+      !droneSerial ||
+      !droneSerial.value.trim()
+    ) {
+
+      showError(
+        "Please enter the drone serial number."
+      );
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     26. PHOTO VALIDATION
+     ========================================================== */
+
+  function validatePhotos() {
+
+    const photoInput =
+      document.getElementById(
+        "photo-uploads"
+      );
+
+
+    if (
+      !photoInput ||
+      !photoInput.files ||
+      photoInput.files.length === 0
+    ) {
+
+      showError(
+        "Please upload at least one photograph. You can select multiple photographs at once."
+      );
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     27. OWNERSHIP
+     ========================================================== */
+
+  function validateOwnership() {
+
+    const selected =
+      form.querySelector(
+        'input[name="legalRight"]:checked'
+      );
+
+
+    if (!selected) {
+
+      showError(
+        "Please confirm whether you have the legal right to sell this equipment."
+      );
+
+      return false;
+
+    }
+
+
+    if (
+      selected.value === "no" ||
+      selected.value === "not-sure"
+    ) {
+
+      if (ownershipWarning) {
+        ownershipWarning.hidden = false;
+      }
+
+
+      showError(
+        "We cannot automatically purchase equipment where ownership is uncertain. Please contact us for a manual review."
+      );
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* ==========================================================
+     28. CUSTOMER DETAILS
+     ========================================================== */
+
+  function validateCustomerDetails() {
+
+    const requiredIds = [
+
+      "full-name",
+      "email-address",
+      "phone-number",
+      "address-line-1",
+      "city",
+      "postcode"
+
+    ];
+
+
+    for (
+      let i = 0;
+      i < requiredIds.length;
+      i++
+    ) {
+
+      const element =
+        document.getElementById(
+          requiredIds[i]
+        );
+
+
+      if (
+        !element ||
+        !element.value.trim()
+      ) {
+
+        showError(
+          "Please complete all required customer and return-address fields."
+        );
+
+        if (element) {
+          element.focus();
+        }
+
+        return false;
+
+      }
+
+    }
+
+
+    const email =
+      document.getElementById(
+        "email-address"
+      );
+
+
+    const emailPattern =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+    if (
+      !emailPattern.test(
+        email.value.trim()
+      )
+    ) {
+
+      showError(
+        "Please enter a valid email address."
+      );
+
+      email.focus();
+
+      return false;
+
+    }
+
+
+    const phone =
+      document.getElementById(
+        "phone-number"
+      );
+
+
+    const phoneDigits =
+      phone.value.replace(
+        /[^0-9+]/g,
+        ""
+      );
+
+
+    if (
+      phoneDigits.length < 7
+    ) {
+
+      showError(
+        "Please enter a valid telephone number."
+      );
+
+      phone.focus();
+
+      return false;
+
+    }
+
+
+    const postcode =
+      document.getElementById(
+        "postcode"
+      );
+
+
+    const postcodePattern =
+      /^[A-Z0-9]{2,4}\s?[A-Z0-9]{3}$/i;
+
+
+    if (
+      !postcodePattern.test(
+        postcode.value.trim()
+      )
+    ) {
+
+      showError(
+        "Please enter a valid UK postcode."
+      );
+
+      postcode.focus();
+
+      return false;
+
+    }
+
+
+    return validateOwnership();
+
+  }
+
+
+  /* ==========================================================
+     29. PRICING ENGINE
+     ========================================================== */
+
+  function calculateQuote() {
+
+    const modelId =
+      modelSelect.value;
+
+
+    const packageId =
+      packageSelect.value;
+
+
+    const model =
+      droneDatabase.dji[modelId];
+
+
+    if (!model) {
+
+      return {
+        manual: true,
+        reason: "Model not found."
+      };
+
+    }
+
+
+    if (
+      manualValuationCategories.includes(
+        model.category
+      )
+    ) {
+
+      return {
+        manual: true,
+        reason:
+          "High-value professional equipment requires manual valuation."
+      };
+
+    }
+
+
+    const modelPricing =
+      pricingDatabase[modelId];
+
+
+    if (
+      !modelPricing
+    ) {
+
+      return {
+        manual: true,
+        reason:
+          "This model has not yet been given a verified automatic purchase price."
+      };
+
+    }
+
+
+    const packagePricing =
+      modelPricing.packages[packageId];
+
+
+    if (
+      !packagePricing ||
+      packagePricing.basePrice === null
+    ) {
+
+      return {
+        manual: true,
+        reason:
+          "A verified purchase price has not yet been entered for this package."
+      };
+
+    }
+
+
+    let value =
+      Number(packagePricing.basePrice);
+
+
+    const floor =
+      packagePricing.floorPrice === null
+        ? 0
+        : Number(packagePricing.floorPrice);
+
+
+    const flightRange =
+      getFlightRange();
+
+
+    const flightDeduction =
+      flightDeductions[flightRange];
+
+
+    if (
+      flightDeduction === null
+    ) {
+
+      return {
+        manual: true,
+        reason:
+          "The reported flight time requires manual valuation."
+      };
+
+    }
+
+
+    if (
+      typeof flightDeduction === "number"
+    ) {
+
+      value -= flightDeduction;
+
+    }
+
+
+    const condition =
+      form.querySelector(
+        'input[name="condition"]:checked'
+      );
+
+
+    if (condition) {
+
+      value -=
+        Number(
+          conditionDeductions[
+            condition.value
+          ] || 0
+        );
+
+    }
+
+
+    const batteries =
+      batteriesContainer
+        ? Array.from(
+            batteriesContainer.querySelectorAll(
+              ".battery-entry"
+            )
+          )
+        : [];
+
+
+    batteries.forEach(
+      function (battery) {
+
+        const cycles =
+          battery.querySelector(
+            ".battery-cycles"
+          );
+
+
+        if (cycles) {
+
+          value -=
+            batteryCycleDeduction(
+              cycles.value
+            );
+
+        }
+
+      }
+    );
+
+
+    if (value < floor) {
+
+      return {
+        manual: true,
+        reason:
+          "The calculated value is below the automatic purchase floor."
+      };
+
+    }
+
+
+    return {
+
+      manual: false,
+
+      value: Math.max(
+        0,
+        Math.round(value)
+      )
+
+    };
+
+  }
+
+
+  /* ==========================================================
+     30. QUOTE RESULT
+     ========================================================== */
+
+  function displayQuote() {
+
+    if (!quoteSummary) {
+      return;
+    }
+
+
+    const modelId =
+      modelSelect.value;
+
+
+    const model =
+      droneDatabase.dji[modelId];
+
+
+    const packageId =
+      packageSelect.value;
+
+
+    let packages =
+      packageDatabase[modelId];
+
+
+    if (!packages) {
+      packages = defaultPackages;
+    }
+
+
+    const selectedPackage =
+      packages.find(function (item) {
+
+        return item.id === packageId;
+
+      });
+
+
+    const condition =
+      form.querySelector(
+        'input[name="condition"]:checked'
+      );
+
+
+    const quote =
+      calculateQuote();
+
+
+    if (quote.manual) {
+
+      quoteSummary.innerHTML = `
+
+        <div class="manual-valuation">
+
+          <h4>MANUAL VALUATION REQUIRED</h4>
+
+          <p>
+            We need to manually assess this equipment before
+            confirming a purchase price.
+          </p>
+
+          <p>
+            <strong>Reason:</strong>
+            ${quote.reason}
+          </p>
+
+          <p>
+            Your information can still be submitted for review.
+          </p>
+
+        </div>
+
+      `;
+
+      return;
+
+    }
+
+
+    quoteSummary.innerHTML = `
+
+      <div class="quote-result">
+
+        <h4>YOUR INSTANT QUOTE</h4>
+
         <p>
-          The aircraft normally needs to be unbound before a
-          standard purchase can proceed. If you are unsure,
-          we can review it manually.
-        </p>
-      </div>
-
-      <p>
-        Please provide evidence showing the aircraft is unbound
-        where possible.
-      </p>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 8 -->
-    <section class="wizard-step" data-step="8" hidden>
-
-      <h3>Step 8: Damage</h3>
-
-      <p>Does the drone have any damage?</p>
-
-      <fieldset>
-
-        <legend>Damage status</legend>
-
-        <label>
-          <input type="radio" name="damage" value="no">
-          No
-        </label>
-
-        <label>
-          <input type="radio" name="damage" value="yes">
-          Yes
-        </label>
-
-      </fieldset>
-
-      <div id="damage-details" hidden>
-
-        <label for="damage-description">
-          Describe the damage
-        </label>
-
-        <textarea
-          id="damage-description"
-          name="damageDescription"
-          rows="5"
-          placeholder="Please describe any damage..."
-        ></textarea>
-
-        <p>
-          Please photograph all damaged areas.
+          <strong>Model:</strong>
+          ${model ? model.name : ""}
         </p>
 
         <p>
-          Examples include cracked body, damaged arm,
-          damaged gimbal, damaged camera, scratches,
-          propeller damage, landing damage, water damage
-          or other faults.
-        </p>
-
-      </div>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 9 -->
-    <section class="wizard-step" data-step="9" hidden>
-
-      <h3>Step 9: Package Contents</h3>
-
-      <p>
-        Tell us what is included with your package.
-      </p>
-
-      <div id="package-contents-list"></div>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 10 -->
-    <section class="wizard-step" data-step="10" hidden>
-
-      <h3>Step 10: Serial Numbers</h3>
-
-      <label for="drone-serial-number">
-        Drone Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="drone-serial-number"
-        name="droneSerial"
-        maxlength="50"
-        placeholder="Enter drone serial number"
-      >
-
-      <label for="controller-serial-number">
-        Controller Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="controller-serial-number"
-        name="controllerSerial"
-        maxlength="50"
-        placeholder="If applicable"
-      >
-
-      <p>
-        Serial numbers may be checked during inspection and
-        ownership verification.
-      </p>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 11 -->
-    <section class="wizard-step" data-step="11" hidden>
-
-      <h3>Step 11: Photographs</h3>
-
-      <p>
-        Upload clear photographs to help us verify the equipment.
-      </p>
-
-      <ul>
-        <li>Drone</li>
-        <li>Controller</li>
-        <li>Package contents</li>
-        <li>Flight-time information</li>
-        <li>Battery cycle information</li>
-        <li>Unbound status</li>
-        <li>Damage, where applicable</li>
-        <li>Serial numbers where possible</li>
-      </ul>
-
-      <label for="photo-uploads">
-        Upload photographs
-      </label>
-
-      <input
-        type="file"
-        id="photo-uploads"
-        name="photos"
-        accept="image/*"
-        multiple
-      >
-
-      <p>
-        Clear photographs are important because the Instant Quote
-        is based on the information supplied.
-      </p>
-
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-next">Next</button>
-      </div>
-
-    </section>
-
-
-    <!-- STEP 12 -->
-    <section class="wizard-step" data-step="12" hidden>
-
-      <h3>Your Instant Quote</h3>
-
-      <div id="quote-summary"></div>
-
-      <div class="quote-important">
-
-        <h4>IMPORTANT</h4>
-
-        <p>
-          Your Instant Quote is based on the information and
-          photographs you have provided.
+          <strong>Package:</strong>
+          ${selectedPackage
+            ? selectedPackage.name
+            : ""}
         </p>
 
         <p>
-          All equipment is physically inspected when received.
+          <strong>Condition:</strong>
+          ${condition
+            ? condition.parentElement.textContent.trim()
+            : ""}
         </p>
 
-        <p>
-          If the equipment matches the information supplied,
-          we will confirm the quoted price.
-        </p>
+        <div class="quote-price">
+
+          £${quote.value.toLocaleString(
+            "en-GB"
+          )}
+
+        </div>
 
         <p>
-          If the condition, contents, flight time, ownership
-          or other information differs materially, we may make
-          a revised final offer.
-        </p>
-
-        <p>
-          If you do not accept a revised offer, we will return
-          the equipment to the full address you provide.
+          Estimated purchase price
         </p>
 
       </div>
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-accept">
-          Accept Instant Quote &amp; Continue
-        </button>
-      </div>
+    `;
 
-    </section>
+  }
 
-
-    <!-- STEP 13 -->
-    <section class="wizard-step" data-step="13" hidden>
 
-      <h3>Step 13: Customer Details</h3>
-
-      <p>
-        We require your full return address because your equipment
-        is physically inspected after receipt. If you reject a
-        revised final valuation, we need to be able to return
-        your equipment to you.
-      </p>
-
-      <label for="full-name">Full Name</label>
+  /* ==========================================================
+     31. QUOTE REFERENCE
+     ========================================================== */
 
-      <input
-        type="text"
-        id="full-name"
-        name="fullName"
-        autocomplete="name"
-      >
-
-      <label for="email-address">Email Address</label>
-
-      <input
-        type="email"
-        id="email-address"
-        name="email"
-        autocomplete="email"
-      >
-
-      <label for="phone-number">Telephone Number</label>
-
-      <input
-        type="tel"
-        id="phone-number"
-        name="phone"
-        autocomplete="tel"
-      >
+  function generateQuoteReference() {
 
-      <fieldset>
+    const year =
+      new Date().getFullYear();
 
-        <legend>Full Return Address</legend>
 
-        <label for="address-line-1">Address Line 1</label>
+    const random =
+      Math.floor(
+        100000 +
+        Math.random() * 900000
+      );
 
-        <input
-          type="text"
-          id="address-line-1"
-          name="addressLine1"
-          autocomplete="address-line1"
-        >
 
-        <label for="address-line-2">Address Line 2</label>
+    return "WBA-" +
+      year +
+      "-" +
+      random;
 
-        <input
-          type="text"
-          id="address-line-2"
-          name="addressLine2"
-          autocomplete="address-line2"
-        >
+  }
 
-        <label for="city">Town / City</label>
 
-        <input
-          type="text"
-          id="city"
-          name="city"
-          autocomplete="address-level2"
-        >
+  /* ==========================================================
+     32. UNBOUND CHANGE
+     ========================================================== */
 
-        <label for="county">County</label>
+  const unboundInputs =
+    form.querySelectorAll(
+      'input[name="unbound"]'
+    );
 
-        <input
-          type="text"
-          id="county"
-          name="county"
-          autocomplete="address-level1"
-        >
 
-        <label for="postcode">Postcode</label>
+  unboundInputs.forEach(
+    function (input) {
 
-        <input
-          type="text"
-          id="postcode"
-          name="postcode"
-          autocomplete="postal-code"
-        >
+      input.addEventListener(
+        "change",
+        function () {
 
-      </fieldset>
+          if (!unboundWarning) {
+            return;
+          }
 
-      <fieldset>
 
-        <legend>
-          Do you have the legal right to sell this equipment?
-        </legend>
+          if (
+            input.checked &&
+            input.value === "no"
+          ) {
 
-        <label>
-          <input type="radio" name="legalRight" value="yes">
-          Yes
-        </label>
+            unboundWarning.hidden =
+              false;
 
-        <label>
-          <input type="radio" name="legalRight" value="no">
-          No
-        </label>
+          } else {
 
-        <label>
-          <input type="radio" name="legalRight" value="not-sure">
-          I'm not sure
-        </label>
+            unboundWarning.hidden =
+              true;
 
-      </fieldset>
+          }
 
-      <div id="ownership-warning" hidden>
-        <p>
-          We cannot automatically purchase equipment where
-          ownership is uncertain. Please contact us for manual review.
-        </p>
-      </div>
+        }
+      );
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-back">Back</button>
-        <button type="button" class="btn btn-submit">
-          Submit Quote
-        </button>
-      </div>
+    }
+  );
 
-    </section>
 
+  /* ==========================================================
+     33. DAMAGE CHANGE
+     ========================================================== */
 
-    <!-- STEP 14 -->
-    <section class="wizard-step" data-step="14" hidden>
+  const damageInputs =
+    form.querySelectorAll(
+      'input[name="damage"]'
+    );
 
-      <h3>Quote Submitted</h3>
 
-      <p>Your quote reference:</p>
+  damageInputs.forEach(
+    function (input) {
 
-      <p id="quote-reference" class="quote-ref"></p>
+      input.addEventListener(
+        "change",
+        function () {
 
-      <p>
-        Your information has been recorded for the next stage
-        of the process.
-      </p>
+          if (!damageDetails) {
+            return;
+          }
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-next">
-          Continue to Shipping
-        </button>
-      </div>
 
-    </section>
+          if (
+            input.checked &&
+            input.value === "yes"
+          ) {
 
+            damageDetails.hidden =
+              false;
 
-    <!-- STEP 15 -->
-    <section class="wizard-step" data-step="15" hidden>
+          } else {
 
-      <h3>Shipping Instructions</h3>
+            damageDetails.hidden =
+              true;
 
-      <p>
-        Your shipping instructions will be provided by email.
-      </p>
+          }
 
-      <div class="shipping-box">
+        }
+      );
 
-        <h4>Shipping Label</h4>
+    }
+  );
 
-        <p>
-          Check your email for your shipping label and instructions.
-        </p>
 
-        <p>
-          <strong>BACKEND / SHIPPING PROVIDER INTEGRATION REQUIRED</strong>
-        </p>
+  /* ==========================================================
+     34. MODEL CHANGE
+     ========================================================== */
 
-        <p>
-          A courier label system can be connected here in future.
-        </p>
+  if (modelSelect) {
 
-      </div>
+    modelSelect.addEventListener(
+      "change",
+      function () {
 
-      <div class="navigation-buttons">
-        <button type="button" class="btn btn-next">
-          Continue to Final Inspection
-        </button>
-      </div>
+        populatePackages();
 
-    </section>
+        if (packageContentsList) {
+          packageContentsList.innerHTML = "";
+        }
 
+      }
+    );
 
-    <!-- STEP 16 -->
-    <section class="wizard-step" data-step="16" hidden>
+  }
 
-      <h3>Step 16: Final Inspection</h3>
 
-      <p>
-        When your equipment arrives, we will inspect:
-      </p>
+  /* ==========================================================
+     35. PACKAGE CHANGE
+     ========================================================== */
 
-      <ol>
-        <li>Model</li>
-        <li>Serial number</li>
-        <li>Flight time</li>
-        <li>Battery cycles</li>
-        <li>Condition</li>
-        <li>Damage</li>
-        <li>Package contents</li>
-        <li>Unbound status</li>
-      </ol>
+  if (packageSelect) {
 
-      <h3>Final Offer</h3>
+    packageSelect.addEventListener(
+      "change",
+      function () {
 
-      <p>
-        Following inspection, we determine the final valuation.
-      </p>
+        populatePackageContents();
 
-      <p>
-        If the final valuation differs from the Instant Quote,
-        you can accept or decline the revised offer.
-      </p>
+      }
+    );
 
-      <h4>If you accept</h4>
+  }
 
-      <p>
-        Payment can then be processed.
-      </p>
 
-      <h4>If you decline</h4>
+  /* ==========================================================
+     36. ADD BATTERY
+     ========================================================== */
 
-      <p>
-        Your equipment will be returned to the full return
-        address supplied during the quote process.
-      </p>
+  if (addBatteryButton) {
 
-      <p>
-        <strong>
-          BANK DETAILS ARE ONLY REQUESTED AFTER YOU ACCEPT
-          THE FINAL OFFER.
-        </strong>
-      </p>
+    addBatteryButton.addEventListener(
+      "click",
+      function (event) {
 
-      <p>
-        Payment and bank-detail processing require backend
-        integration.
-      </p>
+        event.preventDefault();
 
-    </section>
+        createBatteryEntry();
 
-  </form>
+      }
+    );
 
-</main>
+  }
 
 
-<footer class="footer">
+  /* ==========================================================
+     37. REMOVE BATTERY
+     ========================================================== */
 
-  <div class="container footer-container">
+  if (batteriesContainer) {
 
-    <div>
-      <strong>WE BUY ANY DRONE</strong><br>
-      Sell your DJI drone quickly and easily.
-    </div>
+    batteriesContainer.addEventListener(
+      "click",
+      function (event) {
 
-    <nav aria-label="Footer navigation">
+        if (
+          event.target.classList.contains(
+            "btn-remove-battery"
+          )
+        ) {
 
-      <ul class="footer-nav">
+          event.preventDefault();
 
-        <li><a href="quote.html">Get an Instant Quote</a></li>
-        <li><a href="how-it-works.html">How It Works</a></li>
-        <li><a href="what-we-buy.html">What We Buy</a></li>
-        <li><a href="faq.html">FAQ</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
-        <li><a href="contact.html">Contact</a></li>
+          const entry =
+            event.target.closest(
+              ".battery-entry"
+            );
 
-      </ul>
 
-    </nav>
+          if (entry) {
 
-  </div>
+            entry.remove();
 
-</footer>
+          }
 
+        }
 
-<script src="quote.js" defer></script>
+      }
+    );
 
-</body>
-</html>
+  }
+
+
+  /* ==========================================================
+     38. BACK BUTTONS
+     ========================================================== */
+
+  const backButtons =
+    form.querySelectorAll(
+      ".btn-back"
+    );
+
+
+  backButtons.forEach(
+    function (button) {
+
+      button.addEventListener(
+        "click",
+        function (event) {
+
+          event.preventDefault();
+
+          if (currentStep > 0) {
+
+            showStep(
+              currentStep - 1
+            );
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+  /* ==========================================================
+     39. NEXT BUTTONS
+     ========================================================== */
+
+  const nextButtons =
+    form.querySelectorAll(
+      ".btn-next"
+    );
+
+
+  nextButtons.forEach(
+    function (button) {
+
+      button.addEventListener(
+        "click",
+        function (event) {
+
+          event.preventDefault();
+
+
+          /* STEP 1 */
+
+          if (currentStep === 0) {
+
+            if (
+              !validateManufacturer()
+            ) {
+              return;
+            }
+
+
+            populateModels();
+
+            showStep(1);
+
+            return;
+
+          }
+
+
+          /* STEP 2 */
+
+          if (currentStep === 1) {
+
+            if (
+              !validateModel()
+            ) {
+              return;
+            }
+
+
+            populatePackages();
+
+            showStep(2);
+
+            return;
+
+          }
+
+
+          /* STEP 3 */
+
+          if (currentStep === 2) {
+
+            if (
+              !validatePackage()
+            ) {
+              return;
+            }
+
+
+            populatePackageContents();
+
+            showStep(3);
+
+            return;
+
+          }
+
+
+          /* STEP 4 */
+
+          if (currentStep === 3) {
+
+            if (
+              !validateCondition()
+            ) {
+              return;
+            }
+
+
+            showStep(4);
+
+            return;
+
+          }
+
+
+          /* STEP 5 */
+
+          if (currentStep === 4) {
+
+            if (
+              !validateFlightTime()
+            ) {
+              return;
+            }
+
+
+            showStep(5);
+
+            return;
+
+          }
+
+
+          /* STEP 6 */
+
+          if (currentStep === 5) {
+
+            if (
+              !validateBatteries()
+            ) {
+              return;
+            }
+
+
+            showStep(6);
+
+            return;
+
+          }
+
+
+          /* STEP 7 */
+
+          if (currentStep === 6) {
+
+            if (
+              !validateUnbound()
+            ) {
+              return;
+            }
+
+
+            showStep(7);
+
+            return;
+
+          }
+
+
+          /* STEP 8 */
+
+          if (currentStep === 7) {
+
+            if (
+              !validateDamage()
+            ) {
+              return;
+            }
+
+
+            showStep(8);
+
+            return;
+
+          }
+
+
+          /* STEP 9 */
+
+          if (currentStep === 8) {
+
+            showStep(9);
+
+            return;
+
+          }
+
+
+          /* STEP 10 */
+
+          if (currentStep === 9) {
+
+            if (
+              !validateSerialNumbers()
+            ) {
+              return;
+            }
+
+
+            showStep(10);
+
+            return;
+
+          }
+
+
+          /* STEP 11 */
+
+          if (currentStep === 10) {
+
+            if (
+              !validatePhotos()
+            ) {
+              return;
+            }
+
+
+            displayQuote();
+
+            showStep(11);
+
+            return;
+
+          }
+
+
+          /* STEP 12 */
+
+          if (currentStep === 11) {
+
+            showStep(12);
+
+            return;
+
+          }
+
+
+          /* STEP 14 */
+
+          if (currentStep === 13) {
+
+            showStep(14);
+
+            return;
+
+          }
+
+
+          /* STEP 15 */
+
+          if (currentStep === 14) {
+
+            showStep(15);
+
+            return;
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+  /* ==========================================================
+     40. ACCEPT INSTANT QUOTE
+     ========================================================== */
+
+  const acceptButton =
+    form.querySelector(
+      ".btn-accept"
+    );
+
+
+  if (acceptButton) {
+
+    acceptButton.addEventListener(
+      "click",
+      function (event) {
+
+        event.preventDefault();
+
+        showStep(12);
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     41. SUBMIT CUSTOMER DETAILS
+     ========================================================== */
+
+  const submitButton =
+    form.querySelector(
+      ".btn-submit"
+    );
+
+
+  if (submitButton) {
+
+    submitButton.addEventListener(
+      "click",
+      function (event) {
+
+        event.preventDefault();
+
+
+        if (
+          !validateCustomerDetails()
+        ) {
+          return;
+        }
+
+
+        const reference =
+          generateQuoteReference();
+
+
+        if (quoteReference) {
+
+          quoteReference.textContent =
+            reference;
+
+        }
+
+
+        showStep(13);
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     42. INITIALISE
+     ========================================================== */
+
+  populateModels();
+
+  showStep(0);
+
+
+  console.log(
+    "WE BUY ANY DRONE quote wizard loaded successfully."
+  );
+
+});
