@@ -1,1032 +1,322 @@
-/* ============================================================
-   WE BUY ANY DRONE
-   INSTANT QUOTE WIZARD
-   ============================================================ */
-
 document.addEventListener("DOMContentLoaded", function () {
 
   "use strict";
 
-  /* ==========================================================
-     1. MODEL DATABASE
-     ========================================================== */
+  /* =========================================================
+     BASIC DOM SETUP
+  ========================================================= */
 
-  const droneDatabase = {
+  const form = document.getElementById("quote-form");
 
-    dji: {
+  if (!form) {
+    console.error("quote.js: quote-form was not found.");
+    return;
+  }
 
-      "dji-mini": {
-        name: "DJI Mini",
-        category: "Mini"
-      },
+  const steps = Array.from(form.querySelectorAll(".wizard-step"));
+  const progressItems = Array.from(
+    document.querySelectorAll("#progress-indicator .progress-step")
+  );
 
-      "mini-se": {
-        name: "DJI Mini SE",
-        category: "Mini"
-      },
+  let currentStep = 0;
+  let quoteAccepted = false;
+  let manualValuation = false;
 
-      "mini-2": {
-        name: "DJI Mini 2",
-        category: "Mini"
-      },
-
-      "mini-2-se": {
-        name: "DJI Mini 2 SE",
-        category: "Mini"
-      },
-
-      "mini-3": {
-        name: "DJI Mini 3",
-        category: "Mini"
-      },
-
-      "mini-3-pro": {
-        name: "DJI Mini 3 Pro",
-        category: "Mini"
-      },
-
-      "mini-4-pro": {
-        name: "DJI Mini 4 Pro",
-        category: "Mini"
-      },
-
-      "mini-5-pro": {
-        name: "DJI Mini 5 Pro",
-        category: "Mini"
-      },
-
-      "neo": {
-        name: "DJI Neo",
-        category: "Neo"
-      },
-
-      "neo-2": {
-        name: "DJI Neo 2",
-        category: "Neo"
-      },
-
-      "lito-1": {
-        name: "DJI Lito 1",
-        category: "Lito"
-      },
-
-      "lito-x1": {
-        name: "DJI Lito X1",
-        category: "Lito"
-      },
-
-      "flip": {
-        name: "DJI Flip",
-        category: "Flip"
-      },
-
-      "air": {
-        name: "DJI Air",
-        category: "Air"
-      },
-
-      "air-2": {
-        name: "DJI Air 2",
-        category: "Air"
-      },
-
-      "air-2s": {
-        name: "DJI Air 2S",
-        category: "Air"
-      },
-
-      "air-3": {
-        name: "DJI Air 3",
-        category: "Air"
-      },
-
-      "air-3s": {
-        name: "DJI Air 3S",
-        category: "Air"
-      },
-
-      "mavic-mini": {
-        name: "DJI Mavic Mini",
-        category: "Mavic"
-      },
-
-      "mavic-pro": {
-        name: "DJI Mavic Pro",
-        category: "Mavic"
-      },
-
-      "mavic-2-pro": {
-        name: "DJI Mavic 2 Pro",
-        category: "Mavic"
-      },
-
-      "mavic-2-zoom": {
-        name: "DJI Mavic 2 Zoom",
-        category: "Mavic"
-      },
-
-      "mavic-3": {
-        name: "DJI Mavic 3",
-        category: "Mavic"
-      },
-
-      "mavic-3-classic": {
-        name: "DJI Mavic 3 Classic",
-        category: "Mavic"
-      },
-
-      "mavic-3-pro": {
-        name: "DJI Mavic 3 Pro",
-        category: "Mavic"
-      },
-
-      "mavic-3-pro-cine": {
-        name: "DJI Mavic 3 Pro Cine",
-        category: "Mavic"
-      },
-
-      "mavic-4-pro": {
-        name: "DJI Mavic 4 Pro",
-        category: "Mavic"
-      },
-
-      "fpv": {
-        name: "DJI FPV",
-        category: "FPV"
-      },
-
-      "avata": {
-        name: "DJI Avata",
-        category: "FPV"
-      },
-
-      "avata-2": {
-        name: "DJI Avata 2",
-        category: "FPV"
-      },
-
-      "avata-360": {
-        name: "DJI Avata 360",
-        category: "FPV"
-      },
-
-      "mavic-3-enterprise": {
-        name: "DJI Mavic 3 Enterprise",
-        category: "Professional"
-      },
-
-      "mavic-3-thermal": {
-        name: "DJI Mavic 3 Thermal",
-        category: "Professional"
-      },
-
-      "mavic-3-multispectral": {
-        name: "DJI Mavic 3 Multispectral",
-        category: "Professional"
-      },
-
-      "matrice-4e": {
-        name: "DJI Matrice 4E",
-        category: "Professional"
-      },
-
-      "matrice-4t": {
-        name: "DJI Matrice 4T",
-        category: "Professional"
-      },
-
-      "matrice-30": {
-        name: "DJI Matrice 30",
-        category: "Professional"
-      },
-
-      "matrice-30t": {
-        name: "DJI Matrice 30T",
-        category: "Professional"
-      },
-
-      "matrice-300-rtk": {
-        name: "DJI Matrice 300 RTK",
-        category: "Professional"
-      },
-
-      "matrice-350-rtk": {
-        name: "DJI Matrice 350 RTK",
-        category: "Professional"
-      },
-
-      "matrice-400": {
-        name: "DJI Matrice 400",
-        category: "Professional"
-      },
-
-      "inspire-1": {
-        name: "DJI Inspire 1",
-        category: "Professional"
-      },
-
-      "inspire-2": {
-        name: "DJI Inspire 2",
-        category: "Professional"
-      },
-
-      "inspire-3": {
-        name: "DJI Inspire 3",
-        category: "Professional"
-      },
-
-      "agras": {
-        name: "DJI Agras",
-        category: "Professional"
-      }
-
-    }
-
-  };
+  if (!steps.length) {
+    console.error("quote.js: No wizard steps were found.");
+    return;
+  }
 
 
-  /* ==========================================================
-     2. PACKAGE DATABASE
-     ========================================================== */
+  /* =========================================================
+     MODEL DATABASE
+  ========================================================= */
 
-  const packageDatabase = {
+  const modelDatabase = {
 
-    "mini-5-pro": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "standard-rc-n3",
-        name: "Standard + RC-N3",
-        contents: [
-          "Drone",
-          "RC-N3 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc-n3",
-        name: "Fly More Combo + RC-N3",
-        contents: [
-          "Drone",
-          "RC-N3 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Power Supply",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc2",
-        name: "Fly More Combo + RC 2",
-        contents: [
-          "Drone",
-          "DJI RC 2 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Power Supply",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-plus-rc2",
-        name: "Fly More Combo Plus + RC 2",
-        contents: [
-          "Drone",
-          "DJI RC 2 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Power Supply",
-          "Cables"
-        ]
-      }
-
+    mini: [
+      { id: "mini", name: "DJI Mini" },
+      { id: "mini-se", name: "DJI Mini SE" },
+      { id: "mini-2", name: "DJI Mini 2" },
+      { id: "mini-2-se", name: "DJI Mini 2 SE" },
+      { id: "mini-3", name: "DJI Mini 3" },
+      { id: "mini-3-pro", name: "DJI Mini 3 Pro" },
+      { id: "mini-4-pro", name: "DJI Mini 4 Pro" },
+      { id: "mini-5-pro", name: "DJI Mini 5 Pro" }
     ],
 
-    "mini-4-pro": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "standard-rc-n2",
-        name: "Standard + RC-N2",
-        contents: [
-          "Drone",
-          "RC-N2 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "standard-rc2",
-        name: "Standard + RC 2",
-        contents: [
-          "Drone",
-          "DJI RC 2 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc-n2",
-        name: "Fly More Combo + RC-N2",
-        contents: [
-          "Drone",
-          "RC-N2 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc2",
-        name: "Fly More Combo + RC 2",
-        contents: [
-          "Drone",
-          "DJI RC 2 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    neo: [
+      { id: "neo", name: "DJI Neo" },
+      { id: "neo-2", name: "DJI Neo 2" }
     ],
 
-    "mini-3-pro": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "drone-rc-n1",
-        name: "Drone + RC-N1",
-        contents: [
-          "Drone",
-          "RC-N1 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "drone-dji-rc",
-        name: "Drone + DJI RC",
-        contents: [
-          "Drone",
-          "DJI RC Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc-n1",
-        name: "Fly More Combo + RC-N1",
-        contents: [
-          "Drone",
-          "RC-N1 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-dji-rc",
-        name: "Fly More Combo + DJI RC",
-        contents: [
-          "Drone",
-          "DJI RC Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    lito: [
+      { id: "lito-1", name: "DJI Lito 1" },
+      { id: "lito-x1", name: "DJI Lito X1" }
     ],
 
-    "mini-3": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "standard-rc-n1",
-        name: "Standard + RC-N1",
-        contents: [
-          "Drone",
-          "RC-N1 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc-n1",
-        name: "Fly More Combo + RC-N1",
-        contents: [
-          "Drone",
-          "RC-N1 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    flip: [
+      { id: "flip", name: "DJI Flip" }
     ],
 
-    "mini-2": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "standard-rc-n1",
-        name: "Standard + RC-N1",
-        contents: [
-          "Drone",
-          "RC-N1 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more",
-        name: "Fly More Combo",
-        contents: [
-          "Drone",
-          "Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    air: [
+      { id: "air", name: "DJI Air" },
+      { id: "air-2", name: "DJI Air 2" },
+      { id: "air-2s", name: "DJI Air 2S" },
+      { id: "air-3", name: "DJI Air 3" },
+      { id: "air-3s", name: "DJI Air 3S" }
     ],
 
-    "neo": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "fly-more",
-        name: "Fly More Combo",
-        contents: [
-          "Drone",
-          "Controller",
-          "Battery 1",
-          "Battery 2",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    mavic: [
+      { id: "mavic-mini", name: "DJI Mavic Mini" },
+      { id: "mavic-pro", name: "DJI Mavic Pro" },
+      { id: "mavic-2-pro", name: "DJI Mavic 2 Pro" },
+      { id: "mavic-2-zoom", name: "DJI Mavic 2 Zoom" },
+      { id: "mavic-3", name: "DJI Mavic 3" },
+      { id: "mavic-3-classic", name: "DJI Mavic 3 Classic" },
+      { id: "mavic-3-pro", name: "DJI Mavic 3 Pro" },
+      { id: "mavic-3-pro-cine", name: "DJI Mavic 3 Pro Cine" },
+      { id: "mavic-4-pro", name: "DJI Mavic 4 Pro" }
     ],
 
-    "neo-2": [
-
-      {
-        id: "standard",
-        name: "Standard Package",
-        contents: [
-          "Drone",
-          "Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more",
-        name: "Fly More Combo",
-        contents: [
-          "Drone",
-          "Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
+    fpv: [
+      { id: "fpv", name: "DJI FPV" },
+      { id: "avata", name: "DJI Avata" },
+      { id: "avata-2", name: "DJI Avata 2" },
+      { id: "avata-360", name: "DJI Avata 360" }
     ],
 
-    "flip": [
-
-      {
-        id: "standard-rc-n3",
-        name: "Standard + RC-N3",
-        contents: [
-          "Drone",
-          "RC-N3 Controller",
-          "Battery",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc-n3",
-        name: "Fly More Combo + RC-N3",
-        contents: [
-          "Drone",
-          "RC-N3 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more-rc2",
-        name: "Fly More Combo + RC 2",
-        contents: [
-          "Drone",
-          "DJI RC 2 Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Propellers",
-          "Cables"
-        ]
-      }
-
-    ],
-
-    "avata": [
-
-      {
-        id: "drone-only",
-        name: "Drone Only",
-        contents: [
-          "Drone"
-        ]
-      },
-
-      {
-        id: "fly-smart",
-        name: "Fly Smart Combo",
-        contents: [
-          "Drone",
-          "Goggles",
-          "Controller",
-          "Battery",
-          "Charger",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "pro-view",
-        name: "Pro-View Combo",
-        contents: [
-          "Drone",
-          "Goggles",
-          "Controller",
-          "Battery",
-          "Charger",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "explorer",
-        name: "Explorer Combo",
-        contents: [
-          "Drone",
-          "Goggles",
-          "Controller",
-          "Battery",
-          "Charger",
-          "Cables"
-        ]
-      }
-
-    ],
-
-    "avata-2": [
-
-      {
-        id: "standard",
-        name: "Standard Package",
-        contents: [
-          "Drone",
-          "Goggles",
-          "Controller",
-          "Battery",
-          "Charger",
-          "Cables"
-        ]
-      },
-
-      {
-        id: "fly-more",
-        name: "Fly More Combo",
-        contents: [
-          "Drone",
-          "Goggles",
-          "Controller",
-          "Battery 1",
-          "Battery 2",
-          "Battery 3",
-          "Charging Hub",
-          "Bag",
-          "Cables"
-        ]
-      }
-
+    commercial: [
+      { id: "mavic-3-enterprise", name: "DJI Mavic 3 Enterprise" },
+      { id: "mavic-3-thermal", name: "DJI Mavic 3 Thermal" },
+      { id: "mavic-3-multispectral", name: "DJI Mavic 3 Multispectral" },
+      { id: "matrice-4e", name: "DJI Matrice 4E" },
+      { id: "matrice-4t", name: "DJI Matrice 4T" },
+      { id: "matrice-30", name: "DJI Matrice 30" },
+      { id: "matrice-30t", name: "DJI Matrice 30T" },
+      { id: "matrice-300-rtk", name: "DJI Matrice 300 RTK" },
+      { id: "matrice-350-rtk", name: "DJI Matrice 350 RTK" },
+      { id: "matrice-400", name: "DJI Matrice 400" },
+      { id: "inspire-1", name: "DJI Inspire 1" },
+      { id: "inspire-2", name: "DJI Inspire 2" },
+      { id: "inspire-3", name: "DJI Inspire 3" },
+      { id: "agras", name: "DJI Agras" }
     ]
 
   };
 
 
-  /* ==========================================================
-     3. DEFAULT PACKAGE
-     ========================================================== */
+  /* =========================================================
+     PACKAGE DATABASE
+  ========================================================= */
 
-  const defaultPackages = [
+  const packageDatabase = {
 
-    {
-      id: "standard",
-      name: "Standard Package",
-      contents: [
-        "Drone",
-        "Controller",
-        "Battery",
-        "Propellers",
-        "Cables"
-      ]
-    }
+    "mini-5-pro": [
+      ["drone-only", "Drone only"],
+      ["standard-rc-n3", "Standard + RC-N3"],
+      ["fly-more-rc-n3", "Fly More Combo + RC-N3"],
+      ["fly-more-rc-2", "Fly More Combo + RC 2"],
+      ["fly-more-plus-rc-2", "Fly More Combo Plus + RC 2"]
+    ],
 
-  ];
+    "mini-4-pro": [
+      ["drone-only", "Drone only"],
+      ["standard-rc-n2", "Standard + RC-N2"],
+      ["standard-rc-2", "Standard + RC 2"],
+      ["fly-more-rc-n2", "Fly More Combo + RC-N2"],
+      ["fly-more-rc-2", "Fly More Combo + RC 2"]
+    ],
+
+    "mini-3-pro": [
+      ["drone-only", "Drone only"],
+      ["drone-rc-n1", "Drone + RC-N1"],
+      ["drone-dji-rc", "Drone + DJI RC"],
+      ["fly-more-rc-n1", "Fly More Combo + RC-N1"],
+      ["fly-more-dji-rc", "Fly More Combo + DJI RC"]
+    ],
+
+    "mini-3": [
+      ["drone-only", "Drone only"],
+      ["standard-rc-n1", "Standard + RC-N1"],
+      ["fly-more-rc-n1", "Fly More Combo + RC-N1"]
+    ],
+
+    "mini-2": [
+      ["drone-only", "Drone only"],
+      ["standard-rc-n1", "Standard + RC-N1"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "neo": [
+      ["drone-only", "Drone only"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "neo-2": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "flip": [
+      ["standard-rc-n3", "Standard + RC-N3"],
+      ["fly-more-rc-n3", "Fly More Combo + RC-N3"],
+      ["fly-more-rc-2", "Fly More Combo + RC 2"]
+    ],
+
+    "air": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "air-2": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "air-2s": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "air-3": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "air-3s": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "mavic-3": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "mavic-3-classic": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "mavic-3-pro": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "mavic-4-pro": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ],
+
+    "avata": [
+      ["drone-only", "Drone only"],
+      ["fly-smart", "Fly Smart Combo"],
+      ["pro-view", "Pro-View Combo"],
+      ["explorer", "Explorer Combo"]
+    ],
+
+    "avata-2": [
+      ["standard", "Standard Package"],
+      ["fly-more", "Fly More Combo"]
+    ]
+
+  };
 
 
-  /* ==========================================================
-     4. PRICING DATABASE
-     ========================================================== */
-
-  /*
-     IMPORTANT:
-
-     Prices are intentionally TBC until verified.
-
-     A package with basePrice:null goes to manual valuation.
-
-     The database can be populated later without changing the
-     HTML or wizard logic.
-  */
+  /* =========================================================
+     PRICING DATABASE
+     
+     £500 = Mini 5 Pro Fly More Combo + RC 2
+  ========================================================= */
 
   const pricingDatabase = {
 
     "mini-5-pro": {
-      packages: {
 
-        "drone-only": {
-          basePrice: null,
-          floorPrice: 0
+      "fly-more-rc-2": {
+
+        basePrice: 500,
+
+        floorPrice: 250,
+
+        flightDeductions: {
+          "0-5": 0,
+          "5-20": 25,
+          "20-50": 50,
+          "50-100": 100,
+          "100-150": 150,
+          "150-200": 200,
+          "200+": null
         },
 
-        "standard-rc-n3": {
-          basePrice: null,
-          floorPrice: 0
+        conditionRules: {
+          "factory-sealed": 0,
+          "opened-unused": 0,
+          "excellent": 0,
+          "good": 25,
+          "fair": 75,
+          "damaged": null,
+          "not-working": null
         },
 
-        "fly-more-rc-n3": {
-          basePrice: null,
-          floorPrice: 0
-        },
+        batteryRules: {},
 
-        "fly-more-rc2": {
-          basePrice: null,
-          floorPrice: 0
-        },
+        missingItems: {},
 
-        "fly-more-plus-rc2": {
-          basePrice: null,
-          floorPrice: 0
-        }
+        extras: {}
 
       }
-    },
 
-    "mini-4-pro": {
-      packages: {
-
-        "drone-only": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "standard-rc-n2": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "standard-rc2": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more-rc-n2": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more-rc2": {
-          basePrice: null,
-          floorPrice: 0
-        }
-
-      }
-    },
-
-    "mini-3-pro": {
-      packages: {
-
-        "drone-only": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "drone-rc-n1": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "drone-dji-rc": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more-rc-n1": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more-dji-rc": {
-          basePrice: null,
-          floorPrice: 0
-        }
-
-      }
-    },
-
-    "mini-3": {
-      packages: {
-
-        "drone-only": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "standard-rc-n1": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more-rc-n1": {
-          basePrice: null,
-          floorPrice: 0
-        }
-
-      }
-    },
-
-    "mini-2": {
-      packages: {
-
-        "drone-only": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "standard-rc-n1": {
-          basePrice: null,
-          floorPrice: 0
-        },
-
-        "fly-more": {
-          basePrice: null,
-          floorPrice: 0
-        }
-
-      }
     }
 
   };
 
 
-  /* ==========================================================
-     5. PRICING RULES
-     ========================================================== */
+  /* =========================================================
+     CUSTOMER DATA
+  ========================================================= */
 
-  const flightDeductions = {
-
-    "0-5": 0,
-
-    "5-20": 10,
-
-    "20-50": 25,
-
-    "50-100": 50,
-
-    "100-150": 75,
-
-    "150-200": 100,
-
-    "200+": null
-
+  const quoteData = {
+    manufacturer: "",
+    model: "",
+    package: "",
+    condition: "",
+    flightHours: "",
+    flightRange: "",
+    batteries: [],
+    unbound: "",
+    damage: "",
+    damageDescription: "",
+    packageContents: {},
+    droneSerial: "",
+    controllerSerial: "",
+    photos: [],
+    legalRight: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postcode: ""
   };
 
 
-  const conditionDeductions = {
+  /* =========================================================
+     FIND ELEMENTS
+  ========================================================= */
 
-    "factory-sealed": 0,
-
-    "opened-unused": 0,
-
-    "excellent": 0,
-
-    "good": 25,
-
-    "fair": 50,
-
-    "damaged": 100,
-
-    "not-working": 150
-
-  };
+  const modelSelect = document.getElementById("dji-model");
+  const packageSelect = document.getElementById("package-select");
+  const batteriesContainer = document.getElementById("batteries-container");
+  const addBatteryButton = document.getElementById("add-battery-btn");
 
 
-  const manualValuationCategories = [
-    "Professional"
-  ];
-
-
-  /* ==========================================================
-     6. DOM ELEMENTS
-     ========================================================== */
-
-  const form = document.getElementById("quote-form");
-
-  if (!form) {
-    console.error("WE BUY ANY DRONE: quote-form not found.");
-    return;
-  }
-
-  const steps = Array.from(
-    form.querySelectorAll(".wizard-step")
-  );
-
-  const progressItems = Array.from(
-    document.querySelectorAll(".progress-step")
-  );
-
-  const modelSelect =
-    document.getElementById("dji-model");
-
-  const packageSelect =
-    document.getElementById("package-select");
-
-  const batteriesContainer =
-    document.getElementById("batteries-container");
-
-  const packageContentsList =
-    document.getElementById("package-contents-list");
-
-  const quoteSummary =
-    document.getElementById("quote-summary");
-
-  const quoteReference =
-    document.getElementById("quote-reference");
-
-  const damageDetails =
-    document.getElementById("damage-details");
-
-  const unboundWarning =
-    document.getElementById("unbound-warning");
-
-  const ownershipWarning =
-    document.getElementById("ownership-warning");
-
-
-  /* ==========================================================
-     7. WIZARD STATE
-     ========================================================== */
-
-  let currentStep = 0;
-
-
-  /* ==========================================================
-     8. ERROR MESSAGE
-     ========================================================== */
-
-  function error(message) {
-
-    alert(message);
-
-  }
-
-
-  /* ==========================================================
-     9. SHOW STEP
-     ========================================================== */
+  /* =========================================================
+     SHOW STEP
+  ========================================================= */
 
   function showStep(index) {
 
@@ -1038,31 +328,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
       step.hidden = i !== index;
 
-    });
+      if (progressItems[i]) {
 
-
-    progressItems.forEach(function (item, i) {
-
-      if (i === index) {
-
-        item.setAttribute(
-          "aria-current",
-          "step"
-        );
-
-      } else {
-
-        item.removeAttribute(
-          "aria-current"
-        );
+        if (i === index) {
+          progressItems[i].setAttribute("aria-current", "step");
+        } else {
+          progressItems[i].removeAttribute("aria-current");
+        }
 
       }
 
     });
 
-
     currentStep = index;
-
 
     window.scrollTo({
       top: 0,
@@ -1072,417 +350,145 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  /* ==========================================================
-     10. RADIO HELPER
-     ========================================================== */
-
-  function selected(name) {
-
-    return form.querySelector(
-      'input[name="' + name + '"]:checked'
-    );
-
-  }
-
-
-  /* ==========================================================
-     11. MANUFACTURER
-     ========================================================== */
-
-  function validateManufacturer() {
-
-    const manufacturer =
-      selected("manufacturer");
-
-    if (!manufacturer) {
-
-      error(
-        "Please select a manufacturer."
-      );
-
-      return false;
-
-    }
-
-
-    if (
-      manufacturer.value.toLowerCase() !== "dji"
-    ) {
-
-      error(
-        "This automatic quote system currently supports DJI drones."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     12. POPULATE MODELS
-     ========================================================== */
+  /* =========================================================
+     POPULATE MODELS
+  ========================================================= */
 
   function populateModels() {
 
     if (!modelSelect) {
+      console.error("quote.js: dji-model element not found.");
       return;
     }
 
     modelSelect.innerHTML = "";
 
+    const firstOption = document.createElement("option");
+    firstOption.value = "";
+    firstOption.textContent = "-- Select a DJI model --";
 
-    const placeholder =
-      document.createElement("option");
+    modelSelect.appendChild(firstOption);
 
-    placeholder.value = "";
+    Object.keys(modelDatabase).forEach(function (category) {
 
-    placeholder.textContent =
-      "-- Select your DJI model --";
+      const group = document.createElement("optgroup");
 
-    modelSelect.appendChild(
-      placeholder
-    );
+      group.label = category.toUpperCase();
 
+      modelDatabase[category].forEach(function (model) {
 
-    Object.keys(droneDatabase.dji)
-      .forEach(function (id) {
+        const option = document.createElement("option");
 
-        const model =
-          droneDatabase.dji[id];
+        option.value = model.id;
+        option.textContent = model.name;
 
-        const option =
-          document.createElement("option");
-
-        option.value = id;
-
-        option.textContent =
-          model.name;
-
-        modelSelect.appendChild(
-          option
-        );
+        group.appendChild(option);
 
       });
 
-  }
-
-
-  /* ==========================================================
-     13. MODEL VALIDATION
-     ========================================================== */
-
-  function validateModel() {
-
-    if (!modelSelect || !modelSelect.value) {
-
-      error(
-        "Please select your DJI model."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     14. POPULATE PACKAGES
-     ========================================================== */
-
-  function populatePackages() {
-
-    if (!packageSelect || !modelSelect) {
-      return;
-    }
-
-
-    packageSelect.innerHTML = "";
-
-
-    const placeholder =
-      document.createElement("option");
-
-    placeholder.value = "";
-
-    placeholder.textContent =
-      "-- Select your package --";
-
-    packageSelect.appendChild(
-      placeholder
-    );
-
-
-    const modelId =
-      modelSelect.value;
-
-
-    const packages =
-      packageDatabase[modelId] ||
-      defaultPackages;
-
-
-    packages.forEach(function (pkg) {
-
-      const option =
-        document.createElement("option");
-
-      option.value =
-        pkg.id;
-
-      option.textContent =
-        pkg.name;
-
-      packageSelect.appendChild(
-        option
-      );
+      modelSelect.appendChild(group);
 
     });
 
   }
 
 
-  /* ==========================================================
-     15. PACKAGE VALIDATION
-     ========================================================== */
+  /* =========================================================
+     POPULATE PACKAGES
+  ========================================================= */
 
-  function validatePackage() {
+  function populatePackages(modelId) {
 
-    if (
-      !packageSelect ||
-      !packageSelect.value
-    ) {
+    if (!packageSelect) {
+      return;
+    }
 
-      error(
-        "Please select the exact package."
-      );
+    packageSelect.innerHTML = "";
 
-      return false;
+    const firstOption = document.createElement("option");
+
+    firstOption.value = "";
+    firstOption.textContent = "-- Select package --";
+
+    packageSelect.appendChild(firstOption);
+
+    const packages = packageDatabase[modelId];
+
+    if (!packages || !packages.length) {
+
+      const option = document.createElement("option");
+
+      option.value = "manual";
+      option.textContent = "Package not listed - Manual Valuation";
+
+      packageSelect.appendChild(option);
+
+      return;
 
     }
 
+    packages.forEach(function (item) {
 
-    return true;
+      const option = document.createElement("option");
+
+      option.value = item[0];
+      option.textContent = item[1];
+
+      packageSelect.appendChild(option);
+
+    });
 
   }
 
 
-  /* ==========================================================
-     16. CONDITION
-     ========================================================== */
-
-  function validateCondition() {
-
-    if (!selected("condition")) {
-
-      error(
-        "Please select the condition of your drone."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     17. FLIGHT TIME
-     ========================================================== */
-
-  function getFlightRange() {
-
-    const range =
-      selected("flightHoursRange");
-
-    if (range) {
-      return range.value;
-    }
-
-
-    const input =
-      document.getElementById(
-        "flight-hours"
-      );
-
-
-    if (
-      !input ||
-      input.value === ""
-    ) {
-
-      return null;
-
-    }
-
-
-    const hours =
-      Number(input.value);
-
-
-    if (Number.isNaN(hours)) {
-      return null;
-    }
-
-
-    if (hours <= 5) {
-      return "0-5";
-    }
-
-    if (hours <= 20) {
-      return "5-20";
-    }
-
-    if (hours <= 50) {
-      return "20-50";
-    }
-
-    if (hours <= 100) {
-      return "50-100";
-    }
-
-    if (hours <= 150) {
-      return "100-150";
-    }
-
-    if (hours <= 200) {
-      return "150-200";
-    }
-
-    return "200+";
-
-  }
-
-
-  function validateFlightTime() {
-
-    const input =
-      document.getElementById(
-        "flight-hours"
-      );
-
-    const range =
-      selected("flightHoursRange");
-
-
-    if (
-      (!input || input.value === "") &&
-      !range
-    ) {
-
-      error(
-        "Please enter the flight time or select a flight-time range."
-      );
-
-      return false;
-
-    }
-
-
-    if (
-      input &&
-      input.value !== ""
-    ) {
-
-      const hours =
-        Number(input.value);
-
-
-      if (
-        Number.isNaN(hours) ||
-        hours < 0
-      ) {
-
-        error(
-          "Please enter a valid flight time."
-        );
-
-        return false;
-
-      }
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     18. BATTERIES
-     ========================================================== */
+  /* =========================================================
+     BATTERY ENTRY
+  ========================================================= */
 
   let batteryCounter = 0;
-
 
   function createBatteryEntry() {
 
     if (!batteriesContainer) {
+      console.error("quote.js: batteries-container not found.");
       return;
     }
 
-
     batteryCounter++;
 
+    const wrapper = document.createElement("div");
 
-    const wrapper =
-      document.createElement("div");
+    wrapper.className = "battery-entry";
 
-    wrapper.className =
-      "battery-entry";
-
+    wrapper.style.border = "1px solid #ccc";
+    wrapper.style.padding = "15px";
+    wrapper.style.marginBottom = "15px";
+    wrapper.style.borderRadius = "6px";
 
     wrapper.innerHTML = `
+      <h4>Battery ${batteryCounter}</h4>
 
-      <div class="battery-field">
-
-        <label for="battery-type-${batteryCounter}">
-          Battery Type
-        </label>
-
+      <label>
+        Battery Type
         <input
           type="text"
-          id="battery-type-${batteryCounter}"
           class="battery-type"
           name="batteryType${batteryCounter}"
-          placeholder="e.g. DJI Intelligent Flight Battery"
           required
         >
+      </label>
 
-      </div>
-
-
-      <div class="battery-field">
-
-        <label for="battery-cycles-${batteryCounter}">
-          Battery Cycle Count
-        </label>
-
+      <label>
+        Battery Cycle Count
         <input
           type="number"
-          id="battery-cycles-${batteryCounter}"
           class="battery-cycles"
           name="batteryCycles${batteryCounter}"
           min="0"
           step="1"
-          placeholder="e.g. 12"
           required
         >
-
-      </div>
-
+      </label>
 
       <button
         type="button"
@@ -1490,198 +496,411 @@ document.addEventListener("DOMContentLoaded", function () {
       >
         Remove Battery
       </button>
-
     `;
 
-
-    batteriesContainer.appendChild(
-      wrapper
-    );
+    batteriesContainer.appendChild(wrapper);
 
   }
 
 
+  /* =========================================================
+     BATTERY BUTTON
+  ========================================================= */
+
+  if (addBatteryButton) {
+
+    addBatteryButton.addEventListener("click", function (event) {
+
+      event.preventDefault();
+
+      createBatteryEntry();
+
+    });
+
+  }
+
+
+  /* =========================================================
+     BATTERY VALIDATION
+  ========================================================= */
+
   function validateBatteries() {
 
     if (!batteriesContainer) {
+      return false;
+    }
 
-      error(
-        "Battery information section could not be found."
-      );
+    const batteries = Array.from(
+      batteriesContainer.querySelectorAll(".battery-entry")
+    );
+
+    if (!batteries.length) {
+
+      alert("Please add at least one battery.");
 
       return false;
 
     }
 
+    for (const battery of batteries) {
 
-    const batteries =
-      batteriesContainer.querySelectorAll(
-        ".battery-entry"
-      );
+      const typeInput = battery.querySelector(".battery-type");
+      const cyclesInput = battery.querySelector(".battery-cycles");
 
+      if (!typeInput || !typeInput.value.trim()) {
 
-    if (batteries.length === 0) {
-
-      error(
-        "Please click Add Battery and enter the battery information."
-      );
-
-      return false;
-
-    }
-
-
-    for (
-      const battery of batteries
-    ) {
-
-      const type =
-        battery.querySelector(
-          ".battery-type"
-        );
-
-
-      const cycles =
-        battery.querySelector(
-          ".battery-cycles"
-        );
-
-
-      if (
-        !type ||
-        !type.value.trim()
-      ) {
-
-        error(
-          "Please enter the battery type."
-        );
-
-        if (type) {
-          type.focus();
-        }
+        alert("Please enter the battery type.");
 
         return false;
 
       }
 
-
       if (
-        !cycles ||
-        cycles.value === "" ||
-        Number(cycles.value) < 0
+        !cyclesInput ||
+        cyclesInput.value === "" ||
+        Number(cyclesInput.value) < 0
       ) {
 
-        error(
-          "Please enter a valid battery cycle count."
-        );
-
-        if (cycles) {
-          cycles.focus();
-        }
+        alert("Please enter a valid battery cycle count.");
 
         return false;
 
       }
 
     }
-
 
     return true;
 
   }
 
 
-  function batteryCycleDeduction(
-    cycles
-  ) {
+  /* =========================================================
+     VALIDATE CURRENT STEP
+  ========================================================= */
 
-    const value =
-      Number(cycles);
+  function validateCurrentStep() {
 
+    const step = steps[currentStep];
 
-    if (
-      Number.isNaN(value) ||
-      value <= 20
-    ) {
-
-      return 0;
-
-    }
-
-
-    if (value <= 50) {
-
-      return 10;
-
-    }
-
-
-    if (value <= 100) {
-
-      return 25;
-
-    }
-
-
-    if (value <= 150) {
-
-      return 50;
-
-    }
-
-
-    return 75;
-
-  }
-
-
-  /* ==========================================================
-     19. UNBOUND
-     ========================================================== */
-
-  function validateUnbound() {
-
-    const answer =
-      selected("unbound");
-
-
-    if (!answer) {
-
-      error(
-        "Please tell us whether the drone is unbound from your DJI account."
-      );
-
+    if (!step) {
       return false;
+    }
+
+
+    /* STEP 1 */
+
+    if (currentStep === 0) {
+
+      const manufacturer =
+        step.querySelector('input[name="manufacturer"]:checked');
+
+      if (!manufacturer) {
+
+        alert("Please select a manufacturer.");
+
+        return false;
+
+      }
+
+      quoteData.manufacturer = manufacturer.value;
+
+      return true;
 
     }
 
 
-    if (
-      unboundWarning
-    ) {
+    /* STEP 2 */
 
-      unboundWarning.hidden =
-        answer.value !== "no";
+    if (currentStep === 1) {
 
-    }
+      if (!modelSelect || !modelSelect.value) {
 
+        alert("Please select a DJI model.");
 
-    if (
-      answer.value === "no"
-    ) {
+        return false;
 
-      error(
-        "The aircraft normally needs to be unbound before a standard purchase can proceed. Please contact us for manual review."
-      );
+      }
 
-      return false;
+      quoteData.model = modelSelect.value;
+
+      return true;
 
     }
 
 
-    if (
-      answer.value === "unknown"
-    ) {
+    /* STEP 3 */
+
+    if (currentStep === 2) {
+
+      if (!packageSelect || !packageSelect.value) {
+
+        alert("Please select a package.");
+
+        return false;
+
+      }
+
+      quoteData.package = packageSelect.value;
+
+      return true;
+
+    }
+
+
+    /* STEP 4 */
+
+    if (currentStep === 3) {
+
+      const condition =
+        step.querySelector('input[name="condition"]:checked');
+
+      if (!condition) {
+
+        alert("Please select the condition of the drone.");
+
+        return false;
+
+      }
+
+      quoteData.condition = condition.value;
+
+      return true;
+
+    }
+
+
+    /* STEP 5 */
+
+    if (currentStep === 4) {
+
+      const hours =
+        step.querySelector('input[name="flightHours"]');
+
+      const range =
+        step.querySelector('input[name="flightHoursRange"]:checked');
+
+      if (
+        (!hours || hours.value === "") &&
+        !range
+      ) {
+
+        alert(
+          "Please enter the flight hours or select a flight-time range."
+        );
+
+        return false;
+
+      }
+
+      if (hours && hours.value !== "") {
+
+        const value = Number(hours.value);
+
+        if (isNaN(value) || value < 0) {
+
+          alert("Please enter a valid number of flight hours.");
+
+          return false;
+
+        }
+
+        quoteData.flightHours = value;
+
+      }
+
+      if (range) {
+
+        quoteData.flightRange = range.value;
+
+      }
+
+      return true;
+
+    }
+
+
+    /* STEP 6 */
+
+    if (currentStep === 5) {
+
+      if (!validateBatteries()) {
+
+        return false;
+
+      }
+
+      quoteData.batteries = [];
+
+      batteriesContainer
+        .querySelectorAll(".battery-entry")
+        .forEach(function (battery) {
+
+          quoteData.batteries.push({
+
+            type:
+              battery.querySelector(".battery-type").value.trim(),
+
+            cycles:
+              Number(
+                battery.querySelector(".battery-cycles").value
+              )
+
+          });
+
+        });
+
+      return true;
+
+    }
+
+
+    /* STEP 7 */
+
+    if (currentStep === 6) {
+
+      const unbound =
+        step.querySelector('input[name="unbound"]:checked');
+
+      if (!unbound) {
+
+        alert("Please select the unbound status.");
+
+        return false;
+
+      }
+
+      quoteData.unbound = unbound.value;
+
+      return true;
+
+    }
+
+
+    /* STEP 8 */
+
+    if (currentStep === 7) {
+
+      const damage =
+        step.querySelector('input[name="damage"]:checked');
+
+      if (!damage) {
+
+        alert("Please indicate whether the drone has damage.");
+
+        return false;
+
+      }
+
+      quoteData.damage = damage.value;
+
+      const description =
+        step.querySelector("#damage-description");
+
+      if (
+        damage.value === "yes" &&
+        description &&
+        !description.value.trim()
+      ) {
+
+        alert("Please describe the damage.");
+
+        return false;
+
+      }
+
+      if (description) {
+
+        quoteData.damageDescription =
+          description.value.trim();
+
+      }
+
+      return true;
+
+    }
+
+
+    /* STEP 9 */
+
+    if (currentStep === 8) {
+
+      const contents =
+        step.querySelectorAll(
+          'select[name^="packageContents"]'
+        );
+
+      for (const select of contents) {
+
+        if (!select.value) {
+
+          alert(
+            "Please select PRESENT, MISSING or ADDITIONAL for every item."
+          );
+
+          return false;
+
+        }
+
+        quoteData.packageContents[select.name] =
+          select.value;
+
+      }
+
+      return true;
+
+    }
+
+
+    /* STEP 10 */
+
+    if (currentStep === 9) {
+
+      const serial =
+        step.querySelector("#drone-serial-number");
+
+      if (!serial || !serial.value.trim()) {
+
+        alert("Please enter the drone serial number.");
+
+        return false;
+
+      }
+
+      quoteData.droneSerial =
+        serial.value.trim();
+
+      const controller =
+        step.querySelector("#controller-serial-number");
+
+      if (controller) {
+
+        quoteData.controllerSerial =
+          controller.value.trim();
+
+      }
+
+      return true;
+
+    }
+
+
+    /* STEP 11 */
+
+    if (currentStep === 10) {
+
+      const photos =
+        step.querySelector("#photo-uploads");
+
+      if (!photos || !photos.files.length) {
+
+        alert("Please upload the required photographs.");
+
+        return false;
+
+      }
+
+      quoteData.photos =
+        Array.from(photos.files);
 
       return true;
 
@@ -1693,1079 +912,704 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  /* ==========================================================
-     20. DAMAGE
-     ========================================================== */
+  /* =========================================================
+     FLIGHT RANGE
+  ========================================================= */
 
-  function validateDamage() {
+  function getFlightRange() {
 
-    const answer =
-      selected("damage");
+    if (quoteData.flightRange) {
 
-
-    if (!answer) {
-
-      error(
-        "Please tell us whether the drone has any damage."
-      );
-
-      return false;
+      return quoteData.flightRange;
 
     }
 
+    const hours =
+      Number(quoteData.flightHours);
 
-    if (
-      answer.value === "yes"
-    ) {
-
-      const description =
-        document.getElementById(
-          "damage-description"
-        );
-
-
-      if (
-        description &&
-        !description.value.trim()
-      ) {
-
-        error(
-          "Please describe the damage."
-        );
-
-        description.focus();
-
-        return false;
-
-      }
-
+    if (isNaN(hours)) {
+      return null;
     }
 
+    if (hours <= 5) return "0-5";
+    if (hours <= 20) return "5-20";
+    if (hours <= 50) return "20-50";
+    if (hours <= 100) return "50-100";
+    if (hours <= 150) return "100-150";
+    if (hours <= 200) return "150-200";
 
-    return true;
+    return "200+";
 
   }
 
 
-  /* ==========================================================
-     21. PACKAGE CONTENTS
-     ========================================================== */
-
-  function populatePackageContents() {
-
-    if (
-      !packageContentsList ||
-      !packageSelect ||
-      !modelSelect
-    ) {
-
-      return;
-
-    }
-
-
-    packageContentsList.innerHTML = "";
-
-
-    const packages =
-      packageDatabase[
-        modelSelect.value
-      ] ||
-      defaultPackages;
-
-
-    const pkg =
-      packages.find(function (item) {
-
-        return item.id ===
-          packageSelect.value;
-
-      });
-
-
-    if (!pkg) {
-      return;
-    }
-
-
-    pkg.contents.forEach(
-      function (item, index) {
-
-        const wrapper =
-          document.createElement("div");
-
-        wrapper.className =
-          "package-content-item";
-
-
-        wrapper.innerHTML = `
-
-          <strong>${item}</strong>
-
-          <div>
-
-            <label>
-              <input
-                type="radio"
-                name="content-${index}"
-                value="present"
-                checked
-              >
-              Present
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                name="content-${index}"
-                value="missing"
-              >
-              Missing
-            </label>
-
-            <label>
-              <input
-                type="radio"
-                name="content-${index}"
-                value="additional"
-              >
-              Additional
-            </label>
-
-          </div>
-
-        `;
-
-
-        packageContentsList.appendChild(
-          wrapper
-        );
-
-      }
-    );
-
-  }
-
-
-  /* ==========================================================
-     22. SERIAL NUMBERS
-     ========================================================== */
-
-  function validateSerialNumbers() {
-
-    const serial =
-      document.getElementById(
-        "drone-serial-number"
-      );
-
-
-    if (
-      !serial ||
-      !serial.value.trim()
-    ) {
-
-      error(
-        "Please enter the drone serial number."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     23. PHOTOS
-     ========================================================== */
-
-  function validatePhotos() {
-
-    const input =
-      document.getElementById(
-        "photo-uploads"
-      );
-
-
-    if (
-      !input ||
-      !input.files ||
-      input.files.length === 0
-    ) {
-
-      error(
-        "Please upload at least one photograph."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     24. OWNERSHIP
-     ========================================================== */
-
-  function validateOwnership() {
-
-    const el =
-      selected("legalRight");
-
-
-    if (!el) {
-
-      error(
-        "Please confirm whether you have the legal right to sell this equipment."
-      );
-
-      return false;
-
-    }
-
-
-    if (
-      ownershipWarning
-    ) {
-
-      ownershipWarning.hidden =
-        el.value === "yes";
-
-    }
-
-
-    if (
-      el.value === "no" ||
-      el.value === "not-sure"
-    ) {
-
-      error(
-        "We cannot automatically purchase equipment where ownership is uncertain. Please contact us for a manual review."
-      );
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  /* ==========================================================
-     25. CUSTOMER DETAILS
-     ========================================================== */
-
-  function validateCustomerDetails() {
-
-    const ids = [
-
-      "full-name",
-
-      "email-address",
-
-      "phone-number",
-
-      "address-line-1",
-
-      "city",
-
-      "postcode"
-
-    ];
-
-
-    for (
-      const id of ids
-    ) {
-
-      const el =
-        document.getElementById(id);
-
-
-      if (
-        !el ||
-        !el.value.trim()
-      ) {
-
-        error(
-          "Please complete all required customer and return-address fields."
-        );
-
-
-        if (el) {
-          el.focus();
-        }
-
-
-        return false;
-
-      }
-
-    }
-
-
-    const email =
-      document.getElementById(
-        "email-address"
-      );
-
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        email.value.trim()
-      )
-    ) {
-
-      error(
-        "Please enter a valid email address."
-      );
-
-      email.focus();
-
-      return false;
-
-    }
-
-
-    const phone =
-      document.getElementById(
-        "phone-number"
-      );
-
-
-    const digits =
-      phone.value.replace(
-        /[^0-9+]/g,
-        ""
-      );
-
-
-    if (
-      digits.length < 7
-    ) {
-
-      error(
-        "Please enter a valid telephone number."
-      );
-
-      phone.focus();
-
-      return false;
-
-    }
-
-
-    const postcode =
-      document.getElementById(
-        "postcode"
-      );
-
-
-    if (
-      !/^[A-Z0-9]{2,4}\s?[A-Z0-9]{3}$/i.test(
-        postcode.value.trim()
-      )
-    ) {
-
-      error(
-        "Please enter a valid UK postcode."
-      );
-
-      postcode.focus();
-
-      return false;
-
-    }
-
-
-    return validateOwnership();
-
-  }
-
-
-  /* ==========================================================
-     26. CALCULATE QUOTE
-     ========================================================== */
+  /* =========================================================
+     CALCULATE QUOTE
+  ========================================================= */
 
   function calculateQuote() {
 
-    const modelId =
-      modelSelect &&
-      modelSelect.value;
-
-
-    const packageId =
-      packageSelect &&
-      packageSelect.value;
-
-
-    const model =
-      droneDatabase.dji[
-        modelId
-      ];
-
-
-    if (!model) {
-
-      return {
-
-        manual: true,
-
-        reason:
-          "Model not found."
-
-      };
-
-    }
-
-
-    if (
-      manualValuationCategories.includes(
-        model.category
-      )
-    ) {
-
-      return {
-
-        manual: true,
-
-        reason:
-          "High-value professional equipment requires manual valuation."
-
-      };
-
-    }
-
-
     const modelPricing =
-      pricingDatabase[
-        modelId
-      ];
-
+      pricingDatabase[quoteData.model];
 
     if (!modelPricing) {
 
       return {
-
-        manual: true,
-
+        automatic: false,
         reason:
           "This model has not yet been given a verified automatic purchase price."
-
       };
 
     }
 
-
     const packagePricing =
-      modelPricing.packages[
-        packageId
-      ];
+      modelPricing[quoteData.package];
 
+    if (!packagePricing) {
+
+      return {
+        automatic: false,
+        reason:
+          "This package has not yet been given a verified automatic purchase price."
+      };
+
+    }
 
     if (
-      !packagePricing ||
-      packagePricing.basePrice === null
+      packagePricing.basePrice === null ||
+      packagePricing.basePrice === undefined
     ) {
 
       return {
-
-        manual: true,
-
+        automatic: false,
         reason:
-          "A verified purchase price has not yet been entered for this package."
-
+          "This model and package have not yet been given a verified automatic purchase price."
       };
 
     }
 
 
-    let value =
-      Number(
-        packagePricing.basePrice
-      );
+    /* Commercial/high-value manual route */
+
+    const commercialCategories = [
+      "commercial"
+    ];
+
+    const isCommercial =
+      commercialCategories.some(function (category) {
+
+        return modelDatabase[category].some(function (model) {
+
+          return model.id === quoteData.model;
+
+        });
+
+      });
+
+    if (isCommercial) {
+
+      return {
+        automatic: false,
+        reason:
+          "High-value professional equipment requires individual assessment."
+      };
+
+    }
 
 
-    const floor =
-      packagePricing.floorPrice == null
-        ? 0
-        : Number(
-            packagePricing.floorPrice
-          );
+    /* Damaged */
 
+    if (
+      quoteData.condition === "damaged" ||
+      quoteData.condition === "not-working"
+    ) {
+
+      return {
+        automatic: false,
+        reason:
+          "Damaged or non-working equipment requires a manual parts/damage valuation."
+      };
+
+    }
+
+
+    /* Unbound */
+
+    if (
+      quoteData.unbound === "no" ||
+      quoteData.unbound === "unknown"
+    ) {
+
+      return {
+        automatic: false,
+        reason:
+          "The aircraft must normally be unbound before a standard automatic purchase can proceed."
+      };
+
+    }
+
+
+    let price =
+      packagePricing.basePrice;
+
+
+    /* Flight deduction */
 
     const flightRange =
       getFlightRange();
 
-
     const flightDeduction =
-      flightDeductions[
-        flightRange
-      ];
+      packagePricing.flightDeductions &&
+      packagePricing.flightDeductions[flightRange];
 
-
-    if (
-      flightDeduction === null
-    ) {
+    if (flightDeduction === null) {
 
       return {
-
-        manual: true,
-
+        automatic: false,
         reason:
-          "The reported flight time requires manual valuation."
-
+          "The reported flight time requires manual review."
       };
 
     }
 
-
     if (
-      typeof flightDeduction ===
-      "number"
+      typeof flightDeduction === "number"
     ) {
 
-      value -=
-        flightDeduction;
+      price -= flightDeduction;
 
     }
 
 
-    const condition =
-      selected("condition");
+    /* Condition deduction */
 
+    const conditionDeduction =
+      packagePricing.conditionRules &&
+      packagePricing.conditionRules[
+        quoteData.condition
+      ];
 
-    if (condition) {
+    if (conditionDeduction === null) {
 
-      value -=
-        Number(
-          conditionDeductions[
-            condition.value
-          ] || 0
-        );
+      return {
+        automatic: false,
+        reason:
+          "The selected condition requires manual valuation."
+      };
 
     }
-
 
     if (
-      batteriesContainer
+      typeof conditionDeduction === "number"
     ) {
 
-      batteriesContainer
-        .querySelectorAll(
-          ".battery-entry"
-        )
-        .forEach(
-          function (battery) {
-
-            const cycles =
-              battery.querySelector(
-                ".battery-cycles"
-              );
-
-
-            if (cycles) {
-
-              value -=
-                batteryCycleDeduction(
-                  cycles.value
-                );
-
-            }
-
-          }
-        );
+      price -= conditionDeduction;
 
     }
 
 
+    /* Battery deductions */
+
     if (
-      value < floor
+      packagePricing.batteryRules &&
+      quoteData.batteries.length
+    ) {
+
+      quoteData.batteries.forEach(function (battery) {
+
+        const cycles =
+          battery.cycles;
+
+        if (
+          packagePricing.batteryRules.highCycle &&
+          cycles >=
+          packagePricing.batteryRules.highCycle.threshold
+        ) {
+
+          price -=
+            packagePricing.batteryRules.highCycle.deduction;
+
+        }
+
+      });
+
+    }
+
+
+    /* Floor */
+
+    if (
+      price <
+      packagePricing.floorPrice
     ) {
 
       return {
-
-        manual: true,
-
+        automatic: false,
         reason:
-          "The calculated value is below the automatic purchase floor."
-
+          "The calculated value is below the automatic purchase floor and requires manual valuation."
       };
 
     }
 
 
     return {
-
-      manual: false,
-
-      value:
-        Math.max(
-          0,
-          Math.round(value)
-        )
-
+      automatic: true,
+      price: Math.round(price * 100) / 100
     };
 
   }
 
 
-  /* ==========================================================
-     27. QUOTE REFERENCE
-     ========================================================== */
+  /* =========================================================
+     MODEL NAME
+  ========================================================= */
 
-  function generateQuoteReference() {
+  function getModelName(id) {
 
-    const year =
-      new Date().getFullYear();
+    for (const category of Object.keys(modelDatabase)) {
 
+      const found =
+        modelDatabase[category].find(function (model) {
 
-    const random =
-      Math.floor(
-        100000 +
-        Math.random() *
-        900000
-      );
+          return model.id === id;
 
+        });
 
-    return (
-      "WBA-" +
-      year +
-      "-" +
-      random
-    );
+      if (found) {
+        return found.name;
+      }
+
+    }
+
+    return id;
 
   }
 
 
-  /* ==========================================================
-     28. DISPLAY QUOTE
-     ========================================================== */
+  /* =========================================================
+     PACKAGE NAME
+  ========================================================= */
 
-  function displayQuote() {
+  function getPackageName(modelId, packageId) {
 
-    if (
-      !quoteSummary ||
-      !modelSelect ||
-      !packageSelect
-    ) {
+    const packages =
+      packageDatabase[modelId];
+
+    if (!packages) {
+      return packageId;
+    }
+
+    const found =
+      packages.find(function (item) {
+
+        return item[0] === packageId;
+
+      });
+
+    return found
+      ? found[1]
+      : packageId;
+
+  }
+
+
+  /* =========================================================
+     CONDITION NAME
+  ========================================================= */
+
+  function getConditionName(value) {
+
+    const names = {
+
+      "factory-sealed":
+        "Factory Sealed / Unopened",
+
+      "opened-unused":
+        "Opened but Unused",
+
+      "excellent":
+        "Excellent",
+
+      "good":
+        "Good",
+
+      "fair":
+        "Fair",
+
+      "damaged":
+        "Damaged",
+
+      "not-working":
+        "Not Working / Spares Only"
+
+    };
+
+    return names[value] || value;
+
+  }
+
+
+  /* =========================================================
+     QUOTE RESULT
+  ========================================================= */
+
+  function renderQuoteResult() {
+
+    const result =
+      calculateQuote();
+
+    const summary =
+      document.getElementById("quote-summary");
+
+    if (!summary) {
+
+      console.error(
+        "quote.js: quote-summary element not found."
+      );
 
       return;
 
     }
 
 
-    const model =
-      droneDatabase.dji[
-        modelSelect.value
-      ];
+    if (!result.automatic) {
 
+      manualValuation = true;
 
-    const packages =
-      packageDatabase[
-        modelSelect.value
-      ] ||
-      defaultPackages;
-
-
-    const pkg =
-      packages.find(
-        function (item) {
-
-          return item.id ===
-            packageSelect.value;
-
-        }
-      );
-
-
-    const condition =
-      selected("condition");
-
-
-    const quote =
-      calculateQuote();
-
-
-    if (
-      quote.manual
-    ) {
-
-      quoteSummary.innerHTML = `
+      summary.innerHTML = `
 
         <div class="manual-valuation">
 
-          <h4>
-            MANUAL VALUATION REQUIRED
-          </h4>
+          <h3>MANUAL VALUATION REQUIRED</h3>
 
           <p>
-            We need to manually assess this equipment before confirming a purchase price.
+            We need to manually assess this equipment
+            before confirming a purchase price.
           </p>
 
           <p>
             <strong>Reason:</strong>
-            ${quote.reason}
+            ${result.reason}
           </p>
 
           <p>
-            Your information can still be submitted for review.
+            Your information can still be submitted
+            for review.
           </p>
 
         </div>
 
+        <h3>IMPORTANT</h3>
+
+        <p>
+          Your information and photographs will be
+          reviewed before a purchase price is confirmed.
+        </p>
+
       `;
 
+      const acceptButton =
+        document.querySelector(".btn-accept");
+
+      if (acceptButton) {
+
+        acceptButton.textContent =
+          "Submit For Manual Review";
+
+      }
 
       return;
 
     }
 
 
-    quoteSummary.innerHTML = `
+    manualValuation = false;
+
+    summary.innerHTML = `
 
       <div class="quote-result">
 
-        <h4>
-          YOUR INSTANT QUOTE
-        </h4>
+        <h3>YOUR INSTANT QUOTE</h3>
 
         <p>
-          <strong>Model:</strong>
-          ${model ? model.name : ""}
+          <strong>
+            ${getModelName(quoteData.model)}
+          </strong>
         </p>
 
         <p>
-          <strong>Package:</strong>
-          ${pkg ? pkg.name : ""}
+          Package:
+          ${getPackageName(
+            quoteData.model,
+            quoteData.package
+          )}
         </p>
 
         <p>
-          <strong>Condition:</strong>
+          Condition:
+          ${getConditionName(
+            quoteData.condition
+          )}
+        </p>
+
+        <p>
+          Flight time:
           ${
-            condition
-              ? condition.parentElement.textContent.trim()
-              : ""
+            quoteData.flightHours !== ""
+              ? quoteData.flightHours + " hours"
+              : getFlightRange()
           }
         </p>
 
-        <div class="quote-price">
-          £${quote.value.toLocaleString("en-GB")}
-        </div>
+        <p>
+          Batteries:
+          ${quoteData.batteries.length}
+        </p>
+
+        <h3>
+          Estimated purchase price:
+        </h3>
+
+        <p
+          class="quote-price"
+          style="font-size:2rem;font-weight:700;"
+        >
+          £${result.price.toFixed(2)}
+        </p>
+
+      </div>
+
+      <div class="quote-important">
+
+        <h3>IMPORTANT</h3>
 
         <p>
-          Estimated purchase price
+          Your Instant Quote is based on the information
+          and photographs you have provided.
+        </p>
+
+        <p>
+          All equipment is physically inspected when received.
+        </p>
+
+        <p>
+          If the equipment matches the information supplied,
+          we will confirm the quoted price.
+        </p>
+
+        <p>
+          If the condition, contents, flight time, ownership
+          or other information differs materially, we may
+          make a revised final offer.
+        </p>
+
+        <p>
+          If you do not accept a revised offer, we will return
+          the equipment to the full address you provide.
         </p>
 
       </div>
 
     `;
 
+    const acceptButton =
+      document.querySelector(".btn-accept");
+
+    if (acceptButton) {
+
+      acceptButton.textContent =
+        "Accept Instant Quote & Continue";
+
+    }
+
   }
 
 
-  /* ==========================================================
-     29. NEXT
-     ========================================================== */
+  /* =========================================================
+     PACKAGE CONTENTS
+  ========================================================= */
 
-  function goNext() {
+  function populatePackageContents() {
 
-    switch (
-      currentStep
-    ) {
+    const container =
+      document.getElementById(
+        "package-contents-list"
+      );
+
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = "";
+
+    const items = [
+      "Drone",
+      "Controller",
+      "Battery 1",
+      "Battery 2",
+      "Battery 3",
+      "Charging hub",
+      "Bag",
+      "Propellers",
+      "Power supply",
+      "Cables",
+      "Other accessories"
+    ];
+
+    items.forEach(function (item, index) {
+
+      const wrapper =
+        document.createElement("div");
+
+      wrapper.style.marginBottom =
+        "12px";
+
+      wrapper.innerHTML = `
+
+        <label>
+          ${item}
+
+          <select
+            name="packageContents-${index}"
+            required
+          >
+
+            <option value="">
+              -- Select status --
+            </option>
+
+            <option value="present">
+              Present
+            </option>
+
+            <option value="missing">
+              Missing
+            </option>
+
+            <option value="additional">
+              Additional
+            </option>
+
+          </select>
+
+        </label>
+
+      `;
+
+      container.appendChild(wrapper);
+
+    });
+
+  }
 
 
-      case 0:
+  /* =========================================================
+     DAMAGE DISPLAY
+  ========================================================= */
 
-        if (
-          !validateManufacturer()
-        ) {
+  const damageInputs =
+    form.querySelectorAll(
+      'input[name="damage"]'
+    );
+
+  const damageDetails =
+    document.getElementById(
+      "damage-details"
+    );
+
+  damageInputs.forEach(function (input) {
+
+    input.addEventListener(
+      "change",
+      function () {
+
+        if (!damageDetails) {
           return;
         }
 
-
-        populateModels();
-
-        showStep(1);
-
-        break;
-
-
-
-      case 1:
-
         if (
-          !validateModel()
+          input.checked &&
+          input.value === "yes"
         ) {
-          return;
+
+          damageDetails.hidden = false;
+
+        } else if (
+          input.checked &&
+          input.value === "no"
+        ) {
+
+          damageDetails.hidden = true;
+
         }
 
+      }
+    );
 
-        populatePackages();
-
-        showStep(2);
-
-        break;
+  });
 
 
+  /* =========================================================
+     MODEL CHANGE
+  ========================================================= */
 
-      case 2:
+  if (modelSelect) {
 
-        if (
-          !validatePackage()
-        ) {
-          return;
+    modelSelect.addEventListener(
+      "change",
+      function () {
+
+        quoteData.model =
+          modelSelect.value;
+
+        populatePackages(
+          modelSelect.value
+        );
+
+        if (packageSelect) {
+          packageSelect.value = "";
         }
 
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     PACKAGE CHANGE
+  ========================================================= */
+
+  if (packageSelect) {
+
+    packageSelect.addEventListener(
+      "change",
+      function () {
+
+        quoteData.package =
+          packageSelect.value;
 
         populatePackageContents();
 
-        showStep(3);
-
-        break;
-
-
-
-      case 3:
-
-        if (
-          !validateCondition()
-        ) {
-          return;
-        }
-
-
-        showStep(4);
-
-        break;
-
-
-
-      case 4:
-
-        if (
-          !validateFlightTime()
-        ) {
-          return;
-        }
-
-
-        showStep(5);
-
-        break;
-
-
-
-      case 5:
-
-        if (
-          !validateBatteries()
-        ) {
-          return;
-        }
-
-
-        showStep(6);
-
-        break;
-
-
-
-      case 6:
-
-        if (
-          !validateUnbound()
-        ) {
-          return;
-        }
-
-
-        showStep(7);
-
-        break;
-
-
-
-      case 7:
-
-        if (
-          !validateDamage()
-        ) {
-          return;
-        }
-
-
-        showStep(8);
-
-        break;
-
-
-
-      case 8:
-
-        showStep(9);
-
-        break;
-
-
-
-      case 9:
-
-        if (
-          !validateSerialNumbers()
-        ) {
-          return;
-        }
-
-
-        showStep(10);
-
-        break;
-
-
-
-      case 10:
-
-        if (
-          !validatePhotos()
-        ) {
-          return;
-        }
-
-
-        displayQuote();
-
-        showStep(11);
-
-        break;
-
-
-
-      case 11:
-
-        /*
-          Quote result.
-
-          The ACCEPT button handles progression
-          to customer details.
-        */
-
-        break;
-
-
-
-      case 12:
-
-        if (
-          !validateCustomerDetails()
-        ) {
-          return;
-        }
-
-
-        if (
-          quoteReference
-        ) {
-
-          quoteReference.textContent =
-            generateQuoteReference();
-
-        }
-
-
-        showStep(13);
-
-        break;
-
-
-
-      case 13:
-
-        showStep(14);
-
-        break;
-
-
-
-      case 14:
-
-        showStep(15);
-
-        break;
-
-
-
-      default:
-
-        break;
-
-    }
+      }
+    );
 
   }
 
 
-  /* ==========================================================
-     30. BACK
-     ========================================================== */
-
-  function goBack() {
-
-    if (
-      currentStep > 0
-    ) {
-
-      showStep(
-        currentStep - 1
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     31. SINGLE EVENT HANDLER
-     ========================================================== */
-
-  /*
-     IMPORTANT:
-
-     There is deliberately ONE delegated click handler.
-
-     This means dynamically-created battery buttons
-     and normal Next/Back buttons all use the same
-     event system.
-
-     This prevents the previous problem where Step 6
-     buttons were not responding.
-  */
+  /* =========================================================
+     NEXT / BACK / ACCEPT
+  ========================================================= */
 
   form.addEventListener(
     "click",
     function (event) {
 
       const target =
-        event.target.closest(
-          "button"
-        );
+        event.target.closest("button");
 
-
-      if (
-        !target ||
-        !form.contains(target)
-      ) {
-
+      if (!target) {
         return;
-
       }
 
 
@@ -2795,17 +1639,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         event.preventDefault();
 
-
-        const entry =
+        const battery =
           target.closest(
             ".battery-entry"
           );
 
-
-        if (entry) {
-          entry.remove();
+        if (battery) {
+          battery.remove();
         }
-
 
         return;
 
@@ -2822,61 +1663,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         event.preventDefault();
 
-        goBack();
+        if (currentStep > 0) {
 
-        return;
-
-      }
-
-
-      /* ACCEPT INSTANT QUOTE */
-
-      if (
-        target.classList.contains(
-          "btn-accept"
-        )
-      ) {
-
-        event.preventDefault();
-
-        showStep(12);
-
-        return;
-
-      }
-
-
-      /* SUBMIT CUSTOMER DETAILS */
-
-      if (
-        target.classList.contains(
-          "btn-submit"
-        )
-      ) {
-
-        event.preventDefault();
-
-
-        if (
-          !validateCustomerDetails()
-        ) {
-
-          return;
+          showStep(
+            currentStep - 1
+          );
 
         }
-
-
-        if (
-          quoteReference
-        ) {
-
-          quoteReference.textContent =
-            generateQuoteReference();
-
-        }
-
-
-        showStep(13);
 
         return;
 
@@ -2893,7 +1686,96 @@ document.addEventListener("DOMContentLoaded", function () {
 
         event.preventDefault();
 
-        goNext();
+        if (
+          !validateCurrentStep()
+        ) {
+
+          return;
+
+        }
+
+
+        /* When leaving photos,
+           generate quote */
+
+        if (currentStep === 10) {
+
+          renderQuoteResult();
+
+        }
+
+
+        if (
+          currentStep <
+          steps.length - 1
+        ) {
+
+          showStep(
+            currentStep + 1
+          );
+
+        }
+
+        return;
+
+      }
+
+
+      /* ACCEPT INSTANT QUOTE */
+
+      if (
+        target.classList.contains(
+          "btn-accept"
+        )
+      ) {
+
+        event.preventDefault();
+
+
+        if (manualValuation) {
+
+          alert(
+            "Your details will be submitted for manual valuation. A purchase price will be confirmed after review."
+          );
+
+          return;
+
+        }
+
+
+        quoteAccepted = true;
+
+
+        /* Customer details is
+           normally step 13,
+           but find it safely by
+           data-step */
+
+        const customerIndex =
+          steps.findIndex(function (step) {
+
+            return step.dataset.step === "13";
+
+          });
+
+
+        if (customerIndex !== -1) {
+
+          showStep(
+            customerIndex
+          );
+
+        } else {
+
+          /* Fallback */
+
+          showStep(
+            currentStep + 1
+          );
+
+        }
+
+        return;
 
       }
 
@@ -2901,135 +1783,219 @@ document.addEventListener("DOMContentLoaded", function () {
   );
 
 
-  /* ==========================================================
-     32. MODEL CHANGE
-     ========================================================== */
+  /* =========================================================
+     FORM SUBMISSION
+  ========================================================= */
 
-  if (
-    modelSelect
-  ) {
+  form.addEventListener(
+    "submit",
+    function (event) {
 
-    modelSelect.addEventListener(
-      "change",
-      function () {
+      event.preventDefault();
 
-        populatePackages();
+      const customerIndex =
+        steps.findIndex(function (step) {
+
+          return step.dataset.step === "13";
+
+        });
+
+
+      if (
+        customerIndex !== -1 &&
+        currentStep === customerIndex
+      ) {
+
+        const customerStep =
+          steps[customerIndex];
+
+        const required =
+          customerStep.querySelectorAll(
+            "input[required]"
+          );
+
+        for (const input of required) {
+
+          if (
+            input.type === "radio"
+          ) {
+
+            continue;
+
+          }
+
+          if (
+            !input.value.trim()
+          ) {
+
+            alert(
+              "Please complete all required customer details."
+            );
+
+            input.focus();
+
+            return;
+
+          }
+
+        }
+
+
+        const legalRight =
+          customerStep.querySelector(
+            'input[name="legalRight"]:checked'
+          );
+
+        if (!legalRight) {
+
+          alert(
+            "Please confirm that you have the legal right to sell this equipment."
+          );
+
+          return;
+
+        }
 
 
         if (
-          packageContentsList
+          legalRight.value === "no" ||
+          legalRight.value === "not-sure"
         ) {
 
-          packageContentsList.innerHTML =
-            "";
+          alert(
+            "We cannot automatically purchase equipment where ownership is uncertain. Please contact us for a manual review."
+          );
+
+          return;
+
+        }
+
+
+        collectCustomerDetails();
+
+        const submittedIndex =
+          steps.findIndex(function (step) {
+
+            return step.dataset.step === "14";
+
+          });
+
+
+        if (
+          submittedIndex !== -1
+        ) {
+
+          const reference =
+            generateQuoteReference();
+
+          const referenceElement =
+            document.getElementById(
+              "quote-reference"
+            );
+
+          if (referenceElement) {
+
+            referenceElement.textContent =
+              reference;
+
+          }
+
+          showStep(
+            submittedIndex
+          );
 
         }
 
       }
+
+    }
+  );
+
+
+  /* =========================================================
+     CUSTOMER DETAILS
+  ========================================================= */
+
+  function collectCustomerDetails() {
+
+    function value(id) {
+
+      const element =
+        document.getElementById(id);
+
+      return element
+        ? element.value.trim()
+        : "";
+
+    }
+
+    quoteData.fullName =
+      value("full-name");
+
+    quoteData.email =
+      value("email-address");
+
+    quoteData.phone =
+      value("phone-number");
+
+    quoteData.addressLine1 =
+      value("address-line-1");
+
+    quoteData.addressLine2 =
+      value("address-line-2");
+
+    quoteData.city =
+      value("city");
+
+    quoteData.county =
+      value("county");
+
+    quoteData.postcode =
+      value("postcode");
+
+  }
+
+
+  /* =========================================================
+     QUOTE REFERENCE
+  ========================================================= */
+
+  function generateQuoteReference() {
+
+    const year =
+      new Date().getFullYear();
+
+    const random =
+      Math.floor(
+        100000 +
+        Math.random() * 900000
+      );
+
+    return (
+      "WBA-" +
+      year +
+      "-" +
+      random
     );
 
   }
 
 
-  /* ==========================================================
-     33. PACKAGE CHANGE
-     ========================================================== */
+  /* =========================================================
+     INITIALISE
+  ========================================================= */
 
-  if (
-    packageSelect
-  ) {
-
-    packageSelect.addEventListener(
-      "change",
-      function () {
-
-        populatePackageContents();
-
-      }
-    );
-
-  }
-
-
-  /* ==========================================================
-     34. UNBOUND CHANGE
-     ========================================================== */
-
-  form
-    .querySelectorAll(
-      'input[name="unbound"]'
-    )
-    .forEach(
-      function (input) {
-
-        input.addEventListener(
-          "change",
-          function () {
-
-            if (
-              unboundWarning
-            ) {
-
-              unboundWarning.hidden =
-                input.value !== "no" ||
-                !input.checked;
-
-            }
-
-          }
-        );
-
-      }
-    );
-
-
-  /* ==========================================================
-     35. DAMAGE CHANGE
-     ========================================================== */
-
-  form
-    .querySelectorAll(
-      'input[name="damage"]'
-    )
-    .forEach(
-      function (input) {
-
-        input.addEventListener(
-          "change",
-          function () {
-
-            if (
-              damageDetails
-            ) {
-
-              damageDetails.hidden =
-                input.value !== "yes" ||
-                !input.checked;
-
-            }
-
-          }
-        );
-
-      }
-    );
-
-
-  /* ==========================================================
-     36. INITIALISE
-     ========================================================== */
-
-  /*
-     IMPORTANT:
-
-     Do NOT create a battery automatically.
-
-     The customer must explicitly click
-     ADD BATTERY on Step 6.
-  */
+  populateModels();
 
   showStep(0);
 
+
+  /* =========================================================
+     BATTERY INITIALISATION
+     
+     Do NOT automatically add a battery.
+     Customer clicks ADD BATTERY.
+  ========================================================= */
 
   console.log(
     "WE BUY ANY DRONE quote wizard loaded successfully."
