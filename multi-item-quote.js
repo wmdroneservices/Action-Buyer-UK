@@ -71,7 +71,7 @@
     },true);
     form.addEventListener("click",function(event){
       const button=event.target.closest("button");if(!button||resetting)return;const s=button.closest(".wizard-step");if(!s||Number(s.dataset.step)!==13)return;
-      setTimeout(()=>{try{const raw=localStorage.getItem("wba_latest_quote");if(!raw||basket.length===0)return;const saved=JSON.parse(raw);saved.quoteBasket=basket;saved.quoteItemCount=basket.length;saved.quoteAmount=basket.reduce((sum,x)=>sum+(Number(x.amount)||0),0);saved.multiItemQuote=basket.length>1;localStorage.setItem("wba_latest_quote",JSON.stringify(saved));}catch(e){}},350);
+      setTimeout(()=>{try{const raw=localStorage.getItem("wba_latest_quote");if(!raw||basket.length===0)return;const saved=JSON.parse(raw);saved.quoteBasket=basket;saved.quoteItemCount=basket.length;saved.quoteAmount=basket.reduce((sum,x)=>sum+(Number(x.amount)||0),0);saved.multiItemQuote=basket.length>1;localStorage.setItem("wba_latest_quote",JSON.stringify(saved));}catch(e){}},100);
     },true);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
