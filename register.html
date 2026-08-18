@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register | Action Buyer UK</title>
+  <meta name="description" content="Create an Action Buyer UK account to track your valuations and submissions." />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">ACTION BUYER UK</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li></ul></nav></div></header>
+<main class="auth-page"><div class="auth-card"><p class="section-kicker">CREATE YOUR ACCOUNT</p><h1>Register</h1><p class="auth-intro">Create an account so you can keep track of your valuations and future submissions.</p>
+<form id="register-form" class="auth-form">
+<label for="full-name">Full name</label><input id="full-name" type="text" autocomplete="name" required />
+<label for="email">Email address</label><input id="email" type="email" autocomplete="email" required />
+<label for="phone">Phone number <span class="optional">(optional)</span></label><input id="phone" type="tel" autocomplete="tel" />
+<label for="password">Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" required /><small>Use at least 8 characters.</small>
+<label class="checkbox-label"><input id="terms" type="checkbox" required /> <span>I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+<button class="btn btn-primary" type="submit">CREATE ACCOUNT</button><p id="register-message" class="form-message" role="status" aria-live="polite"></p>
+</form><p class="auth-switch">Already have an account? <a href="login.html">Sign in</a></p></div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>ACTION BUYER UK</strong><br />We buy drones, cameras, video and audio equipment.</div></div></footer>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("register-form");
+  const message = document.getElementById("register-message");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault(); message.textContent = "Creating your account..."; message.className = "form-message";
+    const fullName = document.getElementById("full-name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const password = document.getElementById("password").value;
+    const { data, error } = await actionBuyerAuth.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, phone } } });
+    if (error) { message.textContent = error.message; message.className = "form-message error"; return; }
+    if (data.session) { window.location.href = "account.html"; return; }
+    message.textContent = "Account created. Please check your email and confirm your address before signing in.";
+    message.className = "form-message success"; form.reset();
+  });
+});
+</script>
+</body>
+</html>
