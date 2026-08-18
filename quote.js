@@ -1,119 +1,128 @@
-/* ============================================================
-   WE BUY ANY DRONE
-   Complete Instant Quote Wizard
-   Replace the ENTIRE contents of quote.js with this file.
-   ============================================================ */
+// WE BUY ANY DRONE - complete quote wizard
+// Replace the ENTIRE contents of quote.js with this file.
 
 document.addEventListener("DOMContentLoaded", function () {
-
   "use strict";
 
-  /* ============================================================
-     BASIC DOM SETUP
-     ============================================================ */
-
   const form = document.getElementById("quote-form");
+  const progressList = document.getElementById("progress-indicator");
 
   if (!form) {
-    console.error("WE BUY ANY DRONE: quote-form was not found.");
+    console.error("WE BUY ANY DRONE: #quote-form not found.");
     return;
   }
 
-  const progressList = document.getElementById("progress-indicator");
-
   let steps = [];
   let currentStep = 0;
+  let batteryCount = 0;
 
-  function refreshSteps() {
-    steps = Array.from(form.querySelectorAll(".wizard-step"));
-  }
-
-  refreshSteps();
+  const quoteData = {
+    manufacturer: "",
+    model: "",
+    package: "",
+    condition: "",
+    flightHours: "",
+    flightHoursRange: "",
+    batteries: [],
+    unbound: "",
+    damage: "",
+    damageDescription: "",
+    packageContents: {},
+    additionalAccessories: [],
+    droneSerial: "",
+    controllerSerial: "",
+    photos: [],
+    legalRight: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postcode: "",
+    bankName: "",
+    accountNumber: "",
+    sortCode: "",
+    quoteAmount: null,
+    quoteReference: ""
+  };
 
 
   /* ============================================================
-     DATA
+     DJI MODEL DATABASE
      ============================================================ */
-
-  const manufacturers = [
-    {
-      id: "dji",
-      name: "DJI"
-    }
-  ];
-
 
   const djiModels = {
 
     mini: [
-      { id: "mini", name: "DJI Mini" },
-      { id: "mini-se", name: "DJI Mini SE" },
-      { id: "mini-2", name: "DJI Mini 2" },
-      { id: "mini-2-se", name: "DJI Mini 2 SE" },
-      { id: "mini-3", name: "DJI Mini 3" },
-      { id: "mini-3-pro", name: "DJI Mini 3 Pro" },
-      { id: "mini-4-pro", name: "DJI Mini 4 Pro" },
-      { id: "mini-5-pro", name: "DJI Mini 5 Pro" }
+      ["mini", "DJI Mini"],
+      ["mini-se", "DJI Mini SE"],
+      ["mini-2", "DJI Mini 2"],
+      ["mini-2-se", "DJI Mini 2 SE"],
+      ["mini-3", "DJI Mini 3"],
+      ["mini-3-pro", "DJI Mini 3 Pro"],
+      ["mini-4-pro", "DJI Mini 4 Pro"],
+      ["mini-5-pro", "DJI Mini 5 Pro"]
     ],
 
     neo: [
-      { id: "neo", name: "DJI Neo" },
-      { id: "neo-2", name: "DJI Neo 2" }
+      ["neo", "DJI Neo"],
+      ["neo-2", "DJI Neo 2"]
     ],
 
     lito: [
-      { id: "lito-1", name: "DJI Lito 1" },
-      { id: "lito-x1", name: "DJI Lito X1" }
+      ["lito-1", "DJI Lito 1"],
+      ["lito-x1", "DJI Lito X1"]
     ],
 
     flip: [
-      { id: "flip", name: "DJI Flip" }
+      ["flip", "DJI Flip"]
     ],
 
     air: [
-      { id: "air", name: "DJI Air" },
-      { id: "air-2", name: "DJI Air 2" },
-      { id: "air-2s", name: "DJI Air 2S" },
-      { id: "air-3", name: "DJI Air 3" },
-      { id: "air-3s", name: "DJI Air 3S" }
+      ["air", "DJI Air"],
+      ["air-2", "DJI Air 2"],
+      ["air-2s", "DJI Air 2S"],
+      ["air-3", "DJI Air 3"],
+      ["air-3s", "DJI Air 3S"]
     ],
 
     mavic: [
-      { id: "mavic-mini", name: "DJI Mavic Mini" },
-      { id: "mavic-pro", name: "DJI Mavic Pro" },
-      { id: "mavic-2-pro", name: "DJI Mavic 2 Pro" },
-      { id: "mavic-2-zoom", name: "DJI Mavic 2 Zoom" },
-      { id: "mavic-3", name: "DJI Mavic 3" },
-      { id: "mavic-3-classic", name: "DJI Mavic 3 Classic" },
-      { id: "mavic-3-pro", name: "DJI Mavic 3 Pro" },
-      { id: "mavic-3-pro-cine", name: "DJI Mavic 3 Pro Cine" },
-      { id: "mavic-4-pro", name: "DJI Mavic 4 Pro" }
+      ["mavic-mini", "DJI Mavic Mini"],
+      ["mavic-pro", "DJI Mavic Pro"],
+      ["mavic-2-pro", "DJI Mavic 2 Pro"],
+      ["mavic-2-zoom", "DJI Mavic 2 Zoom"],
+      ["mavic-3", "DJI Mavic 3"],
+      ["mavic-3-classic", "DJI Mavic 3 Classic"],
+      ["mavic-3-pro", "DJI Mavic 3 Pro"],
+      ["mavic-3-pro-cine", "DJI Mavic 3 Pro Cine"],
+      ["mavic-4-pro", "DJI Mavic 4 Pro"]
     ],
 
     fpv: [
-      { id: "fpv", name: "DJI FPV" },
-      { id: "avata", name: "DJI Avata" },
-      { id: "avata-2", name: "DJI Avata 2" },
-      { id: "avata-360", name: "DJI Avata 360" }
+      ["fpv", "DJI FPV"],
+      ["avata", "DJI Avata"],
+      ["avata-2", "DJI Avata 2"],
+      ["avata-360", "DJI Avata 360"]
     ],
 
     commercial: [
-      { id: "mavic-3-enterprise", name: "DJI Mavic 3 Enterprise" },
-      { id: "mavic-3-thermal", name: "DJI Mavic 3 Thermal" },
-      { id: "mavic-3-multispectral", name: "DJI Mavic 3 Multispectral" },
-      { id: "matrice-4e", name: "DJI Matrice 4E" },
-      { id: "matrice-4t", name: "DJI Matrice 4T" },
-      { id: "matrice-30", name: "DJI Matrice 30" },
-      { id: "matrice-30t", name: "DJI Matrice 30T" },
-      { id: "matrice-300-rtk", name: "DJI Matrice 300 RTK" },
-      { id: "matrice-350-rtk", name: "DJI Matrice 350 RTK" },
-      { id: "matrice-400", name: "DJI Matrice 400" },
-      { id: "inspire-1", name: "DJI Inspire 1" },
-      { id: "inspire-2", name: "DJI Inspire 2" },
-      { id: "inspire-3", name: "DJI Inspire 3" },
-      { id: "agras", name: "DJI Agras" }
+      ["mavic-3-enterprise", "DJI Mavic 3 Enterprise"],
+      ["mavic-3-thermal", "DJI Mavic 3 Thermal"],
+      ["mavic-3-multispectral", "DJI Mavic 3 Multispectral"],
+      ["matrice-4e", "DJI Matrice 4E"],
+      ["matrice-4t", "DJI Matrice 4T"],
+      ["matrice-30", "DJI Matrice 30"],
+      ["matrice-30t", "DJI Matrice 30T"],
+      ["matrice-300-rtk", "DJI Matrice 300 RTK"],
+      ["matrice-350-rtk", "DJI Matrice 350 RTK"],
+      ["matrice-400", "DJI Matrice 400"],
+      ["inspire-1", "DJI Inspire 1"],
+      ["inspire-2", "DJI Inspire 2"],
+      ["inspire-3", "DJI Inspire 3"],
+      ["agras", "DJI Agras"]
     ]
-
   };
 
 
@@ -253,22 +262,232 @@ document.addEventListener("DOMContentLoaded", function () {
       "drone-only": "Drone only",
       "fly-more": "Fly More Combo"
     }
+  };
 
+
+  /* ============================================================
+     PACKAGE CONTENT / BATTERY DATABASE
+     ============================================================ */
+
+  const packageSpecs = {
+
+    "mini-5-pro": {
+      "fly-more-rc-2": {
+        batteries: 3
+      }
+    },
+
+    "mini-4-pro": {
+      "fly-more-rc-2": {
+        batteries: 3
+      },
+      "fly-more-rc-n2": {
+        batteries: 3
+      }
+    },
+
+    "mini-3-pro": {
+      "fly-more-rc-n1": {
+        batteries: 3
+      },
+      "fly-more-dji-rc": {
+        batteries: 3
+      }
+    },
+
+    "mini-3": {
+      "fly-more-rc-n1": {
+        batteries: 3
+      }
+    },
+
+    "mini-2": {
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "neo": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "neo-2": {
+      "standard": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "flip": {
+      "standard-rc-n3": {
+        batteries: 1
+      },
+      "fly-more-rc-n3": {
+        batteries: 3
+      },
+      "fly-more-rc-2": {
+        batteries: 3
+      }
+    },
+
+    "air": {
+      "drone-only": {
+        batteries: 1
+      },
+      "standard": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "air-2": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "air-2s": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "air-3": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "air-3s": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-2-pro": {
+      "drone-only": {
+        batteries: 1
+      },
+      "standard": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-2-zoom": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-3": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-3-classic": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-3-pro": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "mavic-3-pro-cine": {
+      "drone-only": {
+        batteries: 1
+      },
+      "premium-combo": {
+        batteries: 3
+      }
+    },
+
+    "mavic-4-pro": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    },
+
+    "fpv": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-smart": {
+        batteries: 1
+      }
+    },
+
+    "avata": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-smart": {
+        batteries: 2
+      },
+      "pro-view": {
+        batteries: 2
+      },
+      "explorer": {
+        batteries: 2
+      }
+    },
+
+    "avata-2": {
+      "drone-only": {
+        batteries: 1
+      },
+      "fly-more": {
+        batteries: 3
+      }
+    }
   };
 
 
   /* ============================================================
      PRICING DATABASE
-     
-     IMPORTANT:
-     £500 is currently the verified test/base purchase price
-     for:
-     
-     DJI Mini 5 Pro
-     Fly More Combo + RC 2
-     
-     Other models/packages remain manual valuation until prices
-     are entered here.
      ============================================================ */
 
   const pricing = {
@@ -312,7 +531,6 @@ document.addEventListener("DOMContentLoaded", function () {
         missingItems: {
           "drone": 500,
           "controller": 100,
-          "battery": 50,
           "charging-hub": 25,
           "bag": 20,
           "propellers": 10,
@@ -322,61 +540,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
         extras: {
           "battery": 30,
-          "charging-hub": 20,
-          "controller": 50
-        }
+          "controller": 50,
+          "charging-hub": 20
+        },
 
+        maxAdditionalBatteries: 3
       }
-
     }
-
   };
 
 
   /* ============================================================
-     CUSTOMER DATA
+     GENERAL HELPERS
      ============================================================ */
 
-  const quoteData = {
-
-    manufacturer: "",
-    model: "",
-    package: "",
-    condition: "",
-    flightHours: "",
-    flightHoursRange: "",
-    batteries: [],
-    unbound: "",
-    damage: "",
-    damageDescription: "",
-    packageContents: {},
-    droneSerial: "",
-    controllerSerial: "",
-    photos: [],
-    legalRight: "",
-    fullName: "",
-    email: "",
-    phone: "",
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    county: "",
-    postcode: "",
-    bankName: "",
-    accountNumber: "",
-    sortCode: "",
-    quoteAmount: null,
-    quoteReference: ""
-
-  };
+  function refreshSteps() {
+    steps = Array.from(
+      form.querySelectorAll(".wizard-step")
+    );
+  }
 
 
-  /* ============================================================
-     UTILITY FUNCTIONS
-     ============================================================ */
+  function stepIndex(number) {
+    refreshSteps();
+
+    return steps.findIndex(function (step) {
+      return Number(step.dataset.step) === number;
+    });
+  }
+
 
   function escapeHTML(value) {
-    return String(value || "")
+    return String(
+      value === null || value === undefined ? "" : value
+    )
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -385,61 +582,49 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  function getAllModels() {
-
-    const result = [];
-
-    Object.keys(djiModels).forEach(function (category) {
-
-      djiModels[category].forEach(function (model) {
-
-        result.push(model);
-
-      });
-
-    });
-
-    return result;
-
+  function formatMoney(value) {
+    return new Intl.NumberFormat(
+      "en-GB",
+      {
+        style: "currency",
+        currency: "GBP"
+      }
+    ).format(value);
   }
 
 
   function getModelName(id) {
 
-    const model = getAllModels().find(function (item) {
-
-      return item.id === id;
-
-    });
-
-    return model ? model.name : id;
-
-  }
-
-
-  function getPackageName(modelId, packageId) {
-
-    if (
-      packageOptions[modelId] &&
-      packageOptions[modelId][packageId]
+    for (
+      const group of Object.values(djiModels)
     ) {
 
-      return packageOptions[modelId][packageId];
+      for (
+        const item of group
+      ) {
+
+        if (item[0] === id) {
+          return item[1];
+        }
+
+      }
 
     }
 
-    return packageId || "Package";
-
+    return id;
   }
 
 
-  function formatMoney(amount) {
+  function getPackageName(model, packageId) {
 
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP"
-    }).format(amount);
+    if (
+      packageOptions[model] &&
+      packageOptions[model][packageId]
+    ) {
+      return packageOptions[model][packageId];
+    }
 
+    return packageId;
   }
 
 
@@ -447,853 +632,1008 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const h = Number(hours);
 
-    if (isNaN(h)) return "";
+    if (!Number.isFinite(h)) {
+      return "";
+    }
 
-    if (h <= 5) return "0-5";
-    if (h <= 20) return "5-20";
-    if (h <= 50) return "20-50";
-    if (h <= 100) return "50-100";
-    if (h <= 150) return "100-150";
-    if (h <= 200) return "150-200";
+    if (h <= 5) {
+      return "0-5";
+    }
+
+    if (h <= 20) {
+      return "5-20";
+    }
+
+    if (h <= 50) {
+      return "20-50";
+    }
+
+    if (h <= 100) {
+      return "50-100";
+    }
+
+    if (h <= 150) {
+      return "100-150";
+    }
+
+    if (h <= 200) {
+      return "150-200";
+    }
 
     return "200+";
-
   }
 
 
   function generateQuoteReference() {
 
-    const year = new Date().getFullYear();
-
-    const random = Math.floor(
-      100000 + Math.random() * 900000
+    return (
+      "WBA-" +
+      new Date().getFullYear() +
+      "-" +
+      Math.floor(
+        100000 + Math.random() * 900000
+      )
     );
-
-    return "WBA-" + year + "-" + random;
-
   }
 
 
-  /* ============================================================
-     CREATE MISSING WIZARD STEPS
-     
-     Your current quote.html only contains Steps 1-6.
-     This function creates Steps 7-16 if they are missing.
-     ============================================================ */
+  function navigationHTML(
+    backText,
+    nextText
+  ) {
 
-  function ensureLaterStepsExist() {
+    return `
+      <div class="navigation-buttons">
 
-    refreshSteps();
+        <button
+          type="button"
+          class="btn-back"
+        >
+          ${escapeHTML(backText || "Back")}
+        </button>
 
-    const existingSteps = new Set(
-      steps.map(function (step) {
-        return Number(step.dataset.step);
-      })
-    );
+        <button
+          type="button"
+          class="btn-next"
+        >
+          ${escapeHTML(nextText || "Next")}
+        </button>
 
-    if (!existingSteps.has(7)) {
-      createStep7();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(8)) {
-      createStep8();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(9)) {
-      createStep9();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(10)) {
-      createStep10();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(11)) {
-      createStep11();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(12)) {
-      createStep12();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(13)) {
-      createStep13();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(14)) {
-      createStep14();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(15)) {
-      createStep15();
-    }
-
-    refreshSteps();
-
-    if (!existingSteps.has(16)) {
-      createStep16();
-    }
-
-    refreshSteps();
-
+      </div>
+    `;
   }
 
 
-  function createWizardSection(number, html) {
+  function createStep(
+    number,
+    html
+  ) {
 
-    const section = document.createElement("section");
+    const section =
+      document.createElement("section");
 
-    section.className = "wizard-step";
+    section.className =
+      "wizard-step";
 
-    section.dataset.step = String(number);
+    section.dataset.step =
+      String(number);
 
     section.hidden = true;
 
-    section.innerHTML = html;
+    section.innerHTML =
+      html;
 
     form.appendChild(section);
 
     return section;
-
-  }
-
-
-  function navigationHTML(backText, nextText) {
-
-    return `
-      <div class="navigation-buttons">
-        <button type="button" class="btn-back">
-          ${escapeHTML(backText || "Back")}
-        </button>
-        <button type="button" class="btn-next">
-          ${escapeHTML(nextText || "Next")}
-        </button>
-      </div>
-    `;
-
-  }
-
-
-  function createStep7() {
-
-    createWizardSection(7, `
-      <h3>Step 7: Unbound Status</h3>
-
-      <p>
-        Is the drone unbound from your DJI account?
-      </p>
-
-      <fieldset>
-        <legend>DJI account status</legend>
-
-        <label>
-          <input type="radio" name="unbound" value="yes">
-          Yes
-        </label>
-
-        <label>
-          <input type="radio" name="unbound" value="no">
-          No
-        </label>
-
-        <label>
-          <input type="radio" name="unbound" value="unknown">
-          I Don't Know
-        </label>
-      </fieldset>
-
-      <p>
-        Please provide a screenshot or photograph showing the aircraft
-        is unbound where possible.
-      </p>
-
-      ${navigationHTML()}
-    `);
-
-  }
-
-
-  function createStep8() {
-
-    createWizardSection(8, `
-      <h3>Step 8: Damage</h3>
-
-      <p>Does the drone have any damage?</p>
-
-      <fieldset>
-        <legend>Damage status</legend>
-
-        <label>
-          <input type="radio" name="damage" value="no">
-          No
-        </label>
-
-        <label>
-          <input type="radio" name="damage" value="yes">
-          Yes
-        </label>
-      </fieldset>
-
-      <div id="damage-details" hidden>
-
-        <label for="damage-description">
-          Description of damage
-        </label>
-
-        <textarea
-          id="damage-description"
-          name="damageDescription"
-          rows="5"
-          placeholder="Please describe all damage."
-        ></textarea>
-
-        <p>
-          Examples: cracked body, damaged arm, damaged gimbal,
-          damaged camera, scratches, propeller damage, landing damage,
-          water damage or other faults.
-        </p>
-
-        <label for="damage-photos">
-          Damage photographs
-        </label>
-
-        <input
-          type="file"
-          id="damage-photos"
-          accept="image/*"
-          multiple
-        >
-
-      </div>
-
-      ${navigationHTML()}
-    `);
-
-  }
-
-
-  function createStep9() {
-
-    createWizardSection(9, `
-      <h3>Step 9: Package Contents</h3>
-
-      <p>
-        Please confirm what is present, missing or additional.
-      </p>
-
-      <div id="package-contents-list"></div>
-
-      ${navigationHTML()}
-    `);
-
-  }
-
-
-  function createStep10() {
-
-    createWizardSection(10, `
-      <h3>Step 10: Serial Numbers</h3>
-
-      <label for="drone-serial-number">
-        Drone Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="drone-serial-number"
-        name="droneSerial"
-        maxlength="50"
-        required
-      >
-
-      <label for="controller-serial-number">
-        Controller Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="controller-serial-number"
-        name="controllerSerial"
-        maxlength="50"
-      >
-
-      <p>
-        Serial numbers may be checked during inspection and
-        ownership verification.
-      </p>
-
-      ${navigationHTML()}
-    `);
-
-  }
-
-
-  function createStep11() {
-
-    createWizardSection(11, `
-      <h3>Step 11: Photographs</h3>
-
-      <p>
-        Upload clear photographs to help us verify your equipment.
-      </p>
-
-      <ul>
-        <li>Drone</li>
-        <li>Controller</li>
-        <li>Package contents</li>
-        <li>Flight-time information</li>
-        <li>Battery-cycle information</li>
-        <li>Unbound status</li>
-        <li>Damage where applicable</li>
-        <li>Serial numbers where possible</li>
-      </ul>
-
-      <label for="photo-uploads">
-        Upload photographs
-      </label>
-
-      <input
-        type="file"
-        id="photo-uploads"
-        name="photos"
-        accept="image/*"
-        multiple
-        required
-      >
-
-      ${navigationHTML()}
-    `);
-
-  }
-
-
-  function createStep12() {
-
-    createWizardSection(12, `
-      <h3>Your Instant Quote</h3>
-
-      <div id="quote-summary"></div>
-
-      <div class="quote-important">
-        <h4>IMPORTANT</h4>
-
-        <p>
-          Your Instant Quote is based on the information and
-          photographs you have provided.
-        </p>
-
-        <p>
-          All equipment is physically inspected when received.
-        </p>
-
-        <p>
-          If the equipment matches the information supplied,
-          we will confirm the quoted price.
-        </p>
-
-        <p>
-          If the condition, contents, flight time, ownership
-          or other information differs materially, we may make
-          a revised final offer.
-        </p>
-
-        <p>
-          If you do not accept a revised offer, we will return
-          the equipment to the full address you provide.
-        </p>
-      </div>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-accept">
-          Accept Instant Quote &amp; Continue
-        </button>
-
-      </div>
-    `);
-
-  }
-
-
-  function createStep13() {
-
-    createWizardSection(13, `
-      <h3>Step 13: Your Details</h3>
-
-      <p>
-        We require your full return address because your equipment
-        is physically inspected after receipt. If you reject a
-        revised final valuation, we need to be able to return
-        your equipment to you.
-      </p>
-
-      <label for="full-name">
-        Full Name
-      </label>
-
-      <input
-        type="text"
-        id="full-name"
-        name="fullName"
-        required
-      >
-
-      <label for="email-address">
-        Email Address
-      </label>
-
-      <input
-        type="email"
-        id="email-address"
-        name="email"
-        required
-      >
-
-      <label for="phone-number">
-        Telephone Number
-      </label>
-
-      <input
-        type="tel"
-        id="phone-number"
-        name="phone"
-        required
-      >
-
-      <fieldset>
-        <legend>Full Return Address</legend>
-
-        <label for="address-line-1">
-          Address Line 1
-        </label>
-
-        <input
-          type="text"
-          id="address-line-1"
-          name="addressLine1"
-          required
-        >
-
-        <label for="address-line-2">
-          Address Line 2
-        </label>
-
-        <input
-          type="text"
-          id="address-line-2"
-          name="addressLine2"
-        >
-
-        <label for="city">
-          Town / City
-        </label>
-
-        <input
-          type="text"
-          id="city"
-          name="city"
-          required
-        >
-
-        <label for="county">
-          County
-        </label>
-
-        <input
-          type="text"
-          id="county"
-          name="county"
-          required
-        >
-
-        <label for="postcode">
-          Postcode
-        </label>
-
-        <input
-          type="text"
-          id="postcode"
-          name="postcode"
-          required
-        >
-
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          Do you have the legal right to sell this equipment?
-        </legend>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="yes"
-            required
-          >
-          Yes
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="no"
-          >
-          No
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="not-sure"
-          >
-          I'm not sure
-        </label>
-
-      </fieldset>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Submit Quote
-        </button>
-
-      </div>
-    `);
-
-  }
-
-
-  function createStep14() {
-
-    createWizardSection(14, `
-      <h3>Quote Submitted</h3>
-
-      <p>
-        Your quote reference:
-      </p>
-
-      <p
-        id="quote-reference"
-        class="quote-ref"
-      ></p>
-
-      <p>
-        Your quote information has been recorded on this device
-        for this prototype.
-      </p>
-
-      <p>
-        <strong>
-          BACKEND INTEGRATION REQUIRED
-        </strong>
-      </p>
-
-      <p>
-        A production version will send the confirmation directly
-        to the business system and customer email address.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-next">
-          Continue to Shipping Instructions
-        </button>
-
-      </div>
-    `);
-
-  }
-
-
-  function createStep15() {
-
-    createWizardSection(15, `
-      <h3>Shipping Instructions</h3>
-
-      <h4>Shipping Label</h4>
-
-      <p>
-        Your shipping label and instructions will be sent directly
-        to the email address you supplied.
-      </p>
-
-      <p>
-        <strong>
-          BACKEND / SHIPPING PROVIDER INTEGRATION REQUIRED
-        </strong>
-      </p>
-
-      <p>
-        The live version can connect to Royal Mail or another
-        approved courier to generate the shipping label.
-      </p>
-
-      <p>
-        Do not send the equipment until you have received the
-        shipping instructions.
-      </p>
-
-      ${navigationHTML("Back", "Continue")}
-    `);
-
-  }
-
-
-  function createStep16() {
-
-    createWizardSection(16, `
-      <h3>Step 16: Final Inspection</h3>
-
-      <p>
-        When your equipment arrives, we will inspect:
-      </p>
-
-      <ol>
-        <li>Model</li>
-        <li>Serial number</li>
-        <li>Flight time</li>
-        <li>Battery cycles</li>
-        <li>Condition</li>
-        <li>Damage</li>
-        <li>Package contents</li>
-        <li>Unbound status</li>
-        <li>Final valuation</li>
-      </ol>
-
-      <h3>Final Offer</h3>
-
-      <p>
-        After inspection you will receive a final offer.
-      </p>
-
-      <p>
-        You can accept or decline the final offer.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-final-accept">
-          Accept Final Offer
-        </button>
-
-        <button type="button" class="btn-final-decline">
-          Decline Final Offer
-        </button>
-
-      </div>
-
-      <div
-        id="final-offer-result"
-        hidden
-      ></div>
-    `);
-
   }
 
 
   /* ============================================================
-     STEP DISPLAY
+     CREATE STEPS 7-16
      ============================================================ */
 
-  function showStep(index) {
+  function ensureLaterSteps() {
 
     refreshSteps();
 
-    if (index < 0 || index >= steps.length) {
+    const existing =
+      new Set(
+        steps.map(function (step) {
+          return Number(step.dataset.step);
+        })
+      );
+
+
+    if (!existing.has(7)) {
+
+      createStep(
+        7,
+        `
+        <h3>Step 7: Unbound Status</h3>
+
+        <p>
+          Is the drone unbound from your DJI account?
+        </p>
+
+        <fieldset>
+
+          <legend>
+            DJI account status
+          </legend>
+
+          <label>
+            <input
+              type="radio"
+              name="unbound"
+              value="yes"
+            >
+            Yes
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="unbound"
+              value="no"
+            >
+            No
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="unbound"
+              value="unknown"
+            >
+            I Don't Know
+          </label>
+
+        </fieldset>
+
+        <p>
+          Please provide a screenshot or photograph
+          showing the aircraft is unbound where possible.
+        </p>
+
+        ${navigationHTML()}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(8)) {
+
+      createStep(
+        8,
+        `
+        <h3>Step 8: Damage</h3>
+
+        <p>
+          Does the drone have any damage?
+        </p>
+
+        <fieldset>
+
+          <legend>
+            Damage status
+          </legend>
+
+          <label>
+            <input
+              type="radio"
+              name="damage"
+              value="no"
+            >
+            No
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="damage"
+              value="yes"
+            >
+            Yes
+          </label>
+
+        </fieldset>
+
+        <div
+          id="damage-details"
+          hidden
+        >
+
+          <label for="damage-description">
+            Description of damage
+          </label>
+
+          <textarea
+            id="damage-description"
+            rows="5"
+            placeholder="Please describe all damage."
+          ></textarea>
+
+          <p>
+            Examples: cracked body, damaged arm,
+            damaged gimbal, damaged camera,
+            scratches, propeller damage,
+            landing damage, water damage or other faults.
+          </p>
+
+          <label for="damage-photos">
+            Damage photographs
+          </label>
+
+          <input
+            type="file"
+            id="damage-photos"
+            accept="image/*"
+            multiple
+          >
+
+        </div>
+
+        ${navigationHTML()}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(9)) {
+
+      createStep(
+        9,
+        `
+        <h3>Step 9: Package Contents</h3>
+
+        <p>
+          Please confirm what is present or missing
+          from the selected package.
+        </p>
+
+        <div
+          id="package-contents-list"
+        ></div>
+
+        <hr>
+
+        <h4>
+          Additional Equipment / Accessories
+        </h4>
+
+        <p>
+          Use this section for genuine extra equipment
+          not already included in the selected package.
+        </p>
+
+        <div
+          id="additional-accessories-list"
+        ></div>
+
+        <button
+          type="button"
+          class="btn"
+          id="add-accessory-btn"
+        >
+          Add Accessory
+        </button>
+
+        ${navigationHTML()}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(10)) {
+
+      createStep(
+        10,
+        `
+        <h3>Step 10: Serial Numbers</h3>
+
+        <label for="drone-serial-number">
+          Drone Serial Number
+        </label>
+
+        <input
+          type="text"
+          id="drone-serial-number"
+          maxlength="50"
+          required
+        >
+
+        <label for="controller-serial-number">
+          Controller Serial Number
+        </label>
+
+        <input
+          type="text"
+          id="controller-serial-number"
+          maxlength="50"
+        >
+
+        <p>
+          Serial numbers may be checked during inspection
+          and ownership verification.
+        </p>
+
+        ${navigationHTML()}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(11)) {
+
+      createStep(
+        11,
+        `
+        <h3>Step 11: Photographs</h3>
+
+        <p>
+          Upload clear photographs to help us verify
+          your equipment.
+        </p>
+
+        <ul>
+          <li>Drone</li>
+          <li>Controller</li>
+          <li>Package contents</li>
+          <li>Flight-time information</li>
+          <li>Battery-cycle information</li>
+          <li>Unbound status</li>
+          <li>Damage where applicable</li>
+          <li>Serial numbers where possible</li>
+        </ul>
+
+        <label for="photo-uploads">
+          Upload photographs
+        </label>
+
+        <input
+          type="file"
+          id="photo-uploads"
+          accept="image/*"
+          multiple
+          required
+        >
+
+        <p>
+          <strong>
+            Do you have the legal right to sell
+            this equipment?
+          </strong>
+        </p>
+
+        <fieldset>
+
+          <label>
+            <input
+              type="radio"
+              name="legalRight"
+              value="yes"
+            >
+            Yes
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="legalRight"
+              value="no"
+            >
+            No
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="legalRight"
+              value="not-sure"
+            >
+            I'm not sure
+          </label>
+
+        </fieldset>
+
+        ${navigationHTML()}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(12)) {
+
+      createStep(
+        12,
+        `
+        <h3>
+          Your Instant Quote
+        </h3>
+
+        <div
+          id="quote-summary"
+        ></div>
+
+        <div class="quote-important">
+
+          <h4>
+            IMPORTANT
+          </h4>
+
+          <p>
+            Your Instant Quote is based on the information
+            and photographs you have provided.
+          </p>
+
+          <p>
+            All equipment is physically inspected when received.
+          </p>
+
+          <p>
+            If the equipment matches the information supplied,
+            we will confirm the quoted price.
+          </p>
+
+          <p>
+            If the condition, contents, flight time, ownership
+            or other information differs materially,
+            we may make a revised final offer.
+          </p>
+
+          <p>
+            If you do not accept a revised offer,
+            we will return the equipment to the full address
+            you provide.
+          </p>
+
+        </div>
+
+        <div class="navigation-buttons">
+
+          <button
+            type="button"
+            class="btn-back"
+          >
+            Back
+          </button>
+
+          <button
+            type="button"
+            class="btn-accept"
+          >
+            Accept Instant Quote &amp; Continue
+          </button>
+
+        </div>
+        `
+      );
+
+    }
+
+
+    if (!existing.has(13)) {
+
+      createStep(
+        13,
+        `
+        <h3>
+          Step 13: Your Details
+        </h3>
+
+        <p>
+          We require your full return address because
+          your equipment is physically inspected after receipt.
+          If you reject a revised final valuation,
+          we need to be able to return your equipment to you.
+        </p>
+
+        <label for="full-name">
+          Full Name
+        </label>
+
+        <input
+          type="text"
+          id="full-name"
+          required
+        >
+
+        <label for="email-address">
+          Email Address
+        </label>
+
+        <input
+          type="email"
+          id="email-address"
+          required
+        >
+
+        <label for="phone-number">
+          Telephone Number
+        </label>
+
+        <input
+          type="tel"
+          id="phone-number"
+          required
+        >
+
+        <fieldset>
+
+          <legend>
+            Full Return Address
+          </legend>
+
+          <label for="address-line-1">
+            Address Line 1
+          </label>
+
+          <input
+            type="text"
+            id="address-line-1"
+            required
+          >
+
+          <label for="address-line-2">
+            Address Line 2
+          </label>
+
+          <input
+            type="text"
+            id="address-line-2"
+          >
+
+          <label for="city">
+            Town / City
+          </label>
+
+          <input
+            type="text"
+            id="city"
+            required
+          >
+
+          <label for="county">
+            County
+          </label>
+
+          <input
+            type="text"
+            id="county"
+            required
+          >
+
+          <label for="postcode">
+            Postcode
+          </label>
+
+          <input
+            type="text"
+            id="postcode"
+            required
+          >
+
+        </fieldset>
+
+        ${navigationHTML(
+          "Back",
+          "Submit Quote"
+        )}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(14)) {
+
+      createStep(
+        14,
+        `
+        <h3>
+          Quote Submitted
+        </h3>
+
+        <p>
+          Your quote reference:
+        </p>
+
+        <p
+          id="quote-reference"
+          class="quote-ref"
+        ></p>
+
+        <p>
+          Your quote information has been recorded
+          on this device for this prototype.
+        </p>
+
+        <p>
+          <strong>
+            BACKEND INTEGRATION REQUIRED
+          </strong>
+        </p>
+
+        <p>
+          A production version will send the confirmation
+          directly to the business system and customer email address.
+        </p>
+
+        ${navigationHTML(
+          "Back",
+          "Continue to Shipping Instructions"
+        )}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(15)) {
+
+      createStep(
+        15,
+        `
+        <h3>
+          Shipping Instructions
+        </h3>
+
+        <h4>
+          Shipping Label
+        </h4>
+
+        <p>
+          Your shipping label and instructions will be
+          sent directly to the email address you supplied.
+        </p>
+
+        <p>
+          <strong>
+            BACKEND / SHIPPING PROVIDER INTEGRATION REQUIRED
+          </strong>
+        </p>
+
+        <p>
+          A live version can connect to Royal Mail
+          or another approved courier to generate the shipping label.
+        </p>
+
+        <p>
+          Do not send the equipment until you have
+          received the shipping instructions.
+        </p>
+
+        ${navigationHTML(
+          "Back",
+          "Continue"
+        )}
+        `
+      );
+
+    }
+
+
+    if (!existing.has(16)) {
+
+      createStep(
+        16,
+        `
+        <h3>
+          Step 16: Final Inspection
+        </h3>
+
+        <p>
+          When your equipment arrives, we will inspect:
+        </p>
+
+        <ol>
+          <li>Model</li>
+          <li>Serial number</li>
+          <li>Flight time</li>
+          <li>Battery cycles</li>
+          <li>Condition</li>
+          <li>Damage</li>
+          <li>Package contents</li>
+          <li>Unbound status</li>
+          <li>Final valuation</li>
+        </ol>
+
+        <h3>
+          Final Offer
+        </h3>
+
+        <p>
+          After inspection you will receive a final offer.
+        </p>
+
+        <p>
+          You can accept or decline the final offer.
+        </p>
+
+        <div class="navigation-buttons">
+
+          <button
+            type="button"
+            class="btn-final-accept"
+          >
+            Accept Final Offer
+          </button>
+
+          <button
+            type="button"
+            class="btn-final-decline"
+          >
+            Decline Final Offer
+          </button>
+
+        </div>
+
+        <div
+          id="final-offer-result"
+          hidden
+        ></div>
+        `
+      );
+
+    }
+
+    refreshSteps();
+  }
+
+
+  /* ============================================================
+     SHOW STEP / PROGRESS
+     ============================================================ */
+
+  function showStep(number) {
+
+    refreshSteps();
+
+    const index =
+      stepIndex(number);
+
+    if (index < 0) {
       return;
     }
 
-    steps.forEach(function (step, i) {
+    steps.forEach(function (
+      step,
+      i
+    ) {
 
-      step.hidden = i !== index;
+      step.hidden =
+        i !== index;
 
     });
 
-    currentStep = index;
+    currentStep =
+      index;
 
-    updateProgress();
+
+    if (progressList) {
+
+      progressList
+        .querySelectorAll(".progress-step")
+        .forEach(function (
+          item,
+          i
+        ) {
+
+          if (i === index) {
+
+            item.setAttribute(
+              "aria-current",
+              "step"
+            );
+
+          } else {
+
+            item.removeAttribute(
+              "aria-current"
+            );
+
+          }
+
+        });
+
+    }
+
 
     window.scrollTo({
       top: 0,
       behavior: "smooth"
     });
 
-    if (Number(steps[index].dataset.step) === 9) {
+
+    if (number === 6) {
+      ensureBatterySection();
+    }
+
+    if (number === 9) {
       populatePackageContents();
     }
 
-    if (Number(steps[index].dataset.step) === 12) {
+    if (number === 12) {
       renderQuoteSummary();
     }
 
-  }
-
-
-  function updateProgress() {
-
-    if (!progressList) {
-      return;
+    if (number === 14) {
+      renderSubmittedQuote();
     }
-
-    const items = progressList.querySelectorAll(".progress-step");
-
-    items.forEach(function (item, index) {
-
-      item.removeAttribute("aria-current");
-
-      if (index === currentStep) {
-        item.setAttribute("aria-current", "step");
-      }
-
-    });
 
   }
 
 
   /* ============================================================
-     STEP 1
+     MANUFACTURER / MODEL / PACKAGE
      ============================================================ */
 
   function validateManufacturer() {
 
-    const selected = form.querySelector(
-      'input[name="manufacturer"]:checked'
-    );
+    const selected =
+      form.querySelector(
+        'input[name="manufacturer"]:checked'
+      );
 
     if (!selected) {
 
-      alert("Please select a manufacturer.");
+      alert(
+        "Please select a manufacturer."
+      );
 
       return false;
-
     }
 
-    quoteData.manufacturer = selected.value;
+    quoteData.manufacturer =
+      selected.value;
 
     return true;
-
   }
 
 
-  /* ============================================================
-     STEP 2
-     ============================================================ */
+  function populateModels() {
 
-  function populateDjiModels() {
-
-    const select = document.getElementById("dji-model");
+    const select =
+      document.getElementById(
+        "dji-model"
+      );
 
     if (!select) {
       return;
     }
 
+    const previous =
+      quoteData.model;
+
     select.innerHTML =
       '<option value="">-- Select a DJI model --</option>';
 
-    getAllModels().forEach(function (model) {
+    Object.values(
+      djiModels
+    )
+      .flat()
+      .forEach(function (
+        item
+      ) {
 
-      const option = document.createElement("option");
+        const option =
+          document.createElement(
+            "option"
+          );
 
-      option.value = model.id;
+        option.value =
+          item[0];
 
-      option.textContent = model.name;
+        option.textContent =
+          item[1];
 
-      select.appendChild(option);
+        select.appendChild(
+          option
+        );
 
-    });
+      });
 
-    if (quoteData.model) {
-      select.value = quoteData.model;
+    if (previous) {
+      select.value =
+        previous;
     }
-
   }
 
 
   function validateModel() {
 
-    const select = document.getElementById("dji-model");
+    const select =
+      document.getElementById(
+        "dji-model"
+      );
 
-    if (!select || !select.value) {
+    if (
+      !select ||
+      !select.value
+    ) {
 
-      alert("Please select your DJI model.");
+      alert(
+        "Please select your DJI model."
+      );
 
       return false;
-
     }
 
-    quoteData.model = select.value;
+    quoteData.model =
+      select.value;
 
     return true;
-
   }
 
 
-  /* ============================================================
-     STEP 3
-     ============================================================ */
-
   function populatePackages() {
 
-    const modelSelect = document.getElementById("dji-model");
+    const select =
+      document.getElementById(
+        "package-select"
+      );
 
-    const packageSelect =
-      document.getElementById("package-select");
-
-    if (!packageSelect) {
+    if (!select) {
       return;
     }
 
-    const modelId =
-      modelSelect ? modelSelect.value : quoteData.model;
-
-    packageSelect.innerHTML =
-      '<option value="">-- Select package --</option>';
-
-    const packages =
-      packageOptions[modelId] || {
-        standard: "Standard Package"
+    const options =
+      packageOptions[
+        quoteData.model
+      ] || {
+        standard:
+          "Standard Package"
       };
 
-    Object.entries(packages).forEach(function ([id, name]) {
+    const previous =
+      quoteData.package;
 
-      const option = document.createElement("option");
+    select.innerHTML =
+      '<option value="">-- Select package --</option>';
 
-      option.value = id;
+    Object.entries(
+      options
+    ).forEach(function (
+      entry
+    ) {
 
-      option.textContent = name;
+      const id =
+        entry[0];
 
-      packageSelect.appendChild(option);
+      const name =
+        entry[1];
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        id;
+
+      option.textContent =
+        name;
+
+      select.appendChild(
+        option
+      );
 
     });
 
-    if (quoteData.package) {
-      packageSelect.value = quoteData.package;
+    if (
+      previous &&
+      options[previous]
+    ) {
+
+      select.value =
+        previous;
+
     }
 
   }
@@ -1302,26 +1642,28 @@ document.addEventListener("DOMContentLoaded", function () {
   function validatePackage() {
 
     const select =
-      document.getElementById("package-select");
+      document.getElementById(
+        "package-select"
+      );
 
-    if (!select || !select.value) {
+    if (
+      !select ||
+      !select.value
+    ) {
 
-      alert("Please select the exact package.");
+      alert(
+        "Please select the exact package."
+      );
 
       return false;
-
     }
 
-    quoteData.package = select.value;
+    quoteData.package =
+      select.value;
 
     return true;
-
   }
 
-
-  /* ============================================================
-     STEP 4
-     ============================================================ */
 
   function validateCondition() {
 
@@ -1332,53 +1674,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!selected) {
 
-      alert("Please select the condition of the drone.");
+      alert(
+        "Please select the condition of the drone."
+      );
 
       return false;
-
     }
 
-    quoteData.condition = selected.value;
+    quoteData.condition =
+      selected.value;
 
     return true;
-
   }
 
 
-  /* ============================================================
-     STEP 5
-     ============================================================ */
+  function validateFlight() {
 
-  function validateFlightTime() {
-
-    const numberInput =
-      document.getElementById("flight-hours");
+    const input =
+      document.getElementById(
+        "flight-hours"
+      );
 
     const range =
       form.querySelector(
         'input[name="flightHoursRange"]:checked'
       );
 
-    const numberValue =
-      numberInput ? numberInput.value.trim() : "";
+    const value =
+      input
+        ? input.value.trim()
+        : "";
 
-    if (!numberValue && !range) {
+
+    if (
+      !value &&
+      !range
+    ) {
 
       alert(
         "Please enter the flight hours or select a flight-time range."
       );
 
       return false;
-
     }
 
-    if (numberValue) {
+
+    if (value) {
 
       const number =
-        Number(numberValue);
+        Number(value);
 
       if (
-        isNaN(number) ||
+        !Number.isFinite(number) ||
         number < 0
       ) {
 
@@ -1387,25 +1734,25 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         return false;
-
       }
 
-      quoteData.flightHours = number;
+      quoteData.flightHours =
+        number;
 
       quoteData.flightHoursRange =
         getFlightRange(number);
 
     } else {
 
+      quoteData.flightHours =
+        "";
+
       quoteData.flightHoursRange =
         range.value;
-
-      quoteData.flightHours = "";
 
     }
 
     return true;
-
   }
 
 
@@ -1413,35 +1760,245 @@ document.addEventListener("DOMContentLoaded", function () {
      STEP 6 - BATTERIES
      ============================================================ */
 
-  let batteryCount = 0;
-
   function getBatteryContainer() {
 
     let container =
-      document.getElementById("batteries-container");
+      document.getElementById(
+        "batteries-container"
+      );
 
-    if (!container) {
+    const step6 =
+      steps.find(function (
+        step
+      ) {
 
-      const step6 =
-        steps.find(function (step) {
-          return Number(step.dataset.step) === 6;
-        });
+        return Number(
+          step.dataset.step
+        ) === 6;
 
-      if (!step6) {
-        return null;
-      }
+      });
+
+
+    if (
+      !container &&
+      step6
+    ) {
 
       container =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
       container.id =
         "batteries-container";
 
-      step6.prepend(container);
+      const addButton =
+        step6.querySelector(
+          "#add-battery-btn"
+        );
+
+      if (addButton) {
+
+        step6.insertBefore(
+          container,
+          addButton
+        );
+
+      } else {
+
+        step6.prepend(
+          container
+        );
+
+      }
 
     }
 
     return container;
+  }
+
+
+  function expectedBatteryCount() {
+
+    const spec =
+      packageSpecs[
+        quoteData.model
+      ] &&
+      packageSpecs[
+        quoteData.model
+      ][
+        quoteData.package
+      ];
+
+    if (
+      spec &&
+      spec.batteries
+    ) {
+
+      return spec.batteries;
+
+    }
+
+    return 1;
+  }
+
+
+  function updateBatteryNotice() {
+
+    const step6 =
+      steps.find(function (
+        step
+      ) {
+
+        return Number(
+          step.dataset.step
+        ) === 6;
+
+      });
+
+
+    if (!step6) {
+      return;
+    }
+
+
+    let notice =
+      step6.querySelector(
+        ".battery-package-note"
+      );
+
+
+    if (!notice) {
+
+      notice =
+        document.createElement(
+          "p"
+        );
+
+      notice.className =
+        "battery-package-note";
+
+      const container =
+        getBatteryContainer();
+
+      if (container) {
+
+        step6.insertBefore(
+          notice,
+          container
+        );
+
+      }
+
+    }
+
+
+    const count =
+      expectedBatteryCount();
+
+
+    notice.innerHTML =
+      "The selected package normally includes <strong>" +
+      count +
+      "</strong> battery" +
+      (count === 1
+        ? ""
+        : "ies") +
+      ". Enter every battery you are sending. Any batteries beyond the package allowance are treated as additional batteries for valuation.";
+
+  }
+
+
+  function ensureBatterySection() {
+
+    const container =
+      getBatteryContainer();
+
+    if (!container) {
+      return;
+    }
+
+
+    updateBatteryNotice();
+
+
+    if (
+      !container.querySelector(
+        ".battery-entry"
+      )
+    ) {
+
+      createBatteryEntry();
+
+    }
+
+
+    const step6 =
+      steps.find(function (
+        step
+      ) {
+
+        return Number(
+          step.dataset.step
+        ) === 6;
+
+      });
+
+
+    if (
+      step6 &&
+      !step6.querySelector(
+        "#battery-cycle-photo"
+      )
+    ) {
+
+      const label =
+        document.createElement(
+          "label"
+        );
+
+      label.htmlFor =
+        "battery-cycle-photo";
+
+      label.textContent =
+        "Battery cycle photograph / screenshot";
+
+
+      const input =
+        document.createElement(
+          "input"
+        );
+
+      input.type =
+        "file";
+
+      input.id =
+        "battery-cycle-photo";
+
+      input.accept =
+        "image/*";
+
+      input.multiple =
+        true;
+
+
+      const navigation =
+        step6.querySelector(
+          ".navigation-buttons"
+        );
+
+
+      step6.insertBefore(
+        label,
+        navigation
+      );
+
+      step6.insertBefore(
+        input,
+        navigation
+      );
+
+    }
 
   }
 
@@ -1455,49 +2012,53 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+
     batteryCount++;
 
+
     const wrapper =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     wrapper.className =
       "battery-entry";
 
-    wrapper.style.border =
-      "1px solid #ccc";
+    wrapper.dataset.number =
+      String(
+        batteryCount
+      );
 
-    wrapper.style.padding =
-      "15px";
-
-    wrapper.style.marginBottom =
-      "12px";
-
-    wrapper.style.borderRadius =
-      "6px";
 
     wrapper.innerHTML = `
 
-      <h4>Battery ${batteryCount}</h4>
+      <h4>
+        Battery ${batteryCount}
+      </h4>
 
-      <label for="battery-type-${batteryCount}">
+      <label
+        for="battery-type-${batteryCount}"
+      >
         Battery Type
       </label>
 
       <input
         type="text"
         id="battery-type-${batteryCount}"
-        name="batteryType-${batteryCount}"
+        class="battery-type"
         placeholder="Example: Intelligent Flight Battery"
       >
 
-      <label for="battery-cycles-${batteryCount}">
+      <label
+        for="battery-cycles-${batteryCount}"
+      >
         Battery Cycle Count
       </label>
 
       <input
         type="number"
         id="battery-cycles-${batteryCount}"
-        name="batteryCycles-${batteryCount}"
+        class="battery-cycles"
         min="0"
         step="1"
         placeholder="0"
@@ -1512,97 +2073,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     `;
 
-    container.appendChild(wrapper);
 
-    const removeButton =
-      wrapper.querySelector(
-        ".btn-remove-battery"
-      );
-
-    removeButton.addEventListener(
-      "click",
-      function () {
-
-        wrapper.remove();
-
-      }
+    container.appendChild(
+      wrapper
     );
-
-  }
-
-
-  function ensureBatteryStep() {
-
-    const container =
-      getBatteryContainer();
-
-    if (!container) {
-      return;
-    }
-
-    if (
-      container.querySelectorAll(
-        ".battery-entry"
-      ).length === 0
-    ) {
-
-      createBatteryEntry();
-
-    }
-
-    const step6 =
-      steps.find(function (step) {
-        return Number(step.dataset.step) === 6;
-      });
-
-    if (!step6) {
-      return;
-    }
-
-    if (
-      !step6.querySelector(
-        "#battery-cycle-photo"
-      )
-    ) {
-
-      const label =
-        document.createElement("label");
-
-      label.setAttribute(
-        "for",
-        "battery-cycle-photo"
-      );
-
-      label.textContent =
-        "Battery cycle photograph / screenshot";
-
-      const input =
-        document.createElement("input");
-
-      input.type = "file";
-
-      input.id =
-        "battery-cycle-photo";
-
-      input.accept =
-        "image/*";
-
-      input.multiple =
-        true;
-
-      step6.insertBefore(
-        input,
-        step6.querySelector(
-          ".navigation-buttons"
-        )
-      );
-
-      step6.insertBefore(
-        label,
-        input
-      );
-
-    }
 
   }
 
@@ -1619,37 +2093,44 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
 
+
     const batteries =
-      container.querySelectorAll(
-        ".battery-entry"
+      Array.from(
+        container.querySelectorAll(
+          ".battery-entry"
+        )
       );
 
-    if (batteries.length === 0) {
+
+    if (!batteries.length) {
 
       alert(
         "Please add at least one battery."
       );
 
       return false;
-
     }
+
 
     const collected = [];
 
-    for (const battery of batteries) {
+
+    for (
+      const battery of batteries
+    ) {
 
       const typeInput =
         battery.querySelector(
-          'input[name^="batteryType"]'
+          ".battery-type"
         );
 
       const cycleInput =
         battery.querySelector(
-          'input[name^="batteryCycles"]'
+          ".battery-cycles"
         );
+
 
       const type =
         typeInput
@@ -1661,29 +2142,32 @@ document.addEventListener("DOMContentLoaded", function () {
           ? cycleInput.value.trim()
           : "";
 
+
       if (!type) {
 
         alert(
-          "Please enter the battery type."
+          "Please enter the battery type for every battery."
         );
 
         return false;
-
       }
+
 
       if (
         cycles === "" ||
-        isNaN(cycles) ||
+        !Number.isFinite(
+          Number(cycles)
+        ) ||
         Number(cycles) < 0
       ) {
 
         alert(
-          "Please enter a valid battery cycle count."
+          "Please enter a valid battery cycle count for every battery."
         );
 
         return false;
-
       }
+
 
       collected.push({
         type: type,
@@ -1692,16 +2176,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     quoteData.batteries =
       collected;
 
-    return true;
 
+    return true;
   }
 
 
   /* ============================================================
-     STEP 7
+     STEP 7 - UNBOUND
      ============================================================ */
 
   function validateUnbound() {
@@ -1718,13 +2203,16 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     quoteData.unbound =
       selected.value;
 
-    if (selected.value === "no") {
+
+    if (
+      selected.value === "no"
+    ) {
 
       alert(
         "The aircraft normally needs to be unbound before a standard purchase can proceed. Your submission can still be reviewed manually."
@@ -1732,13 +2220,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-    return true;
 
+    return true;
   }
 
 
   /* ============================================================
-     STEP 8
+     STEP 8 - DAMAGE
      ============================================================ */
 
   function validateDamage() {
@@ -1755,68 +2243,31 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     quoteData.damage =
       selected.value;
+
 
     const description =
       document.getElementById(
         "damage-description"
       );
 
-    if (
-      selected.value === "yes" &&
+
+    quoteData.damageDescription =
       description
-    ) {
+        ? description.value.trim()
+        : "";
 
-      quoteData.damageDescription =
-        description.value.trim();
-
-    }
 
     return true;
-
-  }
-
-
-  function setupDamageControls() {
-
-    const radios =
-      form.querySelectorAll(
-        'input[name="damage"]'
-      );
-
-    radios.forEach(function (radio) {
-
-      radio.addEventListener(
-        "change",
-        function () {
-
-          const details =
-            document.getElementById(
-              "damage-details"
-            );
-
-          if (!details) {
-            return;
-          }
-
-          details.hidden =
-            radio.value !== "yes" ||
-            !radio.checked;
-
-        }
-      );
-
-    });
-
   }
 
 
   /* ============================================================
-     STEP 9
+     STEP 9 - PACKAGE CONTENTS
      ============================================================ */
 
   function populatePackageContents() {
@@ -1830,65 +2281,107 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    if (container.dataset.populated === "true") {
-      return;
-    }
 
-    container.innerHTML = "";
+    container.innerHTML =
+      "";
+
+
+    const batteryCountForPackage =
+      expectedBatteryCount();
+
 
     const items = [
+
       {
         id: "drone",
         name: "Drone"
       },
+
       {
         id: "controller",
         name: "Controller"
-      },
-      {
-        id: "battery",
-        name: "Battery"
-      },
+      }
+
+    ];
+
+
+    for (
+      let i = 1;
+      i <= batteryCountForPackage;
+      i++
+    ) {
+
+      items.push({
+        id: "battery-" + i,
+        name: "Battery " + i
+      });
+
+    }
+
+
+    items.push(
+
       {
         id: "charging-hub",
         name: "Charging Hub"
       },
+
       {
         id: "bag",
-        name: "Bag / Carry Case"
+        name: "Bag"
       },
+
       {
         id: "propellers",
         name: "Propellers"
       },
+
       {
         id: "power-supply",
         name: "Power Supply"
       },
+
       {
         id: "cables",
         name: "Cables"
       }
-    ];
 
-    items.forEach(function (item) {
+    );
+
+
+    items.forEach(function (
+      item
+    ) {
 
       const row =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
-      row.style.marginBottom =
-        "10px";
+      row.className =
+        "package-content-row";
+
 
       row.innerHTML = `
 
-        <label for="contents-${item.id}">
-          ${escapeHTML(item.name)}
+        <label
+          for="contents-${escapeHTML(
+            item.id
+          )}"
+        >
+          ${escapeHTML(
+            item.name
+          )}
         </label>
 
         <select
-          id="contents-${item.id}"
-          data-content-id="${item.id}"
+          id="contents-${escapeHTML(
+            item.id
+          )}"
           class="package-content-select"
+          data-content-id="${escapeHTML(
+            item.id
+          )}"
         >
 
           <option value="">
@@ -1903,20 +2396,123 @@ document.addEventListener("DOMContentLoaded", function () {
             Missing
           </option>
 
-          <option value="additional">
-            Additional
-          </option>
-
         </select>
 
       `;
 
-      container.appendChild(row);
+
+      container.appendChild(
+        row
+      );
 
     });
 
-    container.dataset.populated =
-      "true";
+
+    renderAccessories();
+
+  }
+
+
+  /* ============================================================
+     ADDITIONAL ACCESSORIES
+     ============================================================ */
+
+  function renderAccessories() {
+
+    const container =
+      document.getElementById(
+        "additional-accessories-list"
+      );
+
+    if (!container) {
+      return;
+    }
+
+
+    container.innerHTML =
+      "";
+
+
+    quoteData
+      .additionalAccessories
+      .forEach(function (
+        accessory,
+        index
+      ) {
+
+        const row =
+          document.createElement(
+            "div"
+          );
+
+        row.className =
+          "additional-accessory-row";
+
+
+        row.innerHTML = `
+
+          <label>
+            Accessory ${index + 1}
+
+            <input
+              type="text"
+              class="accessory-name"
+              data-index="${index}"
+              value="${escapeHTML(
+                accessory.name
+              )}"
+              placeholder="e.g. DJI ND filter set"
+            >
+
+          </label>
+
+          <label>
+            Quantity
+
+            <input
+              type="number"
+              class="accessory-qty"
+              data-index="${index}"
+              min="1"
+              step="1"
+              value="${Number(
+                accessory.quantity
+              ) || 1}"
+            >
+
+          </label>
+
+          <button
+            type="button"
+            class="btn-remove-accessory"
+            data-index="${index}"
+          >
+            Remove
+          </button>
+
+        `;
+
+
+        container.appendChild(
+          row
+        );
+
+      });
+
+  }
+
+
+  function addAccessory() {
+
+    quoteData
+      .additionalAccessories
+      .push({
+        name: "",
+        quantity: 1
+      });
+
+
+    renderAccessories();
 
   }
 
@@ -1924,44 +2520,100 @@ document.addEventListener("DOMContentLoaded", function () {
   function validatePackageContents() {
 
     const selects =
-      document.querySelectorAll(
-        ".package-content-select"
+      Array.from(
+        document.querySelectorAll(
+          ".package-content-select"
+        )
       );
 
-    if (selects.length === 0) {
-      return true;
-    }
 
     const contents = {};
 
-    for (const select of selects) {
+
+    for (
+      const select of selects
+    ) {
 
       if (!select.value) {
 
         alert(
-          "Please mark each package item as Present, Missing or Additional."
+          "Please mark each package item as Present or Missing."
         );
 
         return false;
-
       }
+
 
       contents[
         select.dataset.contentId
-      ] = select.value;
+      ] =
+        select.value;
 
     }
+
+
+    const accessories = [];
+
+
+    document
+      .querySelectorAll(
+        ".additional-accessory-row"
+      )
+      .forEach(function (
+        row
+      ) {
+
+        const name =
+          row
+            .querySelector(
+              ".accessory-name"
+            )
+            .value
+            .trim();
+
+        const quantity =
+          Number(
+            row
+              .querySelector(
+                ".accessory-qty"
+              )
+              .value
+          );
+
+
+        if (name) {
+
+          accessories.push({
+            name: name,
+            quantity:
+              Number.isFinite(
+                quantity
+              ) &&
+              quantity > 0
+                ? Math.floor(
+                    quantity
+                  )
+                : 1
+          });
+
+        }
+
+      });
+
 
     quoteData.packageContents =
       contents;
 
-    return true;
+    quoteData.additionalAccessories =
+      accessories;
 
+
+    return true;
   }
 
 
   /* ============================================================
-     STEP 10
+     STEP 10 - SERIAL NUMBERS
      ============================================================ */
 
   function validateSerialNumbers() {
@@ -1976,6 +2628,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "controller-serial-number"
       );
 
+
     if (
       !drone ||
       !drone.value.trim()
@@ -1986,24 +2639,25 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     quoteData.droneSerial =
       drone.value.trim();
+
 
     quoteData.controllerSerial =
       controller
         ? controller.value.trim()
         : "";
 
-    return true;
 
+    return true;
   }
 
 
   /* ============================================================
-     STEP 11
+     STEP 11 - PHOTOS / OWNERSHIP
      ============================================================ */
 
   function validatePhotos() {
@@ -2013,6 +2667,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "photo-uploads"
       );
 
+
     if (
       !input ||
       !input.files ||
@@ -2020,23 +2675,56 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
 
       alert(
-        "Please upload at least one photograph. Clear photographs of the drone, controller, package contents and verification information are required."
+        "Please upload at least one photograph."
       );
 
       return false;
+    }
+
+
+    quoteData.photos =
+      Array.from(
+        input.files
+      );
+
+
+    const legal =
+      form.querySelector(
+        'input[name="legalRight"]:checked'
+      );
+
+
+    if (!legal) {
+
+      alert(
+        "Please confirm whether you have the legal right to sell this equipment."
+      );
+
+      return false;
+    }
+
+
+    quoteData.legalRight =
+      legal.value;
+
+
+    if (
+      legal.value !== "yes"
+    ) {
+
+      alert(
+        "We cannot automatically purchase equipment where ownership is uncertain. This submission will require manual review."
+      );
 
     }
 
-    quoteData.photos =
-      Array.from(input.files);
 
     return true;
-
   }
 
 
   /* ============================================================
-     PRICING
+     PRICING - BATTERIES
      ============================================================ */
 
   function calculateBatteryDeduction(
@@ -2049,45 +2737,83 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
 
       return 0;
-
     }
 
-    let deduction = 0;
+
+    let deduction =
+      0;
+
 
     quoteData.batteries.forEach(
-      function (battery) {
+      function (
+        battery
+      ) {
 
         const cycles =
-          Number(battery.cycles);
+          Number(
+            battery.cycles
+          );
 
-        if (cycles <= 50) {
+
+        if (
+          cycles <= 50
+        ) {
+
           return;
         }
 
-        if (cycles <= 100) {
-          deduction +=
-            packagePricing.batteryRules["51-100"] || 0;
 
-        } else if (cycles <= 200) {
-          deduction +=
-            packagePricing.batteryRules["101-200"] || 0;
+        if (
+          cycles <= 100
+        ) {
 
-        } else if (cycles <= 300) {
           deduction +=
-            packagePricing.batteryRules["201-300"] || 0;
+            packagePricing
+              .batteryRules[
+                "51-100"
+              ] || 0;
+
+        } else if (
+          cycles <= 200
+        ) {
+
+          deduction +=
+            packagePricing
+              .batteryRules[
+                "101-200"
+              ] || 0;
+
+        } else if (
+          cycles <= 300
+        ) {
+
+          deduction +=
+            packagePricing
+              .batteryRules[
+                "201-300"
+              ] || 0;
 
         } else {
+
           deduction +=
-            packagePricing.batteryRules["301+"] || 0;
+            packagePricing
+              .batteryRules[
+                "301+"
+              ] || 0;
+
         }
 
       }
     );
 
-    return deduction;
 
+    return deduction;
   }
 
+
+  /* ============================================================
+     PRICING - MISSING ITEMS
+     ============================================================ */
 
   function calculateMissingItemDeduction(
     packagePricing
@@ -2099,32 +2825,50 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
 
       return 0;
-
     }
 
-    let deduction = 0;
+
+    let deduction =
+      0;
+
 
     Object.entries(
       quoteData.packageContents
-    ).forEach(
-      function ([item, status]) {
+    ).forEach(function (
+      entry
+    ) {
 
-        if (status === "missing") {
+      const item =
+        entry[0];
 
-          deduction +=
-            packagePricing.missingItems[item] || 0;
+      const status =
+        entry[1];
 
-        }
+
+      if (
+        status === "missing"
+      ) {
+
+        deduction +=
+          packagePricing
+            .missingItems[
+              item
+            ] || 0;
 
       }
-    );
+
+    });
+
 
     return deduction;
-
   }
 
 
-  function calculateExtraValue(
+  /* ============================================================
+     PRICING - ADDITIONAL BATTERIES
+     ============================================================ */
+
+  function calculateAdditionalBatteryValue(
     packagePricing
   ) {
 
@@ -2134,30 +2878,54 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
 
       return 0;
-
     }
 
-    let value = 0;
 
-    Object.entries(
-      quoteData.packageContents
-    ).forEach(
-      function ([item, status]) {
+    const included =
+      expectedBatteryCount();
 
-        if (status === "additional") {
 
-          value +=
-            packagePricing.extras[item] || 0;
+    const totalBatteries =
+      quoteData.batteries.length;
 
-        }
 
-      }
+    const additional =
+      Math.max(
+        0,
+        totalBatteries -
+          included
+      );
+
+
+    const maximum =
+      packagePricing
+        .maxAdditionalBatteries ||
+      0;
+
+
+    const allowed =
+      Math.min(
+        additional,
+        maximum
+      );
+
+
+    const valuePerBattery =
+      packagePricing
+        .extras
+        .battery || 0;
+
+
+    return (
+      allowed *
+      valuePerBattery
     );
-
-    return value;
-
   }
 
+
+  /* ============================================================
+     MAIN PRICING ENGINE
+     ============================================================ */
 
   function calculateInstantQuote() {
 
@@ -2167,19 +2935,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const packageId =
       quoteData.package;
 
-    if (!model || !packageId) {
-
-      return {
-        status: "manual",
-        amount: null,
-        reason:
-          "A model or package has not been selected."
-      };
-
-    }
 
     const modelPricing =
-      pricing[model];
+      pricing[
+        model
+      ];
+
 
     if (!modelPricing) {
 
@@ -2192,22 +2953,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     const packagePricing =
-      modelPricing[packageId];
+      modelPricing[
+        packageId
+      ];
 
-    if (!packagePricing) {
-
-      return {
-        status: "manual",
-        amount: null,
-        reason:
-          "A verified purchase price has not yet been entered for this package."
-      };
-
-    }
 
     if (
-      packagePricing.basePrice === 0
+      !packagePricing ||
+      !packagePricing.basePrice
     ) {
 
       return {
@@ -2219,153 +2974,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-    let price =
-      Number(packagePricing.basePrice);
-
-    /* Flight deduction */
-
-    let flightRange =
-      quoteData.flightHoursRange;
 
     if (
-      quoteData.flightHours !== "" &&
-      quoteData.flightHours !== null
-    ) {
-
-      flightRange =
-        getFlightRange(
-          quoteData.flightHours
-        );
-
-    }
-
-    if (
-      flightRange === "200+" &&
-      packagePricing.flightDeductions &&
-      packagePricing.flightDeductions["200+"] === null
-    ) {
-
-      return {
-        status: "manual",
-        amount: null,
-        reason:
-          "Very high flight time requires manual valuation."
-      };
-
-    }
-
-    const flightDeduction =
-      packagePricing.flightDeductions &&
-      packagePricing.flightDeductions[flightRange]
-        ? packagePricing.flightDeductions[flightRange]
-        : 0;
-
-    price -=
-      flightDeduction;
-
-    /* Battery deduction */
-
-    price -=
-      calculateBatteryDeduction(
-        packagePricing
-      );
-
-    /* Condition deduction */
-
-    if (
-      packagePricing.conditionRules &&
-      Object.prototype.hasOwnProperty.call(
-        packagePricing.conditionRules,
-        quoteData.condition
-      )
-    ) {
-
-      const conditionDeduction =
-        packagePricing.conditionRules[
-          quoteData.condition
-        ];
-
-      if (conditionDeduction === null) {
-
-        return {
-          status: "manual",
-          amount: null,
-          reason:
-            "This condition requires manual valuation."
-        };
-
-      }
-
-      price -=
-        conditionDeduction;
-
-    }
-
-    /* Missing items */
-
-    price -=
-      calculateMissingItemDeduction(
-        packagePricing
-      );
-
-    /* Extras */
-
-    const extrasValue =
-      calculateExtraValue(
-        packagePricing
-      );
-
-    /*
-      Do not allow extras to push the automatic quote
-      above the package base price.
-    */
-
-    price +=
-      extrasValue;
-
-    if (
-      price >
-      packagePricing.basePrice
-    ) {
-
-      price =
-        packagePricing.basePrice;
-
-    }
-
-    /* Damaged / non-working route */
-
-    if (
-      quoteData.condition === "not-working"
-    ) {
-
-      return {
-        status: "manual",
-        amount: null,
-        reason:
-          "Non-working / spares-only equipment requires manual parts valuation."
-      };
-
-    }
-
-    if (
-      quoteData.condition === "damaged"
-    ) {
-
-      return {
-        status: "manual",
-        amount: null,
-        reason:
-          "Damaged equipment requires manual damage valuation."
-      };
-
-    }
-
-    /* Ownership */
-
-    if (
-      quoteData.legalRight === "no" ||
-      quoteData.legalRight === "not-sure"
+      quoteData.legalRight !==
+      "yes"
     ) {
 
       return {
@@ -2377,7 +2989,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-    /* Unbound */
 
     if (
       quoteData.unbound === "no" ||
@@ -2393,12 +3004,161 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-    /* Floor price */
 
     if (
-      typeof packagePricing.floorPrice === "number" &&
+      quoteData.condition ===
+      "not-working"
+    ) {
+
+      return {
+        status: "manual",
+        amount: null,
+        reason:
+          "Non-working / spares-only equipment requires manual parts valuation."
+      };
+
+    }
+
+
+    if (
+      quoteData.condition ===
+      "damaged"
+    ) {
+
+      return {
+        status: "manual",
+        amount: null,
+        reason:
+          "Damaged equipment requires manual damage valuation."
+      };
+
+    }
+
+
+    const range =
+      quoteData.flightHours !== ""
+        ? getFlightRange(
+            quoteData.flightHours
+          )
+        : quoteData.flightHoursRange;
+
+
+    if (
+      range === "200+" &&
+      packagePricing
+        .flightDeductions[
+          "200+"
+        ] === null
+    ) {
+
+      return {
+        status: "manual",
+        amount: null,
+        reason:
+          "Very high flight time requires manual valuation."
+      };
+
+    }
+
+
+    let price =
+      Number(
+        packagePricing.basePrice
+      );
+
+
+    const flightDeduction =
+      packagePricing
+        .flightDeductions[
+          range
+        ] || 0;
+
+
+    let conditionDeduction =
+      0;
+
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        packagePricing.conditionRules,
+        quoteData.condition
+      )
+    ) {
+
+      conditionDeduction =
+        packagePricing
+          .conditionRules[
+            quoteData.condition
+          ];
+
+
+      if (
+        conditionDeduction === null
+      ) {
+
+        return {
+          status: "manual",
+          amount: null,
+          reason:
+            "This condition requires manual valuation."
+        };
+
+      }
+
+    }
+
+
+    const batteryDeduction =
+      calculateBatteryDeduction(
+        packagePricing
+      );
+
+
+    const missingDeduction =
+      calculateMissingItemDeduction(
+        packagePricing
+      );
+
+
+    const additionalBatteryValue =
+      calculateAdditionalBatteryValue(
+        packagePricing
+      );
+
+
+    price -=
+      flightDeduction;
+
+    price -=
+      batteryDeduction;
+
+    price -=
+      conditionDeduction;
+
+    price -=
+      missingDeduction;
+
+    price +=
+      additionalBatteryValue;
+
+
+    /*
+      The automatic purchase price can NEVER
+      exceed the package base price.
+    */
+
+    price =
+      Math.min(
+        price,
+        packagePricing.basePrice
+      );
+
+
+    if (
+      typeof packagePricing.floorPrice ===
+        "number" &&
       price <
-      packagePricing.floorPrice
+        packagePricing.floorPrice
     ) {
 
       return {
@@ -2410,40 +3170,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     return {
-      status: "automatic",
+
+      status:
+        "automatic",
+
       amount:
-        Math.round(price * 100) / 100,
+        Math.round(
+          price * 100
+        ) / 100,
+
       basePrice:
         packagePricing.basePrice,
+
       flightDeduction:
         flightDeduction,
+
       batteryDeduction:
-        calculateBatteryDeduction(
-          packagePricing
-        ),
+        batteryDeduction,
+
       conditionDeduction:
-        packagePricing.conditionRules &&
-        packagePricing.conditionRules[
-          quoteData.condition
-        ]
-          ? packagePricing.conditionRules[
-              quoteData.condition
-            ]
-          : 0,
+        conditionDeduction,
+
       missingDeduction:
-        calculateMissingItemDeduction(
-          packagePricing
-        ),
-      extras:
-        extrasValue
+        missingDeduction,
+
+      additionalBatteryValue:
+        additionalBatteryValue
+
     };
 
   }
 
 
   /* ============================================================
-     QUOTE SUMMARY
+     QUOTE RESULT
      ============================================================ */
 
   function renderQuoteSummary() {
@@ -2453,31 +3215,37 @@ document.addEventListener("DOMContentLoaded", function () {
         "quote-summary"
       );
 
+
     if (!summary) {
       return;
     }
 
+
     const result =
       calculateInstantQuote();
+
 
     quoteData.quoteAmount =
       result.amount;
 
-    let html = "";
 
-    html += `
-      <h3>Your Instant Quote</h3>
+    let html = `
 
       <p>
         <strong>
           ${escapeHTML(
-            getModelName(quoteData.model)
+            getModelName(
+              quoteData.model
+            )
           )}
         </strong>
       </p>
 
       <p>
-        <strong>Package:</strong>
+        <strong>
+          Package:
+        </strong>
+
         ${escapeHTML(
           getPackageName(
             quoteData.model,
@@ -2487,38 +3255,55 @@ document.addEventListener("DOMContentLoaded", function () {
       </p>
 
       <p>
-        <strong>Condition:</strong>
+        <strong>
+          Condition:
+        </strong>
+
         ${escapeHTML(
           quoteData.condition
         )}
       </p>
 
       <p>
-        <strong>Flight time:</strong>
+        <strong>
+          Flight time:
+        </strong>
+
         ${
           quoteData.flightHours !== ""
             ? escapeHTML(
                 quoteData.flightHours
-              ) + " hours"
+              ) +
+              " hours"
             : escapeHTML(
                 quoteData.flightHoursRange
               )
         }
+
       </p>
 
       <p>
-        <strong>Batteries:</strong>
+        <strong>
+          Batteries:
+        </strong>
+
         ${quoteData.batteries.length}
+
       </p>
+
     `;
 
+
     if (
-      result.status === "automatic"
+      result.status ===
+      "automatic"
     ) {
 
       html += `
 
-        <div class="quote-price-box">
+        <div
+          class="quote-price-box"
+        >
 
           <h3>
             Estimated purchase price
@@ -2529,15 +3314,18 @@ document.addEventListener("DOMContentLoaded", function () {
             style="
               font-size:2.4rem;
               font-weight:800;
-              margin:0.5rem 0;
+              margin:.5rem 0;
             "
           >
-            ${formatMoney(result.amount)}
+            ${formatMoney(
+              result.amount
+            )}
           </p>
 
           <p>
-            This is the current automatic purchase quote
-            based on the information supplied.
+            This is the current automatic
+            purchase quote based on the
+            information supplied.
           </p>
 
         </div>
@@ -2548,25 +3336,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
       html += `
 
-        <div class="manual-valuation-box">
+        <div
+          class="manual-valuation-box"
+        >
 
           <h3>
             MANUAL VALUATION REQUIRED
           </h3>
 
           <p>
-            We need to manually assess this equipment
-            before confirming a purchase price.
+            We need to manually assess
+            this equipment before confirming
+            a purchase price.
           </p>
 
           <p>
-            <strong>Reason:</strong>
-            ${escapeHTML(result.reason)}
+            <strong>
+              Reason:
+            </strong>
+
+            ${escapeHTML(
+              result.reason
+            )}
+
           </p>
 
           <p>
-            Your information can still be submitted
-            for review.
+            Your information can still
+            be submitted for review.
           </p>
 
         </div>
@@ -2575,6 +3372,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+
     summary.innerHTML =
       html;
 
@@ -2582,7 +3380,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   /* ============================================================
-     STEP 13 - CUSTOMER DETAILS
+     CUSTOMER DETAILS
      ============================================================ */
 
   function validateCustomerDetails() {
@@ -2607,6 +3405,11 @@ document.addEventListener("DOMContentLoaded", function () {
         "address-line-1"
       );
 
+    const address2 =
+      document.getElementById(
+        "address-line-2"
+      );
+
     const city =
       document.getElementById(
         "city"
@@ -2622,10 +3425,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "postcode"
       );
 
-    const legalRight =
-      form.querySelector(
-        'input[name="legalRight"]:checked'
-      );
 
     if (
       !fullName ||
@@ -2637,23 +3436,11 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     if (
       !email ||
-      !email.value.trim()
-    ) {
-
-      alert(
-        "Please enter your email address."
-      );
-
-      return false;
-
-    }
-
-    if (
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
         email.value.trim()
       )
@@ -2664,8 +3451,8 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     if (
       !phone ||
@@ -2677,8 +3464,8 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     if (
       !address1 ||
@@ -2686,12 +3473,12 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
 
       alert(
-        "Please enter your full return address."
+        "Please enter Address Line 1."
       );
 
       return false;
-
     }
+
 
     if (
       !city ||
@@ -2703,8 +3490,8 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     if (
       !county ||
@@ -2716,27 +3503,12 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
+
 
     if (
       !postcode ||
-      !postcode.value.trim()
-    ) {
-
-      alert(
-        "Please enter your postcode."
-      );
-
-      return false;
-
-    }
-
-    const postcodePattern =
-      /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i;
-
-    if (
-      !postcodePattern.test(
+      !/^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i.test(
         postcode.value.trim()
       )
     ) {
@@ -2746,18 +3518,8 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       return false;
-
     }
 
-    if (!legalRight) {
-
-      alert(
-        "Please confirm that you have the legal right to sell the equipment."
-      );
-
-      return false;
-
-    }
 
     quoteData.fullName =
       fullName.value.trim();
@@ -2770,11 +3532,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     quoteData.addressLine1 =
       address1.value.trim();
-
-    const address2 =
-      document.getElementById(
-        "address-line-2"
-      );
 
     quoteData.addressLine2 =
       address2
@@ -2792,114 +3549,34 @@ document.addEventListener("DOMContentLoaded", function () {
         .trim()
         .toUpperCase();
 
-    quoteData.legalRight =
-      legalRight.value;
-
-    if (
-      quoteData.legalRight !== "yes"
-    ) {
-
-      alert(
-        "We cannot automatically purchase equipment where ownership is uncertain. The submission will require manual review."
-      );
-
-    }
 
     return true;
-
   }
 
 
   /* ============================================================
-     SAVE QUOTE LOCALLY
+     SAVE QUOTE
      ============================================================ */
 
   function saveQuoteLocally() {
 
-    const safeData = {
-
-      manufacturer:
-        quoteData.manufacturer,
-
-      model:
-        quoteData.model,
-
-      package:
-        quoteData.package,
-
-      condition:
-        quoteData.condition,
-
-      flightHours:
-        quoteData.flightHours,
-
-      flightHoursRange:
-        quoteData.flightHoursRange,
-
-      batteries:
-        quoteData.batteries,
-
-      unbound:
-        quoteData.unbound,
-
-      damage:
-        quoteData.damage,
-
-      damageDescription:
-        quoteData.damageDescription,
-
-      packageContents:
-        quoteData.packageContents,
-
-      droneSerial:
-        quoteData.droneSerial,
-
-      controllerSerial:
-        quoteData.controllerSerial,
-
-      legalRight:
-        quoteData.legalRight,
-
-      fullName:
-        quoteData.fullName,
-
-      email:
-        quoteData.email,
-
-      phone:
-        quoteData.phone,
-
-      addressLine1:
-        quoteData.addressLine1,
-
-      addressLine2:
-        quoteData.addressLine2,
-
-      city:
-        quoteData.city,
-
-      county:
-        quoteData.county,
-
-      postcode:
-        quoteData.postcode,
-
-      quoteAmount:
-        quoteData.quoteAmount,
-
-      quoteReference:
-        quoteData.quoteReference,
-
-      created:
-        new Date().toISOString()
-
-    };
-
     try {
+
+      const safeData = {
+        ...quoteData,
+
+        photos: [],
+
+        created:
+          new Date().toISOString()
+      };
+
 
       localStorage.setItem(
         "wba_latest_quote",
-        JSON.stringify(safeData)
+        JSON.stringify(
+          safeData
+        )
       );
 
     } catch (error) {
@@ -2924,6 +3601,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById(
         "quote-reference"
       );
+
 
     if (reference) {
 
@@ -2956,6 +3634,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "final-offer-result"
       );
 
+
     if (accept) {
 
       accept.addEventListener(
@@ -2966,8 +3645,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
           }
 
+
           result.hidden =
             false;
+
 
           result.innerHTML = `
 
@@ -2986,8 +3667,9 @@ document.addEventListener("DOMContentLoaded", function () {
             </h3>
 
             <p>
-              Please provide the bank account into which
-              payment should be made.
+              Bank details are requested
+              only after the final offer
+              has been accepted.
             </p>
 
             <label for="bank-name">
@@ -2997,7 +3679,6 @@ document.addEventListener("DOMContentLoaded", function () {
             <input
               type="text"
               id="bank-name"
-              autocomplete="name"
             >
 
             <label for="account-number">
@@ -3039,18 +3720,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
           `;
 
+
           accept.hidden =
             true;
+
 
           if (decline) {
             decline.hidden =
               true;
           }
 
+
           const bankButton =
             document.getElementById(
               "submit-bank-details"
             );
+
 
           if (bankButton) {
 
@@ -3073,19 +3758,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     "sort-code"
                   );
 
+
                 if (
                   !bankName.value.trim() ||
-                  !account.value.trim() ||
-                  !sort.value.trim()
+                  !/^\d{8}$/.test(
+                    account.value.trim()
+                  ) ||
+                  !/^\d{2}-?\d{2}-?\d{2}$/.test(
+                    sort.value.trim()
+                  )
                 ) {
 
                   alert(
-                    "Please enter the account name, account number and sort code."
+                    "Please enter a valid account name, 8-digit account number and 6-digit sort code."
                   );
 
                   return;
-
                 }
+
 
                 quoteData.bankName =
                   bankName.value.trim();
@@ -3095,6 +3785,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 quoteData.sortCode =
                   sort.value.trim();
+
 
                 alert(
                   "Bank details captured for this prototype. A secure backend payment system is required before real banking information should be submitted."
@@ -3121,8 +3812,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
           }
 
+
           result.hidden =
             false;
+
 
           result.innerHTML = `
 
@@ -3133,18 +3826,20 @@ document.addEventListener("DOMContentLoaded", function () {
             </h3>
 
             <p>
-              The equipment will be returned to the
-              full return address supplied during your
-              quote submission.
+              The equipment will be returned
+              to the full return address supplied
+              during your quote submission.
             </p>
 
             <p>
               <strong>
-                BACKEND SHIPPING / RETURNS INTEGRATION REQUIRED
+                BACKEND SHIPPING / RETURNS
+                INTEGRATION REQUIRED
               </strong>
             </p>
 
           `;
+
 
           accept.hidden =
             true;
@@ -3161,96 +3856,412 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   /* ============================================================
-     MODEL / PACKAGE CHANGE EVENTS
+     MAIN NEXT HANDLER
      ============================================================ */
 
-  function setupSelectEvents() {
+  function handleNext() {
 
-    const modelSelect =
-      document.getElementById(
-        "dji-model"
+    refreshSteps();
+
+
+    const stepNumber =
+      Number(
+        steps[
+          currentStep
+        ].dataset.step
       );
 
-    if (modelSelect) {
 
-      modelSelect.addEventListener(
-        "change",
-        function () {
+    /* STEP 1 */
 
-          quoteData.model =
-            modelSelect.value;
+    if (
+      stepNumber === 1
+    ) {
 
-          quoteData.package =
-            "";
+      if (
+        !validateManufacturer()
+      ) {
+        return;
+      }
 
-          populatePackages();
 
-        }
+      if (
+        quoteData.manufacturer
+          .toLowerCase() ===
+        "dji"
+      ) {
+
+        populateModels();
+
+        showStep(2);
+
+        return;
+      }
+
+
+      alert(
+        "This manufacturer is not currently supported."
       );
 
+      return;
     }
 
 
-    const packageSelect =
-      document.getElementById(
-        "package-select"
-      );
+    /* STEP 2 */
 
-    if (packageSelect) {
+    if (
+      stepNumber === 2
+    ) {
 
-      packageSelect.addEventListener(
-        "change",
-        function () {
+      if (
+        !validateModel()
+      ) {
+        return;
+      }
 
-          quoteData.package =
-            packageSelect.value;
 
-        }
-      );
+      populatePackages();
 
+      showStep(3);
+
+      return;
+    }
+
+
+    /* STEP 3 */
+
+    if (
+      stepNumber === 3
+    ) {
+
+      if (
+        !validatePackage()
+      ) {
+        return;
+      }
+
+
+      showStep(4);
+
+      return;
+    }
+
+
+    /* STEP 4 */
+
+    if (
+      stepNumber === 4
+    ) {
+
+      if (
+        !validateCondition()
+      ) {
+        return;
+      }
+
+
+      showStep(5);
+
+      return;
+    }
+
+
+    /* STEP 5 */
+
+    if (
+      stepNumber === 5
+    ) {
+
+      if (
+        !validateFlight()
+      ) {
+        return;
+      }
+
+
+      ensureBatterySection();
+
+      showStep(6);
+
+      return;
+    }
+
+
+    /* STEP 6 */
+
+    if (
+      stepNumber === 6
+    ) {
+
+      if (
+        !validateBatteries()
+      ) {
+        return;
+      }
+
+
+      showStep(7);
+
+      return;
+    }
+
+
+    /* STEP 7 */
+
+    if (
+      stepNumber === 7
+    ) {
+
+      if (
+        !validateUnbound()
+      ) {
+        return;
+      }
+
+
+      showStep(8);
+
+      return;
+    }
+
+
+    /* STEP 8 */
+
+    if (
+      stepNumber === 8
+    ) {
+
+      if (
+        !validateDamage()
+      ) {
+        return;
+      }
+
+
+      showStep(9);
+
+      return;
+    }
+
+
+    /* STEP 9 */
+
+    if (
+      stepNumber === 9
+    ) {
+
+      if (
+        !validatePackageContents()
+      ) {
+        return;
+      }
+
+
+      showStep(10);
+
+      return;
+    }
+
+
+    /* STEP 10 */
+
+    if (
+      stepNumber === 10
+    ) {
+
+      if (
+        !validateSerialNumbers()
+      ) {
+        return;
+      }
+
+
+      showStep(11);
+
+      return;
+    }
+
+
+    /* STEP 11 */
+
+    if (
+      stepNumber === 11
+    ) {
+
+      if (
+        !validatePhotos()
+      ) {
+        return;
+      }
+
+
+      showStep(12);
+
+      return;
+    }
+
+
+    /* STEP 13 */
+
+    if (
+      stepNumber === 13
+    ) {
+
+      if (
+        !validateCustomerDetails()
+      ) {
+        return;
+      }
+
+
+      quoteData.quoteReference =
+        generateQuoteReference();
+
+
+      saveQuoteLocally();
+
+
+      renderSubmittedQuote();
+
+
+      showStep(14);
+
+      return;
+    }
+
+
+    /* STEP 14 */
+
+    if (
+      stepNumber === 14
+    ) {
+
+      showStep(15);
+
+      return;
+    }
+
+
+    /* STEP 15 */
+
+    if (
+      stepNumber === 15
+    ) {
+
+      showStep(16);
+
+      return;
     }
 
   }
 
 
   /* ============================================================
-     MAIN BUTTON HANDLER
-     
-     Event delegation means buttons still work even where
-     later steps are dynamically created.
+     BUTTON EVENT DELEGATION
      ============================================================ */
 
   form.addEventListener(
     "click",
     function (event) {
 
-      const target =
-        event.target.closest("button");
+      const button =
+        event.target.closest(
+          "button"
+        );
 
-      if (!target) {
+
+      if (
+        !button ||
+        !form.contains(button)
+      ) {
         return;
       }
 
+
       event.preventDefault();
 
-      /* Add Battery */
+
+      /* ADD BATTERY */
 
       if (
-        target.id ===
+        button.id ===
         "add-battery-btn"
       ) {
 
         createBatteryEntry();
 
         return;
-
       }
 
 
-      /* Next */
+      /* REMOVE BATTERY */
 
       if (
-        target.classList.contains(
+        button.classList.contains(
+          "btn-remove-battery"
+        )
+      ) {
+
+        const entry =
+          button.closest(
+            ".battery-entry"
+          );
+
+
+        if (entry) {
+          entry.remove();
+        }
+
+
+        return;
+      }
+
+
+      /* ADD ACCESSORY */
+
+      if (
+        button.id ===
+        "add-accessory-btn"
+      ) {
+
+        addAccessory();
+
+        return;
+      }
+
+
+      /* REMOVE ACCESSORY */
+
+      if (
+        button.classList.contains(
+          "btn-remove-accessory"
+        )
+      ) {
+
+        const index =
+          Number(
+            button.dataset.index
+          );
+
+
+        quoteData
+          .additionalAccessories
+          .splice(
+            index,
+            1
+          );
+
+
+        renderAccessories();
+
+        return;
+      }
+
+
+      /* NEXT */
+
+      if (
+        button.classList.contains(
           "btn-next"
         )
       ) {
@@ -3258,48 +4269,61 @@ document.addEventListener("DOMContentLoaded", function () {
         handleNext();
 
         return;
-
       }
 
 
-      /* Back */
+      /* BACK */
 
       if (
-        target.classList.contains(
+        button.classList.contains(
           "btn-back"
         )
       ) {
 
-        if (currentStep > 0) {
+        refreshSteps();
+
+
+        if (
+          currentStep > 0
+        ) {
+
+          const previousNumber =
+            Number(
+              steps[
+                currentStep - 1
+              ].dataset.step
+            );
+
 
           showStep(
-            currentStep - 1
+            previousNumber
           );
 
         }
 
         return;
-
       }
 
 
-      /* Accept Instant Quote */
+      /* ACCEPT INSTANT QUOTE */
 
       if (
-        target.classList.contains(
+        button.classList.contains(
           "btn-accept"
         )
       ) {
 
-        quoteData.quoteAmount =
-          calculateInstantQuote().amount;
+        const result =
+          calculateInstantQuote();
 
-        showStep(
-          getStepIndex(13)
-        );
+
+        quoteData.quoteAmount =
+          result.amount;
+
+
+        showStep(13);
 
         return;
-
       }
 
     }
@@ -3307,382 +4331,133 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   /* ============================================================
-     NEXT HANDLER
+     CHANGE EVENTS
      ============================================================ */
 
-  function handleNext() {
+  form.addEventListener(
+    "change",
+    function (event) {
 
-    refreshSteps();
+      const target =
+        event.target;
 
-    const stepNumber =
-      Number(
-        steps[currentStep].dataset.step
-      );
-
-
-    /* STEP 1 */
-
-    if (stepNumber === 1) {
-
-      if (!validateManufacturer()) {
-        return;
-      }
 
       if (
-        quoteData.manufacturer.toLowerCase() ===
-        "dji"
+        target.id ===
+        "dji-model"
       ) {
 
-        populateDjiModels();
+        quoteData.model =
+          target.value;
 
-        showStep(
-          getStepIndex(2)
-        );
+        quoteData.package =
+          "";
 
-        return;
+        batteryCount =
+          0;
+
+
+        const batteries =
+          document.getElementById(
+            "batteries-container"
+          );
+
+
+        if (batteries) {
+          batteries.innerHTML =
+            "";
+        }
+
+
+        populatePackages();
 
       }
 
-      alert(
-        "This manufacturer is not currently supported."
-      );
 
-      return;
+      if (
+        target.id ===
+        "package-select"
+      ) {
 
-    }
+        quoteData.package =
+          target.value;
+
+        batteryCount =
+          0;
 
 
-    /* STEP 2 */
+        const batteries =
+          document.getElementById(
+            "batteries-container"
+          );
 
-    if (stepNumber === 2) {
 
-      if (!validateModel()) {
-        return;
+        if (batteries) {
+          batteries.innerHTML =
+            "";
+        }
+
+
+        const packageContents =
+          document.getElementById(
+            "package-contents-list"
+          );
+
+
+        if (packageContents) {
+          packageContents.innerHTML =
+            "";
+        }
+
       }
 
-      populatePackages();
 
-      showStep(
-        getStepIndex(3)
-      );
+      if (
+        target.name ===
+        "damage"
+      ) {
 
-      return;
+        const details =
+          document.getElementById(
+            "damage-details"
+          );
 
-    }
 
+        if (details) {
 
-    /* STEP 3 */
-
-    if (stepNumber === 3) {
-
-      if (!validatePackage()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(4)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 4 */
-
-    if (stepNumber === 4) {
-
-      if (!validateCondition()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(5)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 5 */
-
-    if (stepNumber === 5) {
-
-      if (!validateFlightTime()) {
-        return;
-      }
-
-      ensureBatteryStep();
-
-      showStep(
-        getStepIndex(6)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 6 */
-
-    if (stepNumber === 6) {
-
-      if (!validateBatteries()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(7)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 7 */
-
-    if (stepNumber === 7) {
-
-      if (!validateUnbound()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(8)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 8 */
-
-    if (stepNumber === 8) {
-
-      if (!validateDamage()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(9)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 9 */
-
-    if (stepNumber === 9) {
-
-      if (!validatePackageContents()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(10)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 10 */
-
-    if (stepNumber === 10) {
-
-      if (!validateSerialNumbers()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(11)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 11 */
-
-    if (stepNumber === 11) {
-
-      if (!validatePhotos()) {
-        return;
-      }
-
-      showStep(
-        getStepIndex(12)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 13 */
-
-    if (stepNumber === 13) {
-
-      if (!validateCustomerDetails()) {
-        return;
-      }
-
-      quoteData.quoteReference =
-        generateQuoteReference();
-
-      saveQuoteLocally();
-
-      renderSubmittedQuote();
-
-      showStep(
-        getStepIndex(14)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 14 */
-
-    if (stepNumber === 14) {
-
-      showStep(
-        getStepIndex(15)
-      );
-
-      return;
-
-    }
-
-
-    /* STEP 15 */
-
-    if (stepNumber === 15) {
-
-      showStep(
-        getStepIndex(16)
-      );
-
-      return;
-
-    }
-
-  }
-
-
-  /* ============================================================
-     STEP INDEX
-     ============================================================ */
-
-  function getStepIndex(stepNumber) {
-
-    refreshSteps();
-
-    const index =
-      steps.findIndex(
-        function (step) {
-
-          return Number(
-            step.dataset.step
-          ) === stepNumber;
+          details.hidden =
+            !(
+              target.checked &&
+              target.value ===
+                "yes"
+            );
 
         }
-      );
-
-    return index;
-
-  }
-
-
-  /* ============================================================
-     FIX STEP 6 ADD-BATTERY BUTTON
-     ============================================================ */
-
-  function setupBatteryButton() {
-
-    const button =
-      document.getElementById(
-        "add-battery-btn"
-      );
-
-    if (!button) {
-      return;
-    }
-
-    button.addEventListener(
-      "click",
-      function (event) {
-
-        event.preventDefault();
-
-        createBatteryEntry();
 
       }
-    );
-
-  }
-
-
-  /* ============================================================
-     ENSURE STEP 6 HAS ITS FIRST BATTERY
-     ============================================================ */
-
-  function initialiseBatterySection() {
-
-    const container =
-      getBatteryContainer();
-
-    if (!container) {
-      return;
-    }
-
-    if (
-      container.children.length === 0
-    ) {
-
-      createBatteryEntry();
 
     }
-
-  }
+  );
 
 
   /* ============================================================
      INITIALISE
      ============================================================ */
 
-  ensureLaterStepsExist();
+  ensureLaterSteps();
 
   refreshSteps();
 
-  populateDjiModels();
+  populateModels();
 
-  setupSelectEvents();
+  populatePackages();
 
-  setupBatteryButton();
-
-  initialiseBatterySection();
-
-  setupDamageControls();
+  ensureBatterySection();
 
   setupFinalOffer();
 
-  showStep(
-    getStepIndex(1)
-  );
+  showStep(1);
 
-
-  /* ============================================================
-     DEBUG INFORMATION
-     ============================================================ */
 
   console.log(
     "WE BUY ANY DRONE quote wizard loaded successfully."
@@ -3691,11 +4466,6 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log(
     "Wizard steps found:",
     steps.length
-  );
-
-  console.log(
-    "Current step:",
-    currentStep + 1
   );
 
 });
