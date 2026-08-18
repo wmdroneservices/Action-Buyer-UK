@@ -109,17 +109,29 @@
     }
   }
 
+  /*
+   * IMPORTANT:
+   * Do not use a MutationObserver here. Step 13 is changed by quote.js when
+   * the manual-review button is pressed, and observing the same hidden
+   * attribute that we change creates a feedback loop that can make the page
+   * unresponsive.
+   */
   function prepareManualCustomerDetails(step) {
     if (!step) return;
+
     const addressFieldset = step.querySelector("fieldset");
     const addressInputs = step.querySelectorAll(
       "#address-line-1, #address-line-2, #city, #county, #postcode"
     );
+
     addressInputs.forEach(function (input) {
       input.required = false;
       input.value = "";
     });
-    if (addressFieldset) addressFieldset.hidden = true;
+
+    if (addressFieldset) {
+      addressFieldset.hidden = true;
+    }
 
     let notice = step.querySelector(".manual-address-notice");
     if (!notice) {
@@ -127,6 +139,7 @@
       notice.className = "manual-address-notice notice";
       notice.innerHTML =
         "<strong>Address not required yet.</strong> Your full return address will only be requested if a purchase offer is made and you choose to proceed.";
+
       const phone = step.querySelector("#phone-number");
       if (phone && phone.parentNode) {
         phone.parentNode.insertBefore(notice, phone.nextSibling);
@@ -189,6 +202,7 @@
       console.error("Could not save manual valuation locally.", error);
       return null;
     }
+
     return record;
   }
 
@@ -197,7 +211,11 @@
     const step14 = steps.find(function (step) {
       return Number(step.dataset.step) === 14;
     });
-    if (!step14) return;
+
+    if (!step14) {
+      console.error("Step 14 could not be found.");
+      return;
+    }
 
     steps.forEach(function (step) {
       step.hidden = step !== step14;
@@ -215,6 +233,7 @@
         paragraph.textContent =
           "Your information and photographs have been submitted for manual review.";
       }
+
       if (paragraph.textContent.includes("BACKEND INTEGRATION REQUIRED")) {
         paragraph.hidden = true;
       }
@@ -231,7 +250,6 @@
   function addNoBatteryOption() {
     const step6 = document.querySelector('#quote-form .wizard-step[data-step="6"]');
     if (!step6) return;
-
     if (step6.querySelector("#no-battery-supplied")) return;
 
     const addButton = step6.querySelector("#add-battery-btn");
@@ -257,8 +275,6 @@
     const container = step6.querySelector("#batteries-container");
     if (!container) return false;
 
-    // quote.js requires at least one battery entry. Represent an absent
-    // battery as a zero-value placeholder; Step 9 will still record it as missing.
     if (!container.querySelector(".battery-entry")) {
       const wrapper = document.createElement("div");
       wrapper.className = "battery-entry";
@@ -277,7 +293,9 @@
     const form = document.getElementById("quote-form");
     if (!form) return;
 
-    addNoBatteryOption();
+    /* quote.js creates the later wizard steps during its own DOMContentLoaded
+       handler. Delay this one small enhancement until that work has completed. */
+    window.setTimeout(addNoBatteryOption, 0);
 
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
@@ -304,6 +322,9 @@
         event.preventDefault();
         event.stopImmediatePropagation();
 
+        /* Prepare Step 13 immediately, rather than observing hidden changes. */
+        prepareManualCustomerDetails(step);
+
         (async function () {
           const session = window.actionBuyerAuth
             ? await window.actionBuyerAuth.getSession()
@@ -323,10 +344,12 @@
             alert("Please enter your full name.");
             return;
           }
+
           if (!email || !email.value.trim()) {
             alert("Please enter your email address.");
             return;
           }
+
           if (!phone || !phone.value.trim()) {
             alert("Please enter your telephone number.");
             return;
@@ -359,22 +382,5 @@
         window.setTimeout(saveQuoteToAccount, 250);
       })();
     }, true);
-
-    const observer = new MutationObserver(function () {
-      addNoBatteryOption();
-      if (isManualMode()) {
-        const step13 = document.querySelector('#quote-form .wizard-step[data-step="13"]');
-        if (step13 && !step13.hidden) {
-          prepareManualCustomerDetails(step13);
-        }
-      }
-    });
-
-    observer.observe(form, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["hidden"]
-    });
   });
 })();
