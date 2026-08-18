@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (button.classList.contains("btn-back") && isNonDJI()) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
-      const previous = ({4:2, 5:4, 8:5, 9:8, 10:8, 11:10})[number];
+      const previous = ({4:2, 5:4, 8:5, 10:8, 11:10, 12:11})[number];
       if (previous) go(previous);
       return;
     }
@@ -93,7 +93,9 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(8); return;
       }
       if (number === 8) {
-        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(10); return;
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+        if (!form.querySelector('input[name="damage"]:checked')) return alert("Please select Yes or No for damage.");
+        go(10); return;
       }
       if (number === 10) {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(11); return;
