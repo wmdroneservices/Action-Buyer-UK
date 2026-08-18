@@ -8,9 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!form || !category || !manufacturer || !model) return;
 
   function visibleStep() {
-    return Array.from(form.querySelectorAll(".wizard-step")).find(function (s) {
-      return !s.hidden;
-    });
+    return Array.from(form.querySelectorAll(".wizard-step")).find(function (s) { return !s.hidden; });
   }
 
   function go(stepNo) {
@@ -18,6 +16,10 @@ document.addEventListener("DOMContentLoaded", function () {
       s.hidden = Number(s.dataset.step) !== stepNo;
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function isDJIDrone() {
+    return category.value === "drone" && manufacturer.value === "DJI";
   }
 
   function legacyManufacturer(value) {
@@ -34,6 +36,30 @@ document.addEventListener("DOMContentLoaded", function () {
     hidden.dataset.selectedManufacturer = value;
   }
 
+  function configureUsageStep() {
+    const step = form.querySelector('[data-step="5"]');
+    if (!step) return;
+    const heading = step.querySelector("h3");
+    const flightLabel = step.querySelector('label[for="flight-hours"]');
+    const flightInput = document.getElementById("flight-hours");
+    const flightRange = step.querySelector('fieldset');
+    const usageWrap = document.getElementById("gear-usage-count-wrap");
+
+    if (category.value === "drone") {
+      if (heading) heading.textContent = "Step 5: Flight Time";
+      if (flightLabel) flightLabel.textContent = "Total flight hours completed";
+      if (flightInput) flightInput.placeholder = "e.g. 4.2";
+      if (flightRange) flightRange.hidden = false;
+      if (usageWrap) usageWrap.hidden = true;
+    } else {
+      if (heading) heading.textContent = "Step 5: Usage Information";
+      if (flightLabel) flightLabel.textContent = "Shutter / usage count, if known";
+      if (flightInput) flightInput.placeholder = "Optional";
+      if (flightRange) flightRange.hidden = true;
+      if (usageWrap) usageWrap.hidden = false;
+    }
+  }
+
   form.addEventListener("click", function (event) {
     const button = event.target.closest("button");
     if (!button || !button.classList.contains("btn-next")) return;
@@ -43,20 +69,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const number = Number(step.dataset.step);
 
     if (number === 1) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       if (!category.value) return alert("Please select an equipment type.");
       if (!manufacturer.value) return alert("Please select a manufacturer.");
 
       const catalogue = window.gearCatalogue && window.gearCatalogue[category.value];
-      if (!catalogue || !catalogue[manufacturer.value]) {
-        return alert("This manufacturer is not currently available.");
-      }
+      if (!catalogue || !catalogue[manufacturer.value]) return alert("This manufacturer is not currently available.");
 
       legacyManufacturer(manufacturer.value);
-
       const list = catalogue[manufacturer.value];
       model.innerHTML = '<option value="">-- Select a model --</option>';
       list.forEach(function (item) {
@@ -66,35 +86,22 @@ document.addEventListener("DOMContentLoaded", function () {
         model.appendChild(option);
       });
       model.disabled = false;
+      configureUsageStep();
       go(2);
       return;
     }
 
     if (number === 2) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       if (!model.value) return alert("Please select a model.");
-
-      if (category.value === "drone" && manufacturer.value === "DJI") {
-        go(3);
-      } else {
-        // Non-DJI equipment does not enter the DJI package flow.
-        go(4);
-      }
+      configureUsageStep();
+      go(isDJIDrone() ? 3 : 4);
       return;
     }
 
-    // quote.js keeps its own currentStep index. Because this new equipment
-    // flow controls the visible step directly, take ownership of the next
-    // button for non-DJI equipment from this point onward as well.
-    if (category.value !== "drone" || manufacturer.value !== "DJI") {
+    if (!isDJIDrone()) {
       if (number === 4) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
         const selected = form.querySelector('input[name="condition"]:checked');
         if (!selected) return alert("Please select the condition.");
         go(5);
@@ -102,17 +109,13 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (number === 5) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
         go(8);
         return;
       }
 
       if (number === 8) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
         go(10);
         return;
       }
