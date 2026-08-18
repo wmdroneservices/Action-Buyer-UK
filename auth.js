@@ -30,6 +30,15 @@ window.actionBuyerAuth = {
       }
     });
   },
+  ensureAccountNavigation() {
+    const navs = document.querySelectorAll(".nav-list, .footer-nav");
+    navs.forEach((nav) => {
+      if (nav.querySelector("[data-account-link]")) return;
+      const item = document.createElement("li");
+      item.innerHTML = '<a href="login.html" data-account-link>Register / Login</a>';
+      nav.appendChild(item);
+    });
+  },
   async getProfile() {
     const session = await this.getSession();
     if (!session) return null;
@@ -150,6 +159,7 @@ window.actionBuyerAuth = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  actionBuyerAuth.ensureAccountNavigation();
   actionBuyerAuth.updateAccountNavigation();
 
   const form = document.getElementById("quote-form");
