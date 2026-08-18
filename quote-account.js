@@ -78,6 +78,186 @@
     console.log("Action Buyer UK valuation saved to customer account:", saved.quoteReference);
   }
 
+  function isManualStep12(step) {
+    if (!step) return false;
+
+    const title = step.querySelector("h3");
+    const button = step.querySelector(".btn-accept, #quote-result-action");
+
+    const titleText = title ? title.textContent.toLowerCase() : "";
+    const buttonText = button ? button.textContent.toLowerCase() : "";
+
+    return (
+      titleText.includes("manual validation") ||
+      buttonText.includes("manual review") ||
+      button?.dataset.quoteAction === "manual"
+    );
+  }
+
+  function setManualMode() {
+    try {
+      sessionStorage.setItem("actionBuyerManualValuation", "true");
+    } catch (error) {
+      console.warn("Could not store manual valuation mode.", error);
+    }
+  }
+
+  function isManualMode() {
+    try {
+      return sessionStorage.getItem("actionBuyerManualValuation") === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function clearManualMode() {
+    try {
+      sessionStorage.removeItem("actionBuyerManualValuation");
+    } catch (error) {
+      // Ignore storage errors.
+    }
+  }
+
+  function prepareManualCustomerDetails(step) {
+    if (!step) return;
+
+    const addressFieldset = step.querySelector("fieldset");
+    const addressInputs = step.querySelectorAll(
+      "#address-line-1, #address-line-2, #city, #county, #postcode"
+    );
+
+    addressInputs.forEach(function (input) {
+      input.required = false;
+      input.value = "";
+    });
+
+    if (addressFieldset) {
+      addressFieldset.hidden = true;
+    }
+
+    let notice = step.querySelector(".manual-address-notice");
+
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.className = "manual-address-notice notice";
+      notice.innerHTML =
+        "<strong>Address not required yet.</strong> Your full return address will only be requested if a purchase offer is made and you choose to proceed.";
+
+      const phone = step.querySelector("#phone-number");
+      if (phone && phone.parentNode) {
+        phone.parentNode.insertBefore(notice, phone.nextSibling);
+      } else {
+        step.insertBefore(notice, step.firstChild);
+      }
+    }
+  }
+
+  function generateManualReference() {
+    return "WBA-" +
+      new Date().getFullYear() +
+      "-" +
+      Math.floor(100000 + Math.random() * 900000);
+  }
+
+  function saveManualQuoteLocally() {
+    const fullName = document.getElementById("full-name");
+    const email = document.getElementById("email-address");
+    const phone = document.getElementById("phone-number");
+    const model = document.getElementById("dji-model");
+    const packageSelect = document.getElementById("package-select");
+    const condition = document.querySelector('input[name="condition"]:checked');
+    const manufacturer = document.querySelector('input[name="manufacturer"]:checked');
+
+    const record = {
+      manufacturer: manufacturer ? manufacturer.value : "",
+      model: model ? model.value : "",
+      package: packageSelect ? packageSelect.value : "",
+      condition: condition ? condition.value : "",
+      flightHours: "",
+      flightHoursRange: "",
+      batteries: [],
+      unbound: "",
+      damage: "",
+      damageDescription: "",
+      packageContents: {},
+      additionalAccessories: [],
+      droneSerial: "",
+      controllerSerial: "",
+      photos: [],
+      legalRight: "",
+      fullName: fullName ? fullName.value.trim() : "",
+      email: email ? email.value.trim() : "",
+      phone: phone ? phone.value.trim() : "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      county: "",
+      postcode: "",
+      bankName: "",
+      accountNumber: "",
+      sortCode: "",
+      quoteAmount: null,
+      quoteReference: generateManualReference(),
+      created: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem("wba_latest_quote", JSON.stringify(record));
+    } catch (error) {
+      console.error("Could not save manual valuation locally.", error);
+      return null;
+    }
+
+    return record;
+  }
+
+  function showManualSubmittedScreen(record) {
+    const steps = Array.from(document.querySelectorAll("#quote-form .wizard-step"));
+    const step13 = steps.find(function (step) {
+      return Number(step.dataset.step) === 13;
+    });
+    const step14 = steps.find(function (step) {
+      return Number(step.dataset.step) === 14;
+    });
+
+    if (!step13 || !step14) return;
+
+    steps.forEach(function (step) {
+      step.hidden = step !== step14;
+    });
+
+    const heading = step14.querySelector("h3");
+    if (heading) {
+      heading.textContent = "Manual Valuation Submitted";
+    }
+
+    const reference = step14.querySelector("#quote-reference");
+    if (reference) {
+      reference.textContent = record.quoteReference;
+    }
+
+    const paragraphs = step14.querySelectorAll("p");
+    paragraphs.forEach(function (paragraph) {
+      if (paragraph.textContent.includes("Your quote information has been recorded")) {
+        paragraph.textContent =
+          "Your information and photographs have been submitted for manual review.";
+      }
+    });
+
+    const backendNotice = step14.querySelector("p:nth-of-type(4)");
+    if (backendNotice && backendNotice.textContent.includes("BACKEND")) {
+      backendNotice.hidden = true;
+    }
+
+    const navigation = step14.querySelector(".navigation-buttons");
+    if (navigation) {
+      navigation.innerHTML =
+        '<a class="btn" href="account.html">Return to My Account</a>';
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("quote-form");
     if (!form) return;
@@ -87,7 +267,17 @@
       if (!button) return;
 
       const step = button.closest(".wizard-step");
-      if (!step || Number(step.dataset.step) !== 13) return;
+      if (!step) return;
+
+      const stepNumber = Number(step.dataset.step);
+
+      // Remember which branch the customer chose before quote.js moves to Step 13.
+      if (stepNumber === 12 && isManualStep12(step)) {
+        setManualMode();
+        return;
+      }
+
+      if (stepNumber !== 13) return;
 
       const session = window.actionBuyerAuth
         ? await window.actionBuyerAuth.getSession()
@@ -101,7 +291,39 @@
         return;
       }
 
-      // Let the existing quote wizard validate and save the quote first,
+      if (isManualMode()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const fullName = document.getElementById("full-name");
+        const email = document.getElementById("email-address");
+        const phone = document.getElementById("phone-number");
+
+        if (!fullName || !fullName.value.trim()) {
+          alert("Please enter your full name.");
+          return;
+        }
+
+        if (!email || !email.value.trim()) {
+          alert("Please enter your email address.");
+          return;
+        }
+
+        if (!phone || !phone.value.trim()) {
+          alert("Please enter your telephone number.");
+          return;
+        }
+
+        const record = saveManualQuoteLocally();
+        if (!record) return;
+
+        showManualSubmittedScreen(record);
+        await saveQuoteToAccount();
+        clearManualMode();
+        return;
+      }
+
+      // Instant-quote route: let the existing quote wizard validate and save the quote first,
       // then copy its saved record into Supabase.
       window.setTimeout(saveQuoteToAccount, 250);
     }, true);
