@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   function go(stepNo) {
     form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = Number(s.dataset.step) !== stepNo; });
+    if (stepNo === 12 && isNonDJI()) renderManualResult();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function isDJIDrone() { return category.value === "drone" && manufacturer.value === "DJI"; }
@@ -47,6 +48,42 @@ document.addEventListener("DOMContentLoaded", function () {
       if (usageWrap) usageWrap.hidden = false;
     }
   }
+  function renderManualResult() {
+    const summary = document.getElementById("quote-summary");
+    const title = document.getElementById("quote-result-title");
+    const importantHeading = document.getElementById("quote-important-heading");
+    const importantContent = document.getElementById("quote-important-content");
+    const action = document.getElementById("quote-result-action") || document.querySelector('[data-step="12"] .btn-accept');
+    const selectedModel = model.options[model.selectedIndex];
+    const modelName = selectedModel ? selectedModel.textContent : model.value;
+    const manufacturerName = manufacturer.options[manufacturer.selectedIndex] ? manufacturer.options[manufacturer.selectedIndex].textContent : manufacturer.value;
+    const categoryName = category.options[category.selectedIndex] ? category.options[category.selectedIndex].textContent : category.value;
+
+    if (title) title.textContent = "Manual Valuation Required";
+    if (summary) {
+      summary.innerHTML = `
+        <div class="manual-valuation-box">
+          <h3>Manual Valuation Required</h3>
+          <p><strong>Equipment:</strong> ${escapeHTML(categoryName)}</p>
+          <p><strong>Manufacturer:</strong> ${escapeHTML(manufacturerName)}</p>
+          <p><strong>Model:</strong> ${escapeHTML(modelName)}</p>
+          <p>We do not currently have a verified automatic purchase price for this equipment.</p>
+          <p><strong>No £0 offer has been made.</strong> Your photographs and the information supplied will be reviewed manually before we confirm a purchase price.</p>
+        </div>`;
+    }
+    if (importantHeading) importantHeading.textContent = "MANUAL REVIEW";
+    if (importantContent) {
+      importantContent.innerHTML = `
+        <p>Your submission has been prepared for manual valuation.</p>
+        <p>We will assess the equipment, condition, contents and photographs and contact you with the valuation.</p>
+        <p>The displayed value is <strong>not</strong> an offer to purchase.</p>`;
+    }
+    if (action) {
+      action.textContent = "Continue to Manual Review";
+      action.classList.remove("btn-accept");
+      action.dataset.quoteAction = "manual";
+    }
+  }
 
   form.addEventListener("click", function (event) {
     const button = event.target.closest("button");
@@ -61,7 +98,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (previous) go(previous);
       return;
     }
-
     if (!button.classList.contains("btn-next")) return;
 
     if (number === 1) {
