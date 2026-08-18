@@ -228,9 +228,56 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function addNoBatteryOption() {
+    const step6 = document.querySelector('#quote-form .wizard-step[data-step="6"]');
+    if (!step6) return;
+
+    if (step6.querySelector("#no-battery-supplied")) return;
+
+    const addButton = step6.querySelector("#add-battery-btn");
+    if (!addButton) return;
+
+    const wrapper = document.createElement("label");
+    wrapper.className = "no-battery-option";
+    wrapper.style.display = "block";
+    wrapper.style.margin = "1rem 0";
+    wrapper.innerHTML =
+      '<input type="checkbox" id="no-battery-supplied"> I do not have any batteries to supply with this drone';
+
+    addButton.parentNode.insertBefore(wrapper, addButton.nextSibling);
+  }
+
+  function allowNoBatterySubmission() {
+    const step6 = document.querySelector('#quote-form .wizard-step[data-step="6"]');
+    if (!step6) return false;
+
+    const checkbox = step6.querySelector("#no-battery-supplied");
+    if (!checkbox || !checkbox.checked) return false;
+
+    const container = step6.querySelector("#batteries-container");
+    if (!container) return false;
+
+    // quote.js requires at least one battery entry. Represent an absent
+    // battery as a zero-value placeholder; Step 9 will still record it as missing.
+    if (!container.querySelector(".battery-entry")) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "battery-entry";
+      wrapper.dataset.number = "not-supplied";
+      wrapper.style.display = "none";
+      wrapper.innerHTML =
+        '<input type="text" class="battery-type" value="No battery supplied">' +
+        '<input type="number" class="battery-cycles" value="0">';
+      container.appendChild(wrapper);
+    }
+
+    return true;
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("quote-form");
     if (!form) return;
+
+    addNoBatteryOption();
 
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
@@ -241,6 +288,11 @@
 
       const stepNumber = Number(step.dataset.step);
 
+      if (stepNumber === 6 && button.classList.contains("btn-next")) {
+        allowNoBatterySubmission();
+        return;
+      }
+
       if (stepNumber === 12 && isManualStep12(step)) {
         setManualMode();
         return;
@@ -249,7 +301,6 @@
       if (stepNumber !== 13) return;
 
       if (isManualMode()) {
-        // Stop quote.js immediately. This must happen before awaiting Supabase.
         event.preventDefault();
         event.stopImmediatePropagation();
 
@@ -292,7 +343,6 @@
         return;
       }
 
-      // Instant-quote route: retain the existing working behaviour.
       (async function () {
         const session = window.actionBuyerAuth
           ? await window.actionBuyerAuth.getSession()
@@ -311,6 +361,7 @@
     }, true);
 
     const observer = new MutationObserver(function () {
+      addNoBatteryOption();
       if (isManualMode()) {
         const step13 = document.querySelector('#quote-form .wizard-step[data-step="13"]');
         if (step13 && !step13.hidden) {
@@ -319,6 +370,11 @@
       }
     });
 
-    observer.observe(form, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+    observer.observe(form, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden"]
+    });
   });
 })();
