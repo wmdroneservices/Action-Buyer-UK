@@ -109,13 +109,6 @@
     }
   }
 
-  /*
-   * IMPORTANT:
-   * Do not use a MutationObserver here. Step 13 is changed by quote.js when
-   * the manual-review button is pressed, and observing the same hidden
-   * attribute that we change creates a feedback loop that can make the page
-   * unresponsive.
-   */
   function prepareManualCustomerDetails(step) {
     if (!step) return;
 
@@ -253,7 +246,8 @@
     if (step6.querySelector("#no-battery-supplied")) return;
 
     const addButton = step6.querySelector("#add-battery-btn");
-    if (!addButton) return;
+    const anchor = addButton && addButton.parentNode ? addButton : step6.querySelector("button");
+    if (!anchor || !anchor.parentNode) return;
 
     const wrapper = document.createElement("label");
     wrapper.className = "no-battery-option";
@@ -262,39 +256,62 @@
     wrapper.innerHTML =
       '<input type="checkbox" id="no-battery-supplied"> I do not have any batteries to supply with this drone';
 
-    addButton.parentNode.insertBefore(wrapper, addButton.nextSibling);
+    anchor.parentNode.insertBefore(wrapper, anchor.nextSibling);
   }
 
-  function allowNoBatterySubmission() {
+  /*
+   * quote.js keeps validateBatteries() private inside its DOMContentLoaded
+   * closure. To preserve that existing code, a no-battery selection is
+   * represented to the validator by one hidden zero-cycle placeholder.
+   * It is immediately removed from the saved account data, so the customer
+   * record correctly contains zero batteries supplied.
+   */
+  function prepareNoBatteryPlaceholder() {
     const step6 = document.querySelector('#quote-form .wizard-step[data-step="6"]');
     if (!step6) return false;
 
-    const checkbox = step6.querySelector("#no-battery-supplied");
+    let checkbox = step6.querySelector("#no-battery-supplied");
+    if (!checkbox) {
+      addNoBatteryOption();
+      checkbox = step6.querySelector("#no-battery-supplied");
+    }
+
     if (!checkbox || !checkbox.checked) return false;
 
     const container = step6.querySelector("#batteries-container");
     if (!container) return false;
 
-    if (!container.querySelector(".battery-entry")) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "battery-entry";
-      wrapper.dataset.number = "not-supplied";
-      wrapper.style.display = "none";
-      wrapper.innerHTML =
-        '<input type="text" class="battery-type" value="No battery supplied">' +
-        '<input type="number" class="battery-cycles" value="0">';
-      container.appendChild(wrapper);
-    }
+    const existing = container.querySelector('.battery-entry[data-number="not-supplied"]');
+    if (existing) return true;
 
+    const wrapper = document.createElement("div");
+    wrapper.className = "battery-entry";
+    wrapper.dataset.number = "not-supplied";
+    wrapper.style.display = "none";
+    wrapper.innerHTML =
+      '<input type="text" class="battery-type" value="No battery supplied" aria-hidden="true">' +
+      '<input type="number" class="battery-cycles" value="0" aria-hidden="true">';
+
+    container.appendChild(wrapper);
     return true;
+  }
+
+  function cleanNoBatteryPlaceholderFromSavedQuote() {
+    try {
+      const saved = safeQuoteData();
+      if (!saved) return;
+
+      saved.batteries = [];
+      localStorage.setItem("wba_latest_quote", JSON.stringify(saved));
+    } catch (error) {
+      console.warn("Could not clean no-battery placeholder from saved quote.", error);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("quote-form");
     if (!form) return;
 
-    /* quote.js creates the later wizard steps during its own DOMContentLoaded
-       handler. Delay this one small enhancement until that work has completed. */
     window.setTimeout(addNoBatteryOption, 0);
 
     form.addEventListener("click", function (event) {
@@ -306,8 +323,19 @@
 
       const stepNumber = Number(step.dataset.step);
 
-      if (stepNumber === 6 && button.classList.contains("btn-next")) {
-        allowNoBatterySubmission();
+      if (
+        stepNumber === 6 &&
+        (button.classList.contains("btn-next") ||
+          button.textContent.trim().toLowerCase().includes("continue"))
+      ) {
+        const checkbox = step.querySelector("#no-battery-supplied");
+
+        if (checkbox && checkbox.checked) {
+          prepareNoBatteryPlaceholder();
+          /* Allow quote.js to run its normal validation and progression. */
+          window.setTimeout(cleanNoBatteryPlaceholderFromSavedQuote, 0);
+        }
+
         return;
       }
 
@@ -322,7 +350,6 @@
         event.preventDefault();
         event.stopImmediatePropagation();
 
-        /* Prepare Step 13 immediately, rather than observing hidden changes. */
         prepareManualCustomerDetails(step);
 
         (async function () {
