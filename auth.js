@@ -71,6 +71,41 @@ window.actionBuyerAuth = {
     if (email && session?.user?.email && !email.value) {
       email.value = session.user.email;
     }
+
+    /* A signed-in customer already has their return address stored in their
+       profile. The quote stage should not ask them to enter or confirm it
+       again. It remains available in the profile for later shipping/returns. */
+    const addressFieldset = document.querySelector(
+      '#quote-form .wizard-step[data-step="13"] fieldset'
+    );
+    const addressInputs = document.querySelectorAll(
+      '#quote-form .wizard-step[data-step="13"] #address-line-1, #quote-form .wizard-step[data-step="13"] #address-line-2, #quote-form .wizard-step[data-step="13"] #city, #quote-form .wizard-step[data-step="13"] #county, #quote-form .wizard-step[data-step="13"] #postcode'
+    );
+
+    addressInputs.forEach((input) => {
+      input.required = false;
+    });
+
+    if (addressFieldset) {
+      addressFieldset.hidden = true;
+    }
+
+    const detailsStep = document.querySelector(
+      '#quote-form .wizard-step[data-step="13"]'
+    );
+    const addressNotice = detailsStep?.querySelector(".account-address-notice");
+
+    if (detailsStep && !addressNotice) {
+      const notice = document.createElement("div");
+      notice.className = "account-address-notice notice";
+      notice.innerHTML =
+        "<strong>Return address saved.</strong> We already have your return address on your account. It is not required again at this stage.";
+
+      const firstField = detailsStep.querySelector("#full-name");
+      if (firstField?.parentNode) {
+        firstField.parentNode.insertBefore(notice, firstField);
+      }
+    }
   },
   async saveQuoteCustomerDetails() {
     const session = await this.getSession();
