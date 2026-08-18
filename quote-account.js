@@ -20,17 +20,11 @@
 
   function cleanQuoteData(data) {
     if (!data) return {};
-
     const copy = { ...data };
-
-    // Photos are browser File objects and must not be sent to the JSON column.
     copy.photos = [];
-
-    // Banking details must never be stored as part of this browser-side quote record.
     delete copy.bankName;
     delete copy.accountNumber;
     delete copy.sortCode;
-
     return copy;
   }
 
@@ -80,17 +74,14 @@
 
   function isManualStep12(step) {
     if (!step) return false;
-
     const title = step.querySelector("h3");
     const button = step.querySelector(".btn-accept, #quote-result-action");
-
     const titleText = title ? title.textContent.toLowerCase() : "";
     const buttonText = button ? button.textContent.toLowerCase() : "";
-
     return (
       titleText.includes("manual validation") ||
       buttonText.includes("manual review") ||
-      button?.dataset.quoteAction === "manual"
+      (button && button.dataset.quoteAction === "manual")
     );
   }
 
@@ -120,29 +111,22 @@
 
   function prepareManualCustomerDetails(step) {
     if (!step) return;
-
     const addressFieldset = step.querySelector("fieldset");
     const addressInputs = step.querySelectorAll(
       "#address-line-1, #address-line-2, #city, #county, #postcode"
     );
-
     addressInputs.forEach(function (input) {
       input.required = false;
       input.value = "";
     });
-
-    if (addressFieldset) {
-      addressFieldset.hidden = true;
-    }
+    if (addressFieldset) addressFieldset.hidden = true;
 
     let notice = step.querySelector(".manual-address-notice");
-
     if (!notice) {
       notice = document.createElement("div");
       notice.className = "manual-address-notice notice";
       notice.innerHTML =
         "<strong>Address not required yet.</strong> Your full return address will only be requested if a purchase offer is made and you choose to proceed.";
-
       const phone = step.querySelector("#phone-number");
       if (phone && phone.parentNode) {
         phone.parentNode.insertBefore(notice, phone.nextSibling);
@@ -153,9 +137,7 @@
   }
 
   function generateManualReference() {
-    return "WBA-" +
-      new Date().getFullYear() +
-      "-" +
+    return "WBA-" + new Date().getFullYear() + "-" +
       Math.floor(100000 + Math.random() * 900000);
   }
 
@@ -207,34 +189,25 @@
       console.error("Could not save manual valuation locally.", error);
       return null;
     }
-
     return record;
   }
 
   function showManualSubmittedScreen(record) {
     const steps = Array.from(document.querySelectorAll("#quote-form .wizard-step"));
-    const step13 = steps.find(function (step) {
-      return Number(step.dataset.step) === 13;
-    });
     const step14 = steps.find(function (step) {
       return Number(step.dataset.step) === 14;
     });
-
-    if (!step13 || !step14) return;
+    if (!step14) return;
 
     steps.forEach(function (step) {
       step.hidden = step !== step14;
     });
 
     const heading = step14.querySelector("h3");
-    if (heading) {
-      heading.textContent = "Manual Valuation Submitted";
-    }
+    if (heading) heading.textContent = "Manual Valuation Submitted";
 
     const reference = step14.querySelector("#quote-reference");
-    if (reference) {
-      reference.textContent = record.quoteReference;
-    }
+    if (reference) reference.textContent = record.quoteReference;
 
     const paragraphs = step14.querySelectorAll("p");
     paragraphs.forEach(function (paragraph) {
@@ -242,17 +215,14 @@
         paragraph.textContent =
           "Your information and photographs have been submitted for manual review.";
       }
+      if (paragraph.textContent.includes("BACKEND INTEGRATION REQUIRED")) {
+        paragraph.hidden = true;
+      }
     });
-
-    const backendNotice = step14.querySelector("p:nth-of-type(4)");
-    if (backendNotice && backendNotice.textContent.includes("BACKEND")) {
-      backendNotice.hidden = true;
-    }
 
     const navigation = step14.querySelector(".navigation-buttons");
     if (navigation) {
-      navigation.innerHTML =
-        '<a class="btn" href="account.html">Return to My Account</a>';
+      navigation.innerHTML = '<a class="btn" href="account.html">Return to My Account</a>';
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -262,7 +232,7 @@
     const form = document.getElementById("quote-form");
     if (!form) return;
 
-    form.addEventListener("click", async function (event) {
+    form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
       if (!button) return;
 
@@ -271,7 +241,6 @@
 
       const stepNumber = Number(step.dataset.step);
 
-      // Remember which branch the customer chose before quote.js moves to Step 13.
       if (stepNumber === 12 && isManualStep12(step)) {
         setManualMode();
         return;
@@ -279,53 +248,77 @@
 
       if (stepNumber !== 13) return;
 
-      const session = window.actionBuyerAuth
-        ? await window.actionBuyerAuth.getSession()
-        : null;
-
-      if (!session) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        alert("Please sign in or create an Action Buyer UK account before submitting your valuation. Your account is used to track the submission and its status.");
-        window.location.href = "login.html?return=quote.html";
-        return;
-      }
-
       if (isManualMode()) {
+        // Stop quote.js immediately. This must happen before awaiting Supabase.
         event.preventDefault();
         event.stopImmediatePropagation();
 
-        const fullName = document.getElementById("full-name");
-        const email = document.getElementById("email-address");
-        const phone = document.getElementById("phone-number");
+        (async function () {
+          const session = window.actionBuyerAuth
+            ? await window.actionBuyerAuth.getSession()
+            : null;
 
-        if (!fullName || !fullName.value.trim()) {
-          alert("Please enter your full name.");
-          return;
-        }
+          if (!session) {
+            alert("Please sign in or create an Action Buyer UK account before submitting your valuation.");
+            window.location.href = "login.html?return=quote.html";
+            return;
+          }
 
-        if (!email || !email.value.trim()) {
-          alert("Please enter your email address.");
-          return;
-        }
+          const fullName = document.getElementById("full-name");
+          const email = document.getElementById("email-address");
+          const phone = document.getElementById("phone-number");
 
-        if (!phone || !phone.value.trim()) {
-          alert("Please enter your telephone number.");
-          return;
-        }
+          if (!fullName || !fullName.value.trim()) {
+            alert("Please enter your full name.");
+            return;
+          }
+          if (!email || !email.value.trim()) {
+            alert("Please enter your email address.");
+            return;
+          }
+          if (!phone || !phone.value.trim()) {
+            alert("Please enter your telephone number.");
+            return;
+          }
 
-        const record = saveManualQuoteLocally();
-        if (!record) return;
+          const record = saveManualQuoteLocally();
+          if (!record) return;
 
-        showManualSubmittedScreen(record);
-        await saveQuoteToAccount();
-        clearManualMode();
+          showManualSubmittedScreen(record);
+          await saveQuoteToAccount();
+          clearManualMode();
+        })();
+
         return;
       }
 
-      // Instant-quote route: let the existing quote wizard validate and save the quote first,
-      // then copy its saved record into Supabase.
-      window.setTimeout(saveQuoteToAccount, 250);
+      // Instant-quote route: retain the existing working behaviour.
+      (async function () {
+        const session = window.actionBuyerAuth
+          ? await window.actionBuyerAuth.getSession()
+          : null;
+
+        if (!session) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          alert("Please sign in or create an Action Buyer UK account before submitting your valuation. Your account is used to track the submission and its status.");
+          window.location.href = "login.html?return=quote.html";
+          return;
+        }
+
+        window.setTimeout(saveQuoteToAccount, 250);
+      })();
     }, true);
+
+    const observer = new MutationObserver(function () {
+      if (isManualMode()) {
+        const step13 = document.querySelector('#quote-form .wizard-step[data-step="13"]');
+        if (step13 && !step13.hidden) {
+          prepareManualCustomerDetails(step13);
+        }
+      }
+    });
+
+    observer.observe(form, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
   });
 })();
