@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function isDJIDrone() { return category.value === "drone" && manufacturer.value === "DJI"; }
+  function isNonDJI() { return !isDJIDrone(); }
   function legacyManufacturer(value) {
     let hidden = form.querySelector('input[name="manufacturer"][value="dji"]');
     if (!hidden) {
@@ -46,12 +47,23 @@ document.addEventListener("DOMContentLoaded", function () {
       if (usageWrap) usageWrap.hidden = false;
     }
   }
+
   form.addEventListener("click", function (event) {
     const button = event.target.closest("button");
-    if (!button || !button.classList.contains("btn-next")) return;
+    if (!button) return;
     const step = visibleStep();
     if (!step) return;
     const number = Number(step.dataset.step);
+
+    if (button.classList.contains("btn-back") && isNonDJI()) {
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      const previous = ({4:2, 5:4, 8:5, 9:8, 10:8, 11:10})[number];
+      if (previous) go(previous);
+      return;
+    }
+
+    if (!button.classList.contains("btn-next")) return;
+
     if (number === 1) {
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       if (!category.value) return alert("Please select an equipment type.");
@@ -71,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!model.value) return alert("Please select a model.");
       configureUsageStep(); go(isDJIDrone() ? 3 : 4); return;
     }
-    if (!isDJIDrone()) {
+    if (isNonDJI()) {
       if (number === 4) {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
         if (!form.querySelector('input[name="condition"]:checked')) return alert("Please select the condition.");
@@ -85,6 +97,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       if (number === 10) {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(11); return;
+      }
+      if (number === 11) {
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(12); return;
       }
     }
   }, true);
