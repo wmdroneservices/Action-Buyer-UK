@@ -1,1030 +1,128 @@
-<!DOCTYPE html>
-<html lang="en-GB">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Get an Instant Quote | We Buy Any Drone</title>
-<meta name="description" content="Get an instant purchase quote for your DJI drone.">
-<link rel="stylesheet" href="style.css">
-</head>
+<!-- STEP 9: PACKAGE CONTENTS -->
+<section class="wizard-step" data-step="9" hidden>
+  <h3>Step 9: Package Contents</h3>
 
-<body>
+  <p>
+    Please confirm whether each item that should be included with your
+    selected package is present or missing.
+  </p>
 
-<header class="header">
-  <div class="container header-container">
-    <h1 class="logo">WE BUY ANY DRONE</h1>
+  <div id="package-contents-list">
 
-    <nav aria-label="Main navigation">
-      <ul class="nav-list">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="quote.html" aria-current="page">Get Instant Quote</a></li>
-        <li><a href="how-it-works.html">How It Works</a></li>
-        <li><a href="what-we-buy.html">What We Buy</a></li>
-        <li><a href="faq.html">FAQ</a></li>
-        <li><a href="privacy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms &amp; Conditions</a></li>
-        <li><a href="contact.html">Contact</a></li>
-      </ul>
-    </nav>
+    <div class="package-content-item">
+      <label for="content-drone">Drone</label>
+      <select id="content-drone" name="packageContents-drone" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-controller">Controller</label>
+      <select id="content-controller" name="packageContents-controller" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-battery-1">Battery 1</label>
+      <select id="content-battery-1" name="packageContents-battery1" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-battery-2">Battery 2</label>
+      <select id="content-battery-2" name="packageContents-battery2" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-battery-3">Battery 3</label>
+      <select id="content-battery-3" name="packageContents-battery3" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-charging-hub">Charging Hub</label>
+      <select id="content-charging-hub" name="packageContents-chargingHub" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-bag">Bag</label>
+      <select id="content-bag" name="packageContents-bag" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-propellers">Propellers</label>
+      <select id="content-propellers" name="packageContents-propellers" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-power-supply">Power Supply</label>
+      <select id="content-power-supply" name="packageContents-powerSupply" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
+    <div class="package-content-item">
+      <label for="content-cables">Cables</label>
+      <select id="content-cables" name="packageContents-cables" required>
+        <option value="">-- Select --</option>
+        <option value="present">Present</option>
+        <option value="missing">Missing</option>
+      </select>
+    </div>
+
   </div>
-</header>
 
-<main class="container">
-
-  <h2>Get An Instant Quote</h2>
-
-  <nav aria-label="Quote progress">
-    <ol class="progress-indicator" id="progress-indicator">
-
-      <li class="progress-step">1. Manufacturer</li>
-      <li class="progress-step">2. DJI Model</li>
-      <li class="progress-step">3. Exact Package</li>
-      <li class="progress-step">4. Condition</li>
-      <li class="progress-step">5. Flight Time</li>
-      <li class="progress-step">6. Batteries</li>
-      <li class="progress-step">7. Unbound</li>
-      <li class="progress-step">8. Damage</li>
-      <li class="progress-step">9. Package Contents</li>
-      <li class="progress-step">10. Serial Numbers</li>
-      <li class="progress-step">11. Photos</li>
-      <li class="progress-step">12. Quote Result</li>
-      <li class="progress-step">13. Customer Details</li>
-      <li class="progress-step">14. Quote Submitted</li>
-      <li class="progress-step">15. Shipping Instructions</li>
-      <li class="progress-step">16. Final Inspection</li>
-
-    </ol>
-  </nav>
-
-  <form id="quote-form" novalidate>
-
-    <!-- STEP 1 -->
-
-    <section class="wizard-step" data-step="1">
-
-      <h3>Step 1: Manufacturer</h3>
-
-      <p>Select the manufacturer of your drone.</p>
-
-      <fieldset>
-
-        <legend>Manufacturer</legend>
-
-        <label>
-          <input type="radio" name="manufacturer" value="dji">
-          DJI
-        </label>
-
-      </fieldset>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 2 -->
-
-    <section class="wizard-step" data-step="2" hidden>
-
-      <h3>Step 2: DJI Model</h3>
-
-      <label for="dji-model">
-        Select your DJI model
-      </label>
-
-      <select id="dji-model" name="djiModel">
-        <option value="">-- Select a model --</option>
-      </select>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 3 -->
-
-    <section class="wizard-step" data-step="3" hidden>
-
-      <h3>Step 3: Exact Package</h3>
-
-      <label for="package-select">
-        Select your exact package
-      </label>
-
-      <select id="package-select" name="package">
-        <option value="">-- Select a package --</option>
-      </select>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 4 -->
-
-    <section class="wizard-step" data-step="4" hidden>
-
-      <h3>Step 4: Condition</h3>
-
-      <p>What condition is the drone in?</p>
-
-      <fieldset>
-
-        <legend>Condition</legend>
-
-        <label>
-          <input type="radio" name="condition" value="factory-sealed">
-          Factory Sealed / Unopened
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="opened-unused">
-          Opened but Unused
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="excellent">
-          Excellent
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="good">
-          Good
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="fair">
-          Fair
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="damaged">
-          Damaged
-        </label>
-
-        <label>
-          <input type="radio" name="condition" value="not-working">
-          Not Working / Spares Only
-        </label>
-
-      </fieldset>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 5 -->
-
-    <section class="wizard-step" data-step="5" hidden>
-
-      <h3>Step 5: Flight Time</h3>
-
-      <label for="flight-hours">
-        Total flight hours completed
-      </label>
-
-      <input
-        type="number"
-        id="flight-hours"
-        name="flightHours"
-        min="0"
-        step="0.1"
-        placeholder="Example: 4.2"
-      >
-
-      <p>Or select a quick range:</p>
-
-      <fieldset>
-
-        <legend>Flight time range</legend>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="0-5">
-          0–5 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="5-20">
-          5–20 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="20-50">
-          20–50 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="50-100">
-          50–100 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="100-150">
-          100–150 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="150-200">
-          150–200 hours
-        </label>
-
-        <label>
-          <input type="radio" name="flightHoursRange" value="200+">
-          200+ hours
-        </label>
-
-      </fieldset>
-
-      <p>
-        Where possible, provide a photograph or screenshot
-        showing the flight-time information.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 6 -->
-
-    <section class="wizard-step" data-step="6" hidden>
-
-      <h3>Step 6: Battery Information</h3>
-
-      <p>
-        Add every battery being supplied with the drone.
-      </p>
-
-      <p id="battery-package-note"></p>
-
-      <div id="batteries-container"></div>
-
-      <button
-        type="button"
-        class="btn-add"
-        id="add-battery-btn"
-      >
-        Add Battery
-      </button>
-
-      <p>
-        Please provide a photograph or screenshot showing
-        the battery cycle count where possible.
-      </p>
-
-      <label for="battery-cycle-photo">
-        Battery cycle photograph / screenshot
-      </label>
-
-      <input
-        type="file"
-        id="battery-cycle-photo"
-        accept="image/*"
-        multiple
-      >
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 7 -->
-
-    <section class="wizard-step" data-step="7" hidden>
-
-      <h3>Step 7: Unbound Status</h3>
-
-      <p>
-        Is the drone unbound from your DJI account?
-      </p>
-
-      <fieldset>
-
-        <legend>DJI account status</legend>
-
-        <label>
-          <input type="radio" name="unbound" value="yes">
-          Yes
-        </label>
-
-        <label>
-          <input type="radio" name="unbound" value="no">
-          No
-        </label>
-
-        <label>
-          <input type="radio" name="unbound" value="unknown">
-          I Don't Know
-        </label>
-
-      </fieldset>
-
-      <p>
-        Please provide evidence showing the aircraft is
-        unbound where possible.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 8 -->
-
-    <section class="wizard-step" data-step="8" hidden>
-
-      <h3>Step 8: Damage</h3>
-
-      <p>Does the drone have any damage?</p>
-
-      <fieldset>
-
-        <legend>Damage status</legend>
-
-        <label>
-          <input type="radio" name="damage" value="no">
-          No
-        </label>
-
-        <label>
-          <input type="radio" name="damage" value="yes">
-          Yes
-        </label>
-
-      </fieldset>
-
-      <div id="damage-details" hidden>
-
-        <label for="damage-description">
-          Describe the damage
-        </label>
-
-        <textarea
-          id="damage-description"
-          rows="5"
-          placeholder="Please describe all damage."
-        ></textarea>
-
-        <p>
-          Please photograph all damaged areas.
-        </p>
-
-        <input
-          type="file"
-          id="damage-photos"
-          accept="image/*"
-          multiple
-        >
-
-      </div>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 9 -->
-
-    <section class="wizard-step" data-step="9" hidden>
-
-      <h3>Step 9: Package Contents</h3>
-
-      <p>
-        Please mark each standard package item as
-        <strong>Present</strong> or <strong>Missing</strong>.
-      </p>
-
-      <div id="package-contents-list"></div>
-
-      <hr>
-
-      <h4>Other Accessories</h4>
-
-      <p>
-        If you have additional equipment that is not part
-        of the selected package, add it here.
-      </p>
-
-      <div id="additional-accessories-list"></div>
-
-      <button
-        type="button"
-        id="add-accessory-btn"
-      >
-        Add Other Accessory
-      </button>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 10 -->
-
-    <section class="wizard-step" data-step="10" hidden>
-
-      <h3>Step 10: Serial Numbers</h3>
-
-      <label for="drone-serial-number">
-        Drone Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="drone-serial-number"
-        maxlength="50"
-        placeholder="Enter drone serial number"
-      >
-
-      <label for="controller-serial-number">
-        Controller Serial Number
-      </label>
-
-      <input
-        type="text"
-        id="controller-serial-number"
-        maxlength="50"
-        placeholder="If applicable"
-      >
-
-      <p>
-        Serial numbers may be checked during inspection
-        and ownership verification.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 11 - PHOTOS ONLY -->
-
-    <section class="wizard-step" data-step="11" hidden>
-
-      <h3>Step 11: Photographs</h3>
-
-      <p>
-        Upload clear photographs to help us verify
-        your equipment.
-      </p>
-
-      <ul>
-        <li>Drone</li>
-        <li>Controller</li>
-        <li>Package contents</li>
-        <li>Flight-time information</li>
-        <li>Battery-cycle information</li>
-        <li>Unbound status</li>
-        <li>Damage where applicable</li>
-        <li>Serial numbers where possible</li>
-      </ul>
-
-      <label for="photo-uploads">
-        Upload photographs
-      </label>
-
-      <input
-        type="file"
-        id="photo-uploads"
-        accept="image/*"
-        multiple
-      >
-
-      <p>
-        Clear photographs are important because the
-        Instant Quote is based on the information supplied.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Next
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 12 -->
-
-    <section class="wizard-step" data-step="12" hidden>
-
-      <h3>Your Instant Quote</h3>
-
-      <div id="quote-summary"></div>
-
-      <div class="quote-important">
-
-        <h4>IMPORTANT</h4>
-
-        <p>
-          Your Instant Quote is based on the information
-          and photographs you have provided.
-        </p>
-
-        <p>
-          All equipment is physically inspected when received.
-        </p>
-
-        <p>
-          If the equipment matches the information supplied,
-          we will confirm the quoted price.
-        </p>
-
-        <p>
-          If the condition, contents, flight time, ownership
-          or other information differs materially, we may
-          make a revised final offer.
-        </p>
-
-        <p>
-          If you do not accept a revised offer, we will
-          return the equipment to the full address you provide.
-        </p>
-
-      </div>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-accept">
-          Accept Instant Quote &amp; Continue
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 13 - CUSTOMER DETAILS + OWNERSHIP -->
-
-    <section class="wizard-step" data-step="13" hidden>
-
-      <h3>Step 13: Customer Details</h3>
-
-      <p>
-        We require your full return address because your
-        equipment is physically inspected after receipt.
-        If you reject a revised final valuation, we need
-        to be able to return your equipment to you.
-      </p>
-
-      <label for="full-name">
-        Full Name
-      </label>
-
-      <input
-        type="text"
-        id="full-name"
-        autocomplete="name"
-      >
-
-      <label for="email-address">
-        Email Address
-      </label>
-
-      <input
-        type="email"
-        id="email-address"
-        autocomplete="email"
-      >
-
-      <label for="phone-number">
-        Telephone Number
-      </label>
-
-      <input
-        type="tel"
-        id="phone-number"
-        autocomplete="tel"
-      >
-
-      <fieldset>
-
-        <legend>Full Return Address</legend>
-
-        <label for="address-line-1">
-          Address Line 1
-        </label>
-
-        <input
-          type="text"
-          id="address-line-1"
-          autocomplete="address-line1"
-        >
-
-        <label for="address-line-2">
-          Address Line 2
-        </label>
-
-        <input
-          type="text"
-          id="address-line-2"
-          autocomplete="address-line2"
-        >
-
-        <label for="city">
-          Town / City
-        </label>
-
-        <input
-          type="text"
-          id="city"
-          autocomplete="address-level2"
-        >
-
-        <label for="county">
-          County
-        </label>
-
-        <input
-          type="text"
-          id="county"
-          autocomplete="address-level1"
-        >
-
-        <label for="postcode">
-          Postcode
-        </label>
-
-        <input
-          type="text"
-          id="postcode"
-          autocomplete="postal-code"
-        >
-
-      </fieldset>
-
-
-      <fieldset>
-
-        <legend>
-          Do you have the legal right to sell this equipment?
-        </legend>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="yes"
-          >
-          Yes
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="no"
-          >
-          No
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="legalRight"
-            value="not-sure"
-          >
-          I'm not sure
-        </label>
-
-      </fieldset>
-
-      <div id="ownership-warning" hidden>
-        <p>
-          We cannot automatically purchase equipment where
-          ownership is uncertain. Your details can still
-          be submitted for manual review.
-        </p>
-      </div>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-back">
-          Back
-        </button>
-
-        <button type="button" class="btn-next">
-          Submit Quote
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 14 -->
-
-    <section class="wizard-step" data-step="14" hidden>
-
-      <h3>Quote Submitted</h3>
-
-      <p>
-        Your quote reference:
-      </p>
-
-      <p
-        id="quote-reference"
-        class="quote-ref"
-      ></p>
-
-      <p>
-        Your information has been recorded for the next
-        stage of the process.
-      </p>
-
-      <p>
-        <strong>
-          BACKEND EMAIL / DATABASE INTEGRATION REQUIRED
-        </strong>
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-next">
-          Continue to Shipping Instructions
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 15 -->
-
-    <section class="wizard-step" data-step="15" hidden>
-
-      <h3>Shipping Instructions</h3>
-
-      <h4>Shipping Label</h4>
-
-      <p>
-        Your shipping instructions and label will be
-        provided using the email address supplied.
-      </p>
-
-      <p>
-        <strong>
-          BACKEND / SHIPPING PROVIDER INTEGRATION REQUIRED
-        </strong>
-      </p>
-
-      <p>
-        A courier label system can be connected here
-        in the future.
-      </p>
-
-      <p>
-        Do not send the equipment until you have received
-        the shipping instructions.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button type="button" class="btn-next">
-          Continue to Final Inspection
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- STEP 16 -->
-
-    <section class="wizard-step" data-step="16" hidden>
-
-      <h3>Step 16: Final Inspection</h3>
-
-      <p>
-        When the equipment arrives, we will verify:
-      </p>
-
-      <ol>
-        <li>Model</li>
-        <li>Serial number</li>
-        <li>Flight time</li>
-        <li>Battery cycles</li>
-        <li>Condition</li>
-        <li>Damage</li>
-        <li>Package contents</li>
-        <li>Unbound status</li>
-        <li>Final valuation</li>
-      </ol>
-
-      <h3>Final Offer</h3>
-
-      <p>
-        Following physical inspection, we determine
-        the final valuation.
-      </p>
-
-      <p>
-        You can accept or decline the final offer.
-      </p>
-
-      <div class="navigation-buttons">
-
-        <button
-          type="button"
-          class="btn-final-accept"
-        >
-          Accept Final Offer
-        </button>
-
-        <button
-          type="button"
-          class="btn-final-decline"
-        >
-          Decline Final Offer
-        </button>
-
-      </div>
-
-      <div
-        id="final-offer-result"
-        hidden
-      ></div>
-
-    </section>
-
-  </form>
-
-</main>
-
-
-<footer class="footer">
-
-  <div class="container footer-container">
-
-    <strong>WE BUY ANY DRONE</strong>
+  <!-- ADDITIONAL EQUIPMENT -->
+  <section class="additional-equipment">
+    <h3>Additional Equipment</h3>
 
     <p>
-      Sell your DJI drone quickly and easily.
+      Do you have any additional DJI equipment that is not part of the
+      selected package? Additional equipment may have a value, subject
+      to inspection and the pricing rules.
     </p>
 
-    <nav aria-label="Footer navigation">
+    <div id="additional-equipment-list"></div>
 
-      <ul class="footer-nav">
+    <button
+      type="button"
+      class="btn btn-add"
+      id="add-additional-item-btn">
+      Add Additional Equipment
+    </button>
+  </section>
 
-        <li>
-          <a href="quote.html">
-            Get an Instant Quote
-          </a>
-        </li>
-
-        <li>
-          <a href="how-it-works.html">
-            How It Works
-          </a>
-        </li>
-
-        <li>
-          <a href="what-we-buy.html">
-            What We Buy
-          </a>
-        </li>
-
-        <li>
-          <a href="faq.html">
-            FAQ
-          </a>
-        </li>
-
-        <li>
-          <a href="privacy.html">
-            Privacy Policy
-          </a>
-        </li>
-
-        <li>
-          <a href="terms.html">
-            Terms &amp; Conditions
-          </a>
-        </li>
-
-        <li>
-          <a href="contact.html">
-            Contact
-          </a>
-        </li>
-
-      </ul>
-
-    </nav>
-
+  <div class="navigation-buttons">
+    <button type="button" class="btn btn-back">Back</button>
+    <button type="button" class="btn btn-next">Next</button>
   </div>
-
-</footer>
-
-
-<script src="quote.js" defer></script>
-
-</body>
-</html>
+</section>
