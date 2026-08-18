@@ -1561,81 +1561,195 @@ additionalBatteryValue: additionalBatteryValue
 }
 
 function renderQuoteSummary() {
-const summary =
-document.getElementById("quote-summary");
+    const summary = document.getElementById("quote-summary");
 
-if (!summary) {
-return;
-}
+    if (!summary) {
+        return;
+    }
 
-const result = calculateInstantQuote();
+    const result = calculateInstantQuote();
 
-quoteData.quoteAmount = result.amount;
+    quoteData.quoteAmount = result.amount;
 
-let html = `
-<p>
-<strong>
-${escapeHTML(getModelName(quoteData.model))}
-</strong>
-</p>
-<p>
-<strong>Package:</strong>
-${escapeHTML(getPackageName(quoteData.model, quoteData.package))}
-</p>
-<p>
-<strong>Condition:</strong>
-${escapeHTML(quoteData.condition)}
-</p>
-<p>
-<strong>Flight time:</strong>
-${
-quoteData.flightHours !== ""
-? escapeHTML(quoteData.flightHours) + " hours"
-: escapeHTML(quoteData.flightHoursRange)
-}
-</p>
-<p>
-<strong>Batteries:</strong>
-${quoteData.batteries.length}
-</p>
-`;
+    const title = document.getElementById("quote-result-title");
+    const importantHeading =
+        document.getElementById("quote-important-heading");
+    const importantContent =
+        document.getElementById("quote-important-content");
 
-if (result.status === "automatic") {
-html += `
-<div class="quote-price-box">
-<h3>Estimated purchase price</h3>
-<p
-class="quote-price"
-style="font-size:2.4rem;font-weight:800;margin:.5rem 0;"
->
-${formatMoney(result.amount)}
-</p>
-<p>
-This is the current automatic purchase quote
-based on the information supplied.
-</p>
-</div>
-`;
-} else {
-html += `
-<div class="manual-valuation-box">
-<h3>MANUAL VALUATION REQUIRED</h3>
-<p>
-We need to manually assess this equipment
-before confirming a purchase price.
-</p>
-<p>
-<strong>Reason:</strong>
-${escapeHTML(result.reason)}
-</p>
-<p>
-Your information can still be submitted for review.
-</p>
-</div>
-`;
-}
+    const actionButton =
+        document.getElementById("quote-result-action") ||
+        document.querySelector('[data-step="12"] .btn-accept');
 
-summary.innerHTML = html;
+    let html = `
+        <p>
+            <strong>
+                ${escapeHTML(getModelName(quoteData.model))}
+            </strong>
+        </p>
+
+        <p>
+            <strong>Package:</strong>
+            ${escapeHTML(
+                getPackageName(
+                    quoteData.model,
+                    quoteData.package
+                )
+            )}
+        </p>
+
+        <p>
+            <strong>Condition:</strong>
+            ${escapeHTML(quoteData.condition)}
+        </p>
+
+        <p>
+            <strong>Flight time:</strong>
+            ${
+                quoteData.flightHours !== ""
+                    ? escapeHTML(quoteData.flightHours) + " hours"
+                    : escapeHTML(quoteData.flightHoursRange)
+            }
+        </p>
+
+        <p>
+            <strong>Batteries:</strong>
+            ${quoteData.batteries.length}
+        </p>
+    `;
+
+    if (result.status === "automatic") {
+
+        if (title) {
+            title.textContent = "Your Instant Quote";
+        }
+
+        if (importantHeading) {
+            importantHeading.textContent = "IMPORTANT";
+        }
+
+        if (importantContent) {
+            importantContent.innerHTML = `
+                <p>
+                    Your Instant Quote is based on the information
+                    and photographs you have provided.
+                </p>
+
+                <p>
+                    All equipment is physically inspected when received.
+                </p>
+
+                <p>
+                    If the equipment matches the information supplied,
+                    we will confirm the quoted price.
+                </p>
+
+                <p>
+                    If the condition, contents, flight time, ownership
+                    or other information differs materially, we may
+                    make a revised final offer.
+                </p>
+
+                <p>
+                    If you do not accept a revised offer, we will return
+                    the equipment to the full address you provide.
+                </p>
+            `;
+        }
+
+        if (actionButton) {
+            actionButton.textContent =
+                "Accept Instant Quote & Continue";
+
+            actionButton.classList.add("btn-accept");
+
+            actionButton.dataset.quoteAction = "accept";
+        }
+
+        html += `
+            <div class="quote-price-box">
+
+                <h3>Estimated purchase price</h3>
+
+                <p
+                    class="quote-price"
+                    style="font-size:2.4rem;font-weight:800;margin:.5rem 0;"
+                >
+                    ${formatMoney(result.amount)}
+                </p>
+
+                <p>
+                    This is the current automatic purchase quote
+                    based on the information supplied.
+                </p>
+
+            </div>
+        `;
+
+    } else {
+
+        if (title) {
+            title.textContent =
+                "Manual Validation Required";
+        }
+
+        if (importantHeading) {
+            importantHeading.textContent = "IMPORTANT";
+        }
+
+        if (importantContent) {
+            importantContent.innerHTML = `
+                <p>
+                    We need to manually assess this equipment
+                    before confirming a purchase price.
+                </p>
+
+                <p>
+                    Your information and photographs will be
+                    reviewed by our team.
+                </p>
+
+                <p>
+                    Once the review is complete, we will contact
+                    you with the valuation.
+                </p>
+            `;
+        }
+
+        if (actionButton) {
+            actionButton.textContent =
+                "Continue to Manual Review";
+
+            actionButton.classList.remove("btn-accept");
+
+            actionButton.dataset.quoteAction = "manual";
+        }
+
+        html += `
+            <div class="manual-valuation-box">
+
+                <h3>MANUAL VALIDATION REQUIRED</h3>
+
+                <p>
+                    We need to manually assess this equipment
+                    before confirming a purchase price.
+                </p>
+
+                <p>
+                    <strong>Reason:</strong>
+                    ${escapeHTML(result.reason)}
+                </p>
+
+                <p>
+                    Your information can still be submitted
+                    for review.
+                </p>
+
+            </div>
+        `;
+    }
+
+    summary.innerHTML = html;
 }
 
 function validateCustomerDetails() {
@@ -2089,16 +2203,23 @@ showStep(previousNumber);
 return;
 }
 
-if (button.classList.contains("btn-accept")) {
-const result =
-calculateInstantQuote();
+if (
+    button.id === "quote-result-action" ||
+    button.classList.contains("btn-accept")
+) {
+    const result =
+        calculateInstantQuote();
 
-quoteData.quoteAmount =
-result.amount;
+    quoteData.quoteAmount =
+        result.amount;
 
-showStep(13);
+    if (result.status === "automatic") {
+        showStep(13);
+    } else {
+        showStep(13);
+    }
 
-return;
+    return;
 }
 });
 
