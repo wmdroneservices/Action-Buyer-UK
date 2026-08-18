@@ -31,7 +31,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = document.getElementById("email").value.trim();
     const phone = document.getElementById("phone").value.trim();
     const password = document.getElementById("password").value;
-    const { data, error } = await actionBuyerAuth.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, phone } } });
+    const redirectTo = new URL("login.html", window.location.href).href;
+    const { data, error } = await actionBuyerAuth.supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName, phone }, emailRedirectTo: redirectTo }
+    });
     if (error) { message.textContent = error.message; message.className = "form-message error"; return; }
     if (data.session) { window.location.href = "account.html"; return; }
     message.textContent = "Account created. Please check your email and confirm your address before signing in.";
