@@ -9,7 +9,8 @@
     if (!window.actionBuyerAuth || !window.actionBuyerAuth.supabase) { console.error("GearCashOut authentication client is not loaded."); return; }
     const { data: userData, error: userError } = await window.actionBuyerAuth.supabase.auth.getUser();
     if (userError || !userData || !userData.user) { console.warn("No authenticated customer account; quote was not saved to an account."); return; }
-    const record = { user_id: userData.user.id, quote_reference: saved.quoteReference, status: quoteStatus(saved), manufacturer: saved.manufacturer || null, model: saved.model || null, package: saved.package || null, condition: saved.condition || null, quote_amount: saved.quoteAmount === null || saved.quoteAmount === undefined ? null : Number(saved.quoteAmount), quote_data: cleanQuoteData(saved) };
+    const displayModel = saved.multiItemQuote ? `${Number(saved.quoteItemCount) || 0} items` : (saved.model || null);
+    const record = { user_id: userData.user.id, quote_reference: saved.quoteReference, status: quoteStatus(saved), manufacturer: saved.multiItemQuote ? "Multiple" : (saved.manufacturer || null), model: displayModel, package: saved.multiItemQuote ? "Combined quote" : (saved.package || null), condition: saved.multiItemQuote ? "Multiple items" : (saved.condition || null), quote_amount: saved.quoteAmount === null || saved.quoteAmount === undefined ? null : Number(saved.quoteAmount), quote_data: cleanQuoteData(saved) };
     const { error } = await window.actionBuyerAuth.supabase.from("valuations").upsert(record, { onConflict: "quote_reference" });
     if (error) { console.error("Could not save valuation to customer account:", error); return; }
     console.log("GearCashOut valuation saved to customer account:", saved.quoteReference);
