@@ -101,7 +101,10 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(11); return;
       }
       if (number === 11) {
-        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); go(12); return;
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+        const photos = document.getElementById("photo-uploads");
+        if (!photos || !photos.files || photos.files.length === 0) return alert("Please upload at least one photograph before continuing.");
+        go(12); return;
       }
     }
   }, true);
