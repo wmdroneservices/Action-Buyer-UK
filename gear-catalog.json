@@ -1,0 +1,64 @@
+{
+  "Drone": {
+    "DJI": [["mini-2","DJI Mini 2"],["mini-3","DJI Mini 3"],["mini-3-pro","DJI Mini 3 Pro"],["mini-4-pro","DJI Mini 4 Pro"],["mini-5-pro","DJI Mini 5 Pro"],["neo","DJI Neo"],["neo-2","DJI Neo 2"],["flip","DJI Flip"],["air-2","DJI Air 2"],["air-2s","DJI Air 2S"],["air-3","DJI Air 3"],["air-3s","DJI Air 3S"],["mavic-2-pro","DJI Mavic 2 Pro"],["mavic-2-zoom","DJI Mavic 2 Zoom"],["mavic-3","DJI Mavic 3"],["mavic-3-classic","DJI Mavic 3 Classic"],["mavic-3-pro","DJI Mavic 3 Pro"],["mavic-3-pro-cine","DJI Mavic 3 Pro Cine"],["mavic-4-pro","DJI Mavic 4 Pro"],["fpv","DJI FPV"],["avata","DJI Avata"],["avata-2","DJI Avata 2"],["mavic-3-enterprise","DJI Mavic 3 Enterprise"],["mavic-3-thermal","DJI Mavic 3 Thermal"],["mavic-3-multispectral","DJI Mavic 3 Multispectral"],["matrice-4e","DJI Matrice 4E"],["matrice-4t","DJI Matrice 4T"],["matrice-30","DJI Matrice 30"],["matrice-30t","DJI Matrice 30T"],["matrice-300-rtk","DJI Matrice 300 RTK"],["matrice-350-rtk","DJI Matrice 350 RTK"],["matrice-400","DJI Matrice 400"],["inspire-2","DJI Inspire 2"],["inspire-3","DJI Inspire 3"]],
+    "Autel Robotics": [["evo-nano","Autel EVO Nano"],["evo-nano-plus","Autel EVO Nano+"],["evo-lite","Autel EVO Lite"],["evo-lite-plus","Autel EVO Lite+"],["evo-ii","Autel EVO II"],["evo-ii-pro","Autel EVO II Pro"],["evo-ii-pro-v3","Autel EVO II Pro V3"],["evo-max-4t","Autel EVO Max 4T"]],
+    "Parrot": [["anafi","Parrot Anafi"],["anafi-ai","Parrot Anafi Ai"],["anafi-usa","Parrot Anafi USA"],["bebop-2","Parrot Bebop 2"],["disco","Parrot Disco"]],
+    "Skydio": [["skydio-2","Skydio 2"],["skydio-2-plus","Skydio 2+"],["skydio-x2","Skydio X2"],["skydio-x10","Skydio X10"]],
+    "Yuneec": [["mantis-q","Yuneec Mantis Q"],["typhoon-h","Yuneec Typhoon H"],["h520","Yuneec H520"],["h850","Yuneec H850"],["q500","Yuneec Q500"],["q500-4k","Yuneec Q500 4K"]],
+    "Hubsan": [["zino","Hubsan Zino"],["zino-2","Hubsan Zino 2"],["zino-pro","Hubsan Zino Pro"],["zino-mini-se","Hubsan Zino Mini SE"]],
+    "FIMI": [["x8-se","FIMI X8 SE"],["x8-se-2020","FIMI X8 SE 2020"],["x8-mini","FIMI X8 Mini"],["x8-tele","FIMI X8 Tele"],["mini-3","FIMI Mini 3"]],
+    "Potensic": [["atom","Potensic ATOM"],["atom-se","Potensic ATOM SE"],["atom-2","Potensic ATOM 2"],["dreamer-pro","Potensic Dreamer Pro"],["d88","Potensic D88"]],
+    "Holy Stone": [["hs720","Holy Stone HS720"],["hs720e","Holy Stone HS720E"],["hs720g","Holy Stone HS720G"],["hs700e","Holy Stone HS700E"],["hs600","Holy Stone HS600"]],
+    "HoverAir": [["x1","HoverAir X1"],["x1-pro","HoverAir X1 PRO"],["x1-pro-max","HoverAir X1 PRO Max"]],
+    "PowerVision": [["poweregg-x","PowerVision PowerEgg X"],["powerray","PowerVision PowerRay"]],
+    "Walkera": [["voyager-5","Walkera Voyager 5"],["vitus-320","Walkera Vitus 320"],["runner-250","Walkera Runner 250"]],
+    "BetaFPV": [["cetus","BetaFPV Cetus"],["cetus-pro","BetaFPV Cetus Pro"],["cetus-x","BetaFPV Cetus X"],["pavo-20","BetaFPV Pavo20"],["pavo-30","BetaFPV Pavo30"]]
+  },
+  "Action Camera": {
+    "GoPro": [["hero13-black","GoPro HERO13 Black"],["hero12-black","GoPro HERO12 Black"],["hero11-black","GoPro HERO11 Black"],["hero10-black","GoPro HERO10 Black"],["hero9-black","GoPro HERO9 Black"],["hero8-black","GoPro HERO8 Black"],["max2","GoPro MAX2"],["max","GoPro MAX"]],
+    "DJI": [["osmo-action-6","DJI Osmo Action 6"],["osmo-action-5-pro","DJI Osmo Action 5 Pro"],["osmo-action-4","DJI Osmo Action 4"],["osmo-action-3","DJI Osmo Action 3"],["osmo-action-2","DJI Action 2"],["osmo-360","DJI Osmo 360"],["osmo-pocket-4","DJI Osmo Pocket 4"],["osmo-pocket-3","DJI Osmo Pocket 3"]],
+    "Insta360": [["x6","Insta360 X6"],["x5","Insta360 X5"],["x4","Insta360 X4"],["x3","Insta360 X3"],["x2","Insta360 X2"],["ace-pro-2","Insta360 Ace Pro 2"],["ace-pro","Insta360 Ace Pro"],["ace","Insta360 Ace"],["go-3s","Insta360 GO 3S"],["go-3","Insta360 GO 3"],["one-rs","Insta360 ONE RS"]],
+    "AKASO": [["brave-8","AKASO Brave 8"],["brave-7-le","AKASO Brave 7 LE"],["brave-7","AKASO Brave 7"],["v50x","AKASO V50X"],["v50-pro","AKASO V50 Pro"]],
+    "SJCAM": [["sj20","SJCAM SJ20"],["sj10-pro","SJCAM SJ10 Pro"],["c300","SJCAM C300"],["c200","SJCAM C200"],["sj8-pro","SJCAM SJ8 Pro"]],
+    "WOLFANG": [["ga400","WOLFANG GA400"],["ga300","WOLFANG GA300"],["ga200","WOLFANG GA200"]],
+    "Garmin": [["virb-ultra-30","Garmin VIRB Ultra 30"],["virb-360","Garmin VIRB 360"],["virb-xe","Garmin VIRB XE"]],
+    "Sony": [["rx0-ii","Sony RX0 II"],["fdr-x3000","Sony FDR-X3000"],["fdr-x1000v","Sony FDR-X1000V"]],
+    "Drift": [["ghost-xl","Drift Ghost XL"],["ghost-4k","Drift Ghost 4K"],["ghost-x","Drift Ghost X"]]
+  },
+  "Camera": {
+    "Canon": [["eos-r1","Canon EOS R1"],["eos-r5-ii","Canon EOS R5 Mark II"],["eos-r6-iii","Canon EOS R6 Mark III"],["eos-r6-ii","Canon EOS R6 Mark II"],["eos-r8","Canon EOS R8"],["eos-r7","Canon EOS R7"],["eos-r10","Canon EOS R10"],["eos-r50","Canon EOS R50"],["eos-r50-v","Canon EOS R50 V"],["eos-r100","Canon EOS R100"],["eos-c50","Canon EOS C50"],["eos-c70","Canon EOS C70"],["powershot-v1","Canon PowerShot V1"]],
+    "Sony": [["a1-ii","Sony Alpha 1 II"],["a7-v","Sony Alpha 7 V"],["a7-iv","Sony Alpha 7 IV"],["a7s-iii","Sony Alpha 7S III"],["a7c-ii","Sony Alpha 7C II"],["a7cr","Sony Alpha 7CR"],["a6700","Sony Alpha 6700"],["fx3","Sony FX3"],["fx30","Sony FX30"],["zv-e1","Sony ZV-E1"],["zv-e10-ii","Sony ZV-E10 II"],["zv-1-ii","Sony ZV-1 II"],["rx100-vii","Sony RX100 VII"]],
+    "Nikon": [["z9","Nikon Z9"],["z8","Nikon Z8"],["z6-iii","Nikon Z6 III"],["z5-ii","Nikon Z5 II"],["zf","Nikon Zf"],["z50-ii","Nikon Z50 II"],["z30","Nikon Z30"],["d850","Nikon D850"],["d780","Nikon D780"],["coolpix-p1100","Nikon COOLPIX P1100"]],
+    "Fujifilm": [["x-h2s","Fujifilm X-H2S"],["x-h2","Fujifilm X-H2"],["x-t5","Fujifilm X-T5"],["x-t50","Fujifilm X-T50"],["x-t30-iii","Fujifilm X-T30 III"],["x-s20","Fujifilm X-S20"],["x-e5","Fujifilm X-E5"],["x-m5","Fujifilm X-M5"],["x100vi","Fujifilm X100VI"],["gfx100-ii","Fujifilm GFX100 II"],["gfx100s-ii","Fujifilm GFX100S II"],["gfx100rf","Fujifilm GFX100RF"]],
+    "Panasonic": [["s1r-ii","Panasonic Lumix S1RII"],["s1ii","Panasonic Lumix S1II"],["s5iix","Panasonic Lumix S5IIX"],["s5ii","Panasonic Lumix S5II"],["gh7","Panasonic Lumix GH7"],["gh6","Panasonic Lumix GH6"],["g9ii","Panasonic Lumix G9II"],["g100d","Panasonic Lumix G100D"]],
+    "OM System": [["om-1-ii","OM System OM-1 Mark II"],["om-3","OM System OM-3"],["om-5","OM System OM-5"],["tg-7","OM System Tough TG-7"]],
+    "Leica": [["q3","Leica Q3"],["q3-43","Leica Q3 43"],["sl3","Leica SL3"],["sl3-s","Leica SL3-S"],["m11","Leica M11"],["d-lux-8","Leica D-Lux 8"]],
+    "Blackmagic Design": [["pocket-cinema-6k-pro","Blackmagic Pocket Cinema Camera 6K Pro"],["pocket-cinema-4k","Blackmagic Pocket Cinema Camera 4K"],["cinema-camera-6k","Blackmagic Cinema Camera 6K"],["pyxis-6k","Blackmagic PYXIS 6K"],["ursa-mini-pro-12k","Blackmagic URSA Mini Pro 12K"]],
+    "Hasselblad": [["x2d-100c","Hasselblad X2D 100C"],["907x-cfv-100c","Hasselblad 907X & CFV 100C"],["x1d-ii-50c","Hasselblad X1D II 50C"]],
+    "Sigma": [["fp","Sigma fp"],["fp-l","Sigma fp L"],["bf","Sigma BF"],["sd-quattro","Sigma sd Quattro"]],
+    "Ricoh": [["gr-iv","Ricoh GR IV"],["gr-iii","Ricoh GR III"],["gr-iiix","Ricoh GR IIIx"],["theta-z1","Ricoh Theta Z1"],["theta-x","Ricoh Theta X"]],
+    "Pentax": [["k-3-iii","Pentax K-3 III"],["k-1-ii","Pentax K-1 II"],["kf","Pentax KF"],["645z","Pentax 645Z"]],
+    "RED": [["v-raptor","RED V-RAPTOR"],["komodo-x","RED KOMODO-X"],["komodo","RED KOMODO"]],
+    "ARRI": [["alexa-35","ARRI ALEXA 35"],["alexa-mini-lf","ARRI ALEXA Mini LF"],["alexa-lf","ARRI ALEXA LF"]]
+  },
+  "Camera Lens": {
+    "Canon": [["rf-24-70-2-8","Canon RF 24-70mm F2.8 L IS USM"],["rf-70-200-2-8","Canon RF 70-200mm F2.8 L IS USM"],["rf-100-500","Canon RF 100-500mm F4.5-7.1 L IS USM"],["rf-50-1-2","Canon RF 50mm F1.2 L USM"]],
+    "Sony": [["fe-24-70-gm2","Sony FE 24-70mm F2.8 GM II"],["fe-70-200-gm2","Sony FE 70-200mm F2.8 GM OSS II"],["fe-200-600","Sony FE 200-600mm F5.6-6.3 G OSS"],["fe-35-1-4-gm","Sony FE 35mm F1.4 GM"]],
+    "Nikon": [["z-24-70-2-8","NIKKOR Z 24-70mm f/2.8 S"],["z-70-200-2-8","NIKKOR Z 70-200mm f/2.8 VR S"],["z-100-400","NIKKOR Z 100-400mm f/4.5-5.6 VR S"],["z-180-600","NIKKOR Z 180-600mm f/5.6-6.3 VR"]],
+    "Fujifilm": [["xf-16-55-2-8-ii","Fujifilm XF16-55mmF2.8 R LM WR II"],["xf-50-140-2-8","Fujifilm XF50-140mmF2.8 R LM OIS WR"],["xf-150-600","Fujifilm XF150-600mmF5.6-8 R LM OIS WR"],["xf-33-1-4","Fujifilm XF33mmF1.4 R LM WR"]],
+    "Sigma": [["24-70-dg-dn-ii","Sigma 24-70mm F2.8 DG DN II Art"],["70-200-dg-dn","Sigma 70-200mm F2.8 DG DN OS Sports"],["28-45-dg-dn","Sigma 28-45mm F1.8 DG DN Art"]],
+    "Tamron": [["28-75-g2","Tamron 28-75mm F2.8 G2"],["35-150","Tamron 35-150mm F2-2.8"],["70-180-g2","Tamron 70-180mm F2.8 G2"],["150-500","Tamron 150-500mm F5-6.7 VC"]],
+    "Samyang": [["35-1-4-ii","Samyang AF 35mm F1.4 II"],["85-1-4-ii","Samyang AF 85mm F1.4 II"],["24-70-2-8","Samyang AF 24-70mm F2.8 FE"]]
+  },
+  "Accessory": {
+    "DJI": [["rc-2","DJI RC 2"],["rc-n3","DJI RC-N3"],["rc-pro","DJI RC Pro"],["mic-2","DJI Mic 2"],["mic-mini","DJI Mic Mini"],["rs-4","DJI RS 4"],["rs-4-pro","DJI RS 4 Pro"]],
+    "GoPro": [["media-mod","GoPro Media Mod"],["volta","GoPro Volta"],["light-mod","GoPro Light Mod"],["max-lens-mod-2","GoPro MAX Lens Mod 2.0"]],
+    "Insta360": [["flow-pro","Insta360 Flow Pro"],["flow-2-pro","Insta360 Flow 2 Pro"],["x5-battery","Insta360 X5 Battery"],["gps-preview-remote","Insta360 GPS Preview Remote"]],
+    "Sony": [["gp-vpt2bt","Sony GP-VPT2BT Grip"],["ecm-m1","Sony ECM-M1 Microphone"],["uwp-d","Sony UWP-D Wireless System"]],
+    "Canon": [["speedlite-el5","Canon Speedlite EL-5"],["br-e1","Canon BR-E1 Remote"],["hg-100tbr","Canon HG-100TBR Tripod Grip"]],
+    "Nikon": [["sb-5000","Nikon SB-5000 Speedlight"],["wr-r11b","Nikon WR-R11b Wireless Remote"],["mc-n10","Nikon MC-N10 Remote Grip"]],
+    "Manfrotto": [["befree-advanced","Manfrotto Befree Advanced"],["055-xpro3","Manfrotto 055 XPRO3"],["504x-head","Manfrotto 504X Head"]],
+    "Rode": [["wireless-pro","RØDE Wireless PRO"],["wireless-go-ii","RØDE Wireless GO II"],["videomic-ntg","RØDE VideoMic NTG"]],
+    "Sennheiser": [["mke-400","Sennheiser MKE 400"],["profile-wireless","Sennheiser Profile Wireless"]]
+  }
+}
