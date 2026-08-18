@@ -58,3 +58,15 @@
   const load = function () { if (document.querySelector('script[data-gear-enhancements]')) return; const script = document.createElement("script"); script.src = "quote-enhancements.js"; script.defer = true; script.dataset.gearEnhancements = "true"; document.head.appendChild(script); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else load();
 })();
+
+/* Load the multi-item quote basket. */
+(function () {
+  const load = function () {
+    if (document.querySelector('script[data-multi-item-quote]')) return;
+    const script = document.createElement("script");
+    script.src = "multi-item-quote.js";
+    script.dataset.multiItemQuote = "true";
+    document.head.appendChild(script);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else load();
+})();
