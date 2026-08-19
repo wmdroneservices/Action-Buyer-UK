@@ -2,7 +2,7 @@
 <html lang="en-GB"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Sign In | GearCashOut</title><meta name="description" content="Sign in to your GearCashOut account." /><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script></head>
 <body><header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li></ul></nav></div></header>
 <main class="auth-page"><div class="auth-card"><p class="section-kicker">YOUR ACCOUNT</p><h1>Sign in</h1><p class="auth-intro">Sign in to view your valuations and track your submissions.</p><div id="return-quote-notice" class="notice" hidden><strong>Your valuation is saved.</strong> After signing in, you will be returned to your quote.</div><form id="login-form" class="auth-form"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" required /><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required /><button class="btn btn-primary" type="submit">SIGN IN</button><p id="login-message" class="form-message" role="status" aria-live="polite"></p></form><p class="auth-links"><a href="forgot-password.html">Forgotten your password?</a></p><p class="auth-switch">Don't have an account? <a id="register-link" href="register.html">Register</a></p></div></main>
-<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT</strong><br />We buy drones, cameras, video and audio equipment.</div></div></footer>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT</strong><br>We buy drones, cameras, video and audio equipment.</div></div></footer>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
@@ -11,23 +11,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("return-quote-notice").hidden = false;
     document.getElementById("register-link").href = "register.html?return=quote.html";
   }
-  const existing = await actionBuyerAuth.getSession();
-  if (existing) {
+
+  async function destinationForSession(session) {
+    if (!session?.user?.id) return "account.html";
+    const { data: staff, error } = await actionBuyerAuth.supabase
+      .from("staff_users")
+      .select("user_id")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (!error && staff) return "admin.html";
     let destination = "account.html";
     try { destination = localStorage.getItem("actionBuyerReturnAfterAuth") || destination; } catch (_) {}
-    window.location.href = destination;
+    return destination;
+  }
+
+  const existing = await actionBuyerAuth.getSession();
+  if (existing) {
+    window.location.href = await destinationForSession(existing);
     return;
   }
+
   const form = document.getElementById("login-form"), message = document.getElementById("login-message");
   form.addEventListener("submit", async event => {
     event.preventDefault(); message.textContent = "Signing in..."; message.className = "form-message";
     const email = document.getElementById("email").value.trim(), password = document.getElementById("password").value;
-    const { error } = await actionBuyerAuth.supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await actionBuyerAuth.supabase.auth.signInWithPassword({ email, password });
     if (error) { message.textContent = error.message; message.className = "form-message error"; return; }
     try { localStorage.setItem("gearCashOutAuthenticated", "true"); } catch (_) {}
-    let destination = "account.html";
-    try { destination = localStorage.getItem("actionBuyerReturnAfterAuth") || destination; } catch (_) {}
-    window.location.href = destination;
+    window.location.href = await destinationForSession(data.session);
   });
 });
 </script>
