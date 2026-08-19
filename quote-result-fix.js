@@ -3,7 +3,7 @@ function initGearCashOutResultFix() {
   if (!form) return;
 
   window.renderGearCashOutManualResult = function () {
-    const step = form.querySelector('[data-step="13"]');
+    const step = form.querySelector('[data-step="12"]');
     const summary = document.getElementById("quote-summary");
     if (!step || !summary) return;
     const category = document.getElementById("gear-category");
