@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadWorkQueue() {
     const valuationsBox = document.getElementById("dashboard-valuations");
     const salesBox = document.getElementById("dashboard-sales");
-    const { data: valuations, error } = await auth.supabase.from("valuations").select("id,quote_reference,status,manufacturer,model,package,quote_amount,submitted_at").order("submitted_at", { ascending: false });
+    const { data: valuations, error } = await auth.supabase.from("valuations").select("id,quote_reference,status,manufacturer,model,package,quote_amount,submitted_at").is("archived_at", null).order("submitted_at", { ascending: false });
     if (error) { valuationsBox.innerHTML = "<p>We couldn't load the staff queue.</p>"; return; }
     const ids = (valuations || []).map(v => v.id);
     const { data: items } = ids.length ? await auth.supabase.from("quote_items").select("id,valuation_id,item_name,item_status").in("valuation_id", ids) : { data: [] };
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const status = published.length ? published[0].status : (v.status || "submitted");
       return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p><h3>${esc(v.model || "Equipment submission")}</h3><p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p></div><div class="valuation-meta"><strong>${v.quote_amount == null ? "Awaiting valuation" : money(v.quote_amount)}</strong><small>${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small></div></article>`;
     }).join("");
-    valuationsBox.innerHTML = rows || "<p>No valuations have been submitted yet.</p>";
+    valuationsBox.innerHTML = rows || "<p>No active valuations have been submitted yet.</p>";
     const accepted = (offers || []).filter(o => o.status === "accepted");
     salesBox.innerHTML = accepted.length ? `<p><strong>${accepted.length}</strong> accepted offer${accepted.length === 1 ? "" : "s"} currently recorded.</p>` : "<p>No accepted offers yet.</p>";
   }
