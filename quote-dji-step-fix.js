@@ -1,3 +1,7 @@
+/* DJI navigation compatibility fix.
+   The main quote engine owns navigation and its currentStep state.
+   This file only hides the obsolete battery page and handles the one
+   Back transition that must skip that hidden page. */
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
@@ -7,17 +11,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!form || !category || !manufacturer) return;
 
   function isDJIDrone() {
-    return category.value === "drone" && String(manufacturer.value || "").toLowerCase() === "dji";
-  }
-
-  function showStepSafely(number) {
-    if (typeof window.showStep === "function") {
-      window.showStep(number);
-    } else {
-      form.querySelectorAll(".wizard-step").forEach(function (step) {
-        step.hidden = Number(step.dataset.step) !== number;
-      });
-    }
+    return String(category.value || "").toLowerCase() === "drone" &&
+           String(manufacturer.value || "").toLowerCase() === "dji";
   }
 
   function hideObsoleteBatteryStep() {
@@ -29,34 +24,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function setStep10Title() {
     const step10 = form.querySelector('[data-step="10"]');
-    if (!step10) return;
-    const heading = step10.querySelector("h3");
+    const heading = step10 && step10.querySelector("h3");
     if (heading) heading.textContent = "Step 10: Serial Numbers";
-  }
-
-  function currentStepNumber() {
-    const visible = Array.from(form.querySelectorAll(".wizard-step")).find(function (step) {
-      return !step.hidden;
-    });
-    return visible ? Number(visible.dataset.step) : 0;
-  }
-
-  function conditionSelected() {
-    if (!form.querySelector('input[name="condition"]:checked')) {
-      alert("Please select the condition.");
-      return false;
-    }
-    return true;
-  }
-
-  function flightTimeEntered() {
-    const hours = document.getElementById("flight-hours");
-    const range = form.querySelector('input[name="flightHoursRange"]:checked');
-    if ((!hours || !hours.value.trim()) && !range) {
-      alert("Please enter the flight hours or select the flight time range.");
-      return false;
-    }
-    return true;
   }
 
   hideObsoleteBatteryStep();
@@ -66,84 +35,38 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isDJIDrone()) return;
 
     const button = event.target.closest("button");
-    if (!button || !form.contains(button)) return;
+    if (!button || !form.contains(button) || !button.classList.contains("btn-back")) return;
 
-    const stepNumber = currentStepNumber();
-    if (!stepNumber) return;
+    const step = button.closest(".wizard-step");
+    const stepNumber = step ? Number(step.dataset.step) : 0;
 
-    /* The normal quote engine must remain responsible for Steps 1-4 and
-       Steps 7-11 because it stores those answers in quoteData. We only
-       intercept the broken navigation around the obsolete Step 6 battery
-       page, plus Back buttons that would otherwise return to it. */
-
-    if (button.classList.contains("btn-back")) {
-      const previous = {
-        2: 1,
-        3: 2,
-        4: 3,
-        5: 4,
-        7: 5,
-        8: 7,
-        9: 8,
-        10: 9,
-        11: 10,
-        12: 11
-      }[stepNumber];
-
-      if (previous) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        hideObsoleteBatteryStep();
-        setStep10Title();
-        showStepSafely(previous);
-        return;
-      }
-    }
-
-    if (!button.classList.contains("btn-next")) return;
-
-    /* Step 4 must validate Condition and then use the existing quote engine
-       to save quoteData.condition and move to Step 5. */
-    if (stepNumber === 4) {
-      if (!conditionSelected()) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      }
-      return;
-    }
-
-    /* Step 5 is the only place where flight time is validated. Let the
-       existing quote engine save the flight information, but immediately
-       replace its obsolete Step 6 destination with Step 7. */
-    if (stepNumber === 5) {
-      if (!flightTimeEntered()) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        return;
-      }
-
-      window.setTimeout(function () {
-        hideObsoleteBatteryStep();
-        showStepSafely(7);
-      }, 0);
-      return;
-    }
-
-    /* If anything somehow reaches Step 6, never leave the user on the old
-       battery page. */
-    if (stepNumber === 6) {
+    /* Step 7 is immediately after the hidden Step 6. Let the normal
+       Step 6 Back handler run so quote.js updates its internal currentStep
+       correctly and returns to Step 5. */
+    if (stepNumber === 7) {
       event.preventDefault();
-      event.stopPropagation();
       event.stopImmediatePropagation();
+      const step6 = form.querySelector('[data-step="6"]');
+      const step6Back = step6 && step6.querySelector(".btn-back");
+      if (step6Back) step6Back.click();
+      else {
+        /* Fallback: the main engine normally has Step 6 in its sequence. */
+        const visible = form.querySelector('.wizard-step:not([hidden])');
+        if (visible) visible.hidden = true;
+        const step5 = form.querySelector('[data-step="5"]');
+        if (step5) step5.hidden = false;
+      }
       hideObsoleteBatteryStep();
-      showStepSafely(7);
       return;
     }
 
-    /* Steps 7-11 are deliberately allowed through to quote.js so that its
-       existing validators populate quoteData for the final valuation. */
+    /* All other navigation belongs to quote.js. */
   }, true);
+
+  new MutationObserver(function () {
+    if (isDJIDrone()) {
+      hideObsoleteBatteryStep();
+      setStep10Title();
+    }
+  }).observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
 });
