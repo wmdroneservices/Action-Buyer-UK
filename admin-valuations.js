@@ -1,98 +1,78 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const box = document.getElementById("manual-valuations");
   const message = document.getElementById("admin-message");
-  const session = await window.actionBuyerAuth.getSession();
-  if (!session) {
-    window.location.href = "login.html?return=admin-valuations.html";
-    return;
+  const auth = window.actionBuyerAuth;
+  const session = await auth.getSession();
+  if (!session) { window.location.href = "login.html?return=admin-valuations.html"; return; }
+
+  const {data: staff} = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
+  if (!staff) { box.innerHTML = "<p>You do not have permission to access valuation review.</p>"; return; }
+
+  const money = n => new Intl.NumberFormat("en-GB", {style:"currency", currency:"GBP"}).format(Number(n || 0));
+  const esc = v => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+  async function notify(offerId, eventType) {
+    try { await auth.supabase.functions.invoke("send-quote-email", {body:{offer_id:offerId, event_type:eventType}}); } catch (_) {}
   }
 
-  const { data: staff, error: staffError } = await window.actionBuyerAuth.supabase
-    .from("staff_users")
-    .select("user_id")
-    .eq("user_id", session.user.id)
-    .maybeSingle();
-
-  if (staffError || !staff) {
-    box.innerHTML = "<p>You do not have permission to access valuation review.</p>";
-    return;
+  function setMessage(text, ok=true) {
+    message.textContent = text;
+    message.className = "form-message " + (ok ? "success" : "error");
   }
 
   async function load() {
     box.innerHTML = "<p>Loading valuations...</p>";
-    const { data, error } = await window.actionBuyerAuth.supabase
-      .from("valuations")
-      .select("id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data")
-      .order("submitted_at", { ascending: false });
+    const {data: valuations, error} = await auth.supabase.from("valuations").select("id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data").order("submitted_at", {ascending:false});
+    if (error) { box.innerHTML = "<p>We couldn't load valuations.</p>"; console.error(error); return; }
+    const ids = (valuations || []).map(v => v.id);
+    const {data: items} = ids.length ? await auth.supabase.from("quote_items").select("id,valuation_id,item_name,item_status").in("valuation_id", ids) : {data:[]};
+    const itemIds = (items || []).map(i => i.id);
+    const {data: offers} = itemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status,internal_notes,customer_message,published_at,responded_at").in("item_id", itemIds).order("created_at", {ascending:false}) : {data:[]};
 
-    if (error) {
-      box.innerHTML = "<p>We couldn't load valuations.</p>";
-      console.error(error);
-      return;
-    }
+    if (!valuations?.length) { box.innerHTML = "<p>No valuations have been submitted yet.</p>"; return; }
 
-    if (!data?.length) {
-      box.innerHTML = "<p>No valuations have been submitted yet.</p>";
-      return;
-    }
-
-    box.innerHTML = data.map((v) => {
-      const manual = v.status === "manual_review" || v.quote_data?.manualValuation === true;
-      const amount = v.quote_amount == null ? "" : Number(v.quote_amount).toFixed(2);
-      const status = manual && v.quote_amount != null ? "valued — manual" : String(v.status || "submitted").replaceAll("_", " ");
+    box.innerHTML = valuations.map(v => {
+      const item = (items || []).find(i => i.valuation_id === v.id);
+      const itemOffers = (offers || []).filter(o => o.item_id === item?.id);
+      const automatic = itemOffers.find(o => o.offer_type === "automatic" && o.status !== "superseded");
+      const manual = itemOffers.find(o => o.offer_type === "manual" && o.status !== "superseded");
+      const final = itemOffers.find(o => o.offer_type === "final" && o.status !== "superseded");
+      const manualPrice = manual?.amount ?? "";
+      const finalPrice = final?.amount ?? "";
+      const autoPrice = automatic?.amount ?? v.quote_amount ?? "";
       return `<article class="valuation-card admin-valuation-card">
         <div>
-          <span class="valuation-ref">${escapeHtml(v.quote_reference)}</span>
-          <h3>${escapeHtml(v.model || "Equipment submission")}</h3>
-          <p>${escapeHtml(v.manufacturer || "")} ${v.package ? "— " + escapeHtml(v.package) : ""}</p>
-          <small>Submitted ${new Date(v.submitted_at).toLocaleString("en-GB")}</small>
+          <span class="valuation-ref">${esc(v.quote_reference)}</span>
+          <p class="section-kicker">${esc(String(v.status || "submitted").replaceAll("_"," "))}</p>
+          <h3>${esc(v.model || "Equipment submission")}</h3>
+          <p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p>
+          <small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small>
         </div>
-        <div class="valuation-meta">
-          <span class="status-badge">${escapeHtml(status)}</span>
-          ${manual && v.status === "manual_review" ? `<label>Confirmed purchase price (£)<input class="manual-price" type="number" min="0" step="0.01" value="${amount}" data-id="${v.id}"></label><button class="btn btn-primary save-manual" data-id="${v.id}" type="button">SET VALUATION</button>` : `<strong>£${Number(v.quote_amount || 0).toFixed(2)}</strong>`}
+        <div class="valuation-meta offer-admin-controls">
+          <div><strong>Automatic</strong><input class="offer-price" data-type="automatic" data-item="${item?.id || ""}" type="number" min="0" step="0.01" value="${esc(autoPrice)}"><span class="status-badge">${esc(automatic?.status || "not published")}</span></div>
+          <div><strong>Manual</strong><input class="offer-price" data-type="manual" data-item="${item?.id || ""}" type="number" min="0" step="0.01" value="${esc(manualPrice)}"><span class="status-badge">${esc(manual?.status || "not published")}</span></div>
+          <div><strong>Final inspection offer</strong><input class="offer-price" data-type="final" data-item="${item?.id || ""}" type="number" min="0" step="0.01" value="${esc(finalPrice)}"><span class="status-badge">${esc(final?.status || "not published")}</span></div>
+          ${item ? `<div class="navigation-buttons"><button class="btn btn-secondary publish-offer" data-item="${item.id}" data-type="automatic">PUBLISH / UPDATE AUTOMATIC</button><button class="btn btn-primary publish-offer" data-item="${item.id}" data-type="manual">PUBLISH MANUAL QUOTE</button><button class="btn btn-primary publish-offer" data-item="${item.id}" data-type="final">PUBLISH FINAL OFFER</button></div>` : `<p>Quote item not yet linked.</p>`}
+          ${itemOffers.length ? `<details><summary>Offer history</summary>${itemOffers.map(o => `<p><strong>${esc(o.offer_type)}</strong>: ${money(o.amount)} — ${esc(o.status)}${o.responded_at ? " — responded " + new Date(o.responded_at).toLocaleString("en-GB") : ""}</p>`).join("")}</details>` : ""}
         </div>
       </article>`;
     }).join("");
 
-    box.querySelectorAll(".save-manual").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.id;
-        const input = box.querySelector(`.manual-price[data-id="${id}"]`);
-        const price = Number(input?.value);
-        if (!Number.isFinite(price) || price < 0) {
-          message.textContent = "Enter a valid purchase price.";
-          message.className = "form-message error";
-          return;
-        }
-        const valuation = data.find((item) => item.id === id);
-        const quoteData = { ...(valuation?.quote_data || {}), manualValuation: true, manualValuationConfirmedAt: new Date().toISOString() };
-        button.disabled = true;
-        const { error } = await window.actionBuyerAuth.supabase
-          .from("valuations")
-          .update({ quote_amount: price, status: "valued", quote_data: quoteData, updated_at: new Date().toISOString() })
-          .eq("id", id);
-        button.disabled = false;
-        if (error) {
-          message.textContent = "The valuation could not be updated.";
-          message.className = "form-message error";
-          console.error(error);
-          return;
-        }
-        message.textContent = "Manual valuation updated successfully.";
-        message.className = "form-message success";
-        await load();
-      });
-    });
+    box.querySelectorAll(".publish-offer").forEach(btn => btn.addEventListener("click", async () => {
+      const itemId = btn.dataset.item;
+      const type = btn.dataset.type;
+      const input = box.querySelector(`.offer-price[data-item="${itemId}"][data-type="${type}"]`);
+      const amount = Number(input?.value);
+      if (!itemId) { setMessage("This valuation has no quote item yet.", false); return; }
+      if (!Number.isFinite(amount) || amount < 0) { setMessage("Enter a valid price before publishing the offer.", false); return; }
+      btn.disabled = true;
+      const {data: offer, error} = await auth.supabase.rpc("publish_quote_offer", {p_item_id:itemId, p_offer_type:type, p_amount:amount, p_internal_notes:type === "final" ? "Final physical inspection offer" : null, p_customer_message:type === "final" ? "This is your final offer following our inspection. Please accept or refuse it in your account." : type === "manual" ? "We have reviewed your submission and made a manual offer." : "Your automatic GearCashOut offer is ready."});
+      btn.disabled = false;
+      if (error) { setMessage(error.message || "The offer could not be published.", false); console.error(error); return; }
+      await notify(offer?.id, "offer_published");
+      setMessage((type === "final" ? "Final offer" : type === "manual" ? "Manual quote" : "Automatic quote") + " published. The customer can now see it in their account.");
+      await load();
+    }));
   }
-
   await load();
 });
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
