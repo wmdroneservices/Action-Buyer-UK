@@ -4,8 +4,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   const session = await auth.getSession();
   if (!session) { window.location.href = "login.html"; return; }
 
-  const STAFF_USER_ID = "ecb51873-46f8-4468-aa1d-aeda08178fd8";
-  if (session.user.id === STAFF_USER_ID) { window.location.href = "admin.html"; return; }
+  // Customer/staff separation is based on staff_users, not a hard-coded UUID.
+  const { data: staffRow, error: staffError } = await auth.supabase
+    .from("staff_users")
+    .select("user_id")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+  if (staffError) console.error("Staff membership check failed", staffError);
+  if (staffRow) { window.location.href = "admin.html"; return; }
+
+  // A customer page must never retain a Staff Dashboard navigation link.
+  document.querySelectorAll("[data-account-link]").forEach(link => {
+    link.textContent = "My Account";
+    link.href = "account.html";
+  });
+  document.querySelectorAll('a[href="admin.html"]').forEach(link => {
+    link.textContent = "My Account";
+    link.href = "account.html";
+  });
 
   const user = session.user;
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
