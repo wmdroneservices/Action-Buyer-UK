@@ -15,7 +15,14 @@
     if (error) { console.error("Could not save valuation to customer account:", error); return; }
     console.log("GearCashOut valuation saved to customer account:", saved.quoteReference);
   }
-  function isManualStep12(step) { if (!step) return false; const title = step.querySelector("h3"); const button = step.querySelector(".btn-accept, #quote-result-action"); const titleText = title ? title.textContent.toLowerCase() : ""; const buttonText = button ? button.textContent.toLowerCase() : ""; return titleText.includes("manual validation") || buttonText.includes("manual review") || (button && button.dataset.quoteAction === "manual"); }
+  function isManualStep12(step) {
+    if (!step) return false;
+    const title = step.querySelector("h3");
+    const button = step.querySelector("#continue-with-quote, .btn-accept, #quote-result-action");
+    const titleText = title ? title.textContent.toLowerCase() : "";
+    const buttonText = button ? button.textContent.toLowerCase() : "";
+    return titleText.includes("manual valuation") || titleText.includes("manual validation") || buttonText.includes("manual review") || (button && button.dataset.quoteAction === "manual");
+  }
   function setManualMode() { try { sessionStorage.setItem("actionBuyerManualValuation", "true"); } catch (error) { console.warn("Could not store manual valuation mode.", error); } }
   function isManualMode() { try { return sessionStorage.getItem("actionBuyerManualValuation") === "true"; } catch (error) { return false; } }
   function clearManualMode() { try { sessionStorage.removeItem("actionBuyerManualValuation"); } catch (error) {} }
@@ -69,5 +76,6 @@
     script.dataset.multiItemQuote = "true";
     document.head.appendChild(script);
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else load();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else init();
+  function init() { load(); }
 })();
