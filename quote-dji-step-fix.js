@@ -19,12 +19,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  /*
-   * The original quote.js and quote-flow-fix.js both attach click handlers.
-   * This capture handler is deliberately registered on the form and only
-   * owns DJI Step 3. It prevents the legacy handler from processing the
-   * package button a second time.
-   */
   form.addEventListener("click", function (event) {
     const button = event.target.closest("button");
     if (!button || !form.contains(button) || !button.classList.contains("btn-next")) return;
@@ -34,22 +28,42 @@ document.addEventListener("DOMContentLoaded", function () {
       return !step.hidden;
     });
     if (!visibleStep) return;
-
     const stepNumber = Number(visibleStep.dataset.step);
-    if (stepNumber !== 3) return;
 
-    const packageSelect = document.getElementById("package-select");
-    if (!packageSelect || !packageSelect.value) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      alert("Please select the exact package.");
+    /* Step 3: package is selected once, then go straight to Condition. */
+    if (stepNumber === 3) {
+      const packageSelect = document.getElementById("package-select");
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      if (!packageSelect || !packageSelect.value) {
+        alert("Please select the exact package.");
+        return;
+      }
+      showStepSafely(4);
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    showStepSafely(4);
+    /* Step 4: validate Condition here. Never let the old flight-time
+       validator handle this button. */
+    if (stepNumber === 4) {
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      if (!form.querySelector('input[name="condition"]:checked')) {
+        alert("Please select the condition.");
+        return;
+      }
+      showStepSafely(5);
+      return;
+    }
+
+    /* Step 5: flight time belongs here, not on Condition. */
+    if (stepNumber === 5) {
+      const hours = document.getElementById("flight-hours");
+      const range = form.querySelector('input[name="flightHoursRange"]:checked');
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      if ((!hours || !hours.value.trim()) && !range) {
+        alert("Please enter the flight hours or select the flight time range.");
+        return;
+      }
+      showStepSafely(6);
+    }
   }, true);
 });
