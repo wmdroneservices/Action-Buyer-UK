@@ -2,7 +2,7 @@
    quote.js owns normal navigation and currentStep state.
    Step 6 is intentionally kept visible because package batteries are part of
    the valuation workflow. This file only handles the DJI-specific Step 7 ->
-   Step 5 Back transition and loads the package-battery controller.
+   Step 5 Back transition and loads the battery consistency controllers.
 */
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
@@ -39,19 +39,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const step6 = form.querySelector('[data-step="6"]');
     const step6Back = step6 && step6.querySelector(".btn-back");
-    if (step6Back) {
-      step6Back.click();
-    }
+    if (step6Back) step6Back.click();
   }, true);
 
-  const batteryScript = function () {
-    if (document.querySelector('script[data-dji-battery-fix]')) return;
+  function loadScript(src, attribute) {
+    if (document.querySelector(`script[${attribute}]`)) return;
     const script = document.createElement("script");
-    script.src = "quote-battery-fix.js";
+    script.src = src;
     script.defer = true;
-    script.dataset.djiBatteryFix = "true";
+    script.setAttribute(attribute, "true");
     document.head.appendChild(script);
-  };
+  }
 
-  batteryScript();
+  loadScript("quote-battery-fix.js", "data-dji-battery-fix");
+  loadScript("quote-battery-consistency-fix.js", "data-dji-battery-consistency-fix");
 });
