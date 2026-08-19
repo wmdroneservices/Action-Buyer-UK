@@ -42,15 +42,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (step6Back) step6Back.click();
   }, true);
 
-  function loadScript(src, attribute) {
-    if (document.querySelector(`script[${attribute}]`)) return;
+  function loadConsistency() {
+    if (document.querySelector('script[data-dji-battery-consistency-fix]')) return;
     const script = document.createElement("script");
-    script.src = src;
+    script.src = "quote-battery-consistency-fix.js";
     script.defer = true;
-    script.setAttribute(attribute, "true");
+    script.dataset.djiBatteryConsistencyFix = "true";
     document.head.appendChild(script);
   }
 
-  loadScript("quote-battery-fix.js", "data-dji-battery-fix");
-  loadScript("quote-battery-consistency-fix.js", "data-dji-battery-consistency-fix");
+  if (document.querySelector('script[data-dji-battery-fix]')) {
+    loadConsistency();
+  } else {
+    const script = document.createElement("script");
+    script.src = "quote-battery-fix.js";
+    script.defer = true;
+    script.dataset.djiBatteryFix = "true";
+    script.onload = loadConsistency;
+    document.head.appendChild(script);
+  }
 });
