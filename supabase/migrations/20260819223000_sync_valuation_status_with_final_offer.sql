@@ -38,8 +38,6 @@ begin
     raise exception 'Quote item not found';
   end if;
 
-  -- Only one current final offer may be visible for an item. Older offers
-  -- remain in history but are withdrawn when a new final offer is published.
   if p_offer_type = 'final' then
     update public.quote_offers
     set status = 'withdrawn', updated_at = now()
@@ -77,11 +75,12 @@ begin
     updated_at = now()
   where id = p_item_id;
 
-  -- Keep the parent valuation in step with its current final offer so the
-  -- customer submission does not continue to say "Awaiting manual valuation".
+  -- 'final_valuation' is the permitted parent valuation status. The
+  -- customer-facing final-offer state is represented by the published
+  -- final quote_offers row and the quote item's final_offer status.
   if p_offer_type = 'final' then
     update public.valuations
-    set status = 'final_offer',
+    set status = 'final_valuation',
         quote_amount = p_amount,
         updated_at = now()
     where id = v_valuation_id;
