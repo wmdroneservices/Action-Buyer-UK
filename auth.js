@@ -11,6 +11,56 @@ function setAuthMarker(session) {
   } catch (_) {}
 }
 
+function selectedText(select) {
+  return select && select.selectedIndex >= 0 ? select.options[select.selectedIndex].textContent.trim() : "";
+}
+function checked(name) {
+  const el = document.querySelector('input[name="' + name + '"]:checked');
+  return el ? el.value : "";
+}
+function captureQuoteBeforeAuth() {
+  const category = document.getElementById("gear-category");
+  const manufacturer = document.getElementById("gear-manufacturer");
+  const model = document.getElementById("dji-model");
+  const packageSelect = document.getElementById("package-select");
+  const title = document.getElementById("quote-result-title");
+  const priceText = document.querySelector("#quote-summary .quote-price")?.textContent || "";
+  const money = priceText.replace(/,/g, "").match(/£\s*([0-9]+(?:\.[0-9]+)?)/);
+  const contents = {};
+  document.querySelectorAll(".package-content-select, .generic-content-select").forEach((el) => {
+    contents[el.dataset.contentId || el.id] = el.value;
+  });
+  const resume = {
+    category: category?.value || "",
+    categoryName: selectedText(category),
+    manufacturer: manufacturer?.value || "",
+    manufacturerName: selectedText(manufacturer),
+    model: model?.value || "",
+    modelName: selectedText(model),
+    package: packageSelect?.value || "",
+    packageName: selectedText(packageSelect),
+    condition: checked("condition"),
+    flightHours: document.getElementById("flight-hours")?.value || "",
+    flightHoursRange: checked("flightHoursRange"),
+    unbound: checked("unbound"),
+    damage: checked("damage"),
+    damageDescription: document.getElementById("damage-description")?.value || "",
+    packageContents: contents,
+    droneSerial: document.getElementById("drone-serial-number")?.value || "",
+    controllerSerial: document.getElementById("controller-serial-number")?.value || "",
+    legalRight: checked("legalRight"),
+    quoteAmount: money ? Number(money[1]) : null,
+    manualValuation: /manual valuation|manual validation/i.test(title?.textContent || ""),
+    photosProvided: !!document.getElementById("photo-uploads")?.files?.length,
+    created: new Date().toISOString()
+  };
+  try {
+    localStorage.setItem("gearCashOutQuoteResume", JSON.stringify(resume));
+    localStorage.setItem("actionBuyerReturnAfterAuth", "quote.html");
+    sessionStorage.setItem("actionBuyerAuthRequiredForQuote", "true");
+  } catch (_) {}
+}
+
 window.actionBuyerAuth = {
   supabase: supabaseClient,
   async getSession() {
@@ -98,15 +148,40 @@ document.addEventListener("DOMContentLoaded", () => {
   actionBuyerAuth.updateAccountNavigation();
   const form = document.getElementById("quote-form");
   if (!form) return;
-  form.addEventListener("click", (event) => {
+
+  /* Authentication must happen immediately after the quote result and BEFORE
+     Step 13 asks for customer details. This listener is registered before
+     quote-account.js because auth.js is loaded first in quote.html. */
+  form.addEventListener("click", async (event) => {
     const button = event.target.closest("button");
     if (!button) return;
     const step = button.closest(".wizard-step");
     if (!step) return;
     const stepNumber = Number(step.dataset.step);
+
+    if (stepNumber === 12 && (button.id === "continue-with-quote" || /continue with this quote/i.test(button.textContent || "") || button.classList.contains("btn-accept"))) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const session = await actionBuyerAuth.getSession();
+      if (!session) {
+        captureQuoteBeforeAuth();
+        window.location.href = "login.html?return=quote.html";
+        return;
+      }
+      window.setTimeout(() => actionBuyerAuth.prefillQuoteCustomerDetails(), 100);
+      const target = document.querySelector('#quote-form .wizard-step[data-step="13"]');
+      if (target) {
+        form.querySelectorAll(".wizard-step").forEach((s) => { s.hidden = s !== target; });
+        if (document.querySelector('#quote-result-title')?.textContent.match(/manual valuation|manual validation/i)) {
+          try { sessionStorage.setItem("actionBuyerManualValuation", "true"); } catch (_) {}
+        }
+      }
+      return;
+    }
+
     if (stepNumber === 12) window.setTimeout(() => actionBuyerAuth.prefillQuoteCustomerDetails(), 150);
     if (stepNumber === 13 && button.classList.contains("btn-next")) window.setTimeout(() => actionBuyerAuth.saveQuoteCustomerDetails(), 500);
-  });
+  }, true);
 });
 
 supabaseClient.auth.onAuthStateChange((_event, session) => {
