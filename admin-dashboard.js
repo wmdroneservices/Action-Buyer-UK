@@ -2,6 +2,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const auth = window.actionBuyerAuth;
   const session = await auth.getSession();
   if (!session) { window.location.href = "login.html?return=admin.html"; return; }
+
+  // Only the designated staff account may use the staff dashboard.
+  // This is an additional guard while the test customer entry is removed
+  // from the staff_users table.
+  const STAFF_USER_ID = "ecb51873-46f8-4468-aa1d-aeda08178fd8";
+  if (session.user.id !== STAFF_USER_ID) { window.location.href = "account.html"; return; }
+
   const { data: staff } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (!staff) { window.location.href = "account.html"; return; }
 
