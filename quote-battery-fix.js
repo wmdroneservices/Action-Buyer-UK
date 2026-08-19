@@ -106,51 +106,6 @@ document.addEventListener("DOMContentLoaded", function () {
     box.appendChild(wrapper);
   }
 
-  function renderBatteryStep() {
-    if (!isDJI()) return;
-    const s6 = step6();
-    const box = container();
-    if (!s6 || !box) return;
-
-    const expected = expectedPackageBatteries();
-    s6.hidden = false;
-
-    let heading = s6.querySelector("h3");
-    if (heading) heading.textContent = "Step 6: Package Batteries";
-
-    let intro = s6.querySelector(".gear-battery-intro");
-    if (!intro) {
-      intro = document.createElement("p");
-      intro.className = "gear-battery-intro";
-      s6.insertBefore(intro, box);
-    }
-    intro.innerHTML = `<strong>${expected} package battery${expected === 1 ? "" : "ies"} expected from the selected package.</strong> Enter only the package batteries you are actually sending. If none are supplied, select 0. Extra batteries are entered separately in Step 10.`;
-
-    let count = s6.querySelector("#package-battery-count");
-    if (!count) {
-      const label = document.createElement("label");
-      label.className = "gear-package-battery-count-label";
-      label.htmlFor = "package-battery-count";
-      label.innerHTML = "Number of package batteries being supplied";
-      count = document.createElement("select");
-      count.id = "package-battery-count";
-      label.appendChild(count);
-      s6.insertBefore(label, box);
-      count.addEventListener("change", function () {
-        renderBatteryEntries(Number(count.value));
-      });
-    }
-
-    const previous = Number(count.value);
-    count.innerHTML = "";
-    for (let i = 0; i <= expected; i++) {
-      count.add(new Option(String(i), String(i)));
-    }
-    count.value = Number.isInteger(previous) && previous >= 0 && previous <= expected ? String(previous) : String(Math.min(expected, 1));
-
-    renderBatteryEntries(Number(count.value));
-  }
-
   function renderBatteryEntries(count) {
     const box = container();
     if (!box) return;
@@ -173,31 +128,69 @@ document.addEventListener("DOMContentLoaded", function () {
     for (let i = 1; i <= count; i++) createRealBattery(box, i);
   }
 
-  function markDefaultPackageContents() {
+  function renderBatteryStep() {
+    if (!isDJI()) return;
+    const s6 = step6();
+    const box = container();
+    if (!s6 || !box) return;
+
+    s6.hidden = false;
+
+    let heading = s6.querySelector("h3");
+    if (heading) heading.textContent = "Step 6: Package Batteries";
+
+    let intro = s6.querySelector(".gear-battery-intro");
+    if (!intro) {
+      intro = document.createElement("p");
+      intro.className = "gear-battery-intro";
+      s6.insertBefore(intro, box);
+    }
+
     const expected = expectedPackageBatteries();
-    const count = Number(document.getElementById("package-battery-count")?.value || 0);
-    const selects = Array.from(form.querySelectorAll('.package-content-select[data-content-id^="battery-"]'));
-    selects.forEach((select, index) => {
-      if (index < count) select.value = "present";
-      else if (index < expected) select.value = "missing";
-    });
+    intro.innerHTML = `<strong>${expected} package battery${expected === 1 ? "" : "ies"} expected from the selected package.</strong> Enter only the package batteries you are actually sending. If none are supplied, select 0. Extra batteries are entered separately in Step 10.`;
+
+    let count = s6.querySelector("#package-battery-count");
+    if (!count) {
+      const label = document.createElement("label");
+      label.className = "gear-package-battery-count-label";
+      label.htmlFor = "package-battery-count";
+      label.textContent = "Number of package batteries being supplied";
+
+      count = document.createElement("select");
+      count.id = "package-battery-count";
+      label.appendChild(count);
+      s6.insertBefore(label, box);
+
+      count.addEventListener("change", function () {
+        renderBatteryEntries(Number(count.value));
+      });
+    }
+
+    const current = Number(count.value);
+    count.innerHTML = "";
+    for (let i = 0; i <= expected; i++) count.add(new Option(String(i), String(i)));
+    count.value = Number.isInteger(current) && current >= 0 && current <= expected
+      ? String(current)
+      : String(Math.min(expected, 1));
+
+    renderBatteryEntries(Number(count.value));
   }
 
   function resetOnPackageChange() {
-    const count = document.getElementById("package-battery-count");
-    if (count) count.value = "";
     const box = container();
     if (box) box.innerHTML = "";
+    const count = document.getElementById("package-battery-count");
+    if (count) count.value = "";
   }
 
-  /* Prevent the core battery creator from leaving a compulsory real battery
-     on the page. We replace it with our package-count-controlled UI. */
+  /* Only watch hidden-state changes. Watching childList here would cause an
+     observer loop because rendering Step 6 itself changes the DOM. */
   const observer = new MutationObserver(function () {
     if (!isDJI()) return;
     const s6 = step6();
     if (s6 && !s6.hidden) renderBatteryStep();
   });
-  observer.observe(form, { attributes: true, childList: true, subtree: true, attributeFilter: ["hidden"] });
+  observer.observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
 
   form.addEventListener("change", function (event) {
     if (event.target?.id === "package-select") {
@@ -211,24 +204,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const button = event.target.closest("button");
     if (!button) return;
     const s6 = button.closest('.wizard-step[data-step="6"]');
-    if (!s6) return;
+    if (!s6 || !button.classList.contains("btn-next")) return;
 
-    if (button.classList.contains("btn-next")) {
-      const count = Number(document.getElementById("package-battery-count")?.value || 0);
-      if (!Number.isInteger(count) || count < 0) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        alert("Please select how many package batteries you are supplying.");
-        return;
-      }
-
-      /* The core engine requires one entry. For zero supplied batteries the
-         hidden marker lets it proceed, while Step 9 records the missing
-         package battery and applies the package deduction. */
-      if (count === 0) {
-        renderBatteryEntries(0);
-      }
+    const count = Number(document.getElementById("package-battery-count")?.value);
+    if (!Number.isInteger(count) || count < 0) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      alert("Please select how many package batteries you are supplying.");
+      return;
     }
+
+    if (count === 0) renderBatteryEntries(0);
   }, true);
 
   renderBatteryStep();
