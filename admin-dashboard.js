@@ -35,13 +35,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers")
       .select("id,item_id,offer_type,amount,status,created_at,customer_message").in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
 
-    // Use the same staff customer RPC as the customer-management section so
-    // every valuation/offer can be tied to account number, name and email.
+    // Staff customer data is supplied by the SECURITY DEFINER RPC so the
+    // dashboard can always identify the customer without exposing auth data.
     const { data: customers } = await auth.supabase.rpc("staff_customer_list");
     const customerById = new Map((customers || []).map(c => [String(c.user_id), c]));
 
     const rows = (valuations || []).slice(0, 10).map(v => {
       const customer = customerById.get(String(v.user_id));
+      const customerName = customer?.full_name || customer?.email || "Customer details unavailable";
       const item = (items || []).find(i => i.valuation_id === v.id);
       const itemOffers = (offers || []).filter(o => o.item_id === item?.id);
       const latestOffer = itemOffers[0];
@@ -49,12 +50,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       return `<article class="valuation-card">
         <div>
           <span class="valuation-ref">${esc(v.quote_reference)}</span>
-          <p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p>
-          <h3>${esc(v.model || "Equipment submission")}</h3>
-          <p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p>
-          <p class="customer-account-number"><strong>Customer number:</strong> ${esc(customer?.account_number || "Not assigned")}</p>
-          <p><strong>Customer:</strong> ${esc(customer?.full_name || "Unnamed customer")}</p>
+          <h3>${esc(customerName)}</h3>
+          <p><strong>Customer number:</strong> ${esc(customer?.account_number || "Not assigned")}</p>
           <p><strong>Email:</strong> ${esc(customer?.email || "Not available")}</p>
+          <p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p>
+          <h4>${esc(v.model || "Equipment submission")}</h4>
+          <p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p>
         </div>
         <div class="valuation-meta">
           <strong>${v.quote_amount == null ? "Awaiting valuation" : money(v.quote_amount)}</strong>
@@ -77,10 +78,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div>
           <span class="valuation-ref">${esc(valuation?.quote_reference || "Offer")}</span>
           <p class="section-kicker">${label}</p>
-          <h3>${esc(item?.model || item?.item_name || "Equipment")}</h3>
+          <h3>${esc(customer?.full_name || customer?.email || "Customer details unavailable")}</h3>
           <p><strong>Customer number:</strong> ${esc(customer?.account_number || "Not assigned")}</p>
-          <p><strong>Customer:</strong> ${esc(customer?.full_name || "Unnamed customer")}</p>
           <p><strong>Email:</strong> ${esc(customer?.email || "Not available")}</p>
+          <p>${esc(item?.model || item?.item_name || "Equipment")}</p>
           <p>${esc(o.customer_message || "")}</p>
         </div>
         <div class="valuation-meta">
