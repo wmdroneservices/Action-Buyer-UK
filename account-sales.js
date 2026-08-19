@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { data: sales, error: salesError } = await auth.supabase
     .from("sales")
-    .select("id,sale_reference,status,total_amount,created_at")
+    .select("id,sale_reference,status,total_amount,created_at,payment_status,payment_sent_at,payment_reference")
     .eq("user_id", session.user.id)
     .order("created_at", { ascending: false });
 
@@ -61,16 +61,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       const returns = sh.filter(x => x.shipment_type === "return");
       const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
       const latestInbound = inbound[0];
-      const received = ["received", "inspection", "payment_due", "paid", "completed"].includes(s.status);
+      const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(s.status);
       const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
       const posted = inbound.some(x => x.shipped_at || ["in_transit", "delivered"].includes(x.status));
       const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
+      const paymentReceived = s.status === "paid" || ["paid", "payment_sent"].includes(String(s.payment_status || "")) || !!s.payment_sent_at;
+      const returnShipped = s.status === "return_shipped" || returns.some(x => x.shipped_at || ["in_transit", "delivered"].includes(x.status));
+      const finalOutcome = paymentReceived ? `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment has been sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}${s.payment_reference ? ` — reference ${esc(s.payment_reference)}` : ""}.</p>` : returnShipped ? `<div class="status-badge">RETURN SHIPPED</div><p><strong>Return shipped.</strong> Your item has been shipped back to you${returns.find(x => x.shipped_at || ["in_transit","delivered"].includes(x.status))?.tracking_number ? ` — tracking ${esc(returns.find(x => x.shipped_at || ["in_transit","delivered"].includes(x.status)).tracking_number)}` : ""}.</p>` : "";
 
       return `<details class="valuation-card sale-card">
         <summary style="cursor:pointer;list-style:none">
           <div>
             <span class="valuation-ref">${esc(s.sale_reference)}</span>
-            <p class="section-kicker">${esc(s.status.replaceAll("_", " "))}</p>
+            <p class="section-kicker">${paymentReceived ? "PAYMENT RECEIVED" : returnShipped ? "RETURN SHIPPED" : esc(s.status.replaceAll("_", " "))}</p>
             <h3>${money(s.total_amount)}</h3>
             <p>${si.map(i => { const q = (qitems || []).find(x => x.id === i.quote_item_id); return esc(q?.model || q?.item_name || "Item") + " — " + money(i.amount); }).join("<br>")}</p>
           </div>
@@ -84,7 +87,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             <p><strong>3. Postal label</strong> — ${labelReady ? "Label ready" : "Waiting for label"}</p>
             <p><strong>4. Item sent to GearCashOut</strong> — ${posted ? "Posted" : "Not yet posted"}</p>
             <p><strong>5. Item received</strong> — ${delivered ? "Received by GearCashOut" : "Waiting for delivery"}</p>
+            <p><strong>6. Final outcome</strong> — ${paymentReceived ? "Payment received" : returnShipped ? "Return shipped" : "Pending"}</p>
           </div>
+
+          ${finalOutcome ? `<div class="shipping-block">${finalOutcome}</div>` : ""}
 
           <p><strong>Thank you.</strong> ${labelReady ? "Your postal label is ready and is available below. The label information is also sent to you by email." : "You will receive your postal label by email when it is ready. It will also appear here."}</p>
 
