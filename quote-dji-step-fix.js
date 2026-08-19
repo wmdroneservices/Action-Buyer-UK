@@ -1,9 +1,18 @@
 /* DJI navigation compatibility fix.
    quote.js owns normal navigation and currentStep state.
    Step 6 is intentionally kept visible because package batteries are part of
-   the valuation workflow. This file only handles the DJI-specific Step 7 ->
-   Step 5 Back transition and loads the battery consistency controllers.
+   the valuation workflow. This file also loads the start-of-wizard fix early
+   so its document-level capture handler runs before the older form handlers.
 */
+(function loadStartNavigationFix() {
+  if (document.querySelector('script[data-quote-start-navigation-fix]')) return;
+  const script = document.createElement("script");
+  script.src = "quote-navigation-start-fix.js";
+  script.async = false;
+  script.dataset.quoteStartNavigationFix = "true";
+  document.head.appendChild(script);
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
