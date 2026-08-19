@@ -22,7 +22,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function hideObsoleteBatteryStep() {
     const step6 = form.querySelector('[data-step="6"]');
+    const progress6 = form.querySelector('.progress-step[data-step="6"]');
     if (step6) step6.hidden = true;
+    if (progress6) progress6.hidden = true;
   }
 
   function setStep10Title() {
@@ -39,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return visible ? Number(visible.dataset.step) : 0;
   }
 
-  function validateCondition() {
+  function conditionSelected() {
     if (!form.querySelector('input[name="condition"]:checked')) {
       alert("Please select the condition.");
       return false;
@@ -47,45 +49,11 @@ document.addEventListener("DOMContentLoaded", function () {
     return true;
   }
 
-  function validateFlightTime() {
+  function flightTimeEntered() {
     const hours = document.getElementById("flight-hours");
     const range = form.querySelector('input[name="flightHoursRange"]:checked');
     if ((!hours || !hours.value.trim()) && !range) {
       alert("Please enter the flight hours or select the flight time range.");
-      return false;
-    }
-    return true;
-  }
-
-  function validateUnbound() {
-    if (!form.querySelector('input[name="unbound"]:checked')) {
-      alert("Please select the drone account status.");
-      return false;
-    }
-    return true;
-  }
-
-  function validateDamage() {
-    if (!form.querySelector('input[name="damage"]:checked')) {
-      alert("Please select Yes or No for damage.");
-      return false;
-    }
-    return true;
-  }
-
-  function validateSerial() {
-    const equipment = document.getElementById("drone-serial-number");
-    if (!equipment || !equipment.value.trim()) {
-      alert("Please enter the equipment serial number.");
-      return false;
-    }
-    return true;
-  }
-
-  function validatePhotos() {
-    const photos = document.getElementById("photo-uploads");
-    if (!photos || !photos.files || photos.files.length === 0) {
-      alert("Please upload at least one photograph before continuing.");
       return false;
     }
     return true;
@@ -103,22 +71,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const stepNumber = currentStepNumber();
     if (!stepNumber) return;
 
-    /* DJI now uses:
-       1 Equipment/Manufacturer
-       2 Model
-       3 Exact Package
-       4 Condition
-       5 Flight Time
-       7 Unbound
-       8 Damage
-       9 Package Contents
-       10 Serial Numbers
-       11 Photos
-       12 Quote Result
-
-       Step 6 is the obsolete separate battery page and is deliberately skipped.
-       Batteries included in the selected package are dealt with in Package
-       Contents; genuinely additional batteries are dealt with in Step 10. */
+    /* The normal quote engine must remain responsible for Steps 1-4 and
+       Steps 7-11 because it stores those answers in quoteData. We only
+       intercept the broken navigation around the obsolete Step 6 battery
+       page, plus Back buttons that would otherwise return to it. */
 
     if (button.classList.contains("btn-back")) {
       const previous = {
@@ -147,82 +103,47 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!button.classList.contains("btn-next")) return;
 
-    if (stepNumber === 3) {
-      const packageSelect = document.getElementById("package-select");
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (!packageSelect || !packageSelect.value) {
-        alert("Please select the exact package.");
+    /* Step 4 must validate Condition and then use the existing quote engine
+       to save quoteData.condition and move to Step 5. */
+    if (stepNumber === 4) {
+      if (!conditionSelected()) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+
+    /* Step 5 is the only place where flight time is validated. Let the
+       existing quote engine save the flight information, but immediately
+       replace its obsolete Step 6 destination with Step 7. */
+    if (stepNumber === 5) {
+      if (!flightTimeEntered()) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
         return;
       }
-      showStepSafely(4);
+
+      window.setTimeout(function () {
+        hideObsoleteBatteryStep();
+        showStepSafely(7);
+      }, 0);
       return;
     }
 
-    if (stepNumber === 4) {
+    /* If anything somehow reaches Step 6, never leave the user on the old
+       battery page. */
+    if (stepNumber === 6) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      if (!validateCondition()) return;
-      showStepSafely(5);
-      return;
-    }
-
-    if (stepNumber === 5) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (!validateFlightTime()) return;
       hideObsoleteBatteryStep();
       showStepSafely(7);
       return;
     }
 
-    if (stepNumber === 7) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (!validateUnbound()) return;
-      showStepSafely(8);
-      return;
-    }
-
-    if (stepNumber === 8) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (!validateDamage()) return;
-      showStepSafely(9);
-      return;
-    }
-
-    if (stepNumber === 9) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      showStepSafely(10);
-      setStep10Title();
-      return;
-    }
-
-    if (stepNumber === 10) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-      if (!validateSerial()) return;
-      showStepSafely(11);
-      return;
-    }
-
-    if (stepNumber === 11) {
-      /* Keep the existing quote engine responsible for calculating the final
-         result. We only block the click when photographs are missing. */
-      if (!validatePhotos()) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      }
-    }
+    /* Steps 7-11 are deliberately allowed through to quote.js so that its
+       existing validators populate quoteData for the final valuation. */
   }, true);
 });
