@@ -37,8 +37,8 @@
   }
   function generateManualReference() { return "WBA-" + new Date().getFullYear() + "-" + Math.floor(100000 + Math.random() * 900000); }
   function saveManualQuoteLocally() {
-    const fullName = document.getElementById("full-name"), email = document.getElementById("email-address"), phone = document.getElementById("phone-number"), model = document.getElementById("dji-model"), packageSelect = document.getElementById("package-select"), condition = document.querySelector('input[name="condition"]:checked'), manufacturer = document.querySelector('input[name="manufacturer"]:checked');
-    const record = { manufacturer: manufacturer ? manufacturer.value : "", model: model ? model.value : "", package: packageSelect ? packageSelect.value : "", condition: condition ? condition.value : "", flightHours: "", flightHoursRange: "", batteries: [], unbound: "", damage: "", damageDescription: "", packageContents: {}, additionalAccessories: [], droneSerial: "", controllerSerial: "", photos: [], legalRight: "", fullName: fullName ? fullName.value.trim() : "", email: email ? email.value.trim() : "", phone: phone ? phone.value.trim() : "", addressLine1: "", addressLine2: "", city: "", county: "", postcode: "", bankName: "", accountNumber: "", sortCode: "", quoteAmount: null, quoteReference: generateManualReference(), created: new Date().toISOString() };
+    const fullName = document.getElementById("full-name"), email = document.getElementById("email-address"), phone = document.getElementById("phone-number"), model = document.getElementById("dji-model"), packageSelect = document.getElementById("package-select"), condition = document.querySelector('input[name="condition"]:checked'), manufacturerSelect = document.getElementById("gear-manufacturer");
+    const record = { manufacturer: manufacturerSelect ? manufacturerSelect.value : "", model: model ? model.value : "", package: packageSelect ? packageSelect.value : "", condition: condition ? condition.value : "", flightHours: "", flightHoursRange: "", batteries: [], unbound: "", damage: "", damageDescription: "", packageContents: {}, additionalAccessories: [], droneSerial: "", controllerSerial: "", photos: [], legalRight: "", fullName: fullName ? fullName.value.trim() : "", email: email ? email.value.trim() : "", phone: phone ? phone.value.trim() : "", addressLine1: "", addressLine2: "", city: "", county: "", postcode: "", bankName: "", accountNumber: "", sortCode: "", quoteAmount: null, quoteReference: generateManualReference(), created: new Date().toISOString() };
     try { localStorage.setItem("wba_latest_quote", JSON.stringify(record)); } catch (error) { console.error("Could not save manual valuation locally.", error); return null; }
     return record;
   }
@@ -76,6 +76,5 @@
     script.dataset.multiItemQuote = "true";
     document.head.appendChild(script);
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else init();
-  function init() { load(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true }); else load();
 })();
