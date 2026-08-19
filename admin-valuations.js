@@ -3,21 +3,200 @@ document.addEventListener("DOMContentLoaded", async () => {
   const message = document.getElementById("admin-message");
   const auth = window.actionBuyerAuth;
   const session = await auth.getSession();
-  if (!session) { window.location.href = "login.html?return=admin-valuations.html"; return; }
-  const {data: staff} = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
-  if (!staff) { box.innerHTML = "<p>You do not have permission to access valuation review.</p>"; return; }
-  const money = n => new Intl.NumberFormat("en-GB", {style:"currency", currency:"GBP"}).format(Number(n || 0));
-  const esc = v => String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-  async function notify(offerId,eventType){try{await auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:offerId,event_type:eventType}});}catch(_) {}}
-  function setMessage(text,ok=true){message.textContent=text;message.className="form-message "+(ok?"success":"error");}
-  async function load(){
-    box.innerHTML="<p>Loading valuations...</p>";
-    const {data:valuations,error}=await auth.supabase.from("valuations").select("id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data").order("submitted_at",{ascending:false});
-    if(error){box.innerHTML="<p>We couldn't load valuations.</p>";console.error(error);return;}
-    const ids=(valuations||[]).map(v=>v.id); const {data:items}=ids.length?await auth.supabase.from("quote_items").select("id,valuation_id,item_name,item_status").in("valuation_id",ids):{data:[]}; const itemIds=(items||[]).map(i=>i.id); const {data:offers}=itemIds.length?await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status,internal_notes,customer_message,published_at,responded_at").in("item_id",itemIds).order("created_at",{ascending:false}):{data:[]};
-    if(!valuations?.length){box.innerHTML="<p>No valuations have been submitted yet.</p>";return;}
-    box.innerHTML=valuations.map(v=>{const item=(items||[]).find(i=>i.valuation_id===v.id);const itemOffers=(offers||[]).filter(o=>o.item_id===item?.id);const automatic=itemOffers.find(o=>o.offer_type==="automatic"&&o.status!=="superseded");const manual=itemOffers.find(o=>o.offer_type==="manual"&&o.status!=="superseded");const final=itemOffers.find(o=>o.offer_type==="final"&&o.status!=="superseded");const manualPrice=manual?.amount??"";const finalPrice=final?.amount??"";const autoPrice=automatic?.amount??v.quote_amount??"";return `<article class="valuation-card admin-valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${esc(String(v.status||"submitted").replaceAll("_"," "))}</p><h3>${esc(v.model||"Equipment submission")}</h3><p>${esc(v.manufacturer||"")}${v.package?" — "+esc(v.package):""}</p><small>Submitted ${v.submitted_at?new Date(v.submitted_at).toLocaleString("en-GB"):""}</small></div><div class="valuation-meta offer-admin-controls"><div><strong>Automatic</strong><input class="offer-price" data-type="automatic" data-item="${item?.id||""}" type="number" min="0" step="0.01" value="${esc(autoPrice)}"><span class="status-badge">${esc(automatic?.status||"not published")}</span></div><div><strong>Manual</strong><input class="offer-price" data-type="manual" data-item="${item?.id||""}" type="number" min="0" step="0.01" value="${esc(manualPrice)}"><span class="status-badge">${esc(manual?.status||"not published")}</span></div><div><strong>Final inspection offer</strong><input class="offer-price" data-type="final" data-item="${item?.id||""}" type="number" min="0" step="0.01" value="${esc(finalPrice)}"><span class="status-badge">${esc(final?.status||"not published")}</span></div>${item?`<div class="navigation-buttons"><button class="btn btn-secondary publish-offer" data-item="${item.id}" data-type="automatic">PUBLISH / UPDATE AUTOMATIC</button><button class="btn btn-primary publish-offer" data-item="${item.id}" data-type="manual">PUBLISH MANUAL QUOTE</button><button class="btn btn-primary publish-offer" data-item="${item.id}" data-type="final">PUBLISH FINAL OFFER</button></div>`:`<p>Quote item not yet linked.</p>`}${itemOffers.length?`<details><summary>Offer history</summary>${itemOffers.map(o=>`<p><strong>${esc(o.offer_type)}</strong>: ${money(o.amount)} — ${esc(o.status)}${o.responded_at?" — responded "+new Date(o.responded_at).toLocaleString("en-GB"):""}</p>`).join("")}</details>`:""}</div></article>`;}).join("");
-    box.querySelectorAll(".publish-offer").forEach(btn=>btn.addEventListener("click",async()=>{const itemId=btn.dataset.item,type=btn.dataset.type,input=box.querySelector(`.offer-price[data-item="${itemId}"][data-type="${type}"]`),amount=Number(input?.value);if(!itemId){setMessage("This valuation has no quote item yet.",false);return;}if(!Number.isFinite(amount)||amount<0){setMessage("Enter a valid price before publishing the offer.",false);return;}btn.disabled=true;const {data:offer,error}=await auth.supabase.rpc("publish_quote_offer",{p_item_id:itemId,p_offer_type:type,p_amount:amount,p_internal_notes:type==="final"?"Final physical inspection offer":null,p_customer_message:type==="final"?"This is your final offer following our inspection. Please accept or refuse it in your account.":type==="manual"?"We have reviewed your submission and made a manual offer.":"Your automatic GearCashOut offer is ready."});btn.disabled=false;if(error){setMessage(error.message||"The offer could not be published.",false);console.error(error);return;}await notify(offer?.id,"offer_published");setMessage((type==="final"?"Final offer":type==="manual"?"Manual quote":"Automatic quote")+" published. The customer can now see it in their account.");await load();}));
+
+  if (!session) {
+    window.location.href = "login.html?return=admin-valuations.html";
+    return;
   }
+
+  const { data: staff } = await auth.supabase
+    .from("staff_users")
+    .select("user_id")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (!staff) {
+    box.innerHTML = "<p>You do not have permission to access valuation review.</p>";
+    return;
+  }
+
+  const money = n => new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP"
+  }).format(Number(n || 0));
+
+  const esc = v => String(v ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  function setMessage(text, ok = true) {
+    message.textContent = text;
+    message.className = "form-message " + (ok ? "success" : "error");
+  }
+
+  async function notify(offerId, eventType) {
+    try {
+      await auth.supabase.functions.invoke("send-quote-email-v2", {
+        body: { offer_id: offerId, event_type: eventType }
+      });
+    } catch (_) {}
+  }
+
+  function customerFromValuation(v) {
+    const q = v.quote_data || {};
+    return {
+      userId: v.user_id || "unknown",
+      name: q.fullName || "Unnamed customer",
+      email: q.email || "No email recorded",
+      phone: q.phone || "No phone recorded"
+    };
+  }
+
+  function customerKey(v) {
+    return v.user_id || `${v.quote_data?.email || "unknown"}|${v.quote_data?.fullName || ""}`;
+  }
+
+  async function load() {
+    box.innerHTML = "<p>Loading customer valuations...</p>";
+
+    const { data: valuations, error } = await auth.supabase
+      .from("valuations")
+      .select("id,user_id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data")
+      .order("submitted_at", { ascending: false });
+
+    if (error) {
+      box.innerHTML = "<p>We couldn't load valuations.</p>";
+      console.error(error);
+      return;
+    }
+
+    if (!valuations?.length) {
+      box.innerHTML = "<p>No valuations have been submitted yet.</p>";
+      return;
+    }
+
+    const ids = valuations.map(v => v.id);
+    const { data: items } = await auth.supabase
+      .from("quote_items")
+      .select("id,valuation_id,item_name,manufacturer,model,package,item_status")
+      .in("valuation_id", ids);
+
+    const itemIds = (items || []).map(i => i.id);
+    const { data: offers } = itemIds.length
+      ? await auth.supabase
+          .from("quote_offers")
+          .select("id,item_id,offer_type,amount,status,internal_notes,customer_message,published_at,responded_at,created_at")
+          .in("item_id", itemIds)
+          .order("created_at", { ascending: false })
+      : { data: [] };
+
+    const groups = new Map();
+    valuations.forEach(v => {
+      const key = customerKey(v);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(v);
+    });
+
+    const sortedGroups = [...groups.entries()].sort((a, b) => {
+      const ad = new Date(a[1][0].submitted_at || 0).getTime();
+      const bd = new Date(b[1][0].submitted_at || 0).getTime();
+      return bd - ad;
+    });
+
+    box.innerHTML = sortedGroups.map(([key, customerQuotes]) => {
+      const customer = customerFromValuation(customerQuotes[0]);
+      const customerId = `customer-${esc(String(key).replace(/[^a-zA-Z0-9_-]/g, "-"))}`;
+
+      return `<section class="customer-valuation-group" style="margin-bottom:2rem;border:1px solid #ddd;border-radius:12px;padding:1.25rem;background:#fff;">
+        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
+          <div>
+            <p class="section-kicker">CUSTOMER</p>
+            <h2 style="margin:.15rem 0 .35rem;">${esc(customer.name)}</h2>
+            <p style="margin:.2rem 0;">${esc(customer.email)}${customer.phone !== "No phone recorded" ? " · " + esc(customer.phone) : ""}</p>
+          </div>
+          <div class="status-badge">${customerQuotes.length} quote${customerQuotes.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="customer-quotes-list" id="${customerId}">
+          ${customerQuotes.map(v => {
+            const item = (items || []).find(i => i.valuation_id === v.id);
+            const itemOffers = (offers || []).filter(o => o.item_id === item?.id);
+            const activeOffers = itemOffers.filter(o => o.status !== "superseded");
+            const accepted = activeOffers.filter(o => o.status === "accepted").length;
+            const responded = activeOffers.filter(o => o.responded_at).length;
+            const photos = Array.isArray(v.quote_data?.photos) ? v.quote_data.photos.length : 0;
+            const title = v.quote_data?.modelName || v.model || "Equipment submission";
+            const subtitle = v.quote_data?.packageName || v.package || "";
+            const detailUrl = `admin-quote.html?id=${encodeURIComponent(v.id)}`;
+
+            return `<article class="valuation-card admin-customer-quote" style="margin-bottom:1rem;">
+              <div>
+                <span class="valuation-ref">${esc(v.quote_reference)}</span>
+                <p class="section-kicker">${esc(String(v.status || "submitted").replaceAll("_", " "))}</p>
+                <h3>${esc(title)}</h3>
+                <p>${esc(v.manufacturer || v.quote_data?.manufacturerName || "")}${subtitle ? " — " + esc(subtitle) : ""}</p>
+                <small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">
+                  <span class="status-badge">${photos} photo${photos === 1 ? "" : "s"}</span>
+                  <span class="status-badge">${activeOffers.length} offer${activeOffers.length === 1 ? "" : "s"}</span>
+                  ${responded ? `<span class="status-badge">${responded} response${responded === 1 ? "" : "s"}</span>` : ""}
+                  ${accepted ? `<span class="status-badge">${accepted} accepted</span>` : ""}
+                </div>
+              </div>
+              <div class="valuation-meta" style="min-width:220px;">
+                <strong>${v.quote_amount == null ? "Manual valuation" : money(v.quote_amount)}</strong>
+                <a class="btn btn-primary" href="${detailUrl}">VIEW QUOTE &amp; PHOTOS</a>
+              </div>
+            </article>`;
+          }).join("")}
+        </div>
+      </section>`;
+    }).join("");
+
+    box.querySelectorAll(".publish-offer").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const itemId = btn.dataset.item;
+        const type = btn.dataset.type;
+        const input = box.querySelector(`.offer-price[data-item="${itemId}"][data-type="${type}"]`);
+        const amount = Number(input?.value);
+
+        if (!itemId) {
+          setMessage("This valuation has no quote item yet.", false);
+          return;
+        }
+        if (!Number.isFinite(amount) || amount < 0) {
+          setMessage("Enter a valid price before publishing the offer.", false);
+          return;
+        }
+
+        btn.disabled = true;
+        const { data: offer, error } = await auth.supabase.rpc("publish_quote_offer", {
+          p_item_id: itemId,
+          p_offer_type: type,
+          p_amount: amount,
+          p_internal_notes: type === "final" ? "Final physical inspection offer" : null,
+          p_customer_message: type === "final"
+            ? "This is your final offer following our inspection. Please accept or refuse it in your account."
+            : type === "manual"
+              ? "We have reviewed your submission and made a manual offer."
+              : "Your automatic GearCashOut offer is ready."
+        });
+        btn.disabled = false;
+
+        if (error) {
+          setMessage(error.message || "The offer could not be published.", false);
+          console.error(error);
+          return;
+        }
+
+        await notify(offer?.id, "offer_published");
+        setMessage((type === "final" ? "Final offer" : type === "manual" ? "Manual quote" : "Automatic quote") + " published. The customer can now see it in their account.");
+        await load();
+      });
+    });
+  }
+
   await load();
 });
