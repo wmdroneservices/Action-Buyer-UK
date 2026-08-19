@@ -2,6 +2,28 @@ function initGearCashOutResultFix() {
   const form = document.getElementById("quote-form");
   if (!form) return;
 
+  /* DJI Step 3 is shared by the new equipment flow and the legacy quote
+     engine. Take ownership of the Next button here so the package is not
+     validated a second time by the legacy handler. */
+  form.addEventListener("click", function (event) {
+    const button = event.target.closest("button");
+    if (!button || !form.contains(button) || !button.classList.contains("btn-next")) return;
+    const step = button.closest('.wizard-step[data-step="3"]');
+    const category = document.getElementById("gear-category");
+    const manufacturer = document.getElementById("gear-manufacturer");
+    const packageSelect = document.getElementById("package-select");
+    if (!step || !category || !manufacturer || category.value !== "drone" || manufacturer.value !== "DJI") return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!packageSelect || !packageSelect.value) {
+      alert("Please select the exact package.");
+      return;
+    }
+    if (typeof window.showStep === "function") window.showStep(4);
+    else form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = Number(s.dataset.step) !== 4; });
+  }, true);
+
   window.renderGearCashOutManualResult = function () {
     const step = form.querySelector('[data-step="12"]');
     const summary = document.getElementById("quote-summary");
@@ -22,8 +44,6 @@ function initGearCashOutResultFix() {
     const manufacturerName = selectedText(manufacturer) || manufacturer.value;
     const modelName = selectedText(model) || model.value;
 
-    // Manual valuations use one result presentation only.
-    // Remove the old automatic-result area and any previous injected basket.
     step.querySelectorAll("#quote-important, #gear-basket-box, .quote-basket-box, #quote-result-action").forEach(function (el) {
       el.remove();
     });
@@ -32,35 +52,15 @@ function initGearCashOutResultFix() {
     if (title) title.textContent = "Manual Valuation Required";
 
     let basket = [];
-    try {
-      basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]");
-    } catch (_) {
-      basket = [];
-    }
+    try { basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]"); } catch (_) { basket = []; }
     if (!Array.isArray(basket)) basket = [];
 
-    if (!basket.some(function (item) {
-      return item.model === model.value && item.manufacturer === manufacturer.value;
-    })) {
-      basket.push({
-        category: category.value,
-        categoryName: categoryName,
-        manufacturer: manufacturer.value,
-        manufacturerName: manufacturerName,
-        model: model.value,
-        modelName: modelName,
-        valuation: "manual",
-        amount: null
-      });
+    if (!basket.some(function (item) { return item.model === model.value && item.manufacturer === manufacturer.value; })) {
+      basket.push({ category: category.value, categoryName: categoryName, manufacturer: manufacturer.value, manufacturerName: manufacturerName, model: model.value, modelName: modelName, valuation: "manual", amount: null });
     }
 
     const rows = basket.map(function (item, index) {
-      return "<li><strong>" +
-        (index + 1) + ". " +
-        String(item.modelName || item.model) +
-        "</strong><br><span>" +
-        String(item.manufacturerName || item.manufacturer) +
-        " — Manual valuation</span></li>";
+      return "<li><strong>" + (index + 1) + ". " + String(item.modelName || item.model) + "</strong><br><span>" + String(item.manufacturerName || item.manufacturer) + " — Manual valuation</span></li>";
     }).join("");
 
     summary.innerHTML =
