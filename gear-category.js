@@ -19,8 +19,4 @@ document.addEventListener("DOMContentLoaded", function () {
   function models(){reset(model,"-- Select a model --");model.disabled=true;const data=catalog[category.value],list=data&&data[manufacturer.value];if(!list)return;list.forEach(function(item){const o=document.createElement("option");o.value=item[0];o.textContent=item[1];model.appendChild(o);});model.disabled=false;}
   category.addEventListener("change",manufacturers);
   manufacturer.addEventListener("change",models);
-
-  const resultScript = document.createElement("script");
-  resultScript.src = "quote-result-fix.js?v=1";
-  document.head.appendChild(resultScript);
 });
