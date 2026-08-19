@@ -3,14 +3,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const session = await auth.getSession();
   if (!session) { window.location.href = "login.html?return=admin.html"; return; }
 
-  const STAFF_USER_ID = "ecb51873-46f8-4468-aa1d-aeda08178fd8";
-  if (session.user.id !== STAFF_USER_ID) { window.location.href = "account.html"; return; }
-
-  const { data: staff } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
+  // Only an actual staff_users member may use the staff dashboard.
+  const { data: staff } = await auth.supabase.from("staff_users")
+    .select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (!staff) { window.location.href = "account.html"; return; }
 
   const message = document.getElementById("staff-message");
-  const notice = (text, ok = true) => { if (!message) return; message.textContent = text; message.className = "form-message " + (ok ? "success" : "error"); };
+  const notice = (text, ok = true) => { message.textContent = text; message.className = "form-message " + (ok ? "success" : "error"); };
   document.getElementById("staff-welcome").textContent = `Signed in as ${session.user.email}`;
   document.getElementById("staff-sign-out").addEventListener("click", async () => {
     const button = document.getElementById("staff-sign-out"); button.disabled = true;
@@ -20,55 +19,77 @@ document.addEventListener("DOMContentLoaded", async () => {
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
-  async function getCustomer(userId) {
-    if (!userId) return null;
-    const { data, error } = await auth.supabase.rpc("staff_customer_details", { p_user_id: userId });
-    if (error) { console.error("Customer details failed", error); return null; }
-    return data?.[0] || null;
-  }
-
   async function loadWorkQueue() {
     const valuationsBox = document.getElementById("dashboard-valuations");
     const salesBox = document.getElementById("dashboard-sales");
+
     const { data: valuations, error } = await auth.supabase.from("valuations")
-      .select("id,user_id,quote_reference,status,manufacturer,model,package,quote_amount,submitted_at,quote_data")
+      .select("id,user_id,quote_reference,status,manufacturer,model,package,quote_amount,submitted_at")
       .is("archived_at", null).order("submitted_at", { ascending: false });
     if (error) { valuationsBox.innerHTML = "<p>We couldn't load the staff queue.</p>"; return; }
 
     const ids = (valuations || []).map(v => v.id);
-    const { data: items } = ids.length ? await auth.supabase.from("quote_items").select("id,valuation_id,item_name,item_status").in("valuation_id", ids) : { data: [] };
+    const { data: items } = ids.length ? await auth.supabase.from("quote_items")
+      .select("id,valuation_id,item_name,item_status").in("valuation_id", ids) : { data: [] };
     const itemIds = (items || []).map(i => i.id);
-    const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status").in("item_id", itemIds) : { data: [] };
+    const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers")
+      .select("id,item_id,offer_type,amount,status,created_at,customer_message").in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
 
-    const uniqueUserIds = [...new Set((valuations || []).map(v => v.user_id).filter(Boolean))];
-    const customerEntries = await Promise.all(uniqueUserIds.map(async id => [id, await getCustomer(id)]));
-    const customers = new Map(customerEntries);
+    // Use the same staff customer RPC as the customer-management section so
+    // every valuation/offer can be tied to account number, name and email.
+    const { data: customers } = await auth.supabase.rpc("staff_customer_list");
+    const customerById = new Map((customers || []).map(c => [String(c.user_id), c]));
 
-    const rows = (valuations || []).slice(0, 20).map(v => {
-      const q = v.quote_data || {};
-      const c = customers.get(v.user_id);
-      const name = c?.full_name || q.fullName || "Unnamed customer";
-      const email = c?.email || q.email || "No email recorded";
-      const phone = c?.phone || q.phone || "No phone recorded";
-      const account = c?.account_number || "Not assigned";
+    const rows = (valuations || []).slice(0, 10).map(v => {
+      const customer = customerById.get(String(v.user_id));
       const item = (items || []).find(i => i.valuation_id === v.id);
       const itemOffers = (offers || []).filter(o => o.item_id === item?.id);
-      const published = itemOffers.filter(o => ["published", "accepted", "refused"].includes(o.status));
-      const status = published.length ? published[0].status : (v.status || "submitted");
-      const detailUrl = `admin-quote.html?id=${encodeURIComponent(v.id)}`;
-      return `<article class="valuation-card"><div style="width:100%;">
-        <span class="valuation-ref">${esc(v.quote_reference)}</span>
-        <p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p>
-        <h3>${esc(name)}</h3>
-        <p><strong>Account:</strong> ${esc(account)} &nbsp; <strong>Email:</strong> ${esc(email)} &nbsp; <strong>Phone:</strong> ${esc(phone)}</p>
-        <p><strong>Equipment:</strong> ${esc(v.model || "Equipment submission")}${v.manufacturer ? " — " + esc(v.manufacturer) : ""}${v.package ? " — " + esc(v.package) : ""}</p>
-        <small>${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small>
-      </div><div class="valuation-meta"><strong>${v.quote_amount == null ? "Awaiting valuation" : money(v.quote_amount)}</strong><a class="btn btn-primary" href="${detailUrl}">VIEW QUOTE &amp; PHOTOS</a></div></article>`;
+      const latestOffer = itemOffers[0];
+      const status = latestOffer?.status || v.status || "submitted";
+      return `<article class="valuation-card">
+        <div>
+          <span class="valuation-ref">${esc(v.quote_reference)}</span>
+          <p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p>
+          <h3>${esc(v.model || "Equipment submission")}</h3>
+          <p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p>
+          <p class="customer-account-number"><strong>Customer number:</strong> ${esc(customer?.account_number || "Not assigned")}</p>
+          <p><strong>Customer:</strong> ${esc(customer?.full_name || "Unnamed customer")}</p>
+          <p><strong>Email:</strong> ${esc(customer?.email || "Not available")}</p>
+        </div>
+        <div class="valuation-meta">
+          <strong>${v.quote_amount == null ? "Awaiting valuation" : money(v.quote_amount)}</strong>
+          <small>${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small>
+          <small>${itemOffers.length} offer${itemOffers.length === 1 ? "" : "s"} recorded</small>
+        </div>
+      </article>`;
     }).join("");
-
     valuationsBox.innerHTML = rows || "<p>No active valuations have been submitted yet.</p>";
-    const accepted = (offers || []).filter(o => o.status === "accepted");
-    salesBox.innerHTML = accepted.length ? `<p><strong>${accepted.length}</strong> accepted offer${accepted.length === 1 ? "" : "s"} currently recorded.</p>` : "<p>No accepted offers yet.</p>";
+
+    // Show every customer-visible offer, not just accepted offers. This keeps
+    // the staff dashboard consistent with the customer account when there are
+    // multiple offers for the same submission.
+    const offerRows = (offers || []).filter(o => ["published", "accepted", "refused"].includes(o.status)).map(o => {
+      const item = (items || []).find(i => i.id === o.item_id);
+      const valuation = (valuations || []).find(v => v.id === item?.valuation_id);
+      const customer = customerById.get(String(valuation?.user_id));
+      const label = o.offer_type === "automatic" ? "Automatic quote" : o.offer_type === "manual" ? "Manual quote" : "Final offer";
+      return `<article class="valuation-card offer-card">
+        <div>
+          <span class="valuation-ref">${esc(valuation?.quote_reference || "Offer")}</span>
+          <p class="section-kicker">${label}</p>
+          <h3>${esc(item?.model || item?.item_name || "Equipment")}</h3>
+          <p><strong>Customer number:</strong> ${esc(customer?.account_number || "Not assigned")}</p>
+          <p><strong>Customer:</strong> ${esc(customer?.full_name || "Unnamed customer")}</p>
+          <p><strong>Email:</strong> ${esc(customer?.email || "Not available")}</p>
+          <p>${esc(o.customer_message || "")}</p>
+        </div>
+        <div class="valuation-meta">
+          <strong>${money(o.amount)}</strong>
+          <span class="status-badge">${esc(String(o.status).replaceAll("_", " "))}</span>
+        </div>
+      </article>`;
+    }).join("");
+    salesBox.innerHTML = offerRows || "<p>No customer offers recorded yet.</p>";
   }
 
   async function loadCustomers() {
@@ -77,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: customers, error } = await auth.supabase.rpc("staff_customer_list");
     if (error) { box.innerHTML = "<p>We couldn't load customer accounts.</p>"; console.error(error); return; }
     if (!customers?.length) { box.innerHTML = "<p>No customer accounts found.</p>"; return; }
-    box.innerHTML = customers.map(c => `<article class="valuation-card"><div><span class="valuation-ref">${esc(c.account_number || "No account number")}</span><h3>${esc(c.full_name || "Unnamed customer")}</h3><p>${esc(c.email || "No email recorded")} · ${esc(c.phone || "No phone recorded")}</p></div><div class="valuation-meta"><span class="status-badge">${esc(c.account_status || "active")}</span>${c.closed_at ? `<small>Closed ${new Date(c.closed_at).toLocaleString("en-GB")}</small>` : ""}${c.account_status !== "closed" ? `<button class="btn btn-secondary close-customer" data-user="${esc(c.user_id)}" data-email="${esc(c.email)}" type="button">CLOSE ACCOUNT</button>` : ""}</div></article>`).join("");
+    box.innerHTML = customers.map(c => `<article class="valuation-card"><div><span class="valuation-ref">${esc(c.email)}</span><h3>${esc(c.full_name || "Unnamed customer")}</h3><p><strong>Customer number:</strong> ${esc(c.account_number || "Not assigned")}</p><p>${esc(c.phone || "No phone number")}</p></div><div class="valuation-meta"><span class="status-badge">${esc(c.account_status || "active")}</span>${c.closed_at ? `<small>Closed ${new Date(c.closed_at).toLocaleString("en-GB")}</small>` : ""}${c.account_status !== "closed" ? `<button class="btn btn-secondary close-customer" data-user="${esc(c.user_id)}" data-email="${esc(c.email)}" type="button">CLOSE ACCOUNT</button>` : ""}</div></article>`).join("");
     box.querySelectorAll(".close-customer").forEach(button => button.addEventListener("click", async () => {
       const email = button.dataset.email;
       if (!confirm(`Close the customer account for ${email}? Their valuation and sale history will be retained.`)) return;
