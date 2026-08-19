@@ -182,7 +182,7 @@ function initDjiBatteryFix() {
     for (let i = 0; i <= expected; i++) count.add(new Option(String(i), String(i)));
     count.value = Number.isInteger(current) && current >= 0 && current <= expected
       ? String(current)
-      : String(Math.min(expected, 1));
+      : String(expected);
 
     renderBatteryEntries(Number(count.value));
   }
