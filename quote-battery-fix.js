@@ -8,7 +8,7 @@
    marker so the core navigation can continue without treating it as a real
    battery. Pricing remains driven by Step 9 package-content status.
 */
-document.addEventListener("DOMContentLoaded", function () {
+function initDjiBatteryFix() {
   "use strict";
 
   const form = document.getElementById("quote-form");
@@ -69,6 +69,11 @@ document.addEventListener("DOMContentLoaded", function () {
     "avata-2|fly-more": 3
   };
 
+  window.gearExpectedPackageBatteries = function () {
+    const key = `${modelSelect()?.value || ""}|${packageSelect()?.value || ""}`;
+    return PACKAGE_BATTERIES[key] || 1;
+  };
+
   function isDJI() {
     const category = document.getElementById("gear-category");
     const manufacturer = document.getElementById("gear-manufacturer");
@@ -77,8 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function expectedPackageBatteries() {
-    const key = `${modelSelect()?.value || ""}|${packageSelect()?.value || ""}`;
-    return PACKAGE_BATTERIES[key] || 1;
+    return window.gearExpectedPackageBatteries();
   }
 
   function container() {
@@ -221,6 +225,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (count === 0) renderBatteryEntries(0);
   }, true);
+}
 
-  renderBatteryStep();
-});
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDjiBatteryFix, { once: true });
+} else {
+  initDjiBatteryFix();
+}
