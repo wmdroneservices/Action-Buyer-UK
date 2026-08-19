@@ -1,5 +1,9 @@
 /* DJI navigation compatibility fix.
-   quote.js owns all normal navigation and currentStep state. */
+   quote.js owns normal navigation and currentStep state.
+   Step 6 is intentionally kept visible because package batteries are part of
+   the valuation workflow. This file only handles the DJI-specific Step 7 ->
+   Step 5 Back transition and loads the package-battery controller.
+*/
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
@@ -13,26 +17,17 @@ document.addEventListener("DOMContentLoaded", function () {
            String(manufacturer.value || "").toLowerCase() === "dji";
   }
 
-  function hideObsoleteBatteryStep() {
-    const step6 = form.querySelector('[data-step="6"]');
-    const progress6 = form.querySelector('.progress-step[data-step="6"]');
-    if (step6) step6.hidden = true;
-    if (progress6) progress6.hidden = true;
-  }
-
   function setStep10Title() {
     const step10 = form.querySelector('[data-step="10"]');
     const heading = step10 && step10.querySelector("h3");
     if (heading) heading.textContent = "Step 10: Serial Numbers";
   }
 
-  hideObsoleteBatteryStep();
   setStep10Title();
 
-  /* The only special Back transition is Step 7 -> Step 5. We deliberately
-     invoke the real Step 6 Back button so quote.js updates currentStep. */
   form.addEventListener("click", function (event) {
     if (!isDJIDrone()) return;
+
     const button = event.target.closest("button");
     if (!button || !form.contains(button) || !button.classList.contains("btn-back")) return;
 
@@ -48,4 +43,15 @@ document.addEventListener("DOMContentLoaded", function () {
       step6Back.click();
     }
   }, true);
+
+  const batteryScript = function () {
+    if (document.querySelector('script[data-dji-battery-fix]')) return;
+    const script = document.createElement("script");
+    script.src = "quote-battery-fix.js";
+    script.defer = true;
+    script.dataset.djiBatteryFix = "true";
+    document.head.appendChild(script);
+  };
+
+  batteryScript();
 });
