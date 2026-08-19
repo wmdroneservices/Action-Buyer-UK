@@ -37,9 +37,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     box.innerHTML = data.map((v) => {
-      const manual = v.status === "manual_review" || (v.quote_amount == null && v.quote_data?.manualValuation);
+      const manual = v.status === "manual_review" || v.quote_data?.manualValuation === true;
       const amount = v.quote_amount == null ? "" : Number(v.quote_amount).toFixed(2);
-      const status = String(v.status || "submitted").replaceAll("_", " ");
+      const status = manual && v.quote_amount != null ? "valued — manual" : String(v.status || "submitted").replaceAll("_", " ");
       return `<article class="valuation-card admin-valuation-card">
         <div>
           <span class="valuation-ref">${escapeHtml(v.quote_reference)}</span>
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
         <div class="valuation-meta">
           <span class="status-badge">${escapeHtml(status)}</span>
-          ${manual ? `<label>Confirmed purchase price (£)<input class="manual-price" type="number" min="0" step="0.01" value="${amount}" data-id="${v.id}"></label><button class="btn btn-primary save-manual" data-id="${v.id}" type="button">SET VALUATION</button>` : `<strong>£${Number(v.quote_amount || 0).toFixed(2)}</strong>`}
+          ${manual && v.status === "manual_review" ? `<label>Confirmed purchase price (£)<input class="manual-price" type="number" min="0" step="0.01" value="${amount}" data-id="${v.id}"></label><button class="btn btn-primary save-manual" data-id="${v.id}" type="button">SET VALUATION</button>` : `<strong>£${Number(v.quote_amount || 0).toFixed(2)}</strong>`}
         </div>
       </article>`;
     }).join("");
@@ -64,10 +64,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           message.className = "form-message error";
           return;
         }
+        const valuation = data.find((item) => item.id === id);
+        const quoteData = { ...(valuation?.quote_data || {}), manualValuation: true, manualValuationConfirmedAt: new Date().toISOString() };
         button.disabled = true;
         const { error } = await window.actionBuyerAuth.supabase
           .from("valuations")
-          .update({ quote_amount: price, status: "valued", updated_at: new Date().toISOString() })
+          .update({ quote_amount: price, status: "valued", quote_data: quoteData, updated_at: new Date().toISOString() })
           .eq("id", id);
         button.disabled = false;
         if (error) {
@@ -76,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           console.error(error);
           return;
         }
-        message.textContent = "Valuation updated successfully.";
+        message.textContent = "Manual valuation updated successfully.";
         message.className = "form-message success";
         await load();
       });
