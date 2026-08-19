@@ -1,44 +1,28 @@
-function initGearCashOutResultFix() {
+/* GearCashOut result compatibility layer.
+   DJI navigation is handled by quote.js itself so that its internal
+   currentStep state stays synchronised. This file intentionally does not
+   intercept DJI Step 3 navigation. */
+(function () {
+  "use strict";
+
   const form = document.getElementById("quote-form");
   if (!form) return;
-
-  /* DJI Step 3 is shared by the new equipment flow and the legacy quote
-     engine. Take ownership of the Next button here so the package is not
-     validated a second time by the legacy handler. */
-  form.addEventListener("click", function (event) {
-    const button = event.target.closest("button");
-    if (!button || !form.contains(button) || !button.classList.contains("btn-next")) return;
-    const step = button.closest('.wizard-step[data-step="3"]');
-    const category = document.getElementById("gear-category");
-    const manufacturer = document.getElementById("gear-manufacturer");
-    const packageSelect = document.getElementById("package-select");
-    if (!step || !category || !manufacturer || category.value !== "drone" || manufacturer.value !== "DJI") return;
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (!packageSelect || !packageSelect.value) {
-      alert("Please select the exact package.");
-      return;
-    }
-    if (typeof window.showStep === "function") window.showStep(4);
-    else form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = Number(s.dataset.step) !== 4; });
-  }, true);
 
   window.renderGearCashOutManualResult = function () {
     const step = form.querySelector('[data-step="12"]');
     const summary = document.getElementById("quote-summary");
     if (!step || !summary) return;
 
-    const category = document.getElementById("gear-category");
-    const manufacturer = document.getElementById("gear-manufacturer");
-    const model = document.getElementById("dji-model");
-    if (!category || !manufacturer || !model) return;
-
     const selectedText = function (select) {
       return select && select.options && select.selectedIndex >= 0
         ? select.options[select.selectedIndex].textContent.trim()
         : "";
     };
+
+    const category = document.getElementById("gear-category");
+    const manufacturer = document.getElementById("gear-manufacturer");
+    const model = document.getElementById("dji-model");
+    if (!category || !manufacturer || !model) return;
 
     const categoryName = selectedText(category) || category.value;
     const manufacturerName = selectedText(manufacturer) || manufacturer.value;
@@ -52,11 +36,26 @@ function initGearCashOutResultFix() {
     if (title) title.textContent = "Manual Valuation Required";
 
     let basket = [];
-    try { basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]"); } catch (_) { basket = []; }
+    try {
+      basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]");
+    } catch (_) {
+      basket = [];
+    }
     if (!Array.isArray(basket)) basket = [];
 
-    if (!basket.some(function (item) { return item.model === model.value && item.manufacturer === manufacturer.value; })) {
-      basket.push({ category: category.value, categoryName: categoryName, manufacturer: manufacturer.value, manufacturerName: manufacturerName, model: model.value, modelName: modelName, valuation: "manual", amount: null });
+    if (!basket.some(function (item) {
+      return item.model === model.value && item.manufacturer === manufacturer.value;
+    })) {
+      basket.push({
+        category: category.value,
+        categoryName: categoryName,
+        manufacturer: manufacturer.value,
+        manufacturerName: manufacturerName,
+        model: model.value,
+        modelName: modelName,
+        valuation: "manual",
+        amount: null
+      });
     }
 
     const rows = basket.map(function (item, index) {
@@ -82,10 +81,4 @@ function initGearCashOutResultFix() {
         '<button type="button" class="btn" id="continue-with-quote" data-quote-action="manual">Continue with This Quote</button>' +
       '</div>';
   };
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initGearCashOutResultFix);
-} else {
-  initGearCashOutResultFix();
-}
+})();
