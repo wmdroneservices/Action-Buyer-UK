@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Dashboard | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script>
+<script src="admin-dashboard.js" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html" aria-current="page">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li><li><a href="account.html">Customer Account</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>GearCashOut Staff Dashboard</h1><p id="staff-welcome">Checking staff access...</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div>
+<div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
+<section class="account-panel"><div class="section-heading"><p class="section-kicker">WORK QUEUE</p><h2>Valuations</h2><p>Review customer submissions and publish automatic, manual or final offers.</p></div><div id="dashboard-valuations"><p>Loading...</p></div><p><a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATION REVIEW</a></p></section>
+<section class="account-panel"><div class="section-heading"><p class="section-kicker">SALES</p><h2>Accepted offers</h2><p>Accepted items are combined into the customer's sale and can then move to shipping.</p></div><div id="dashboard-sales"><p>Loading...</p></div><p><a class="btn btn-primary" href="admin-sales.html">OPEN SALES &amp; SHIPPING</a></p></section>
+</div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Internal administration.</div></div></footer>
+</body></html>
