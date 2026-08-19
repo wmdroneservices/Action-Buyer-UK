@@ -10,48 +10,10 @@ supabaseClient.auth.onAuthStateChange((_e,s)=>{setAuthMarker(s);actionBuyerAuth.
 
 /* Quote result authentication gate and battery-count compatibility. */
 (function(){
-  function isQuoteAction(el){
-    if(!el) return false;
-    const step=el.closest?.('.wizard-step[data-step="12"]');
-    if(!step) return false;
-    const text=(el.textContent||'').replace(/\s+/g,' ').trim();
-    return el.id==='quote-result-action'||el.id==='continue-with-quote'||el.classList?.contains('btn-accept')||/continue with this quote|accept instant quote/i.test(text);
-  }
-  function preserveQuote(){
-    const c=document.getElementById('gear-category'),m=document.getElementById('gear-manufacturer'),mo=document.getElementById('dji-model'),p=document.getElementById('package-select'),t=document.getElementById('quote-result-title'),price=document.querySelector('#quote-summary .quote-price');
-    const contents={};document.querySelectorAll('.package-content-select,.generic-content-select').forEach(e=>contents[e.dataset.contentId||e.id]=e.value);
-    const batteries=Array.from(document.querySelectorAll('.battery-entry')).map(row=>({type:row.querySelector('.battery-type')?.value||'',cycles:Number(row.querySelector('.battery-cycles')?.value||0)}));
-    const match=String(price?.textContent||'').replace(/,/g,'').match(/£\s*([0-9]+(?:\.[0-9]+)?)/);
-    const r={category:c?.value||'',categoryName:selectedText(c),manufacturer:m?.value||'',manufacturerName:selectedText(m),model:mo?.value||'',modelName:selectedText(mo),package:p?.value||'',packageName:selectedText(p),condition:checked('condition'),flightHours:document.getElementById('flight-hours')?.value||'',flightHoursRange:checked('flightHoursRange'),batteries,unbound:checked('unbound'),damage:checked('damage'),damageDescription:document.getElementById('damage-description')?.value||'',packageContents:contents,droneSerial:document.getElementById('drone-serial-number')?.value||'',controllerSerial:document.getElementById('controller-serial-number')?.value||'',legalRight:checked('legalRight'),quoteAmount:match?Number(match[1]):null,manualValuation:/manual valuation|manual validation/i.test(t?.textContent||''),photosProvided:!!document.getElementById('photo-uploads')?.files?.length,created:new Date().toISOString()};
-    try{localStorage.setItem('gearCashOutQuoteResume',JSON.stringify(r));localStorage.setItem('actionBuyerReturnAfterAuth','quote.html');sessionStorage.setItem('actionBuyerAuthRequiredForQuote','true');}catch(_){}
-  }
-  async function gate(e){
-    const target=e.target?.closest?.('button,a');
-    if(!isQuoteAction(target)) return;
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    const s=await actionBuyerAuth.getSession();
-    if(!s){preserveQuote();window.location.href='login.html?return=quote.html';return;}
-    await actionBuyerAuth.prefillQuoteCustomerDetails();
-    const form=document.getElementById('quote-form'),step=form?.querySelector('.wizard-step[data-step="13"]');
-    if(step)form.querySelectorAll('.wizard-step').forEach(x=>x.hidden=x!==step);
-  }
+  function isQuoteAction(el){if(!el)return false;const step=el.closest?.('.wizard-step[data-step="12"]');if(!step)return false;const text=(el.textContent||'').replace(/\s+/g,' ').trim();return el.id==='quote-result-action'||el.id==='continue-with-quote'||el.classList?.contains('btn-accept')||/continue with this quote|accept instant quote/i.test(text);}
+  function preserveQuote(){const c=document.getElementById('gear-category'),m=document.getElementById('gear-manufacturer'),mo=document.getElementById('dji-model'),p=document.getElementById('package-select'),t=document.getElementById('quote-result-title'),price=document.querySelector('#quote-summary .quote-price');const contents={};document.querySelectorAll('.package-content-select,.generic-content-select').forEach(e=>contents[e.dataset.contentId||e.id]=e.value);const batteries=Array.from(document.querySelectorAll('.battery-entry')).map(row=>({type:row.querySelector('.battery-type')?.value||'',cycles:Number(row.querySelector('.battery-cycles')?.value||0)}));const match=String(price?.textContent||'').replace(/,/g,'').match(/£\s*([0-9]+(?:\.[0-9]+)?)/);const r={category:c?.value||'',categoryName:selectedText(c),manufacturer:m?.value||'',manufacturerName:selectedText(m),model:mo?.value||'',modelName:selectedText(mo),package:p?.value||'',packageName:selectedText(p),condition:checked('condition'),flightHours:document.getElementById('flight-hours')?.value||'',flightHoursRange:checked('flightHoursRange'),batteries,unbound:checked('unbound'),damage:checked('damage'),damageDescription:document.getElementById('damage-description')?.value||'',packageContents:contents,droneSerial:document.getElementById('drone-serial-number')?.value||'',controllerSerial:document.getElementById('controller-serial-number')?.value||'',legalRight:checked('legalRight'),quoteAmount:match?Number(match[1]):null,manualValuation:/manual valuation|manual validation/i.test(t?.textContent||''),photosProvided:!!document.getElementById('photo-uploads')?.files?.length,created:new Date().toISOString()};try{localStorage.setItem('gearCashOutQuoteResume',JSON.stringify(r));localStorage.setItem('actionBuyerReturnAfterAuth','quote.html');sessionStorage.setItem('actionBuyerAuthRequiredForQuote','true');}catch(_){} }
+  async function gate(e){const target=e.target?.closest?.('button,a');if(!isQuoteAction(target))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();const s=await actionBuyerAuth.getSession();if(!s){preserveQuote();window.location.href='login.html?return=quote.html';return;}await actionBuyerAuth.prefillQuoteCustomerDetails();const form=document.getElementById('quote-form'),step=form?.querySelector('.wizard-step[data-step="13"]');if(step)form.querySelectorAll('.wizard-step').forEach(x=>x.hidden=x!==step);}
   document.addEventListener('click',gate,true);
-  function normaliseBatterySelect(){
-    const select=document.getElementById('package-battery-count');
-    if(!select)return;
-    const current=select.value;
-    select.innerHTML='';
-    for(let i=0;i<=8;i++)select.add(new Option(String(i),String(i)));
-    if(current!=='' && Number.isInteger(Number(current)) && Number(current)>=0 && Number(current)<=8)select.value=current;
-    else if(window.gearExpectedPackageBatteries)select.value=String(Math.min(8,Math.max(0,Number(window.gearExpectedPackageBatteries())||0)));
-    const label=select.closest('label');
-    if(label)label.firstChild.textContent='Number of package batteries being supplied (up to 8)';
-  }
-  document.addEventListener('DOMContentLoaded',()=>{
-    const form=document.getElementById('quote-form');if(!form)return;
-    const observer=new MutationObserver(()=>{normaliseBatterySelect();});
-    observer.observe(form,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
-    form.addEventListener('change',e=>{if(e.target?.id==='package-select'){setTimeout(normaliseBatterySelect,50);}},true);
-    setTimeout(normaliseBatterySelect,100);setTimeout(normaliseBatterySelect,500);setTimeout(normaliseBatterySelect,1200);
-  });
+  function normaliseBatterySelect(){const select=document.getElementById('package-battery-count');if(!select)return;const current=select.value;const options=Array.from(select.options);const alreadyEight=options.length===9&&options.every((o,i)=>o.value===String(i)&&o.textContent===String(i));if(!alreadyEight){select.innerHTML='';for(let i=0;i<=8;i++)select.add(new Option(String(i),String(i)));}if(current!==''&&Number.isInteger(Number(current))&&Number(current)>=0&&Number(current)<=8)select.value=current;else if(window.gearExpectedPackageBatteries)select.value=String(Math.min(8,Math.max(0,Number(window.gearExpectedPackageBatteries())||0)));const label=select.closest('label');if(label&&label.firstChild)label.firstChild.textContent='Number of package batteries being supplied (up to 8)';}
+  document.addEventListener('DOMContentLoaded',()=>{const form=document.getElementById('quote-form');if(!form)return;const observer=new MutationObserver(()=>{normaliseBatterySelect();});observer.observe(form,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});form.addEventListener('change',e=>{if(e.target?.id==='package-select')setTimeout(normaliseBatterySelect,50);},true);setTimeout(normaliseBatterySelect,100);setTimeout(normaliseBatterySelect,500);setTimeout(normaliseBatterySelect,1200);});
 })();
