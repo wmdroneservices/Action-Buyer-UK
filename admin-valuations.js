@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const box = document.getElementById("manual-valuations");
   const message = document.getElementById("admin-message");
+  const archiveLink = document.getElementById("archive-link");
   const auth = window.actionBuyerAuth;
   const session = await auth.getSession();
 
@@ -18,6 +19,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!staff) {
     box.innerHTML = "<p>You do not have permission to access valuation review.</p>";
     return;
+  }
+
+  const showingArchive = new URLSearchParams(window.location.search).get("archive") === "1";
+  if (archiveLink) {
+    archiveLink.textContent = showingArchive ? "VIEW ACTIVE QUOTES" : "VIEW ARCHIVED QUOTES";
+    archiveLink.href = showingArchive ? "admin-valuations.html" : "admin-valuations.html?archive=1";
   }
 
   const money = n => new Intl.NumberFormat("en-GB", {
@@ -59,13 +66,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     return v.user_id || `${v.quote_data?.email || "unknown"}|${v.quote_data?.fullName || ""}`;
   }
 
+  async function quoteAction(action, valuationId, reference) {
+    if (action === "archive") {
+      if (!confirm(`Archive quote ${reference}? It will disappear from the active valuation list but remain available under Archived Quotes.`)) return;
+      const { error } = await auth.supabase.rpc("staff_archive_valuation", { p_valuation_id: valuationId });
+      if (error) {
+        setMessage(error.message || "The quote could not be archived.", false);
+        return;
+      }
+      setMessage(`Quote ${reference} has been archived.`);
+    }
+
+    if (action === "restore") {
+      if (!confirm(`Restore archived quote ${reference} to the active valuation list?`)) return;
+      const { error } = await auth.supabase.rpc("staff_restore_valuation", { p_valuation_id: valuationId });
+      if (error) {
+        setMessage(error.message || "The quote could not be restored.", false);
+        return;
+      }
+      setMessage(`Quote ${reference} has been restored.`);
+    }
+
+    if (action === "delete") {
+      if (!confirm(`PERMANENTLY DELETE quote ${reference}? This removes the quote and its linked items, offers and offer history. This cannot be undone.`)) return;
+      const { error } = await auth.supabase.rpc("staff_delete_valuation", { p_valuation_id: valuationId });
+      if (error) {
+        setMessage(error.message || "The quote could not be deleted.", false);
+        return;
+      }
+      setMessage(`Quote ${reference} has been permanently deleted.`);
+    }
+
+    await load();
+  }
+
   async function load() {
-    box.innerHTML = "<p>Loading customer valuations...</p>";
+    box.innerHTML = `<p>Loading ${showingArchive ? "archived" : "active"} customer valuations...</p>`;
 
     const { data: valuations, error } = await auth.supabase
       .from("valuations")
-      .select("id,user_id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data")
-      .order("submitted_at", { ascending: false });
+      .select("id,user_id,quote_reference,status,manufacturer,model,package,condition,quote_amount,submitted_at,updated_at,quote_data,archived_at")
+      .${showingArchive ? "not(" : "is("}(archived_at,${showingArchive ? "is.null" : "null"}))
+      .order(showingArchive ? "archived_at" : "submitted_at", { ascending: false });
 
     if (error) {
       box.innerHTML = "<p>We couldn't load valuations.</p>";
@@ -74,7 +116,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (!valuations?.length) {
-      box.innerHTML = "<p>No valuations have been submitted yet.</p>";
+      box.innerHTML = showingArchive
+        ? "<div class=\"empty-account\"><h3>No archived quotes</h3><p>Archived quotes will appear here.</p></div>"
+        : "<p>No active valuations have been submitted yet.</p>";
       return;
     }
 
@@ -130,6 +174,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             const title = v.quote_data?.modelName || v.model || "Equipment submission";
             const subtitle = v.quote_data?.packageName || v.package || "";
             const detailUrl = `admin-quote.html?id=${encodeURIComponent(v.id)}`;
+            const actions = showingArchive
+              ? `<button class="btn btn-secondary quote-action" data-action="restore" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">RESTORE</button><button class="btn quote-action quote-delete" data-action="delete" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">DELETE</button>`
+              : `<button class="btn btn-secondary quote-action" data-action="archive" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">ARCHIVE</button><button class="btn quote-action quote-delete" data-action="delete" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">DELETE</button>`;
 
             return `<article class="valuation-card admin-customer-quote" style="margin-bottom:1rem;">
               <div>
@@ -137,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <p class="section-kicker">${esc(String(v.status || "submitted").replaceAll("_", " "))}</p>
                 <h3>${esc(title)}</h3>
                 <p>${esc(v.manufacturer || v.quote_data?.manufacturerName || "")}${subtitle ? " — " + esc(subtitle) : ""}</p>
-                <small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}</small>
+                <small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}${v.archived_at ? " · Archived " + new Date(v.archived_at).toLocaleString("en-GB") : ""}</small>
                 <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">
                   <span class="status-badge">${photos} photo${photos === 1 ? "" : "s"}</span>
                   <span class="status-badge">${activeOffers.length} offer${activeOffers.length === 1 ? "" : "s"}</span>
@@ -145,15 +192,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                   ${accepted ? `<span class="status-badge">${accepted} accepted</span>` : ""}
                 </div>
               </div>
-              <div class="valuation-meta" style="min-width:220px;">
+              <div class="valuation-meta" style="min-width:260px;">
                 <strong>${v.quote_amount == null ? "Manual valuation" : money(v.quote_amount)}</strong>
                 <a class="btn btn-primary" href="${detailUrl}">VIEW QUOTE &amp; PHOTOS</a>
+                <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;">${actions}</div>
               </div>
             </article>`;
           }).join("")}
         </div>
       </section>`;
     }).join("");
+
+    box.querySelectorAll(".quote-action").forEach(button => {
+      button.addEventListener("click", () => quoteAction(button.dataset.action, button.dataset.id, button.dataset.reference));
+    });
 
     box.querySelectorAll(".publish-offer").forEach(btn => {
       btn.addEventListener("click", async () => {
