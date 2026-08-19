@@ -102,6 +102,73 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
   }
 
+  async function markPaymentSent() {
+    if (!confirm("Confirm that the payment has been sent to the customer's bank account? This will update the customer's order to Payment received.")) return;
+    const reference = prompt("Optional bank payment reference:", "") || null;
+    const now = new Date().toISOString();
+    const { error } = await auth.supabase.from("sales").update({
+      status: "paid",
+      payment_status: "paid",
+      payment_sent_at: now,
+      payment_reference: reference,
+      updated_at: now
+    }).eq("id", saleId);
+    if (error) {
+      message.textContent = error.message || "Payment could not be recorded.";
+      message.className = "form-message error";
+      return;
+    }
+    message.textContent = "Payment marked as sent. The customer's order now shows Payment received.";
+    message.className = "form-message success";
+    await load();
+  }
+
+  async function markReturnShipped() {
+    if (!confirm("Confirm that the item has been shipped back to the customer? This will update the customer's order to Return shipped.")) return;
+    const now = new Date().toISOString();
+    const returnShipment = await auth.supabase.from("shipments")
+      .select("id,status,shipped_at")
+      .eq("sale_id", saleId)
+      .eq("shipment_type", "return")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (returnShipment.error) {
+      message.textContent = returnShipment.error.message || "Could not find the return shipment.";
+      message.className = "form-message error";
+      return;
+    }
+    if (!returnShipment.data) {
+      message.textContent = "Create the US → CUSTOMER return shipment first, then mark it as shipped.";
+      message.className = "form-message error";
+      return;
+    }
+
+    const { error: shipmentError } = await auth.supabase.from("shipments").update({
+      status: "in_transit",
+      shipped_at: returnShipment.data.shipped_at || now
+    }).eq("id", returnShipment.data.id);
+    if (shipmentError) {
+      message.textContent = shipmentError.message || "Return shipment could not be updated.";
+      message.className = "form-message error";
+      return;
+    }
+
+    const { error } = await auth.supabase.from("sales").update({
+      status: "return_shipped",
+      updated_at: now
+    }).eq("id", saleId);
+    if (error) {
+      message.textContent = error.message || "Return status could not be recorded.";
+      message.className = "form-message error";
+      return;
+    }
+    message.textContent = "Return marked as shipped. The customer's order now shows Return shipped.";
+    message.className = "form-message success";
+    await load();
+  }
+
   async function load() {
     const { data: sale, error: saleError } = await auth.supabase
       .from("sales")
@@ -142,20 +209,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       .order("created_at", { ascending: false });
 
     const valuationById = new Map((valuations || []).map(v => [v.id, v]));
-    const quoteById = new Map((quoteItems || []).map(i => [i.id, i]));
     const saleItemByQuoteId = new Map((saleItems || []).map(i => [i.quote_item_id, i]));
     const offerList = offers || [];
     const inbound = (shipments || []).filter(s => s.shipment_type === "inbound");
     const returns = (shipments || []).filter(s => s.shipment_type === "return");
     const latestInbound = inbound[0];
-    const received = ["received", "inspection", "payment_due", "paid", "completed"].includes(sale.status) || inbound.some(s => s.delivered_at || s.status === "delivered");
+    const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(sale.status) || inbound.some(s => s.delivered_at || s.status === "delivered");
     const posted = inbound.some(s => s.shipped_at || ["in_transit", "delivered"].includes(s.status));
     const labelReady = inbound.some(s => s.status && s.status !== "awaiting_label" || (Array.isArray(s.label_urls) && s.label_urls.length));
     const bank = getBank(sale);
     const payment = getPayment(sale);
     const bankReceived = !!(bank.accountName || bank.sortCode || bank.accountNumber) || ["bank_details_received", "payment_processing", "paid", "completed"].includes(String(payment.status || ""));
     const paymentSent = ["paid", "payment_sent", "completed"].includes(String(payment.status || "")) || !!payment.sentAt;
-    const returnSent = returns.some(s => s.shipped_at || ["in_transit", "delivered"].includes(s.status));
+    const returnSent = sale.status === "return_shipped" || returns.some(s => s.shipped_at || ["in_transit", "delivered"].includes(s.status));
 
     const primaryValuation = valuations?.[0];
     const primaryQuote = primaryValuation?.quote_data || {};
@@ -169,7 +235,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const customerCard = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">CUSTOMER</p><h2>${esc(customerName)}</h2><p>Customer and contact information carried forward from the original quote.</p></div><div class="valuation-card"><div style="width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">${field("Email", customerEmail)}${field("Phone", customerPhone)}${field("Return address", customerAddress || primaryQuote.returnAddress || "No address recorded")}${field("Sale reference", sale.sale_reference)}${field("Sale created", dateTime(sale.created_at))}${field("Accepted", dateTime(sale.accepted_at || sale.updated_at))}</div></div></section>`;
 
-    const timeline = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">SALE PROGRESS</p><h2>Complete process</h2><p>This is the continuation of the original quote, from accepted offer through shipping, inspection, payment or return.</p></div>${milestone(true, "1. Offer accepted", dateTime(sale.accepted_at || sale.created_at))}${milestone(true, "2. Data confirmed", "The accepted quote and customer information are now part of this sale record.")}${milestone(labelReady, "3. Postage label ready", labelReady ? "A customer-to-GearCashOut label has been created and is attached below." : "Waiting for the postage label.")}${milestone(posted, "4. Item sent", posted ? `Customer shipment ${latestInbound?.tracking_number ? "tracking: " + latestInbound.tracking_number : "has been marked as posted"}.` : "Waiting for the customer to send the item.")}${milestone(received, "5. Item received", received ? "The item has been received by GearCashOut." : "Waiting for the item to arrive.")}${milestone(["inspection", "payment_due", "paid", "completed"].includes(sale.status), "6. Inspection", ["inspection", "payment_due", "paid", "completed"].includes(sale.status) ? "The received item is at or beyond inspection stage." : "Inspection will follow receipt.")}${milestone(["payment_due", "paid", "completed"].includes(sale.status), "7. Ready for payment", ["payment_due", "paid", "completed"].includes(sale.status) ? "The sale has reached the payment stage." : "Payment is not yet due.")}${milestone(bankReceived, "8. Customer bank details", bankReceived ? "Bank details have been supplied or recorded." : "Waiting for the customer's bank details.")}${milestone(paymentSent, "9. Payment sent", paymentSent ? `Payment recorded${payment.sentAt ? " on " + dateTime(payment.sentAt) : ""}${payment.reference ? " · Reference " + payment.reference : ""}.` : "Payment has not yet been recorded as sent.")}${milestone(returnSent, "10. Return sent to customer", returnSent ? "A GearCashOut → customer return shipment has been posted." : "No return shipment has been posted.")}${milestone(["paid", "completed"].includes(sale.status), "11. Completed", ["paid", "completed"].includes(sale.status) ? "Sale complete." : "Sale remains open.")}</section>`;
+    const timeline = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">SALE PROGRESS</p><h2>Complete process</h2><p>This is the continuation of the original quote, from accepted offer through shipping, inspection, payment or return.</p></div>${milestone(true, "1. Offer accepted", dateTime(sale.accepted_at || sale.created_at))}${milestone(true, "2. Data confirmed", "The accepted quote and customer information are now part of this sale record.")}${milestone(labelReady, "3. Postage label ready", labelReady ? "A customer-to-GearCashOut label has been created and is attached below." : "Waiting for the postage label.")}${milestone(posted, "4. Item sent", posted ? `Customer shipment ${latestInbound?.tracking_number ? "tracking: " + latestInbound.tracking_number : "has been marked as posted"}.` : "Waiting for the customer to send the item.")}${milestone(received, "5. Item received", received ? "The item has been received by GearCashOut." : "Waiting for the item to arrive.")}${milestone(["inspection", "payment_due", "paid", "completed", "return_shipped"].includes(sale.status), "6. Inspection", ["inspection", "payment_due", "paid", "completed", "return_shipped"].includes(sale.status) ? "The received item is at or beyond inspection stage." : "Inspection will follow receipt.")}${milestone(["payment_due", "paid", "completed"].includes(sale.status), "7. Ready for payment", ["payment_due", "paid", "completed"].includes(sale.status) ? "The sale has reached the payment stage." : "Payment is not yet due.")}${milestone(bankReceived, "8. Customer bank details", bankReceived ? "Bank details have been supplied or recorded." : "Waiting for the customer's bank details.")}${milestone(paymentSent, "9. Payment sent", paymentSent ? `Payment recorded${payment.sentAt ? " on " + dateTime(payment.sentAt) : ""}${payment.reference ? " · Reference " + payment.reference : ""}.` : "Payment has not yet been recorded as sent.")}${milestone(returnSent, "10. Return sent to customer", returnSent ? "A GearCashOut → customer return shipment has been posted." : "No return shipment has been posted.")}${milestone(["paid", "completed", "return_shipped"].includes(sale.status), "11. Completed", ["paid", "completed", "return_shipped"].includes(sale.status) ? "Sale outcome recorded." : "Sale remains open.")}</section>`;
 
     const bankCard = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">PAYMENT DETAILS</p><h2>Bank details &amp; payment</h2><p>Staff-only payment information recorded against this sale.</p></div><div class="valuation-card"><div style="width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">${field("Bank detail status", bank.status || "Awaiting bank details")}${field("Account name", bank.accountName)}${field("Sort code", bank.sortCode)}${field("Account number", bank.accountNumber)}${field("Payment status", payment.status || "Not paid")}${field("Payment reference", payment.reference)}${field("Payment sent", payment.sentAt ? dateTime(payment.sentAt) : "Not recorded")}${field("Payment notes", payment.notes)}</div></div></section>`;
 
@@ -187,9 +253,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       return `<section class="account-panel"><div class="section-heading"><p class="section-kicker">ORIGINAL QUOTE · ${esc(valuation?.quote_reference || "")}</p><h2>${esc(q.modelName || item.model || item.item_name || "Equipment")}</h2><p>The original submission is preserved here so the sale page contains the same information as the quote review.</p></div><div class="valuation-card"><div style="width:100%;"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;">${field("Manufacturer", valuation?.manufacturer || q.manufacturerName || item.manufacturer)}${field("Model", valuation?.model || q.modelName || item.model)}${field("Package", valuation?.package || q.packageName || item.package)}${field("Condition", valuation?.condition || q.condition)}${field("Flight time", q.flightHours || q.flightHoursRange)}${field("Damage", q.damage ? `${q.damage}${q.damageDescription ? " · " + q.damageDescription : ""}` : "—")}${field("Unbound", q.unbound)}${field("Legal right to sell", q.legalRight)}${field("Drone serial", q.droneSerial)}${field("Controller serial", q.controllerSerial)}${field("Offer amount", saleItem?.amount ?? acceptedOffer?.amount)}${field("Item status", item.item_status)}</div><hr><h3>Package contents</h3><ul>${contents}</ul><h3>Batteries</h3><ul>${batteries}</ul><h3>Additional accessories</h3><ul>${extras}</ul><h3>Photographs</h3>${photoHtml(q.photos)}</div></div><div class="valuation-card" style="margin-top:1rem;"><div style="width:100%;"><h3>Offer history</h3>${itemOffers.length ? itemOffers.map(o => `<p><strong>${esc(pretty(o.offer_type))}</strong>: ${money(o.amount)} — ${esc(pretty(o.status))}${o.responded_at ? " · Responded " + dateTime(o.responded_at) : ""}${o.customer_message ? " · " + esc(o.customer_message) : ""}</p>`).join("") : "<p>No offer history found.</p>"}<div class="navigation-buttons"><a class="btn btn-secondary" href="admin-quote.html?id=${encodeURIComponent(valuation?.id || "")}">VIEW ORIGINAL QUOTE</a></div></div></div></section>`;
     }).join("");
 
-    const outcome = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">FINAL OUTCOME</p><h2>Payment or return</h2></div><div class="valuation-card"><div style="width:100%;display:grid;gap:.8rem;">${paymentSent ? `<p><strong>Payment made:</strong> ${esc(payment.reference || "Payment recorded")} ${payment.sentAt ? "· " + dateTime(payment.sentAt) : ""}</p>` : "<p><strong>Payment:</strong> Not yet recorded as sent.</p>"}${returnSent ? `<p><strong>Return sent:</strong> ${esc(returns.find(s => s.shipped_at || ["in_transit","delivered"].includes(s.status))?.tracking_number || "Return shipment posted")}</p>` : "<p><strong>Return:</strong> No return shipment posted.</p>"}</div></div></section>`;
+    const outcome = `<section class="account-panel"><div class="section-heading"><p class="section-kicker">FINAL OUTCOME</p><h2>Payment or return</h2><p>Use one of these actions when the sale reaches its final outcome. The customer's order is updated immediately.</p></div><div class="valuation-card"><div style="width:100%;display:grid;gap:1rem;">${paymentSent ? `<p><strong>Payment sent to bank account:</strong> ${esc(payment.reference || "Payment recorded")} ${payment.sentAt ? "· " + dateTime(payment.sentAt) : ""}</p>` : `<p><strong>Payment:</strong> Not yet recorded as sent.</p><button id="mark-payment-sent" class="btn btn-primary" type="button">PAYMENT SENT TO BANK ACCOUNT</button>`}${returnSent ? `<p><strong>Return shipped to customer:</strong> ${esc(returns.find(s => s.shipped_at || ["in_transit","delivered"].includes(s.status))?.tracking_number || "Return shipment posted")}</p>` : `<p><strong>Return:</strong> No return shipment marked as shipped.</p>${returns.length ? `<button id="mark-return-shipped" class="btn btn-secondary" type="button">RETURN SHIPPED TO CUSTOMER</button>` : "<p>Create the US → CUSTOMER return shipment above first.</p>"}`}</div></div></section>`;
 
     box.innerHTML = customerCard + timeline + quoteSections + shippingCard + bankCard + outcome;
+    document.getElementById("mark-payment-sent")?.addEventListener("click", markPaymentSent);
+    document.getElementById("mark-return-shipped")?.addEventListener("click", markReturnShipped);
   }
 
   await load();
