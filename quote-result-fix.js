@@ -81,4 +81,61 @@
         '<button type="button" class="btn" id="continue-with-quote" data-quote-action="manual">Continue with This Quote</button>' +
       '</div>';
   };
+
+  /* Mini package battery display fix.
+     Fly More Combo packages contain 3 batteries; Standard/Drone-only
+     packages contain 1. Keep the Step 6 wording and selector in sync with
+     the package currently selected in Step 3. */
+  function updateMiniBatteryDisplay() {
+    const model = document.getElementById("dji-model");
+    const packageSelect = document.getElementById("package-select");
+    const step6 = form.querySelector('[data-step="6"]');
+    if (!model || !packageSelect || !step6) return;
+
+    const modelId = String(model.value || "").toLowerCase();
+    const packageId = String(packageSelect.value || "").toLowerCase();
+    const packageName = packageSelect.options && packageSelect.selectedIndex >= 0
+      ? String(packageSelect.options[packageSelect.selectedIndex].textContent || "").toLowerCase()
+      : "";
+
+    const miniModels = ["mini-2", "mini-3", "mini-3-pro", "mini-4-pro", "mini-5-pro"];
+    if (!miniModels.includes(modelId) || !packageId) return;
+
+    const expected = packageName.includes("fly more") || packageId.includes("fly-more") ? 3 : 1;
+    const intro = step6.querySelector(".gear-battery-intro");
+    if (intro) {
+      intro.innerHTML = `<strong>${expected} package batter${expected === 1 ? "y" : "ies"} expected from the selected package.</strong> Enter only the package batteries you are actually sending. If none are supplied, select 0. Extra batteries are entered separately in Step 10.`;
+    }
+
+    const notices = Array.from(step6.querySelectorAll("p")).filter(function (p) {
+      return /selected package normally includes/i.test(p.textContent || "");
+    });
+    notices.forEach(function (notice) {
+      notice.innerHTML = `The selected package normally includes <strong>${expected}</strong> battery${expected === 1 ? "" : "ies"}. Enter every battery you are sending. Any batteries beyond the package allowance are treated as additional batteries for valuation.`;
+    });
+
+    const count = document.getElementById("package-battery-count");
+    if (count) {
+      const current = Number(count.value);
+      count.innerHTML = "";
+      for (let i = 0; i <= expected; i++) {
+        count.add(new Option(String(i), String(i)));
+      }
+      count.value = Number.isInteger(current) && current >= 0 && current <= expected
+        ? String(current)
+        : String(expected);
+    }
+  }
+
+  updateMiniBatteryDisplay();
+  form.addEventListener("change", function (event) {
+    if (event.target && (event.target.id === "package-select" || event.target.id === "dji-model")) {
+      window.setTimeout(updateMiniBatteryDisplay, 0);
+    }
+  });
+
+  const batteryObserver = new MutationObserver(function () {
+    updateMiniBatteryDisplay();
+  });
+  batteryObserver.observe(form, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
 })();
