@@ -90,8 +90,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (labelCount < 1 || parcelCount < 1) { notice("Labels and parcels must be at least 1.", false); return; }
       b.disabled = true;
       const postedDate = f.querySelector(".posted-date").value;
-      const shippedAt = postedDate ? new Date(postedDate + "T12:00:00").toISOString() : null;
-      const { data: shipment, error } = await auth.supabase.from("shipments").insert({ sale_id: sale.id, user_id: sale.user_id, shipment_type: type, status: "label_created", carrier: f.querySelector(".carrier").value.trim() || null, tracking_number: f.querySelector(".tracking").value.trim() || null, shipped_at: shippedAt, parcel_count: parcelCount, label_count: labelCount, label_urls: urls, qr_code_urls: qrUrls, quote_item_ids: quoteItemIds, notes: f.querySelector(".notes").value.trim() || null }).select("id").single();
+      const shippedAt = type === "return" ? null : (postedDate ? new Date(postedDate + "T12:00:00").toISOString() : null);
+      const shipmentStatus = type === "return" ? "label_created" : "label_created";
+      const { data: shipment, error } = await auth.supabase.from("shipments").insert({ sale_id: sale.id, user_id: sale.user_id, shipment_type: type, status: shipmentStatus, carrier: f.querySelector(".carrier").value.trim() || null, tracking_number: f.querySelector(".tracking").value.trim() || null, shipped_at: shippedAt, parcel_count: parcelCount, label_count: labelCount, label_urls: urls, qr_code_urls: qrUrls, quote_item_ids: quoteItemIds, notes: f.querySelector(".notes").value.trim() || null }).select("id").single();
       b.disabled = false;
       if (error) { notice(error.message || "Shipment could not be saved.", false); return; }
       const email = await emailShipment(shipment.id);
