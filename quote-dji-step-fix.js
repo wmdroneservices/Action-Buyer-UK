@@ -1,7 +1,5 @@
 /* DJI navigation compatibility fix.
-   The main quote engine owns navigation and its currentStep state.
-   This file only hides the obsolete battery page and handles the one
-   Back transition that must skip that hidden page. */
+   quote.js owns all normal navigation and currentStep state. */
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
@@ -31,42 +29,23 @@ document.addEventListener("DOMContentLoaded", function () {
   hideObsoleteBatteryStep();
   setStep10Title();
 
+  /* The only special Back transition is Step 7 -> Step 5. We deliberately
+     invoke the real Step 6 Back button so quote.js updates currentStep. */
   form.addEventListener("click", function (event) {
     if (!isDJIDrone()) return;
-
     const button = event.target.closest("button");
     if (!button || !form.contains(button) || !button.classList.contains("btn-back")) return;
 
     const step = button.closest(".wizard-step");
-    const stepNumber = step ? Number(step.dataset.step) : 0;
+    if (!step || Number(step.dataset.step) !== 7) return;
 
-    /* Step 7 is immediately after the hidden Step 6. Let the normal
-       Step 6 Back handler run so quote.js updates its internal currentStep
-       correctly and returns to Step 5. */
-    if (stepNumber === 7) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      const step6 = form.querySelector('[data-step="6"]');
-      const step6Back = step6 && step6.querySelector(".btn-back");
-      if (step6Back) step6Back.click();
-      else {
-        /* Fallback: the main engine normally has Step 6 in its sequence. */
-        const visible = form.querySelector('.wizard-step:not([hidden])');
-        if (visible) visible.hidden = true;
-        const step5 = form.querySelector('[data-step="5"]');
-        if (step5) step5.hidden = false;
-      }
-      hideObsoleteBatteryStep();
-      return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const step6 = form.querySelector('[data-step="6"]');
+    const step6Back = step6 && step6.querySelector(".btn-back");
+    if (step6Back) {
+      step6Back.click();
     }
-
-    /* All other navigation belongs to quote.js. */
   }, true);
-
-  new MutationObserver(function () {
-    if (isDJIDrone()) {
-      hideObsoleteBatteryStep();
-      setStep10Title();
-    }
-  }).observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
 });
