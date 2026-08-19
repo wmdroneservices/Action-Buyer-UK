@@ -110,7 +110,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const box = container();
     if (!box) return;
 
+    const existingReal = Array.from(box.querySelectorAll(".gear-package-battery"));
+    const existingZero = box.querySelector(".gear-zero-battery-marker");
+
+    if (count === 0 && existingZero && existingReal.length === 0) return;
+    if (count > 0 && !existingZero && existingReal.length === count) return;
+
     removeRealEntries();
+    if (existingZero) existingZero.remove();
 
     if (count === 0) {
       const marker = document.createElement("div");
@@ -183,8 +190,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (count) count.value = "";
   }
 
-  /* Only watch hidden-state changes. Watching childList here would cause an
-     observer loop because rendering Step 6 itself changes the DOM. */
   const observer = new MutationObserver(function () {
     if (!isDJI()) return;
     const s6 = step6();
