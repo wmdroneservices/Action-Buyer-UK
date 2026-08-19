@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     .eq("id", user.id).maybeSingle();
 
   if (welcome) welcome.textContent = profile?.full_name?.trim()
-    ? `Welcome, ${profile.full_name.trim()}.`
+    ? `Welcome, ${profile.full_name.trim()}. Your account number is ${profile.account_number || "not yet assigned"}.`
     : `Welcome. Signed in as ${user.email}`;
 
   if (signOut) signOut.addEventListener("click", async () => {
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .select("id,valuation_id,item_name,manufacturer,model,package,item_status").in("valuation_id", ids);
     const itemIds = (items || []).map(i => i.id);
     const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers")
-      .select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at")
+      .select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at,created_at")
       .in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
 
     const visibleOffers = (offers || []).filter(o => ["published", "accepted", "refused"].includes(o.status));
@@ -87,10 +87,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }).join("") : "<p>No customer offers are ready yet. Your submission will appear here when an offer is published.</p>";
 
     if (valuationsBox) valuationsBox.innerHTML = valuations.map(v => {
+      const valuationItems = (items || []).filter(i => i.valuation_id === v.id);
+      const valuationOffers = (offers || []).filter(o => valuationItems.some(i => i.id === o.item_id) && ["published", "accepted", "refused"].includes(o.status));
+      const finalOffer = valuationOffers.find(o => o.offer_type === "final" && ["published", "accepted", "refused"].includes(o.status));
+      const latestOffer = valuationOffers[0];
       const manual = String(v.status) === "manual_review" || v.quote_data?.manualValuation === true;
-      const amount = v.quote_amount == null ? (manual ? "Awaiting manual valuation" : "No price available") : money(v.quote_amount);
+      const displayOffer = finalOffer || latestOffer;
+      const isFinal = !!finalOffer || ["final_offer", "accepted", "refused"].includes(String(v.status));
+      const label = isFinal ? "Final offer" : (manual ? "Manual valuation" : "Automatic quote");
+      const amount = displayOffer ? money(displayOffer.amount) : (v.quote_amount == null ? (manual ? "Awaiting manual valuation" : "No price available") : money(v.quote_amount));
+      const status = displayOffer?.status || v.status || "submitted";
       const date = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString("en-GB") : "";
-      return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${manual ? "Manual valuation" : "Automatic quote"}</p><h3>${esc(v.model || "Equipment submission")}</h3><p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p></div><div class="valuation-meta"><strong>${esc(amount)}</strong><span class="status-badge">${esc(String(v.status || "submitted").replaceAll("_", " "))}</span><small>Submitted ${date}</small></div></article>`;
+      return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${label}</p><h3>${esc(v.model || "Equipment submission")}</h3><p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p></div><div class="valuation-meta"><strong>${esc(amount)}</strong><span class="status-badge">${esc(String(status).replaceAll("_", " "))}</span><small>Submitted ${date}</small></div></article>`;
     }).join("");
 
     document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
