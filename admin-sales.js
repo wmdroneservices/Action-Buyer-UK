@@ -78,7 +78,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const f = document.getElementById("shipment-" + b.dataset.sale); f.hidden = false; f.dataset.type = b.dataset.type;
       const inbound = b.dataset.type === "inbound";
       f.querySelector(".label-urls").value = inbound ? setting.inboundLabel : setting.returnLabel;
-      f.querySelector(".qr-urls").value = inbound ? setting.inboundQr : setting.returnLabel;
       f.querySelector(".qr-urls").value = inbound ? setting.inboundQr : setting.returnQr;
     });
 
