@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Add Inventory Asset | GearCashOut</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="inventory.html">GEARCASHOUT</a></div></header>
+<main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF INVENTORY</p><h1>Add Asset</h1><p>Create a permanent record for purchased equipment.</p></div><a class="btn btn-secondary" href="inventory.html">BACK TO INVENTORY</a></div>
+<section class="account-panel"><form id="asset-form" class="auth-form"><label for="asset_reference">Asset reference</label><input id="asset_reference" name="asset_reference" required placeholder="e.g. ABUK-0001">
+<label for="manufacturer">Manufacturer</label><input id="manufacturer" name="manufacturer" required placeholder="e.g. DJI">
+<label for="model">Model</label><input id="model" name="model" required placeholder="e.g. Mini 4 Pro">
+<label for="serial_number">Serial number</label><input id="serial_number" name="serial_number" placeholder="Enter serial number">
+<label for="purchase_price">Purchase price (£)</label><input id="purchase_price" name="purchase_price" type="number" min="0" step="0.01" required>
+<label for="condition_grade">Condition grade</label><select id="condition_grade" name="condition_grade"><option value="">Select</option><option>Excellent</option><option>Very Good</option><option>Good</option><option>Fair</option><option>For Parts</option><option>Untested</option></select>
+<label for="status">Status</label><select id="status" name="status"><option>Purchased</option><option>Received</option><option>Testing</option><option>Prepared for Resale</option><option>Listed</option><option>Reserved</option><option>Sold</option></select>
+<label for="current_location">Current location</label><select id="current_location" name="current_location"><option value="">Select</option><option>Received Area</option><option>Testing Bench</option><option>Storage</option><option>Photography</option><option>Dispatch</option><option>Sold / Awaiting Handover</option></select>
+<label for="notes">Notes <span class="optional">(optional)</span></label><textarea id="notes" name="notes" rows="5"></textarea>
+<div id="asset-message" class="form-message" role="status" aria-live="polite"></div><button class="btn btn-primary" type="submit">CREATE ASSET</button></form></section></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js"></script><script src="inventory-add.js"></script>
+</body></html>
