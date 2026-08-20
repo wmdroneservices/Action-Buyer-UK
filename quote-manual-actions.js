@@ -2,6 +2,26 @@
 (function () {
   "use strict";
 
+  function goToStep(form, number) {
+    if (typeof window.showStep === "function") {
+      window.showStep(number);
+      return;
+    }
+    form.querySelectorAll(".wizard-step").forEach(function (section) {
+      section.hidden = Number(section.dataset.step) !== number;
+    });
+    const progress = document.getElementById("progress-indicator");
+    if (progress) {
+      progress.querySelectorAll(".progress-step").forEach(function (item, index) {
+        const itemNumber = Number(item.dataset.step || item.textContent.split(".")[0]);
+        item.classList.toggle("active", itemNumber === number);
+        if (itemNumber === number) item.setAttribute("aria-current", "step");
+        else item.removeAttribute("aria-current");
+      });
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("quote-form");
     if (!form) return;
@@ -14,22 +34,23 @@
 
       if (button.id === "continue-with-quote") {
         event.preventDefault();
+        event.stopPropagation();
         event.stopImmediatePropagation();
         try { sessionStorage.setItem("actionBuyerManualValuation", "true"); } catch (_) {}
-        if (typeof window.showStep === "function") window.showStep(13);
+        goToStep(form, 13);
         return;
       }
 
       if (button.id === "add-another-item") {
         event.preventDefault();
+        event.stopPropagation();
         event.stopImmediatePropagation();
         const basket = (() => {
           try { return JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]"); } catch (_) { return []; }
         })();
         try { localStorage.setItem("gearCashOutQuoteBasket", JSON.stringify(Array.isArray(basket) ? basket : [])); } catch (_) {}
-        const formElement = document.getElementById("quote-form");
-        if (formElement) formElement.reset();
-        formElement.querySelectorAll('input[type="file"]').forEach(function (input) { try { input.value = ""; } catch (_) {} });
+        form.reset();
+        form.querySelectorAll('input[type="file"]').forEach(function (input) { try { input.value = ""; } catch (_) {} });
         const category = document.getElementById("gear-category");
         const manufacturer = document.getElementById("gear-manufacturer");
         const model = document.getElementById("dji-model");
@@ -38,7 +59,7 @@
         if (manufacturer) { manufacturer.value = ""; manufacturer.disabled = true; }
         if (model) model.innerHTML = '<option value="">-- Select a model --</option>';
         if (pack) pack.innerHTML = '<option value="">-- Select a package --</option>';
-        if (typeof window.showStep === "function") window.showStep(1);
+        goToStep(form, 1);
       }
     }, true);
   });
