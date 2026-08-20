@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const ids = valuations.map(v => v.id);
       const { data: items } = await auth.supabase
         .from("quote_items")
-        .select("id,valuation_id")
+        .select("id,valuation_id,item_status")
         .in("valuation_id", ids);
       const itemIds = (items || []).map(i => i.id);
       const { data: offers } = itemIds.length
@@ -49,7 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
         : { data: [] };
 
       const byRef = new Map(valuations.map(v => [v.quote_reference, v]));
-      const itemByValuation = new Map((items || []).map(i => [i.valuation_id, i]));
+      const itemsByValuation = new Map();
+      (items || []).forEach(i => {
+        if (!itemsByValuation.has(i.valuation_id)) itemsByValuation.set(i.valuation_id, []);
+        itemsByValuation.get(i.valuation_id).push(i);
+      });
       const offersByItem = new Map();
       (offers || []).forEach(o => {
         if (!offersByItem.has(o.item_id)) offersByItem.set(o.item_id, []);
@@ -62,24 +66,31 @@ document.addEventListener("DOMContentLoaded", () => {
         const valuation = byRef.get(ref);
         if (!valuation) return;
 
-        const item = itemByValuation.get(valuation.id);
-        const itemOffers = item ? (offersByItem.get(item.id) || []) : [];
-        const active = itemOffers.filter(o => !["superseded", "withdrawn"].includes(String(o.status || "")));
+        const valuationItems = itemsByValuation.get(valuation.id) || [];
+        const refusedItems = valuationItems.filter(i => String(i.item_status || "").toLowerCase() === "refused");
+        const actionableItems = valuationItems.filter(i => !["refused", "closed"].includes(String(i.item_status || "").toLowerCase()));
+
+        const allOffers = actionableItems.flatMap(item => offersByItem.get(item.id) || []);
+        const active = allOffers.filter(o => !["superseded", "withdrawn", "refused"].includes(String(o.status || "").toLowerCase()));
         const accepted = active.some(o => o.status === "accepted");
         const responded = active.some(o => o.responded_at);
-        const pending = active.length === 0;
+        const pendingItems = actionableItems.filter(item => {
+          const itemOffers = (offersByItem.get(item.id) || []).filter(o => !["superseded", "withdrawn", "refused"].includes(String(o.status || "").toLowerCase()));
+          return itemOffers.length === 0;
+        });
+        const hasActionableItems = actionableItems.length > 0;
 
         let tone = "wait";
-        let title = "NEXT ACTION";
-        let text = "Awaiting the next customer action.";
+        let title = "NO ACTION REQUIRED";
+        let text = "This quote has no outstanding action for you.";
         let href = `admin-quote.html?id=${encodeURIComponent(valuation.id)}`;
         let button = "OPEN QUOTE";
 
-        if (pending && ["manual_review", "submitted", "new"].includes(String(valuation.status || ""))) {
-          tone = "urgent";
-          title = "NEW QUOTE RECEIVED";
-          text = "Customer awaiting valuation — review the submission and make an offer.";
-          button = "REVIEW & VALUE QUOTE";
+        if (!hasActionableItems && refusedItems.length) {
+          tone = "wait";
+          title = "ITEM REFUSED — NO ACTION REQUIRED";
+          text = "All items in this quote have been refused. No further action is required unless the customer contacts you again.";
+          button = "VIEW REFUSED QUOTE";
         } else if (accepted) {
           tone = "urgent";
           title = "CUSTOMER ACCEPTED OFFER";
@@ -91,6 +102,13 @@ document.addEventListener("DOMContentLoaded", () => {
           title = "CUSTOMER RESPONSE RECEIVED";
           text = "A customer response needs your attention on this quote.";
           button = "REVIEW CUSTOMER RESPONSE";
+        } else if (pendingItems.length) {
+          tone = "urgent";
+          title = refusedItems.length ? "NEW ITEM ACTION REQUIRED" : "NEW QUOTE RECEIVED";
+          text = refusedItems.length
+            ? `${pendingItems.length} item${pendingItems.length === 1 ? "" : "s"} still await${pendingItems.length === 1 ? "s" : ""} valuation. Review the remaining item${pendingItems.length === 1 ? "" : "s"} and make an offer.`
+            : "Customer awaiting valuation — review the submission and make an offer.";
+          button = "REVIEW & VALUE QUOTE";
         } else if (active.length) {
           tone = "wait";
           title = "OFFER SENT — AWAITING CUSTOMER";
