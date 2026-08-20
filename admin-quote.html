@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="admin-actions.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
+<script src="admin-batched-quote.js" defer></script>
 <script src="admin-quote.js" defer></script>
 <script src="admin-customer-details.js" defer></script>
 <script src="admin-photo-loader.js" defer></script>
@@ -20,8 +21,8 @@
 <div class="account-header"><div><p class="section-kicker">STAFF · QUOTE REVIEW</p><h1 id="quote-title">Loading quote...</h1><p id="quote-reference"></p></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:flex-end;"><a class="btn btn-secondary" href="admin-valuations.html">BACK TO VALUATIONS</a><button id="archive-quote" class="btn btn-secondary" type="button">ARCHIVE</button><button id="delete-quote" class="btn quote-delete" type="button">DELETE</button></div></div>
 <div id="admin-message" class="form-message" role="status" aria-live="polite"></div>
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">CUSTOMER</p><h2>Customer details</h2><p>Account identity, contact details and status for the customer who submitted this quote.</p></div><div id="customer-details"><p>Loading...</p></div></section>
-<section class="account-panel"><div class="section-heading"><p class="section-kicker">SUBMISSION</p><h2>Equipment &amp; photographs</h2><p>Use the information and photographs below when assessing an automatic or manual quote.</p></div><div id="quote-details"><p>Loading...</p></div></section>
-<section class="account-panel"><div class="section-heading"><p class="section-kicker">OFFERS</p><h2>Quote offers</h2><p>Offers are handled per item. A customer can accept one item and refuse another. The current offer, customer response and offer history are shown here.</p></div><div id="offer-controls"><p>Loading...</p></div></section>
+<section class="account-panel"><div class="section-heading"><p class="section-kicker">SUBMISSION</p><h2>Equipment &amp; photographs</h2><p>All items submitted under this quote are shown together below.</p></div><div id="quote-details"><p>Loading...</p></div></section>
+<section class="account-panel"><div class="section-heading"><p class="section-kicker">OFFERS</p><h2>Quote items &amp; offers</h2><p>Each item can be offered or refused independently. Complete every item, then send one combined quote email to the customer.</p></div><div id="offer-controls"><p>Loading...</p></div></section>
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">EMAIL HISTORY</p><h2>Messages sent</h2></div><div id="email-history"><p>Loading...</p></div></section>
 </div></main>
 <footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Internal administration.</div></div></footer>
