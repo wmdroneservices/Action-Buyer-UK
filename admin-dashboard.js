@@ -18,14 +18,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     const awaitingStatuses = new Set(["submitted", "manual_review", "pending_review", "awaiting_valuation"]);
     document.getElementById("valuation-count").textContent = (valuations || []).filter(v => awaitingStatuses.has(v.status)).length;
 
-    const { data: sales, error: salesError } = await auth.supabase.from("sales").select("id,status");
+    // Only active sales belong in the live dashboard queue. Archived sales remain
+    // available in Sales Archive and must not be counted here.
+    const { data: sales, error: salesError } = await auth.supabase.from("sales").select("id,status,archived_at").is("archived_at", null);
     if (salesError) { notice("Could not load sales counts.", false); return; }
     const acceptedStatuses = new Set(["collecting_items", "awaiting_delivery", "awaiting_inspection", "inspection", "final_valuation", "payment_processing", "paid"]);
     const accepted = (sales || []).filter(s => acceptedStatuses.has(s.status));
     document.getElementById("accepted-count").textContent = accepted.length;
     const deliveryStatuses = new Set(["collecting_items", "awaiting_delivery"]);
     document.getElementById("delivery-count").textContent = accepted.filter(s => deliveryStatuses.has(s.status)).length;
-    document.getElementById("paid-count").textContent = (sales || []).filter(s => s.status === "paid").length;
+    document.getElementById("paid-count").textContent = accepted.filter(s => s.status === "paid").length;
 
     const { data: customers, error: customerError } = await auth.supabase.rpc("staff_customer_list");
     if (customerError) { notice("Could not load customer count.", false); return; }
