@@ -5,49 +5,10 @@
   const money=n=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(Number(n)||0);
   async function auth(){return window.actionBuyerAuth;}
   async function itemCount(a){const{count,error}=await a.supabase.from("quote_items").select("id",{count:"exact",head:true}).eq("valuation_id",valuationId);return error?0:(count||0);}
-  async function batchedPublish(event){
-    const button=event.target.closest(".publish-offer"); if(!button)return;
-    const a=await auth(); if(!a)return; const count=await itemCount(a); if(count<=1)return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    const itemId=button.dataset.item,type=button.dataset.type,input=document.querySelector(`.offer-price[data-item="${itemId}"][data-type="${type}"]`),amount=Number(input?.value);
-    if(!Number.isFinite(amount)||amount<0){alert("Enter a valid price before publishing the offer.");return;}
-    button.disabled=true;
-    const{error}=await a.supabase.rpc("publish_quote_offer",{p_item_id:itemId,p_offer_type:type,p_amount:amount,p_internal_notes:type==="final"?"Final physical inspection offer":null,p_customer_message:type==="final"?"This is your final offer following our inspection. Please accept or refuse it in your account.":"We have reviewed your submission and made a manual offer."});
-    button.disabled=false;if(error){alert(error.message||"The offer could not be published.");return;}
-    const msg=document.getElementById("admin-message");if(msg){msg.textContent="Item offer saved. Complete all items, then send one batched quote email.";msg.className="form-message success";}
-    location.reload();
-  }
-  async function batchedRefuse(event){
-    const button=event.target.closest(".refuse-item-button");if(!button)return;const a=await auth();if(!a)return;const count=await itemCount(a);if(count<=1)return;
-    event.preventDefault();event.stopImmediatePropagation();
-    const reason=prompt("Optional internal reason for refusing this item:","");if(reason===null)return;if(!confirm("Refuse this item? Other items in this quote will remain available."))return;
-    button.disabled=true;const{error}=await a.supabase.rpc("staff_refuse_quote_item",{p_item_id:button.dataset.item,p_internal_reason:reason.trim()||null});button.disabled=false;
-    if(error){alert(error.message||"The item could not be refused.");return;}location.reload();
-  }
-  async function sendBatchedEmail(){
-    const a=await auth();if(!a||!valuationId)return;
-    const count=await itemCount(a);if(count<=1){alert("This is a single-item quote; its normal email process is used.");return;}
-    const{data:items,error:itemsError}=await a.supabase.from("quote_items").select("id,item_status").eq("valuation_id",valuationId);if(itemsError){alert(itemsError.message);return;}
-    const{data:offers}=await a.supabase.from("quote_offers").select("id,item_id,status").in("item_id",(items||[]).map(i=>i.id));
-    const ready=(items||[]).every(i=>i.item_status==="refused"||((offers||[]).some(o=>o.item_id===i.id&&o.status==="published")));
-    if(!ready){alert("Complete an offer or refusal for every item before sending the customer the quote.");return;}
-    if(!confirm("Send ONE combined quote email containing all items and the current total?"))return;
-    const{data,error}=await a.supabase.rpc("queue_quote_review_email",{p_valuation_id:valuationId});if(error){alert(error.message||"The combined quote email could not be queued.");return;}
-    if(data?.email_id){try{await a.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:data.email_id,event_type:"offer_published"}});}catch(_){} }
-    alert("One combined quote email has been queued for the customer.");location.reload();
-  }
-  function addButton(){
-    if(!valuationId||document.getElementById("send-batched-quote"))return;
-    const header=document.querySelector(".account-header > div:last-child");if(!header)return;
-    const b=document.createElement("button");b.id="send-batched-quote";b.type="button";b.className="btn btn-primary";b.textContent="SEND ONE QUOTE EMAIL";b.addEventListener("click",sendBatchedEmail);header.insertBefore(b,header.firstChild);
-  }
-  function observeTotals(){
-    const box=document.getElementById("offer-controls");if(!box||document.getElementById("staff-batched-total"))return;
-    const total=document.createElement("div");total.id="staff-batched-total";total.className="quote-basket-total";total.style.cssText="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;margin:1rem 0;font-size:1.2rem";
-    total.innerHTML="<strong>Current combined offer total</strong><strong>£0.00</strong>";box.prepend(total);
-    const refresh=()=>{let sum=0;box.querySelectorAll(".offer-price").forEach(i=>{const v=Number(i.value);if(Number.isFinite(v)&&v>=0)sum+=v;});total.lastElementChild.textContent=money(sum);};refresh();box.addEventListener("input",refresh);
-  }
-  document.addEventListener("click",batchedPublish,true);
-  document.addEventListener("click",batchedRefuse,true);
-  document.addEventListener("DOMContentLoaded",()=>{addButton();setTimeout(observeTotals,300);});
+  async function batchedPublish(event){const button=event.target.closest(".publish-offer");if(!button)return;const a=await auth();if(!a)return;const count=await itemCount(a);if(count<=1)return;event.preventDefault();event.stopImmediatePropagation();const itemId=button.dataset.item,type=button.dataset.type,input=document.querySelector(`.offer-price[data-item="${itemId}"][data-type="${type}"]`),amount=Number(input?.value);if(!Number.isFinite(amount)||amount<0){alert("Enter a valid price before publishing the offer.");return;}button.disabled=true;const{error}=await a.supabase.rpc("publish_quote_offer",{p_item_id:itemId,p_offer_type:type,p_amount:amount,p_internal_notes:type==="final"?"Final physical inspection offer":null,p_customer_message:type==="final"?"This is your final offer following our inspection. Please accept or refuse it in your account.":"We have reviewed your submission and made a manual offer."});button.disabled=false;if(error){alert(error.message||"The offer could not be published.");return;}const msg=document.getElementById("admin-message");if(msg){msg.textContent="Item offer saved. Complete all items, then send one batched quote email.";msg.className="form-message success";}location.reload();}
+  async function batchedRefuse(event){const button=event.target.closest(".refuse-item-button");if(!button)return;const a=await auth();if(!a)return;const count=await itemCount(a);if(count<=1)return;event.preventDefault();event.stopImmediatePropagation();const reason=prompt("Optional internal reason for refusing this item:","");if(reason===null)return;if(!confirm("Refuse this item? Other items in this quote will remain available."))return;button.disabled=true;const{error}=await a.supabase.rpc("staff_refuse_quote_item",{p_item_id:button.dataset.item,p_internal_reason:reason.trim()||null});button.disabled=false;if(error){alert(error.message||"The item could not be refused.");return;}location.reload();}
+  async function sendBatchedEmail(){const a=await auth();if(!a||!valuationId)return;const count=await itemCount(a);if(count<=1){alert("This is a single-item quote; its normal email process is used.");return;}const{data:items,error:itemsError}=await a.supabase.from("quote_items").select("id,item_status").eq("valuation_id",valuationId);if(itemsError){alert(itemsError.message);return;}const{data:offers}=await a.supabase.from("quote_offers").select("id,item_id,status").in("item_id",(items||[]).map(i=>i.id));const ready=(items||[]).every(i=>i.item_status==="refused"||((offers||[]).some(o=>o.item_id===i.id&&o.status==="published")));if(!ready){alert("Complete an offer or refusal for every item before sending the customer the quote.");return;}if(!confirm("Send ONE combined quote email containing all items and the current total?"))return;const{data,error}=await a.supabase.rpc("queue_quote_review_email",{p_valuation_id:valuationId});if(error){alert(error.message||"The combined quote email could not be queued.");return;}if(data?.first_offer_id){try{await a.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:data.first_offer_id,event_type:"offer_published"}});}catch(_){} }alert("One combined quote email has been queued for the customer.");location.reload();}
+  function addButton(){if(!valuationId||document.getElementById("send-batched-quote"))return;const header=document.querySelector(".account-header > div:last-child");if(!header)return;const b=document.createElement("button");b.id="send-batched-quote";b.type="button";b.className="btn btn-primary";b.textContent="SEND ONE QUOTE EMAIL";b.addEventListener("click",sendBatchedEmail);header.insertBefore(b,header.firstChild);}
+  function observeTotals(){const box=document.getElementById("offer-controls");if(!box||document.getElementById("staff-batched-total"))return;const total=document.createElement("div");total.id="staff-batched-total";total.className="quote-basket-total";total.style.cssText="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;margin:1rem 0;font-size:1.2rem";total.innerHTML="<strong>Current combined offer total</strong><strong>£0.00</strong>";box.prepend(total);const refresh=()=>{let sum=0;box.querySelectorAll(".offer-price").forEach(i=>{const v=Number(i.value);if(Number.isFinite(v)&&v>=0)sum+=v;});total.lastElementChild.textContent=money(sum);};refresh();box.addEventListener("input",refresh);}
+  document.addEventListener("click",batchedPublish,true);document.addEventListener("click",batchedRefuse,true);document.addEventListener("DOMContentLoaded",()=>{addButton();setTimeout(observeTotals,300);});
 })();
