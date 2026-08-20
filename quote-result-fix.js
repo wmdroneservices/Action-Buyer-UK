@@ -67,7 +67,7 @@
         '<p><strong>Equipment:</strong> ' + categoryName + '</p>' +
         '<p><strong>Manufacturer:</strong> ' + manufacturerName + '</p>' +
         '<p><strong>Model:</strong> ' + modelName + '</p>' +
-        '<p>We do not currently have a verified automatic purchase price for this equipment. Your information and photographs will be reviewed manually before a purchase valuation is confirmed.</p>' +
+        '<p>Your information and photographs will be reviewed manually before a purchase valuation is confirmed.</p>' +
         '<p><strong>No £0 offer has been made.</strong></p>' +
       '</div>' +
       '<div class="quote-basket-preview">' +
