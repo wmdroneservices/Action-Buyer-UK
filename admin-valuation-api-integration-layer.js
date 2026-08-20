@@ -1,11 +1,19 @@
 // Admin Valuation API Integration Layer
-// Connects admin dashboard workflows with quote, valuation and offer services.
+// Connects admin dashboard actions with quote, valuation and offer services.
 
 export const AdminValuationAPI = {
   async getPendingQuotes() {
     return {
       status: 'pending_review',
       quotes: []
+    };
+  },
+
+  async getQuoteForReview(quoteId) {
+    return {
+      quoteId,
+      items: [],
+      valuationStatus: 'not_started'
     };
   },
 
