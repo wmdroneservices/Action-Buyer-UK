@@ -72,7 +72,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           setTimeout(() => window.location.reload(), 700);
         });
       }
+
       details.prepend(panel);
+
+      const progress = details.querySelector(".purchase-progress");
+      if (progress && !progress.querySelector(".bank-progress-step")) {
+        const steps = progress.querySelectorAll("p");
+        const bankStep = document.createElement("p");
+        bankStep.className = "bank-progress-step";
+        bankStep.innerHTML = `<strong>3. Bank details</strong> — ${complete ? "Received" : "Required before payment"}`;
+        if (steps[1]) steps[1].after(bankStep);
+        else progress.appendChild(bankStep);
+        [...progress.querySelectorAll("p")].forEach((p, index) => {
+          if (index >= 3) p.innerHTML = p.innerHTML.replace(/<strong>\d+\./, `<strong>${index + 1}.`);
+        });
+      }
     }
   }
 
