@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const auth = window.actionBuyerAuth;
   if (!box || !auth) return;
 
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("archive") === "1" || params.get("returned") === "1") return;
+
   let timer = null;
   let loading = false;
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -19,19 +22,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,bank_details_confirmed_at,total_amount").in("sale_reference", refs);
       if (!sales?.length) return;
-
       const saleIds = sales.map(s => s.id);
       const { data: saleItems } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("sale_id", saleIds);
       const quoteItemIds = (saleItems || []).map(x => x.quote_item_id).filter(Boolean);
-      const { data: refusedOffers } = quoteItemIds.length
-        ? await auth.supabase.from("quote_offers").select("id,item_id,status,offer_type,responded_at").in("item_id", quoteItemIds).eq("status", "refused")
-        : { data: [] };
+      const { data: refusedOffers } = quoteItemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,status,offer_type,responded_at").in("item_id", quoteItemIds).eq("status", "refused") : { data: [] };
       const refusedBySale = new Set();
       (saleItems || []).forEach(si => { if ((refusedOffers || []).some(o => o.item_id === si.quote_item_id)) refusedBySale.add(si.sale_id); });
-
       const byRef = new Map(sales.map(s => [s.sale_reference, s]));
+
       cards.forEach(card => {
-        card.querySelector(".sale-next-action")?.remove();
+        if (card.querySelector(".sale-next-action")) return;
         const ref = card.querySelector(".valuation-ref")?.textContent?.trim();
         const sale = byRef.get(ref);
         if (!sale) return;
@@ -41,54 +41,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (["collecting_items", "ready_for_shipping", "shipping"].includes(status)) {
           const inboundText = card.textContent.includes("CUSTOMER → US") && card.textContent.includes("label_created");
-          if (!inboundText) {
-            tone = "urgent";
-            title = "CUSTOMER ACCEPTED OFFER — ACTION REQUIRED";
-            text = "Create the customer → GearCashOut shipping label and send it to the customer.";
-          } else {
-            title = "WAITING FOR CUSTOMER";
-            text = "The inbound shipment has been created. Wait for the customer to send the item.";
-          }
+          if (!inboundText) { tone="urgent"; title="CUSTOMER ACCEPTED OFFER — ACTION REQUIRED"; text="Create the customer → GearCashOut shipping label and send it to the customer."; }
+          else { title="WAITING FOR CUSTOMER"; text="The inbound shipment has been created. Wait for the customer to send the item."; }
         } else if (["received", "inspection"].includes(status)) {
-          tone = "urgent";
-          title = "ITEM RECEIVED — ACTION REQUIRED";
-          text = "Inspect the item and complete the next valuation/payment decision.";
+          tone="urgent"; title="ITEM RECEIVED — ACTION REQUIRED"; text="Inspect the item and complete the next valuation/payment decision.";
         } else if (status === "payment_due" && !sale.bank_details_confirmed_at) {
-          tone = "urgent";
-          title = "AWAITING CUSTOMER BANK DETAILS";
-          text = "Waiting for the customer's bank details before payment can be sent.";
+          tone="urgent"; title="AWAITING CUSTOMER BANK DETAILS"; text="Waiting for the customer's bank details before payment can be sent.";
         } else if (status === "payment_due" && sale.bank_details_confirmed_at) {
-          tone = "urgent";
-          title = "PAYMENT DUE — ACTION REQUIRED";
-          text = `Customer bank details are confirmed. Pay ${new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(sale.total_amount || 0))} and record the payment.`;
+          tone="urgent"; title="PAYMENT DUE — ACTION REQUIRED"; text=`Customer bank details are confirmed. Pay ${new Intl.NumberFormat("en-GB", { style:"currency", currency:"GBP" }).format(Number(sale.total_amount || 0))} and record the payment.`;
         } else if (status === "paid" && hasRefusal) {
-          tone = "urgent";
-          title = "CUSTOMER REFUSED — ACTION REQUIRED";
-          text = "Arrange the GearCashOut → customer return shipment for the refused item.";
+          tone="urgent"; title="CUSTOMER REFUSED — ACTION REQUIRED"; text="Arrange the GearCashOut → customer return shipment for the refused item.";
         } else if (status === "paid") {
-          title = "NO ACTION REQUIRED";
-          text = "Payment has been sent. No return shipment is required unless a customer refusal requires the item to be returned.";
+          title="NO ACTION REQUIRED"; text="Payment has been sent. No return shipment is required unless a customer refusal requires the item to be returned.";
         } else if (status === "return_shipped") {
-          title = "RETURN SHIPPED — WAITING FOR DELIVERY";
-          text = "The return is on its way to the customer.";
+          title="RETURN SHIPPED — WAITING FOR DELIVERY"; text="The return is on its way to the customer.";
         } else if (["completed", "cancelled"].includes(status)) {
-          title = "NO ACTION REQUIRED";
-          text = "This sale has been completed or cancelled.";
+          title="NO ACTION REQUIRED"; text="This sale has been completed or cancelled.";
         } else {
-          title = "SALE IN PROGRESS";
-          text = "Open the sale to see the current status and next step.";
+          title="SALE IN PROGRESS"; text="Open the sale to see the current status and next step.";
         }
 
-        const styles = tone === "urgent" ? "border-left:5px solid #c94b2c;background:#fff3ee;color:#8f321f;" : "border-left:5px solid #d88732;background:#fffaf2;color:#68451f;";
-        const el = document.createElement("div");
-        el.className = "sale-next-action";
-        el.style.cssText = `margin:.9rem 0;padding:12px 14px;border-radius:4px;${styles}`;
-        el.innerHTML = `<strong style="display:block;font-size:.8rem;letter-spacing:.08em;">${esc(title)}</strong><span style="display:block;margin-top:.25rem;font-weight:600;">${esc(text)}</span>${tone === "urgent" ? `<a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(sale.id)}" style="margin-top:.6rem;">VIEW SALE &amp; ACTION</a>` : ""}`;
+        const styles=tone==="urgent"?"border-left:5px solid #c94b2c;background:#fff3ee;color:#8f321f;":"border-left:5px solid #d88732;background:#fffaf2;color:#68451f;";
+        const el=document.createElement("div"); el.className="sale-next-action"; el.style.cssText=`margin:.9rem 0;padding:12px 14px;border-radius:4px;${styles}`;
+        el.innerHTML=`<strong style="display:block;font-size:.8rem;letter-spacing:.08em;">${esc(title)}</strong><span style="display:block;margin-top:.25rem;font-weight:600;">${esc(text)}</span>${tone==="urgent"?`<a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(sale.id)}" style="margin-top:.6rem;">VIEW SALE &amp; ACTION</a>`:""}`;
         card.querySelector(".valuation-meta")?.prepend(el);
       });
-    } finally { loading = false; }
+    } finally { loading=false; }
   }
 
-  new MutationObserver(schedule).observe(box, { childList: true, subtree: true });
-  setTimeout(enhance, 700);
+  new MutationObserver(schedule).observe(box,{childList:true,subtree:true});
+  setTimeout(enhance,700);
 });
