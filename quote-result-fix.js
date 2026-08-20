@@ -77,8 +77,8 @@
         '<p><strong>Total:</strong> Manual valuation after review</p>' +
       '</div>' +
       '<div class="manual-quote-actions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem;">' +
-        '<button type="button" class="btn" id="add-another-item">Add Another Item</button>' +
-        '<button type="button" class="btn" id="continue-with-quote" data-quote-action="manual">Continue with This Quote</button>' +
+        '<button type="button" class="btn btn-secondary" id="add-another-item">Add Another Item</button>' +
+        '<button type="button" class="btn btn-primary" id="continue-with-quote" data-quote-action="manual">Continue with This Quote</button>' +
       '</div>';
   };
 })();
