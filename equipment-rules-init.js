@@ -5,11 +5,21 @@
 (function () {
   "use strict";
 
+  function loadScript(src) {
+    if (document.querySelector('script[src="' + src + '"]')) return;
+    const script = document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
   window.gearCashOutEquipmentRulesReady = function () {
     return typeof window.gearCashOutApplyEquipmentRules === "function";
   };
 
   window.gearCashOutInitRules = function () {
+    loadScript("equipment-rules-actions.js");
+
     if (window.gearCashOutEquipmentRulesReady()) {
       window.gearCashOutApplyEquipmentRules();
     }
