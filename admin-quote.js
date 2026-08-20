@@ -39,6 +39,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     .replaceAll("-", " ")
     .replace(/\b\w/g, m => m.toUpperCase());
 
+  const displayOfferType = type => type === "automatic" ? "Valuation" : pretty(type);
+
   function setMessage(text, ok = true) {
     message.textContent = text;
     message.className = "form-message " + (ok ? "success" : "error");
@@ -139,7 +141,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div><strong>Legal right to sell</strong><p>${esc(q.legalRight || "—")}</p></div>
           <div><strong>Drone serial</strong><p>${esc(q.droneSerial || "—")}</p></div>
           <div><strong>Controller serial</strong><p>${esc(q.controllerSerial || "—")}</p></div>
-          <div><strong>Automatic quote</strong><p>${valuation.quote_amount == null ? "Manual valuation" : money(valuation.quote_amount)}</p></div>
+          <div><strong>Submitted valuation</strong><p>${valuation.quote_amount == null ? "Awaiting manual valuation" : money(valuation.quote_amount)}</p></div>
         </div>
         <hr>
         <h3>Package contents</h3><ul>${contents}</ul>
@@ -153,7 +155,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       ? items.map(item => {
           const itemOffers = (offers || []).filter(o => o.item_id === item.id);
           const current = type => itemOffers.find(o => o.offer_type === type && o.status !== "superseded");
-          const automatic = current("automatic");
           const manual = current("manual");
           const final = current("final");
           return `<article class="valuation-card" style="margin-bottom:1rem;">
@@ -162,11 +163,10 @@ document.addEventListener("DOMContentLoaded", async () => {
               <p>${esc(item.manufacturer || valuation.manufacturer || "")} ${esc(item.model || valuation.model || "")}${item.package ? " — " + esc(item.package) : ""}</p>
               <p><strong>Item status:</strong> ${esc(pretty(item.item_status || "pending"))}</p>
               <div style="display:grid;gap:.75rem;">
-                ${offerControl("Automatic", automatic, item.id, "automatic")}
-                ${offerControl("Manual", manual, item.id, "manual")}
+                ${offerControl("Manual offer", manual, item.id, "manual")}
                 ${offerControl("Final inspection offer", final, item.id, "final")}
               </div>
-              ${itemOffers.length ? `<details style="margin-top:1rem;"><summary>Offer history</summary>${itemOffers.map(o => `<p><strong>${esc(pretty(o.offer_type))}</strong>: ${money(o.amount)} — ${esc(pretty(o.status))}${o.responded_at ? " · Responded " + new Date(o.responded_at).toLocaleString("en-GB") : ""}</p>`).join("")}</details>` : ""}
+              ${itemOffers.length ? `<details style="margin-top:1rem;"><summary>Offer history</summary>${itemOffers.map(o => `<p><strong>${esc(displayOfferType(o.offer_type))}</strong>: ${money(o.amount)} — ${esc(pretty(o.status))}${o.responded_at ? " · Responded " + new Date(o.responded_at).toLocaleString("en-GB") : ""}</p>`).join("")}</details>` : ""}
             </div>
           </article>`;
         }).join("")
@@ -194,9 +194,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           p_internal_notes: type === "final" ? "Final physical inspection offer" : null,
           p_customer_message: type === "final"
             ? "This is your final offer following our inspection. Please accept or refuse it in your account."
-            : type === "manual"
-              ? "We have reviewed your submission and made a manual offer."
-              : "Your automatic GearCashOut offer is ready."
+            : "We have reviewed your submission and made a manual offer."
         });
         btn.disabled = false;
         if (error) {
@@ -214,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `<div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(120px,180px) auto;gap:.5rem;align-items:end;">
       <div><strong>${esc(label)}</strong><div><span class="status-badge">${esc(pretty(offer?.status || "not published"))}</span>${offer?.responded_at ? `<small style="margin-left:.5rem;">Responded ${new Date(offer.responded_at).toLocaleString("en-GB")}</small>` : ""}</div></div>
       <input class="offer-price" data-item="${esc(itemId)}" data-type="${esc(type)}" type="number" min="0" step="0.01" value="${offer?.amount ?? ""}" placeholder="Price">
-      <button class="btn ${type === "automatic" ? "btn-secondary" : "btn-primary"} publish-offer" data-item="${esc(itemId)}" data-type="${esc(type)}" type="button">${offer ? "UPDATE" : "PUBLISH"}</button>
+      <button class="btn btn-primary publish-offer" data-item="${esc(itemId)}" data-type="${esc(type)}" type="button">${offer ? "UPDATE" : "PUBLISH"}</button>
     </div>`;
   }
 
