@@ -11,6 +11,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+  const maskAccount = value => value ? `XXXX${String(value).slice(-4)}` : "";
+  const maskSort = value => value ? `XX-XX-${String(value).slice(-2)}` : "";
+
   async function attachForms() {
     const cards = document.querySelectorAll(".sale-card");
     for (const card of cards) {
@@ -20,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const { data: sale } = await auth.supabase
         .from("sales")
-        .select("id,sale_reference,status,payment_status,bank_account_name,bank_sort_code,bank_account_number,bank_details_confirmed_at")
+        .select("id,sale_reference,status,payment_status,bank_account_name,bank_sort_code,bank_account_number,bank_details_confirmed_at,bank_details_storage_consent,bank_details_deleted_at")
         .eq("user_id", session.user.id)
         .eq("sale_reference", ref)
         .maybeSingle();
@@ -28,20 +31,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       card.dataset.bankDetailsAttached = "1";
       const details = card.querySelector(".sale-details");
-      if (!details) continue;
-      if (details.querySelector(".bank-details-customer")) continue;
+      if (!details || details.querySelector(".bank-details-customer")) continue;
 
       const complete = !!(sale.bank_account_name && sale.bank_sort_code && sale.bank_account_number && sale.bank_details_confirmed_at);
+      const deleted = !!sale.bank_details_deleted_at && !complete;
       const panel = document.createElement("div");
       panel.className = "shipping-block bank-details-customer";
 
       if (complete) {
-        panel.innerHTML = `<h4>Bank details</h4><p><strong>Bank details received.</strong> Your payment details have been securely recorded.</p><p>Account name: ${esc(sale.bank_account_name)}<br>Sort code: ${esc(sale.bank_sort_code)}<br>Account number: ${esc(sale.bank_account_number)}</p>`;
-      } else if (!["paid","completed","cancelled"].includes(sale.status)) {
+        const retentionText = sale.bank_details_storage_consent
+          ? "You authorised GearCashOut to retain these details for future payments."
+          : "These details are being retained only for the payment process and will be automatically deleted after the temporary retention period.";
+        panel.innerHTML = `<h4>Bank details</h4><p><strong>Bank details received.</strong> ${esc(retentionText)}</p><p>Account name: ${esc(sale.bank_account_name)}<br>Sort code: ${esc(maskSort(sale.bank_sort_code))}<br>Account number: ${esc(maskAccount(sale.bank_account_number))}</p>`;
+      } else if (deleted) {
+        panel.innerHTML = `<h4>Bank details</h4><p>Your bank details have been securely deleted because they are no longer required.</p>`;
+      } else if (!["paid", "completed", "cancelled"].includes(sale.status)) {
         panel.innerHTML = `<h4>Bank details required</h4><p>Thank you for accepting our offer. Before we can pay you, please provide the bank account details you would like us to use.</p><form class="customer-bank-form">
           <label>Account name<input name="account_name" type="text" autocomplete="name" required></label>
           <label>Sort code<input name="sort_code" type="text" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="12-34-56" required></label>
           <label>Account number<input name="account_number" type="text" inputmode="numeric" autocomplete="off" maxlength="8" required></label>
+          <label style="display:flex;gap:.6rem;align-items:flex-start;margin-top:.75rem"><input name="storage_consent" type="checkbox" value="yes" style="width:auto;margin-top:.2rem"><span><strong>Keep my bank details for future payments</strong><br><small>I authorise GearCashOut to securely retain these bank details for future payments for items I sell to GearCashOut. I understand I can withdraw this permission.</small></span></label>
           <button class="btn btn-primary" type="submit">SAVE BANK DETAILS</button>
           <p class="bank-form-message" role="status" aria-live="polite"></p>
         </form>`;
@@ -59,7 +68,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             p_sale_id: sale.id,
             p_account_name: String(data.get("account_name") || "").trim(),
             p_sort_code: String(data.get("sort_code") || "").trim(),
-            p_account_number: String(data.get("account_number") || "").trim()
+            p_account_number: String(data.get("account_number") || "").trim(),
+            p_storage_consent: data.get("storage_consent") === "yes"
           });
           if (error) {
             msg.textContent = error.message || "Bank details could not be saved.";
@@ -80,7 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const steps = progress.querySelectorAll("p");
         const bankStep = document.createElement("p");
         bankStep.className = "bank-progress-step";
-        bankStep.innerHTML = `<strong>3. Bank details</strong> — ${complete ? "Received" : "Required before payment"}`;
+        bankStep.innerHTML = `<strong>3. Bank details</strong> — ${complete ? "Received" : deleted ? "Deleted after retention period" : "Required before payment"}`;
         if (steps[1]) steps[1].after(bankStep);
         else progress.appendChild(bankStep);
         [...progress.querySelectorAll("p")].forEach((p, index) => {
