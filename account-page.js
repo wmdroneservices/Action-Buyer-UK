@@ -67,14 +67,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       .select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at,created_at")
       .in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
 
-    // Accepted/refused offers move out of the active offers area. Accepted items are
-    // represented by the combined sale card rendered by account-sales.js.
     const activeOffers = (offers || []).filter(o => o.status === "published");
     if (offersBox) offersBox.innerHTML = activeOffers.length ? activeOffers.map(o => {
       const item = (items || []).find(i => i.id === o.item_id);
-      const label = o.offer_type === "automatic" ? "Automatic quote" : o.offer_type === "manual" ? "Manual quote" : "Final offer";
+      const label = o.offer_type === "manual" ? "Manual valuation offer" : o.offer_type === "final" ? "Final offer" : "Offer";
       return `<article class="valuation-card offer-card"><div><span class="valuation-ref">${esc(item?.item_name || "Equipment")}</span><p class="section-kicker">${label}</p><h3>${esc(item?.model || item?.manufacturer || "Equipment")}</h3><p>${esc(o.customer_message || "Your offer is ready to review.")}</p></div><div class="valuation-meta"><strong>${money(o.amount)}</strong><span class="status-badge">READY TO REVIEW</span><div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${o.id}">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${o.id}">REFUSE</button></div></div></article>`;
-    }).join("") : "<p>No active offers. Accepted offers are now shown together as a sale below.</p>";
+    }).join("") : "<p>No active offers. Accepted offers are shown as purchases below.</p>";
 
     if (valuationsBox) {
       const pendingValuations = valuations.filter(v => {
@@ -88,10 +86,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const valuationOffers = (offers || []).filter(o => valuationItems.some(i => i.id === o.item_id) && ["published", "accepted", "refused"].includes(o.status));
         const finalOffer = valuationOffers.find(o => o.offer_type === "final");
         const latestOffer = valuationOffers[0];
-        const manual = String(v.status) === "manual_review" || v.quote_data?.manualValuation === true;
+        const manual = true;
         const displayOffer = finalOffer || latestOffer;
-        const label = finalOffer ? "Final offer" : (manual ? "Manual valuation" : "Automatic quote");
-        const amount = displayOffer ? money(displayOffer.amount) : (v.quote_amount == null ? (manual ? "Awaiting manual valuation" : "No price available") : money(v.quote_amount));
+        const label = finalOffer ? "Final offer" : "Manual valuation";
+        const amount = displayOffer ? money(displayOffer.amount) : (v.quote_amount == null ? "Awaiting manual valuation" : money(v.quote_amount));
         const status = displayOffer?.status || v.status || "submitted";
         const date = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString("en-GB") : "";
         return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${label}</p><h3>${esc(v.model || "Equipment submission")}</h3><p>${esc(v.manufacturer || "")}${v.package ? " — " + esc(v.package) : ""}</p></div><div class="valuation-meta"><strong>${esc(amount)}</strong><span class="status-badge">${esc(String(status).replaceAll("_", " "))}</span><small>Submitted ${date}</small></div></article>`;
