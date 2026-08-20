@@ -50,9 +50,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   section.className = "account-panel";
   section.innerHTML = `
     <div class="section-heading">
-      <p class="section-kicker">ACCEPTED SALE</p>
-      <h2>Your purchase</h2>
-      <p>Your accepted offer is now one purchase. Open it to see the complete progress and shipping history.</p>
+      <p class="section-kicker">ACCEPTED SALES</p>
+      <h2>Your purchases</h2>
+      <p>Each accepted offer is shown as its own purchase below. Open a purchase to see its complete progress and shipping history.</p>
     </div>
     ${sales.map(s => {
       const si = (items || []).filter(i => i.sale_id === s.id);
