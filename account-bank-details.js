@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const { data: sale } = await auth.supabase
         .from("sales")
-        .select("id,sale_reference,payment_status,bank_account_name,bank_sort_code,bank_account_number,bank_details_confirmed_at")
+        .select("id,sale_reference,status,payment_status,bank_account_name,bank_sort_code,bank_account_number,bank_details_confirmed_at")
         .eq("user_id", session.user.id)
         .eq("sale_reference", ref)
         .maybeSingle();
@@ -29,9 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       card.dataset.bankDetailsAttached = "1";
       const details = card.querySelector(".sale-details");
       if (!details) continue;
-
-      const existing = details.querySelector(".bank-details-customer");
-      if (existing) continue;
+      if (details.querySelector(".bank-details-customer")) continue;
 
       const complete = !!(sale.bank_account_name && sale.bank_sort_code && sale.bank_account_number && sale.bank_details_confirmed_at);
       const panel = document.createElement("div");
