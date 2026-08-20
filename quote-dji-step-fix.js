@@ -1,13 +1,13 @@
 /* DJI navigation compatibility fix.
-   quote.js owns normal navigation and currentStep state.
-   Step 6 is intentionally kept visible because package batteries are part of
-   the valuation workflow. This file also loads the start-of-wizard fix early
-   so its document-level capture handler runs before the older form handlers.
+   The start-of-wizard navigation fix must be loaded immediately. The previous
+   version injected it from a DOMContentLoaded callback, which was too late for
+   the injected script to register its own DOMContentLoaded handler. That left
+   Step 3's package list empty and the Next button unable to advance.
 */
 (function loadStartNavigationFix() {
   if (document.querySelector('script[data-quote-start-navigation-fix]')) return;
   const script = document.createElement("script");
-  script.src = "quote-navigation-start-fix.js";
+  script.src = "quote-navigation-start-fix.js?v=20260820-3";
   script.async = false;
   script.dataset.quoteStartNavigationFix = "true";
   document.head.appendChild(script);
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function loadConsistency() {
     if (document.querySelector('script[data-dji-battery-consistency-fix]')) return;
     const script = document.createElement("script");
-    script.src = "quote-battery-consistency-fix.js";
+    script.src = "quote-battery-consistency-fix.js?v=20260820-3";
     script.defer = true;
     script.dataset.djiBatteryConsistencyFix = "true";
     document.head.appendChild(script);
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadConsistency();
   } else {
     const script = document.createElement("script");
-    script.src = "quote-battery-fix.js";
+    script.src = "quote-battery-fix.js?v=20260820-3";
     script.defer = true;
     script.dataset.djiBatteryFix = "true";
     script.onload = loadConsistency;
