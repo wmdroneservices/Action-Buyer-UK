@@ -5,12 +5,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!session) return;
 
   const esc = value => String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const maskAccount = value => value ? `XXXX${String(value).slice(-4)}` : "";
   const maskSort = value => value ? `XX-XX-${String(value).slice(-2)}` : "";
 
@@ -20,15 +16,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (card.dataset.bankDetailsAttached === "1") continue;
       const ref = card.querySelector(".valuation-ref")?.textContent?.trim();
       if (!ref) continue;
-
-      const { data: sale } = await auth.supabase
-        .from("sales")
+      const { data: sale } = await auth.supabase.from("sales")
         .select("id,sale_reference,status,payment_status,bank_account_name,bank_sort_code,bank_account_number,bank_details_confirmed_at,bank_details_storage_consent,bank_details_deleted_at")
-        .eq("user_id", session.user.id)
-        .eq("sale_reference", ref)
-        .maybeSingle();
+        .eq("user_id", session.user.id).eq("sale_reference", ref).maybeSingle();
       if (!sale) continue;
-
       card.dataset.bankDetailsAttached = "1";
       const details = card.querySelector(".sale-details");
       if (!details || details.querySelector(".bank-details-customer")) continue;
@@ -42,7 +33,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         const retentionText = sale.bank_details_storage_consent
           ? "You authorised GearCashOut to retain these details for future payments."
           : "These details are being retained only for the payment process and will be automatically deleted after the temporary retention period.";
-        panel.innerHTML = `<h4>Bank details</h4><p><strong>Bank details received.</strong> ${esc(retentionText)}</p><p>Account name: ${esc(sale.bank_account_name)}<br>Sort code: ${esc(maskSort(sale.bank_sort_code))}<br>Account number: ${esc(maskAccount(sale.bank_account_number))}</p>`;
+        panel.innerHTML = `<h4>Bank details</h4><p><strong>Bank details received.</strong> ${esc(retentionText)}</p><p>Account name: ${esc(sale.bank_account_name)}<br>Sort code: ${esc(maskSort(sale.bank_sort_code))}<br>Account number: ${esc(maskAccount(sale.bank_account_number))}</p>${sale.bank_details_storage_consent ? `<button type="button" class="btn btn-secondary withdraw-bank-consent">REMOVE SAVED BANK DETAILS</button><p class="bank-withdraw-message" role="status" aria-live="polite"></p>` : ""}`;
+        const withdraw = panel.querySelector(".withdraw-bank-consent");
+        if (withdraw) withdraw.addEventListener("click", async () => {
+          if (!confirm("Remove your saved bank details and withdraw permission for GearCashOut to retain them for future payments?")) return;
+          withdraw.disabled = true;
+          const { error } = await auth.supabase.rpc("withdraw_bank_details_consent");
+          const msg = panel.querySelector(".bank-withdraw-message");
+          if (error) { withdraw.disabled = false; msg.textContent = error.message || "Could not remove the saved bank details."; msg.className = "bank-withdraw-message error"; return; }
+          msg.textContent = "Saved bank details removed.";
+          msg.className = "bank-withdraw-message success";
+          setTimeout(() => window.location.reload(), 700);
+        });
       } else if (deleted) {
         panel.innerHTML = `<h4>Bank details</h4><p>Your bank details have been securely deleted because they are no longer required.</p>`;
       } else if (!["paid", "completed", "cancelled"].includes(sale.status)) {
@@ -54,15 +56,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           <button class="btn btn-primary" type="submit">SAVE BANK DETAILS</button>
           <p class="bank-form-message" role="status" aria-live="polite"></p>
         </form>`;
-
         const form = panel.querySelector("form");
         const msg = panel.querySelector(".bank-form-message");
         form.addEventListener("submit", async event => {
           event.preventDefault();
           const button = form.querySelector("button[type=submit]");
-          button.disabled = true;
-          msg.textContent = "Saving...";
-          msg.className = "bank-form-message";
+          button.disabled = true; msg.textContent = "Saving..."; msg.className = "bank-form-message";
           const data = new FormData(form);
           const { error } = await auth.supabase.rpc("submit_sale_bank_details", {
             p_sale_id: sale.id,
@@ -71,35 +70,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             p_account_number: String(data.get("account_number") || "").trim(),
             p_storage_consent: data.get("storage_consent") === "yes"
           });
-          if (error) {
-            msg.textContent = error.message || "Bank details could not be saved.";
-            msg.className = "bank-form-message error";
-            button.disabled = false;
-            return;
-          }
-          msg.textContent = "Bank details received. Thank you.";
-          msg.className = "bank-form-message success";
+          if (error) { msg.textContent = error.message || "Bank details could not be saved."; msg.className = "bank-form-message error"; button.disabled = false; return; }
+          msg.textContent = "Bank details received. Thank you."; msg.className = "bank-form-message success";
           setTimeout(() => window.location.reload(), 700);
         });
       }
-
       details.prepend(panel);
 
       const progress = details.querySelector(".purchase-progress");
       if (progress && !progress.querySelector(".bank-progress-step")) {
         const steps = progress.querySelectorAll("p");
-        const bankStep = document.createElement("p");
-        bankStep.className = "bank-progress-step";
+        const bankStep = document.createElement("p"); bankStep.className = "bank-progress-step";
         bankStep.innerHTML = `<strong>3. Bank details</strong> — ${complete ? "Received" : deleted ? "Deleted after retention period" : "Required before payment"}`;
-        if (steps[1]) steps[1].after(bankStep);
-        else progress.appendChild(bankStep);
-        [...progress.querySelectorAll("p")].forEach((p, index) => {
-          if (index >= 3) p.innerHTML = p.innerHTML.replace(/<strong>\d+\./, `<strong>${index + 1}.`);
-        });
+        if (steps[1]) steps[1].after(bankStep); else progress.appendChild(bankStep);
+        [...progress.querySelectorAll("p")].forEach((p, index) => { if (index >= 3) p.innerHTML = p.innerHTML.replace(/<strong>\d+\./, `<strong>${index + 1}.`); });
       }
     }
   }
-
   const observer = new MutationObserver(() => attachForms());
   observer.observe(document.body, { childList: true, subtree: true });
   await attachForms();
