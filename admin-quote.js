@@ -67,6 +67,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (_) {}
   }
 
+  async function refuseItem(itemId, button) {
+    const reason = prompt("Optional internal reason for refusing this item. This is for GearCashOut staff records only and is not sent to the customer:", "");
+    if (reason === null) return;
+    if (!confirm("Refuse this item and send the customer a polite refusal?")) return;
+
+    button.disabled = true;
+    const { data, error } = await auth.supabase.rpc("staff_refuse_quote_item", {
+      p_item_id: itemId,
+      p_internal_reason: reason.trim() || null
+    });
+
+    if (error) {
+      button.disabled = false;
+      setMessage(error.message || "The item could not be refused.", false);
+      return;
+    }
+
+    if (data?.offer_id) await notify(data.offer_id, "offer_refused");
+    setMessage("Item refused. The customer has been notified politely.");
+    await load();
+  }
+
   async function load() {
     const { data: valuation, error: valuationError } = await auth.supabase
       .from("valuations")
@@ -92,6 +114,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           .select("id,item_id,offer_type,amount,status,internal_notes,customer_message,published_at,responded_at,created_at,updated_at")
           .in("item_id", itemIds)
           .order("created_at", { ascending: false })
+      : { data: [] };
+
+    const { data: refusals } = itemIds.length
+      ? await auth.supabase
+          .from("quote_item_refusals")
+          .select("id,item_id,offer_id,reason,refused_by,refused_at")
+          .in("item_id", itemIds)
+          .order("refused_at", { ascending: false })
       : { data: [] };
 
     const { data: emails } = await auth.supabase
@@ -154,9 +184,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("offer-controls").innerHTML = (items || []).length
       ? items.map(item => {
           const itemOffers = (offers || []).filter(o => o.item_id === item.id);
-          const current = type => itemOffers.find(o => o.offer_type === type && o.status !== "superseded");
+          const itemRefusals = (refusals || []).filter(r => r.item_id === item.id);
+          const current = type => itemOffers.find(o => o.offer_type === type && o.status !== "superseded" && o.status !== "withdrawn");
           const manual = current("manual");
           const final = current("final");
+          const canRefuse = !["accepted", "refused", "closed"].includes(item.item_status);
+          const refusalHtml = item.item_status === "refused"
+            ? `<div class="notice" style="margin-top:1rem;"><strong>ITEM REFUSED</strong>${itemRefusals.length && itemRefusals[0].reason ? `<p><strong>Internal reason:</strong> ${esc(itemRefusals[0].reason)}</p>` : "<p>No internal reason was recorded.</p>"}</div>`
+            : canRefuse
+              ? `<div style="margin-top:1rem;"><button class="btn btn-secondary refuse-item-button" data-item="${esc(item.id)}" type="button">REFUSE ITEM</button><small style="display:block;margin-top:.35rem;">Refuses this item only. Other items in the submission are unaffected.</small></div>`
+              : "";
           return `<article class="valuation-card" style="margin-bottom:1rem;">
             <div style="width:100%;">
               <span class="valuation-ref">ITEM</span><h3>${esc(item.item_name || item.model || "Equipment")}</h3>
@@ -166,6 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ${offerControl("Manual offer", manual, item.id, "manual")}
                 ${offerControl("Final inspection offer", final, item.id, "final")}
               </div>
+              ${refusalHtml}
               ${itemOffers.length ? `<details style="margin-top:1rem;"><summary>Offer history</summary>${itemOffers.map(o => `<p><strong>${esc(displayOfferType(o.offer_type))}</strong>: ${money(o.amount)} — ${esc(pretty(o.status))}${o.responded_at ? " · Responded " + new Date(o.responded_at).toLocaleString("en-GB") : ""}</p>`).join("")}</details>` : ""}
             </div>
           </article>`;
@@ -205,6 +243,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         setMessage(pretty(type) + " offer published.");
         await load();
       });
+    });
+
+    document.querySelectorAll(".refuse-item-button").forEach(btn => {
+      btn.addEventListener("click", () => refuseItem(btn.dataset.item, btn));
     });
   }
 
