@@ -17,11 +17,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
-
   const machine = window.AssetStateMachine;
-  const render = (currentAsset) => {
+
+  async function loadModuleRecords() {
+    const [testing, preparation] = await Promise.all([
+      auth.supabase.from("inventory_testing").select("*").eq("asset_id", id).order("created_at", { ascending: false }),
+      auth.supabase.from("inventory_preparation").select("*").eq("asset_id", id).order("created_at", { ascending: false })
+    ]);
+    return { testing: testing.data || [], preparation: preparation.data || [], testingError: testing.error, preparationError: preparation.error };
+  }
+
+  const render = async currentAsset => {
     const nextStates = machine?.getAllowedNextStates(currentAsset.status || 'Awaiting Receipt') || [];
     const progress = machine?.getLifecycleProgress(currentAsset.status || 'Awaiting Receipt');
+    const records = await loadModuleRecords();
+    const latestTest = records.testing[0];
+    const latestPreparation = records.preparation[0];
+
+    const testSummary = latestTest
+      ? `<p><strong>Flight:</strong> ${esc(latestTest.flight_test)} &nbsp; <strong>Camera:</strong> ${esc(latestTest.camera_test)} &nbsp; <strong>Battery:</strong> ${esc(latestTest.battery_health)}</p><p>${esc(latestTest.notes || "No testing notes")}</p>`
+      : '<p>No testing record yet.</p>';
+    const prepSummary = latestPreparation
+      ? `<p>Preparation checklist completed on ${esc(latestPreparation.created_at ? new Date(latestPreparation.created_at).toLocaleString("en-GB") : "recorded date") }.</p><p>${esc(latestPreparation.notes || "No preparation notes")}</p>`
+      : '<p>No preparation checklist completed yet.</p>';
+
+    let moduleLinks = '';
+    if (currentAsset.status === 'Testing') moduleLinks += `<a class="btn btn-primary" href="inventory-testing.html?id=${encodeURIComponent(id)}">OPEN TESTING</a>`;
+    if (currentAsset.status === 'Ready for Resale') moduleLinks += `<a class="btn btn-primary" href="inventory-ready.html?id=${encodeURIComponent(id)}">OPEN RESALE CHECKLIST</a>`;
 
     container.innerHTML = `
       <div class="valuation-card">
@@ -41,14 +63,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem">
           ${nextStates.length ? nextStates.map(state => `<button class="btn btn-primary lifecycle-action" type="button" data-state="${esc(state)}">${esc(state)}</button>`).join('') : '<p>No further state changes are available.</p>'}
         </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem">${moduleLinks}</div>
         <p id="state-message" class="form-message" style="margin-top:1rem" aria-live="polite"></p>
       </div>
       <div class="valuation-card" style="margin-top:1rem">
-        <h3>Lifecycle Modules</h3>
-        <p>Testing reports: Ready for connection</p>
-        <p>Expense history: Ready for connection</p>
-        <p>Evidence and photographs: Ready for connection</p>
-        <p>Movement history: Ready for connection</p>
+        <h3>Testing History</h3>
+        ${testSummary}
+      </div>
+      <div class="valuation-card" style="margin-top:1rem">
+        <h3>Resale Preparation</h3>
+        ${prepSummary}
       </div>`;
 
     container.querySelectorAll('.lifecycle-action').forEach(button => {
@@ -60,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         msg.className = 'form-message';
         try {
           const updated = await window.AssetStateActions.transitionAsset(id, nextState, 'Staff lifecycle action');
-          render(updated);
+          await render(updated);
         } catch (err) {
           msg.textContent = err?.message || 'Could not update asset status.';
           msg.className = 'form-message error';
@@ -75,5 +99,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  render(asset);
+  await render(asset);
 });
