@@ -66,3 +66,12 @@
     observer.observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
   });
 })();
+
+/* Load the live-quote navigation on the valuation page without altering the
+   existing quote wizard script order. */
+(function () {
+  const script = document.createElement("script");
+  script.src = "live-quote-nav.js?v=20260821-1";
+  script.defer = true;
+  document.head.appendChild(script);
+})();
