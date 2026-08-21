@@ -45,7 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     .select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position,item_data,created_at,updated_at")
     .eq("id", itemId)
     .maybeSingle();
-
   if (itemError || !item) {
     box.innerHTML = "<p>We couldn't load this submitted item.</p>";
     return;
@@ -56,7 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     .select("id,user_id,quote_reference,status,submitted_at,quote_data")
     .eq("id", item.valuation_id)
     .maybeSingle();
-
   if (valuationError || !valuation) {
     box.innerHTML = "<p>We couldn't load the parent quote for this item.</p>";
     return;
@@ -70,19 +68,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("back-quote").href = `admin-quote.html?id=${encodeURIComponent(valuation.id)}`;
 
   const customer = {
-    name: q.fullName || "Unnamed customer",
-    email: q.email || "No email recorded",
-    phone: q.phone || "No phone recorded"
+    name: q.fullName || q.customerName || "Unnamed customer",
+    email: q.email || q.emailAddress || "No email recorded",
+    phone: q.phone || q.phoneNumber || "No phone recorded"
   };
 
+  // The authoritative photo paths for multi-item quotes are item-level. Legacy quote_data.itemPhotos is
+  // retained only as a backward-compatible fallback for older submissions created before quote_items existed.
   let rawPhotos = Array.isArray(data.photos) ? data.photos : [];
   if (!rawPhotos.length && Array.isArray(q.itemPhotos) && Array.isArray(q.itemPhotos[item.item_position - 1])) {
     rawPhotos = q.itemPhotos[item.item_position - 1];
   }
+  // Some older records retained the original item photo list in quoteBasket/quoteBasket item records.
+  if (!rawPhotos.length && Array.isArray(q.quoteBasket) && q.quoteBasket[item.item_position - 1]?.photos) {
+    rawPhotos = q.quoteBasket[item.item_position - 1].photos;
+  }
   const photos = (await Promise.all(rawPhotos.map(photoUrl))).filter(Boolean);
 
   const fields = [
-    ["Equipment type", data.categoryName || data.category],
+    ["Equipment type", data.categoryName || data.category || item.item_type],
     ["Manufacturer", data.manufacturerName || data.manufacturer || item.manufacturer],
     ["Model", data.modelName || data.model || item.model],
     ["Package", data.packageName || data.package || item.package],
