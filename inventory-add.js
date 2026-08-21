@@ -21,8 +21,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       serial_number: fd.get("serial_number").trim() || null,
       purchase_price: Number(fd.get("purchase_price")),
       condition_grade: fd.get("condition_grade") || null,
-      status: fd.get("status") || "Purchased",
-      current_location: fd.get("current_location") || null,
+      status: "Awaiting Receipt",
+      current_location: fd.get("current_location") || "Received Area",
       notes: fd.get("notes").trim() || null
     };
     const { error } = await auth.supabase.from("inventory_assets").insert(payload);
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       message.className = "form-message error";
       return;
     }
-    message.textContent = "Asset created successfully.";
+    message.textContent = "Asset created successfully and placed into Awaiting Receipt.";
     message.className = "form-message success";
     form.reset();
   });
