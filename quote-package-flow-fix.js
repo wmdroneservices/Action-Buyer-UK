@@ -19,7 +19,6 @@
     "neo-2|standard": 1,
     "neo-2|fly-more": 3,
     "flip|standard-rc-n3": 1,
-    "fly-more-rc-n3|fly-more-rc-n3": 3,
     "flip|fly-more-rc-n3": 3,
     "flip|fly-more-rc-2": 3,
     "air|drone-only": 1,
@@ -113,9 +112,9 @@
 
     function scheduleBatteryCountFix() {
       enforceBatteryCountDropdown();
-      setTimeout(enforceBatteryCountDropdown, 25);
-      setTimeout(enforceBatteryCountDropdown, 100);
-      setTimeout(enforceBatteryCountDropdown, 300);
+      setTimeout(enforceBatteryCountDropdown, 50);
+      setTimeout(enforceBatteryCountDropdown, 150);
+      setTimeout(enforceBatteryCountDropdown, 400);
     }
 
     form.addEventListener("change", function (event) {
@@ -123,11 +122,6 @@
         scheduleBatteryCountFix();
       }
     }, true);
-
-    const batteryObserver = new MutationObserver(function () {
-      enforceBatteryCountDropdown();
-    });
-    batteryObserver.observe(form, { childList: true, subtree: true });
 
     form.addEventListener("click", function (event) {
       const category = String(document.getElementById("gear-category")?.value || "").toLowerCase();
