@@ -86,7 +86,7 @@
       const step6 = createStep6();
       const allowance = expected();
       const select = step6.querySelector("#package-battery-count");
-      const previous = Number(select.value || Math.min(allowance, 1));
+      const previous = Number(select.value || 1);
       select.innerHTML = "";
       for (let i = 1; i <= allowance; i++) {
         const option = document.createElement("option");
@@ -100,16 +100,21 @@
       renderEntries(Number(select.value));
     }
 
+    function showOnly(step) {
+      form.querySelectorAll(".wizard-step").forEach(function (s) {
+        s.hidden = s !== step;
+      });
+    }
+
     function skipStep6ForNonDJI() {
-      const step6 = getStep6();
-      if (!step6 || isBatteryCycleRelevant()) return false;
-      step6.hidden = true;
+      if (isBatteryCycleRelevant()) return false;
       const step7 = form.querySelector('.wizard-step[data-step="7"]');
-      if (step7) {
-        form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step7; });
+      if (!step7) return false;
+      showOnly(step7);
+      const next = step7.querySelector(".btn-next");
+      if (next) {
         setTimeout(function () {
-          const next = step7.querySelector(".btn-next");
-          if (next && !step7.dataset.batteryStepSkipped) {
+          if (!step7.dataset.batteryStepSkipped) {
             step7.dataset.batteryStepSkipped = "1";
             next.click();
           }
@@ -128,59 +133,72 @@
       }
     });
 
-    /* Capture the Step 5 transition. Only DJI drones enter Step 6. */
+    /* Step 5 -> Step 6 for DJI; non-DJI equipment bypasses Step 6. */
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
       if (!button || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
-      if (!step || Number(step.dataset.step) !== 5) return;
+      if (!step) return;
 
-      if (!isBatteryCycleRelevant()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        skipStep6ForNonDJI();
-        return;
-      }
-
-      setTimeout(function () {
-        const s6 = getStep6();
-        if (s6) {
-          syncUI();
-          form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== s6; });
-          window.scrollTo({ top: 0, behavior: "smooth" });
+      if (Number(step.dataset.step) === 5) {
+        if (!isBatteryCycleRelevant()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          skipStep6ForNonDJI();
+          return;
         }
-      }, 0);
+
+        setTimeout(function () {
+          const s6 = getStep6();
+          if (s6) {
+            syncUI();
+            showOnly(s6);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        }, 0);
+      }
     }, true);
 
-    /* Replace the old battery validation for Step 6 with the count-based UI. */
+    /* Step 6 validation applies only to DJI drones. */
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
       if (!button || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
       if (!step || Number(step.dataset.step) !== 6) return;
+
       if (!isBatteryCycleRelevant()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         skipStep6ForNonDJI();
         return;
       }
+
       event.preventDefault();
       event.stopImmediatePropagation();
       const entries = Array.from(step.querySelectorAll(".battery-entry"));
-      if (!entries.length) { alert("Please select at least one package battery."); return; }
+      if (!entries.length) {
+        alert("Please select at least one package battery.");
+        return;
+      }
       for (const entry of entries) {
-        if (!entry.querySelector(".battery-type")?.value.trim()) { alert(`Please enter the battery type for Package Battery ${entry.dataset.number}.`); return; }
+        if (!entry.querySelector(".battery-type")?.value.trim()) {
+          alert(`Please enter the battery type for Package Battery ${entry.dataset.number}.`);
+          return;
+        }
         const cycles = entry.querySelector(".battery-cycles")?.value;
-        if (cycles === "" || Number(cycles) < 0 || !Number.isFinite(Number(cycles))) { alert(`Please enter a valid cycle count for Package Battery ${entry.dataset.number}.`); return; }
+        if (cycles === "" || Number(cycles) < 0 || !Number.isFinite(Number(cycles))) {
+          alert(`Please enter a valid cycle count for Package Battery ${entry.dataset.number}.`);
+          return;
+        }
       }
       const s7 = form.querySelector('.wizard-step[data-step="7"]');
       if (s7) {
-        form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== s7; });
+        showOnly(s7);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }, true);
 
-    /* If package/model/category changes, reset the count to the new package allowance. */
+    /* If package/model/category changes, refresh the DJI battery UI. */
     form.addEventListener("change", function (event) {
       if (event.target.id === "package-select" || event.target.id === "dji-model" || event.target.id === "gear-category" || event.target.id === "gear-manufacturer") {
         setTimeout(function () {
@@ -189,21 +207,10 @@
             s6.hidden = true;
             return;
           }
-          const allowance = expected();
-          const select = s6.querySelector("#package-battery-count");
-          select.innerHTML = "";
-          for (let i = 1; i <= allowance; i++) select.insertAdjacentHTML("beforeend", `<option value="${i}">${i}</option>`);
-          select.value = "1";
-          renderEntries(1);
-          s6.querySelector(".battery-package-note").innerHTML = `The selected package contains <strong>${allowance}</strong> battery${allowance === 1 ? "" : "ies"}. Select how many of those package batteries you are actually supplying. Any extra batteries are entered separately as accessories.`;
+          syncUI();
         }, 0);
       }
     });
-
-    const observer = new MutationObserver(function () {
-      if (!isBatteryCycleRelevant()) skipStep6ForNonDJI();
-    });
-    observer.observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
   }
 
   function escapeHtml(value) {
