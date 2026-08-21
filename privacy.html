@@ -6,6 +6,9 @@
   <title>Privacy Policy | GearCashOut</title>
   <meta name="description" content="Privacy Policy for GearCashOut, explaining how personal information is collected and used when you request a valuation or sell equipment.">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js" defer></script>
+  <script src="live-quote-nav.js?v=20260821-4" defer></script>
 </head>
 <body>
 <header class="header">
@@ -31,114 +34,27 @@
   <p><strong>Last updated: 20 August 2026</strong></p>
   <p>This Privacy Policy explains how GearCashOut collects, uses, stores and protects personal information when you use this website, request a valuation, contact us, or sell equipment to us.</p>
   <div class="notice"><strong>Important:</strong> Before this policy is published as the final business privacy notice, the placeholders for the legal business name, business address, privacy email address and any other business-specific details must be completed.</div>
-
-  <h3>1. Who We Are</h3>
-  <p>GearCashOut is the trading name of <strong>[LEGAL BUSINESS NAME]</strong>.</p>
-  <p>Business address: <strong>[BUSINESS ADDRESS]</strong></p>
-  <p>Privacy contact: <strong>[BUSINESS EMAIL]</strong></p>
-  <p>Telephone: <strong>[BUSINESS PHONE]</strong></p>
-  <p>Company number, if applicable: <strong>[COMPANY NUMBER]</strong></p>
-  <p>ICO registration number, if applicable: <strong>[ICO REGISTRATION NUMBER]</strong></p>
-
-  <h3>2. Information We Collect</h3>
-  <p>Depending on how you use the website and the equipment you submit, we may collect:</p>
-  <ul>
-    <li>your name;</li><li>email address;</li><li>telephone number;</li><li>postal address and return address;</li>
-    <li>equipment make, model and specifications;</li><li>serial numbers and other equipment identifiers;</li>
-    <li>condition, usage and ownership information;</li><li>drone flight-time and battery-cycle information where relevant;</li>
-    <li>photographs and other images you upload;</li><li>quote, offer and transaction information;</li>
-    <li>payment information, including bank account details where these are required to pay you;</li>
-    <li>records of relevant communications with you; and</li>
-    <li>technical information about your use of the website where this is collected, such as information contained in server logs or analytics tools.</li>
-  </ul>
-
-  <h3>3. How We Collect Your Information</h3>
-  <p>We normally collect information directly from you when you use our valuation forms, upload photographs or equipment information, contact us, accept or reject an offer, or provide information needed to arrange payment, shipping or a return.</p>
-
-  <h3>4. Why We Use Your Information</h3>
-  <p>We use personal and equipment information where necessary to provide valuations, communicate with you, assess equipment, verify ownership, prevent fraud or unlawful sales, arrange shipping or returns, process payments, keep appropriate business records, respond to enquiries and complaints, operate and improve the website, and protect our systems, customers and business.</p>
-
-  <h3>5. Our Lawful Bases</h3>
-  <p>We process personal information in accordance with applicable UK data-protection law, including the <strong>UK GDPR</strong> and the <strong>Data Protection Act 2018</strong>. Depending on the circumstances, our lawful bases may include:</p>
-  <ul>
-    <li><strong>Contract or steps taken at your request before entering into a contract</strong> — for example, providing a valuation, arranging a sale, payment or return.</li>
-    <li><strong>Legal obligation</strong> — where we must process information to comply with legal, tax, accounting or regulatory requirements.</li>
-    <li><strong>Legitimate interests</strong> — for purposes such as fraud prevention, ownership checks, security, administration, record keeping and improving our services, where those interests are not overridden by your rights.</li>
-    <li><strong>Consent</strong> — where we specifically ask for consent and it is the appropriate lawful basis. Where we rely on consent, you can withdraw it at any time.</li>
-  </ul>
-
-  <h3>6. Equipment, Serial Numbers and Ownership Checks</h3>
-  <p>For drones, cameras and other electronic equipment, we may collect serial numbers, photographs and other identifying information to verify the item, assess ownership, prevent fraud and protect GearCashOut and its customers.</p>
-  <p>For supported DJI drones, we may also process information such as flight time, battery cycles and account-binding or unbound status because this information can form part of the valuation and verification process.</p>
-
-  <h3>7. Photographs and Uploaded Information</h3>
-  <p>Photographs and other information you submit may show equipment, serial numbers, accessories, packaging or other identifying details. We use these materials to assess equipment, provide or review valuations, verify information and process a sale.</p>
-  <p>Please do not upload unnecessary personal information belonging to another person.</p>
-
-  <h3>8. Bank Details and Payment Information</h3>
-  <p>Where we need your bank details to pay you for equipment that we have purchased, we may collect your account name, sort code and account number.</p>
-  <p>Bank details are not retained indefinitely. If you do <strong>not</strong> choose to allow us to retain your bank details for future payments, we use them only for the payment process and securely delete them automatically <strong>7 days after the payment has been made</strong>, subject to any legal or other lawful requirement that requires us to retain the information for longer.</p>
-  <p>When we ask whether you would like us to retain your bank details for future payments, the option is presented as an <strong>unticked, optional consent checkbox</strong>. If you choose not to give consent, your bank details are not retained for future-payment convenience once the temporary payment-retention period has expired.</p>
-  <p>If you do give consent, we may retain your bank details for future payments for up to <strong>12 months</strong>. We record the consent and may review the retention period when appropriate. You can withdraw your consent and request removal of your saved bank details at any time. Withdrawal does not affect processing that was lawful before consent was withdrawn.</p>
-  <p>After bank details are deleted, our transaction records may still show that a payment was made, together with information needed for accounting, legal, audit and business-record purposes. Those records do not require us to retain the full bank account details.</p>
-  <p>For security, bank details are not displayed in full throughout customer records or progress histories. Where bank details need to be shown to authorised staff for operational purposes, account numbers and sort codes are masked.</p>
-
-  <h3>9. Who We Share Information With</h3>
-  <p>We do not sell your personal information. We may share relevant information with service providers and other organisations where necessary to operate the service, including payment providers, financial institutions, couriers and shipping providers, website and technology providers, professional advisers, and law-enforcement, regulatory or other authorities where legally required or permitted.</p>
-  <p>Where another organisation processes personal information on our behalf, we expect appropriate contractual and security arrangements to be in place.</p>
-
-  <h3>10. International Transfers</h3>
-  <p>Some service providers may process personal information outside the UK. Where this occurs, we will use an appropriate lawful transfer mechanism and safeguards required by applicable data-protection law.</p>
-  <p>The specific providers and transfer arrangements will be identified or updated here as the website, payment, form, hosting and storage services are finalised.</p>
-
-  <h3>11. How We Protect Your Information</h3>
-  <p>We take appropriate technical and organisational measures designed to protect personal information against unauthorised access, loss, misuse, alteration or disclosure. No internet transmission or electronic storage system can be guaranteed to be completely secure.</p>
-
-  <h3>12. Customer Records and Communications</h3>
-  <p>We maintain customer, valuation and transaction records so that we can administer valuations and sales, verify what has happened in a transaction, make payments, handle returns or complaints, meet legal and accounting obligations, and protect our business.</p>
-  <p>We do not need to retain a permanent copy of every routine email or message sent to a customer. Relevant communications may be retained where they form part of the transaction record, are needed to resolve a dispute or complaint, evidence a decision or consent, or are otherwise necessary for a lawful business purpose. Routine communications that are no longer required may be deleted in accordance with our retention procedures.</p>
-
-  <h3>13. How Long We Keep Your Information</h3>
-  <p>We will not keep personal information for longer than necessary for the purposes for which it was collected, unless we have a legal or other lawful reason to retain it for longer.</p>
-  <p>Different categories of information may therefore have different retention periods. In particular, bank details provided solely to make a payment are automatically deleted 7 days after payment, unless a longer period is required by law or another lawful basis. Bank details retained for future payments following your optional consent are retained for up to 12 months, unless you withdraw consent earlier or another lawful reason requires a different period.</p>
-  <p>Customer, valuation, sale, payment and accounting records may be retained for longer where necessary to meet legal, tax, accounting, fraud-prevention, dispute-resolution or other legitimate business requirements. Where information is no longer required, we will delete it or securely anonymise it where appropriate.</p>
-
-  <h3>14. Your Data Protection Rights</h3>
-  <p>Subject to applicable law and relevant exemptions, you may have rights including the right to be informed, access, rectification, erasure in certain circumstances, restriction of processing, objection to certain processing, data portability where it applies, and withdrawal of consent where consent is our lawful basis.</p>
-  <p>Not every right applies in every situation. We will consider requests in accordance with applicable data-protection law.</p>
-
-  <h3>15. How to Exercise Your Rights</h3>
-  <p>To ask a question about your personal information or exercise a data-protection right, contact:</p>
-  <p><strong>Email:</strong> [BUSINESS EMAIL]</p>
-  <p><strong>Postal address:</strong> [BUSINESS ADDRESS]</p>
-  <p>You can also request removal of saved bank details through the account controls provided on the website, where available. We may need to verify your identity before providing information or acting on a request.</p>
-
-  <h3>16. Complaints and the ICO</h3>
-  <p>If you have concerns about how we use your personal information, please contact us first so that we can investigate and try to resolve the issue.</p>
-  <p>You also have the right to complain to the <strong>Information Commissioner's Office (ICO)</strong>, the UK's independent data-protection regulator. Information about making a complaint is available from the ICO.</p>
-  <p><a href="https://ico.org.uk/make-a-complaint/">Information Commissioner's Office — Make a complaint</a></p>
-
-  <h3>17. Cookies and Similar Technologies</h3>
-  <p>Our website may use cookies or similar technologies where necessary for the website to function or where we use optional analytics or other services. Where consent is required for non-essential cookies or similar technologies, we will provide the appropriate information and controls.</p>
-  <p>The specific cookies and third-party services used on the live website should be reviewed and listed here before launch.</p>
-
-  <h3>18. Children's Information</h3>
-  <p>Our equipment-buying service is intended for adults. We do not knowingly seek to collect personal information from children for the purpose of buying equipment from them.</p>
-
-  <h3>19. Changes to This Privacy Policy</h3>
-  <p>We may update this Privacy Policy when our business, website, services or data-processing activities change, or when applicable legal or regulatory requirements change. The latest version will be published on this page with its updated date.</p>
-
-  <h3>20. Contact</h3>
-  <p>If you have questions about this Privacy Policy or how GearCashOut uses personal information, contact us using the details above.</p>
-  <p><em>This page remains a business draft until the actual legal entity, contact details, service providers, retention arrangements and any other business-specific information have been completed and reviewed before the site is launched as a live trading service.</em></p>
+  <h3>1. Who We Are</h3><p>GearCashOut is the trading name of <strong>[LEGAL BUSINESS NAME]</strong>.</p><p>Business address: <strong>[BUSINESS ADDRESS]</strong></p><p>Privacy contact: <strong>[BUSINESS EMAIL]</strong></p><p>Telephone: <strong>[BUSINESS PHONE]</strong></p><p>Company number, if applicable: <strong>[COMPANY NUMBER]</strong></p><p>ICO registration number, if applicable: <strong>[ICO REGISTRATION NUMBER]</strong></p>
+  <h3>2. Information We Collect</h3><p>Depending on how you use the website and the equipment you submit, we may collect:</p><ul><li>your name;</li><li>email address;</li><li>telephone number;</li><li>postal address and return address;</li><li>equipment make, model and specifications;</li><li>serial numbers and other equipment identifiers;</li><li>condition, usage and ownership information;</li><li>drone flight-time and battery-cycle information where relevant;</li><li>photographs and other images you upload;</li><li>quote, offer and transaction information;</li><li>payment information, including bank account details where these are required to pay you;</li><li>records of relevant communications with you; and</li><li>technical information about your use of the website where this is collected, such as information contained in server logs or analytics tools.</li></ul>
+  <h3>3. How We Collect Your Information</h3><p>We normally collect information directly from you when you use our valuation forms, upload photographs or equipment information, contact us, accept or reject an offer, or provide information needed to arrange payment, shipping or a return.</p>
+  <h3>4. Why We Use Your Information</h3><p>We use personal and equipment information where necessary to provide valuations, communicate with you, assess equipment, verify ownership, prevent fraud or unlawful sales, arrange shipping or returns, process payments, keep appropriate business records, respond to enquiries and complaints, operate and improve the website, and protect our systems, customers and business.</p>
+  <h3>5. Our Lawful Bases</h3><p>We process personal information in accordance with applicable UK data-protection law, including the <strong>UK GDPR</strong> and the <strong>Data Protection Act 2018</strong>. Depending on the circumstances, our lawful bases may include:</p><ul><li><strong>Contract or steps taken at your request before entering into a contract</strong> — for example, providing a valuation, arranging a sale, payment or return.</li><li><strong>Legal obligation</strong> — where we must process information to comply with legal, tax, accounting or regulatory requirements.</li><li><strong>Legitimate interests</strong> — for purposes such as fraud prevention, ownership checks, security, administration, record keeping and improving our services, where those interests are not overridden by your rights.</li><li><strong>Consent</strong> — where we specifically ask for consent and it is the appropriate lawful basis. Where we rely on consent, you can withdraw it at any time.</li></ul>
+  <h3>6. Equipment, Serial Numbers and Ownership Checks</h3><p>For drones, cameras and other electronic equipment, we may collect serial numbers, photographs and other identifying information to verify the item, assess ownership, prevent fraud and protect GearCashOut and its customers.</p><p>For supported DJI drones, we may also process information such as flight time, battery cycles and account-binding or unbound status because this information can form part of the valuation and verification process.</p>
+  <h3>7. Photographs and Uploaded Information</h3><p>Photographs and other information you submit may show equipment, serial numbers, accessories, packaging or other identifying details. We use these materials to assess equipment, provide or review valuations, verify information and process a sale.</p><p>Please do not upload unnecessary personal information belonging to another person.</p>
+  <h3>8. Bank Details and Payment Information</h3><p>Where we need your bank details to pay you for equipment that we have purchased, we may collect your account name, sort code and account number.</p><p>Bank details are not retained indefinitely. If you do <strong>not</strong> choose to allow us to retain your bank details for future payments, we use them only for the payment process and securely delete them automatically <strong>7 days after the payment has been made</strong>, subject to any legal or other lawful requirement that requires us to retain the information for longer.</p><p>When we ask whether you would like us to retain your bank details for future payments, the option is presented as an <strong>unticked, optional consent checkbox</strong>. If you choose not to give consent, your bank details are not retained for future-payment convenience once the temporary payment-retention period has expired.</p><p>If you do give consent, we may retain your bank details for future payments for up to <strong>12 months</strong>. We record the consent and may review the retention period when appropriate. You can withdraw your consent and request removal of your saved bank details at any time. Withdrawal does not affect processing that was lawful before consent was withdrawn.</p><p>After bank details are deleted, our transaction records may still show that a payment was made, together with information needed for accounting, legal, audit and business-record purposes. Those records do not require us to retain the full bank account details.</p><p>For security, bank details are not displayed in full throughout customer records or progress histories. Where bank details need to be shown to authorised staff for operational purposes, account numbers and sort codes are masked.</p>
+  <h3>9. Who We Share Information With</h3><p>We do not sell your personal information. We may share relevant information with service providers and other organisations where necessary to operate the service, including payment providers, financial institutions, couriers and shipping providers, website and technology providers, professional advisers, and law-enforcement, regulatory or other authorities where legally required or permitted.</p><p>Where another organisation processes personal information on our behalf, we expect appropriate contractual and security arrangements to be in place.</p>
+  <h3>10. International Transfers</h3><p>Some service providers may process personal information outside the UK. Where this occurs, we will use an appropriate lawful transfer mechanism and safeguards required by applicable data-protection law.</p><p>The specific providers and transfer arrangements will be identified or updated here as the website, payment, form, hosting and storage services are finalised.</p>
+  <h3>11. How We Protect Your Information</h3><p>We take appropriate technical and organisational measures designed to protect personal information against unauthorised access, loss, misuse, alteration or disclosure. No internet transmission or electronic storage system can be guaranteed to be completely secure.</p>
+  <h3>12. Customer Records and Communications</h3><p>We maintain customer, valuation and transaction records so that we can administer valuations and sales, verify what has happened in a transaction, make payments, handle returns or complaints, meet legal and accounting obligations, and protect our business.</p><p>We do not need to retain a permanent copy of every routine email or message sent to a customer. Relevant communications may be retained where they form part of the transaction record, are needed to resolve a dispute or complaint, evidence a decision or consent, or are otherwise necessary for a lawful business purpose. Routine communications that are no longer required may be deleted in accordance with our retention procedures.</p>
+  <h3>13. How Long We Keep Your Information</h3><p>We will not keep personal information for longer than necessary for the purposes for which it was collected, unless we have a legal or other lawful reason to retain it for longer.</p><p>Different categories of information may therefore have different retention periods. In particular, bank details provided solely to make a payment are automatically deleted 7 days after payment, unless a longer period is required by law or another lawful basis. Bank details retained for future payments following your optional consent are retained for up to 12 months, unless you withdraw consent earlier or another lawful reason requires a different period.</p><p>Customer, valuation, sale, payment and accounting records may be retained for longer where necessary to meet legal, tax, accounting, fraud-prevention, dispute-resolution or other legitimate business requirements. Where information is no longer required, we will delete it or securely anonymise it where appropriate.</p>
+  <h3>14. Your Data Protection Rights</h3><p>Subject to applicable law and relevant exemptions, you may have rights including the right to be informed, access, rectification, erasure in certain circumstances, restriction of processing, objection to certain processing, data portability where it applies, and withdrawal of consent where consent is our lawful basis.</p><p>Not every right applies in every situation. We will consider requests in accordance with applicable data-protection law.</p>
+  <h3>15. How to Exercise Your Rights</h3><p>To ask a question about your personal information or exercise a data-protection right, contact:</p><p><strong>Email:</strong> [BUSINESS EMAIL]</p><p><strong>Postal address:</strong> [BUSINESS ADDRESS]</p><p>You can also request removal of saved bank details through the account controls provided on the website, where available. We may need to verify your identity before providing information or acting on a request.</p>
+  <h3>16. Complaints and the ICO</h3><p>If you have concerns about how we use your personal information, please contact us first so that we can investigate and try to resolve the issue.</p><p>You also have the right to complain to the <strong>Information Commissioner's Office (ICO)</strong>, the UK's independent data-protection regulator. Information about making a complaint is available from the ICO.</p><p><a href="https://ico.org.uk/make-a-complaint/">Information Commissioner's Office — Make a complaint</a></p>
+  <h3>17. Cookies and Similar Technologies</h3><p>Our website may use cookies or similar technologies where necessary for the website to function or where we use optional analytics or other services. Where consent is required for non-essential cookies or similar technologies, we will provide the appropriate information and controls.</p><p>The specific cookies and third-party services used on the live website should be reviewed and listed here before launch.</p>
+  <h3>18. Children's Information</h3><p>Our equipment-buying service is intended for adults. We do not knowingly seek to collect personal information from children for the purpose of buying equipment from them.</p>
+  <h3>19. Changes to This Privacy Policy</h3><p>We may update this Privacy Policy when our business, website, services or data-processing activities change, or when applicable legal or regulatory requirements change. The latest version will be published on this page with its updated date.</p>
+  <h3>20. Contact</h3><p>If you have questions about this Privacy Policy or how GearCashOut uses personal information, contact us using the details above.</p><p><em>This page remains a business draft until the actual legal entity, contact details, service providers, retention arrangements and any other business-specific information have been completed and reviewed before the site is launched as a live trading service.</em></p>
 </main>
-<footer class="footer" role="contentinfo">
-  <div class="container footer-container">
-    <div><strong>GEARCASHOUT</strong><br>Sell your drones, cameras and equipment quickly and easily.</div>
-    <nav aria-label="Footer navigation"><ul class="footer-nav">
-      <li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="what-we-buy.html">What We Buy</a></li><li><a href="faq.html">FAQ</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms &amp; Conditions</a></li><li><a href="contact.html">Contact</a></li><li><a href="login.html" data-account-link>Register / Login</a></li>
-    </ul></nav>
-  </div>
-</footer>
+<footer class="footer" role="contentinfo"><div class="container footer-container"><div><strong>GEARCASHOUT</strong><br>Sell your drones, cameras and equipment quickly and easily.</div><nav aria-label="Footer navigation"><ul class="footer-nav"><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="what-we-buy.html">What We Buy</a></li><li><a href="faq.html">FAQ</a></li><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms &amp; Conditions</a></li><li><a href="contact.html">Contact</a></li><li><a href="login.html" data-account-link>Register / Login</a></li></ul></nav></div></footer>
 </body>
 </html>
