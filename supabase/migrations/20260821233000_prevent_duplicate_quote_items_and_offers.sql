@@ -1,6 +1,8 @@
 -- Prevent duplicate quote items/offers during single-item submissions.
 -- The valuation trigger may create the initial quote_item; the submission RPC
 -- must reuse it rather than inserting a second copy.
+-- The transaction advisory lock also serializes concurrent submissions from
+-- the same customer so two clicks cannot create two valuations in a race.
 
 create or replace function public.save_customer_valuation(p_record jsonb, p_items jsonb)
 returns jsonb
@@ -21,6 +23,7 @@ declare
   v_single_item boolean := jsonb_array_length(coalesce(p_items,'[]'::jsonb)) = 1;
 begin
   if v_user is null then raise exception 'Authentication required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user::text, 0));
   if jsonb_typeof(coalesce(p_items,'[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_items,'[]'::jsonb)) < 1 then
     raise exception 'At least one quote item is required';
   end if;
