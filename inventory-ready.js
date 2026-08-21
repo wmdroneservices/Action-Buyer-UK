@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     <p><strong>Expected batteries:</strong> ${expectedBatteries === null ? "Not configured" : esc(expectedBatteries)}</p>
     ${packageContents.length ? `<p><strong>Expected contents:</strong> ${esc(packageContents.join(", "))}</p>` : ""}
     <label for="actual_battery_count">Batteries physically present</label>
-    <input id="actual_battery_count" name="actual_battery_count" type="number" min="0" step="1" value="${expectedBatteries ?? 0}" required>
+    <input id="actual_battery_count" name="actual_battery_count" type="number" min="0" step="1" value="${asset.actual_battery_count ?? expectedBatteries ?? 0}" required>
     <p id="battery-status" class="form-message" aria-live="polite"></p>
   </div>
   <p>Complete every item before listing this asset.</p>
@@ -73,9 +73,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     event.preventDefault();
     const form = event.target;
     const message = document.getElementById("ready-message");
+    const batteryValid = updateBatteryStatus();
     const required = [...form.querySelectorAll('input[type="checkbox"]')];
-    if (!updateBatteryStatus() || !required.every(input => input.checked)) {
-      message.textContent = !updateBatteryStatus() ? "The package battery count must match the expected package specification." : "Please complete every checklist item before continuing.";
+    if (!batteryValid || !required.every(input => input.checked)) {
+      message.textContent = !batteryValid ? "The package battery count must match the expected package specification." : "Please complete every checklist item before continuing.";
       message.className = "form-message error";
       return;
     }
@@ -86,9 +87,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     message.className = "form-message";
 
     const fd = new FormData(form);
+    const actualBatteryCount = Number(batteryInput.value);
     const checklist = Object.fromEntries(required.map(input => [input.name, input.checked]));
-    checklist.actual_battery_count = Number(batteryInput.value);
+    checklist.actual_battery_count = actualBatteryCount;
     checklist.expected_battery_count = Number(expectedBatteries);
+
+    const { error: assetError } = await auth.supabase.from("inventory_assets").update({ actual_battery_count: actualBatteryCount }).eq("id", id);
+    if (assetError) {
+      message.textContent = assetError.message || "Could not save the verified battery count.";
+      message.className = "form-message error";
+      button.disabled = false;
+      return;
+    }
 
     const { error: saveError } = await auth.supabase.from("inventory_preparation").insert({ asset_id: id, checklist, notes: fd.get("notes") || null, completed_by: session.user.id });
     if (saveError) {
