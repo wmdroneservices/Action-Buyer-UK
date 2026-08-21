@@ -1,23 +1,43 @@
 /* Multi-item quote wizard: keep each item separate, preserve photos,
-   allow customers to remove mistaken items, and preserve verified automatic
-   prices where the core quote engine has actually produced one. */
+   allow customers to remove mistaken items, resume an unfinished basket,
+   and discard incomplete placeholder entries. */
 (function(){
   "use strict";
   const form=document.getElementById("quote-form");
   if(!form)return;
-  const basket=()=>{try{const raw=localStorage.getItem("gearCashOutQuoteBasket");const b=raw?JSON.parse(raw):[];return Array.isArray(b)?b:[]}catch(_){return[]}};
-  const saveBasket=b=>{try{localStorage.setItem("gearCashOutQuoteBasket",JSON.stringify(b));}catch(_){} };
+  const BASKET_KEY="gearCashOutQuoteBasket";
+  const basket=()=>{
+    try{
+      const raw=localStorage.getItem(BASKET_KEY);
+      const b=raw?JSON.parse(raw):[];
+      if(!Array.isArray(b))return[];
+      const valid=b.filter(isCompleteItem);
+      if(valid.length!==b.length) localStorage.setItem(BASKET_KEY,JSON.stringify(valid));
+      return valid;
+    }catch(_){return[]}
+  };
+  const saveBasket=b=>{try{localStorage.setItem(BASKET_KEY,JSON.stringify(b));}catch(_){} };
   const clean=v=>String(v||"").trim();
   const selectedText=id=>{const el=document.getElementById(id);return el?.selectedIndex>=0?el.options[el.selectedIndex].textContent.trim():""};
   const checked=name=>form.querySelector(`input[name="${name}"]:checked`)?.value||"";
+
+  function isPlaceholder(v){
+    const s=clean(v).toLowerCase();
+    return !s || /^[-–—]/.test(s) || s.includes("select a model") || s.includes("select model") || s.includes("select package") || s.includes("select your model") || s.includes("select accessory");
+  }
+  function isCompleteItem(item){
+    if(!item || typeof item!=="object")return false;
+    if(isPlaceholder(item.categoryName) || isPlaceholder(item.manufacturerName))return false;
+    if(isPlaceholder(item.modelName))return false;
+    if(item.category==="drone" && isPlaceholder(item.packageName))return false;
+    return true;
+  }
+
   function ensureState(){if(!Array.isArray(window.__gcoMultiItemFiles))window.__gcoMultiItemFiles=[];if(window.__gcoCurrentItemIndex===undefined)window.__gcoCurrentItemIndex=null;}
 
   function getAutomaticResultFromCore(){
     try{
       if(typeof window.showStep!=="function")return null;
-      /* The core quote engine owns the verified pricing rules. Temporarily
-         render Step 12 so it performs its normal calculation; we then read
-         the resulting price. Manual valuations deliberately render no price. */
       window.showStep(12);
       const priceEl=document.querySelector('[data-step="12"] .quote-price');
       if(!priceEl)return null;
@@ -65,6 +85,7 @@
   function captureCurrentItem(){
     ensureState();
     const item=collectItem();
+    if(!isCompleteItem(item))return null;
     let b=basket();
     const idx=window.__gcoCurrentItemIndex===null?b.length:window.__gcoCurrentItemIndex;
     if(window.__gcoCurrentItemIndex===null)b.push(item);else b[idx]=item;
@@ -117,13 +138,20 @@
     window.setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),0);
   }
 
-  function currentStep(){const s=form.querySelector('.wizard-step:not([hidden])');return s?Number(s.dataset.step):null;}
-
   function goToNewItem(){
     clearAllFields();
     show(1);
     const category=document.getElementById("gear-category");
     if(category)category.focus();
+  }
+
+  function resumeLiveQuote(){
+    const b=basket();
+    if(!b.length)return false;
+    window.__gcoCurrentItemIndex=null;
+    show(12);
+    window.setTimeout(()=>{if(typeof window.renderGearCashOutManualResult==="function")window.renderGearCashOutManualResult();},0);
+    return true;
   }
 
   function goToCustomerDetails(){
@@ -141,7 +169,7 @@
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       const photo=document.getElementById("photo-uploads");
       if(!photo?.files?.length){alert("Please upload at least one photograph before continuing.");return;}
-      captureCurrentItem();
+      if(captureCurrentItem()===null){alert("Please complete the item before continuing.");return;}
       show(12);
       window.setTimeout(()=>{if(typeof window.renderGearCashOutManualResult==="function")window.renderGearCashOutManualResult();},0);
       return;
@@ -166,10 +194,24 @@
     }
   }
 
+  function currentStep(){const s=form.querySelector('.wizard-step:not([hidden])');return s?Number(s.dataset.step):null;}
   ensureState();
   window.gearCashOutGetMultiItemBasket=()=>basket();
   window.gearCashOutGetMultiItemFiles=()=>window.__gcoMultiItemFiles||[];
   window.gearCashOutRemoveQuoteItem=removeItem;
   window.gearCashOutResetForNewItem=goToNewItem;
+  window.gearCashOutResumeLiveQuote=resumeLiveQuote;
+
+  document.addEventListener("DOMContentLoaded",function(){
+    window.setTimeout(function(){
+      const path=(location.pathname||"").toLowerCase();
+      if(path.endsWith("/quote.html")||path.endsWith("/quote")){
+        const b=basket();
+        if(b.length){
+          window.setTimeout(resumeLiveQuote,150);
+        }
+      }
+    },50);
+  });
   document.addEventListener("click",handleClick,true);
 })();
