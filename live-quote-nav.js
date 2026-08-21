@@ -52,25 +52,43 @@
   }
 
   function clearSubmittedBasket() {
-    localStorage.removeItem(BASKET_KEY);
+    try { localStorage.removeItem(BASKET_KEY); } catch (_) {}
     window.dispatchEvent(new CustomEvent("gearCashOutBasketChanged"));
     updateNavigation();
   }
 
+  function showStepDirect(number) {
+    const form = document.getElementById("quote-form");
+    if (!form) return false;
+    const target = form.querySelector('.wizard-step[data-step="' + number + '"]');
+    if (!target) return false;
+    form.querySelectorAll(".wizard-step").forEach(function (step) {
+      step.hidden = step !== target;
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return true;
+  }
+
   function restoreLiveQuote() {
     if (!isQuotePage()) return;
-    const basket = readBasket();
-    if (!basket.length) return;
+    if (!readBasket().length) return;
 
-    /* Let the existing quote wizard finish initialising first. */
-    window.setTimeout(function () {
-      if (typeof window.showStep === "function") window.showStep(12);
+    /* The core quote engine keeps showStep() private inside quote.js, so do
+       not rely on window.showStep. Directly restore Step 12 instead. */
+    function restore() {
+      if (!readBasket().length) return;
+      if (!showStepDirect(12)) {
+        window.setTimeout(restore, 100);
+        return;
+      }
       window.setTimeout(function () {
         if (typeof window.renderGearCashOutManualResult === "function") {
           window.renderGearCashOutManualResult();
         }
-      }, 100);
-    }, 500);
+      }, 50);
+    }
+
+    window.setTimeout(restore, 100);
   }
 
   function watchSubmission() {
@@ -84,12 +102,12 @@
       const step = button.closest('.wizard-step[data-step="13"]');
       if (!step || !button.classList.contains("btn-next")) return;
 
-      /* quote.js validates the customer details and moves to Step 14 first.
-         Only clear the live basket if that submission actually succeeded. */
+      /* quote-account.js handles the actual save. Only clear the live basket
+         after the UI has genuinely reached the submitted step. */
       window.setTimeout(function () {
         const submitted = form.querySelector('.wizard-step[data-step="14"]');
         if (submitted && !submitted.hidden) clearSubmittedBasket();
-      }, 100);
+      }, 250);
     });
   }
 
@@ -102,8 +120,6 @@
     window.addEventListener("gearCashOutBasketChanged", updateNavigation);
     window.addEventListener("pageshow", updateNavigation);
 
-    /* Same-page basket changes use localStorage and therefore do not emit a
-       storage event. This light check keeps the navigation badge accurate. */
     window.setInterval(updateNavigation, 1000);
   }
 
