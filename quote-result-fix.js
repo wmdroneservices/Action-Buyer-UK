@@ -8,6 +8,41 @@
   const form = document.getElementById("quote-form");
   if (!form) return;
 
+  function clean(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function isPlaceholder(value) {
+    const text = clean(value);
+    return !text || /^[-–—]/.test(text) || (/\bselect\b/.test(text) && /\b(model|package|accessory|manufacturer)\b/.test(text));
+  }
+
+  function isCompleteItem(item) {
+    if (!item || typeof item !== "object") return false;
+    if (isPlaceholder(item.category) || isPlaceholder(item.categoryName)) return false;
+    if (isPlaceholder(item.manufacturer) || isPlaceholder(item.manufacturerName)) return false;
+    if (isPlaceholder(item.model) || isPlaceholder(item.modelName)) return false;
+    if (item.category === "drone" && (isPlaceholder(item.package) || isPlaceholder(item.packageName))) return false;
+    return true;
+  }
+
+  function readCleanBasket() {
+    let basket = [];
+    try {
+      basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]");
+    } catch (_) {
+      basket = [];
+    }
+    if (!Array.isArray(basket)) basket = [];
+
+    const valid = basket.filter(isCompleteItem);
+    if (valid.length !== basket.length) {
+      try { localStorage.setItem("gearCashOutQuoteBasket", JSON.stringify(valid)); } catch (_) {}
+      window.dispatchEvent(new CustomEvent("gearCashOutBasketChanged"));
+    }
+    return valid;
+  }
+
   window.renderGearCashOutManualResult = function () {
     const step = form.querySelector('[data-step="12"]');
     const summary = document.getElementById("quote-summary");
@@ -36,13 +71,7 @@
     const title = document.getElementById("quote-result-title");
     if (title) title.textContent = "Your Quote";
 
-    let basket = [];
-    try {
-      basket = JSON.parse(localStorage.getItem("gearCashOutQuoteBasket") || "[]");
-    } catch (_) {
-      basket = [];
-    }
-    if (!Array.isArray(basket)) basket = [];
+    const basket = readCleanBasket();
 
     if (!basket.length) {
       summary.innerHTML =
