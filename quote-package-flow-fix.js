@@ -1,8 +1,7 @@
 /* Package flow fix.
-   The old standalone Step 6 battery-entry page has been removed.
-   Package battery quantity is determined by the selected package and shown
-   in Step 9 Package Contents. Additional batteries remain separate
-   accessories.
+   Step 6 is the package-battery supply screen. Its quantity is driven by
+   the selected package. Extra batteries remain separate accessories in
+   Step 9.
 */
 (function () {
   "use strict";
@@ -20,6 +19,7 @@
     "neo-2|standard": 1,
     "neo-2|fly-more": 3,
     "flip|standard-rc-n3": 1,
+    "fly-more-rc-n3|fly-more-rc-n3": 3,
     "flip|fly-more-rc-n3": 3,
     "flip|fly-more-rc-2": 3,
     "air|drone-only": 1,
@@ -58,19 +58,6 @@
     "avata-2|fly-more": 3
   };
 
-  function removeLegacyStep6(form) {
-    const step6 = form.querySelector('.wizard-step[data-step="6"]');
-    if (step6) step6.remove();
-
-    const progress = document.getElementById("progress-indicator");
-    if (progress) {
-      progress.querySelectorAll(".progress-step").forEach(function (item) {
-        const text = item.textContent.trim();
-        if (/^6\./.test(text) || /package batteries/i.test(text)) item.remove();
-      });
-    }
-  }
-
   function expectedPackageBatteries() {
     const model = document.getElementById("dji-model")?.value || "";
     const pkg = document.getElementById("package-select")?.value || "";
@@ -81,34 +68,33 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("quote-form");
+    const progress = document.getElementById("progress-indicator");
     if (!form) return;
 
-    removeLegacyStep6(form);
-
-    /* If an old compatibility script recreates Step 6, remove it again. */
-    const observer = new MutationObserver(function () {
-      removeLegacyStep6(form);
-    });
-    observer.observe(form, { childList: true, subtree: true });
+    /* Step 6 is intentionally present in the wizard even though its HTML is
+       created dynamically by the battery-count fix. */
+    if (progress && !Array.from(progress.querySelectorAll(".progress-step")).some(el => /^6\./.test(el.textContent.trim()))) {
+      const item = document.createElement("li");
+      item.className = "progress-step";
+      item.textContent = "6. Package Batteries";
+      const step5 = Array.from(progress.querySelectorAll(".progress-step")).find(el => /^5\./.test(el.textContent.trim()));
+      if (step5 && step5.nextSibling) progress.insertBefore(item, step5.nextSibling);
+      else progress.appendChild(item);
+    }
 
     form.addEventListener("click", function (event) {
-      if (String(document.getElementById("gear-category")?.value || "").toLowerCase() !== "drone" ||
-          String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase() !== "dji") return;
-
+      const category = String(document.getElementById("gear-category")?.value || "").toLowerCase();
+      const manufacturer = String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase();
+      if (category !== "drone" || manufacturer !== "dji") return;
       const button = event.target.closest("button");
-      if (!button || !form.contains(button) || !button.classList.contains("btn-next")) return;
+      if (!button || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
       if (!step || Number(step.dataset.step) !== 5) return;
-
-      /* Let quote.js validate and store the flight information first. It will
-         attempt to open the removed Step 6; immediately route to Step 7 after
-         that handler has completed. */
-      window.setTimeout(function () {
-        const step7 = form.querySelector('.wizard-step[data-step="7"]');
-        if (!step7) return;
-        const visible = form.querySelector('.wizard-step:not([hidden])');
-        if (visible && Number(visible.dataset.step) === 5) {
-          form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step7; });
+      setTimeout(function () {
+        const step6 = form.querySelector('.wizard-step[data-step="6"]');
+        if (!step6) return;
+        if (form.querySelector('.wizard-step:not([hidden])')?.dataset.step === "5") {
+          form.querySelectorAll(".wizard-step").forEach(s => { s.hidden = s !== step6; });
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
       }, 0);
