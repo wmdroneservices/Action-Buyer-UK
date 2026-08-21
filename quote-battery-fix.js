@@ -1,0 +1,71 @@
+/* DJI battery-step fix.
+   Step 6 records ONLY batteries supplied as part of the selected package.
+   Package entitlement remains separate and is always derived from packageSpecs.
+   Extra batteries are handled later in Step 10 / accessories.
+*/
+function initDjiBatteryFix() {
+  "use strict";
+
+  const form = document.getElementById("quote-form");
+  if (!form) return;
+
+  const step6 = () => form.querySelector('[data-step="6"]');
+  const modelSelect = () => document.getElementById("dji-model");
+  const packageSelect = () => document.getElementById("package-select");
+  const PACKAGE_BATTERIES = {
+    "mini-5-pro|fly-more-rc-2":3,"mini-4-pro|fly-more-rc-2":3,"mini-4-pro|fly-more-rc-n2":3,
+    "mini-3-pro|fly-more-rc-n1":3,"mini-3-pro|fly-more-dji-rc":3,"mini-3|fly-more-rc-n1":3,"mini-2|fly-more":3,
+    "neo|drone-only":1,"neo|fly-more":3,"neo-2|standard":1,"neo-2|fly-more":3,
+    "flip|standard-rc-n3":1,"flip|fly-more-rc-n3":3,"flip|fly-more-rc-2":3,
+    "air|drone-only":1,"air|standard":1,"air|fly-more":3,"air-2|drone-only":1,"air-2|fly-more":3,
+    "air-2s|drone-only":1,"air-2s|fly-more":3,"air-3|drone-only":1,"air-3|fly-more":3,
+    "air-3s|drone-only":1,"air-3s|fly-more":3,"mavic-2-pro|drone-only":1,"mavic-2-pro|standard":1,
+    "mavic-2-pro|fly-more":3,"mavic-2-zoom|drone-only":1,"mavic-2-zoom|fly-more":3,
+    "mavic-3|drone-only":1,"mavic-3|fly-more":3,"mavic-3-classic|drone-only":1,"mavic-3-classic|fly-more":3,
+    "mavic-3-pro|drone-only":1,"mavic-3-pro|fly-more":3,"mavic-3-pro-cine|drone-only":1,"mavic-3-pro-cine|premium-combo":3,
+    "mavic-4-pro|drone-only":1,"mavic-4-pro|fly-more":3,"fpv|drone-only":1,"fpv|fly-smart":1,
+    "avata|drone-only":1,"avata|fly-smart":2,"avata|pro-view":2,"avata|explorer":2,
+    "avata-2|drone-only":1,"avata-2|fly-more":3
+  };
+
+  window.gearExpectedPackageBatteries = function () {
+    const key = `${modelSelect()?.value || ""}|${packageSelect()?.value || ""}`;
+    return PACKAGE_BATTERIES[key] || 1;
+  };
+
+  function isDJI() {
+    return String(document.getElementById("gear-category")?.value || "").toLowerCase() === "drone" &&
+           String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase() === "dji";
+  }
+  function container(){ return document.getElementById("batteries-container"); }
+  function removeRealEntries(){ container()?.querySelectorAll(".battery-entry").forEach(el=>el.remove()); }
+  function createRealBattery(box, number){
+    const wrapper=document.createElement("div"); wrapper.className="battery-entry gear-package-battery"; wrapper.dataset.number=String(number);
+    wrapper.innerHTML=`<h4>Package Battery ${number}</h4><label for="gear-package-battery-type-${number}">Battery Type</label><input type="text" id="gear-package-battery-type-${number}" class="battery-type" placeholder="Example: Intelligent Flight Battery"><label for="gear-package-battery-cycles-${number}">Battery Cycle Count</label><input type="number" id="gear-package-battery-cycles-${number}" class="battery-cycles" min="0" step="1" placeholder="0">`;
+    box.appendChild(wrapper);
+  }
+  function renderBatteryEntries(count){
+    const box=container(); if(!box)return; removeRealEntries(); const zero=box.querySelector(".gear-zero-battery-marker"); if(zero)zero.remove();
+    if(count===0){const marker=document.createElement("div");marker.className="battery-entry gear-zero-battery-marker";marker.hidden=true;marker.innerHTML='<input type="text" class="battery-type" value="No battery supplied"><input type="number" class="battery-cycles" value="0">';box.appendChild(marker);return;}
+    for(let i=1;i<=count;i++)createRealBattery(box,i);
+  }
+  function renderBatteryStep(){
+    if(!isDJI())return; const s6=step6(),box=container(); if(!s6||!box)return; s6.hidden=false;
+    const heading=s6.querySelector("h3"); if(heading)heading.textContent="Step 6: Package Batteries";
+    let intro=s6.querySelector(".gear-battery-intro"); if(!intro){intro=document.createElement("p");intro.className="gear-battery-intro";s6.insertBefore(intro,box);}
+    const expected=window.gearExpectedPackageBatteries();
+    intro.innerHTML=`<strong>${expected} package battery${expected===1?"":"ies"} expected from the selected package.</strong> Enter only the package batteries you are actually sending. If none are supplied, select 0. Extra batteries are entered separately in Step 10.`;
+    let label=s6.querySelector(".gear-package-battery-count-label"); let count=document.getElementById("package-battery-count");
+    if(!count){label=document.createElement("label");label.className="gear-package-battery-count-label";label.htmlFor="package-battery-count";count=document.createElement("select");count.id="package-battery-count";label.appendChild(count);s6.insertBefore(label,box);count.addEventListener("change",()=>renderBatteryEntries(Number(count.value)));}
+    label.firstChild.textContent=`Number of package batteries being supplied (0–${expected})`;
+    const current=Number(count.value); count.innerHTML=""; for(let i=0;i<=expected;i++)count.add(new Option(String(i),String(i)));
+    count.value=Number.isInteger(current)&&current>=0&&current<=expected?String(current):String(expected);
+    const add=s6.querySelector("#add-battery-btn"); if(add)add.remove();
+    renderBatteryEntries(Number(count.value));
+  }
+  function resetOnPackageChange(){const box=container();if(box)box.innerHTML="";const count=document.getElementById("package-battery-count");if(count)count.value="";setTimeout(renderBatteryStep,20);}
+  const observer=new MutationObserver(()=>{if(isDJI()&&!step6()?.hidden)renderBatteryStep();}); observer.observe(form,{attributes:true,subtree:true,attributeFilter:["hidden"]});
+  form.addEventListener("change",e=>{if(e.target?.id==="package-select")resetOnPackageChange();},true);
+  form.addEventListener("click",e=>{if(!isDJI())return;const button=e.target.closest("button");if(!button)return;const s6=button.closest('.wizard-step[data-step="6"]');if(!s6||!button.classList.contains("btn-next"))return;const count=Number(document.getElementById("package-battery-count")?.value);if(!Number.isInteger(count)||count<0||count>window.gearExpectedPackageBatteries()){e.preventDefault();e.stopImmediatePropagation();alert("Please select a valid number of package batteries.");}},true);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initDjiBatteryFix,{once:true});else initDjiBatteryFix();
