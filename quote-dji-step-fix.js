@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   setStep10Title();
 
-  /* Step 6 has been removed. Back from Step 7 therefore returns to Step 5. */
+  /* Step 6 is now the package-battery count screen. Back from Step 7 returns to Step 5. */
   form.addEventListener("click", function (event) {
     if (!isDJIDrone()) return;
     const button = event.target.closest("button");
@@ -44,4 +44,12 @@ document.addEventListener("DOMContentLoaded", function () {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, true);
+
+  if (!document.querySelector('script[data-quote-battery-count-fix]')) {
+    const batteryScript = document.createElement("script");
+    batteryScript.src = "quote-battery-count-fix.js?v=20260821-2";
+    batteryScript.defer = true;
+    batteryScript.dataset.quoteBatteryCountFix = "true";
+    document.head.appendChild(batteryScript);
+  }
 });
