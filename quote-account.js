@@ -4,6 +4,7 @@
   const RESUME_KEY = "gearCashOutQuoteResume";
   const RETURN_KEY = "actionBuyerReturnAfterAuth";
   const BASKET_KEY = "gearCashOutQuoteBasket";
+  let submissionInProgress = false;
 
   function getSessionMarker(){try{return localStorage.getItem("gearCashOutAuthenticated")==="true";}catch(_){return false;}}
   function saveReturnPath(){try{localStorage.setItem(RETURN_KEY,"quote.html");}catch(_){} }
@@ -90,25 +91,27 @@
       const n=Number(step.dataset.step);
       if(n===12&&isManualStep12(step)){try{sessionStorage.setItem("actionBuyerManualValuation","true");}catch(_){}return;}
       if(n!==13||!button.classList.contains("btn-next"))return;
+      if(submissionInProgress)return;
 
       const resumed=getResume();
       const authenticated=getSessionMarker();
       if(resumed){
         event.preventDefault();event.stopImmediatePropagation();
+        submissionInProgress=true;
         (async function(){
-          if(!(await window.actionBuyerAuth?.getSession?.())){saveResume();saveReturnPath();window.location.href="login.html?return=quote.html";return;}
+          if(!(await window.actionBuyerAuth?.getSession?.())){submissionInProgress=false;saveResume();saveReturnPath();window.location.href="login.html?return=quote.html";return;}
           const name=document.getElementById("full-name"),email=document.getElementById("email-address"),phone=document.getElementById("phone-number");
-          if(!name?.value.trim())return alert("Please enter your full name.");
-          if(!email?.value.trim())return alert("Please enter your email address.");
-          if(!phone?.value.trim())return alert("Please enter your telephone number.");
+          if(!name?.value.trim()){submissionInProgress=false;return alert("Please enter your full name.");}
+          if(!email?.value.trim()){submissionInProgress=false;return alert("Please enter your email address.");}
+          if(!phone?.value.trim()){submissionInProgress=false;return alert("Please enter your telephone number.");}
           const record=makeRecord(resumed);saveLocal(record);
           const result=await saveQuoteToAccount();
-          if(!result)return alert("We could not submit your valuation. Please try again.");
+          if(!result){submissionInProgress=false;return alert("We could not submit your valuation. Please try again.");}
           record.quoteReference=result.quote_reference||record.quoteReference;
           clearResume();clearReturnPath();
           try{sessionStorage.removeItem("actionBuyerManualValuation");}catch(_){}
           showSubmitted(record);
-        })();
+        })().catch(function(error){console.error(error);submissionInProgress=false;alert("We could not submit your valuation. Please try again.");});
         return;
       }
 
@@ -119,24 +122,25 @@
            quotes, but deliberately do not require a return address at this
            stage. The address is captured when a purchase actually proceeds. */
         event.preventDefault();event.stopImmediatePropagation();
+        submissionInProgress=true;
         const manual=sessionStorage.getItem("actionBuyerManualValuation")==="true";
         if(manual)prepareManual(step);
         const name=document.getElementById("full-name"),email=document.getElementById("email-address"),phone=document.getElementById("phone-number");
-        if(!name?.value.trim())return alert("Please enter your full name.");
-        if(!email?.value.trim())return alert("Please enter your email address.");
-        if(!phone?.value.trim())return alert("Please enter your phone number.");
+        if(!name?.value.trim()){submissionInProgress=false;return alert("Please enter your full name.");}
+        if(!email?.value.trim()){submissionInProgress=false;return alert("Please enter your email address.");}
+        if(!phone?.value.trim()){submissionInProgress=false;return alert("Please enter your phone number.");}
         const saved=buildResume();
         saved.manualValuation=manual;
         if(manual)saved.quoteAmount=null;
         const record=makeRecord(saved);saveLocal(record);
         (async()=>{
           const result=await saveQuoteToAccount();
-          if(!result){alert("We could not submit your valuation. Please try again.");return;}
+          if(!result){submissionInProgress=false;alert("We could not submit your valuation. Please try again.");return;}
           record.quoteReference=result.quote_reference||record.quoteReference;
           try{sessionStorage.removeItem("actionBuyerManualValuation");}catch(_){}
           showSubmitted(record);
-        })();
-      }catch(error){console.error(error);}
+        })().catch(function(error){console.error(error);submissionInProgress=false;alert("We could not submit your valuation. Please try again.");});
+      }catch(error){console.error(error);submissionInProgress=false;}
     },true);
   });
 
