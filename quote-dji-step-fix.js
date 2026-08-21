@@ -1,9 +1,4 @@
-/* DJI navigation compatibility fix.
-   The start-of-wizard navigation fix must be loaded immediately. The previous
-   version injected it from a DOMContentLoaded callback, which was too late for
-   the injected script to register its own DOMContentLoaded handler. That left
-   Step 3's package list empty and the Next button unable to advance.
-*/
+/* DJI navigation compatibility fix. */
 (function loadStartNavigationFix() {
   if (document.querySelector('script[data-quote-start-navigation-fix]')) return;
   const script = document.createElement("script");
@@ -36,16 +31,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   form.addEventListener("click", function (event) {
     if (!isDJIDrone()) return;
-
     const button = event.target.closest("button");
     if (!button || !form.contains(button) || !button.classList.contains("btn-back")) return;
-
     const step = button.closest(".wizard-step");
     if (!step || Number(step.dataset.step) !== 7) return;
-
     event.preventDefault();
     event.stopImmediatePropagation();
-
     const step6 = form.querySelector('[data-step="6"]');
     const step6Back = step6 && step6.querySelector(".btn-back");
     if (step6Back) step6Back.click();
@@ -54,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function loadConsistency() {
     if (document.querySelector('script[data-dji-battery-consistency-fix]')) return;
     const script = document.createElement("script");
-    script.src = "quote-battery-consistency-fix.js?v=20260820-3";
+    script.src = "quote-battery-consistency-fix.js?v=20260821-1";
     script.defer = true;
     script.dataset.djiBatteryConsistencyFix = "true";
     document.head.appendChild(script);
@@ -64,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadConsistency();
   } else {
     const script = document.createElement("script");
-    script.src = "quote-battery-fix.js?v=20260820-3";
+    script.src = "quote-battery-fix.js?v=20260821-1";
     script.defer = true;
     script.dataset.djiBatteryFix = "true";
     script.onload = loadConsistency;
