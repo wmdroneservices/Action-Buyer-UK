@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   setStep10Title();
 
+  /* Step 6 has been removed. Back from Step 7 therefore returns to Step 5. */
   form.addEventListener("click", function (event) {
     if (!isDJIDrone()) return;
     const button = event.target.closest("button");
@@ -37,28 +38,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!step || Number(step.dataset.step) !== 7) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const step6 = form.querySelector('[data-step="6"]');
-    const step6Back = step6 && step6.querySelector(".btn-back");
-    if (step6Back) step6Back.click();
+    const step5 = form.querySelector('.wizard-step[data-step="5"]');
+    if (step5) {
+      form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step5; });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, true);
-
-  function loadConsistency() {
-    if (document.querySelector('script[data-dji-battery-consistency-fix]')) return;
-    const script = document.createElement("script");
-    script.src = "quote-battery-consistency-fix.js?v=20260821-1";
-    script.defer = true;
-    script.dataset.djiBatteryConsistencyFix = "true";
-    document.head.appendChild(script);
-  }
-
-  if (document.querySelector('script[data-dji-battery-fix]')) {
-    loadConsistency();
-  } else {
-    const script = document.createElement("script");
-    script.src = "quote-battery-fix.js?v=20260821-1";
-    script.defer = true;
-    script.dataset.djiBatteryFix = "true";
-    script.onload = loadConsistency;
-    document.head.appendChild(script);
-  }
 });
