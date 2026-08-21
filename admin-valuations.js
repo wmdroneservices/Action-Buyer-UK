@@ -26,10 +26,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const setMessage = (text, ok = true) => { message.textContent = text; message.className = "form-message " + (ok ? "success" : "error"); };
 
-  async function notify(offerId, eventType) {
-    try { await auth.supabase.functions.invoke("send-quote-email-v2", { body: { offer_id: offerId, event_type: eventType } }); } catch (_) {}
-  }
-
   function customerFromValuation(v) {
     const q = v.quote_data || {};
     return { userId: v.user_id || "unknown", name: q.fullName || "Unnamed customer", email: q.email || "No email recorded", phone: q.phone || "No phone recorded" };
@@ -104,23 +100,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
         <div class="customer-quotes-list" id="${customerId}">
           ${customerQuotes.map(v => {
-            const item = (items || []).find(i => i.valuation_id === v.id);
-            const itemOffers = (offers || []).filter(o => o.item_id === item?.id);
-            const activeOffers = itemOffers.filter(o => o.status !== "superseded");
+            const quoteItems = (items || []).filter(i => i.valuation_id === v.id);
+            const firstItem = quoteItems[0];
+            const itemOffers = (offers || []).filter(o => quoteItems.some(i => i.id === o.item_id));
+            const activeOffers = itemOffers.filter(o => o.status !== "superseded" && o.status !== "withdrawn");
             const accepted = activeOffers.filter(o => o.status === "accepted").length;
             const responded = activeOffers.filter(o => o.responded_at).length;
             const photos = Array.isArray(v.quote_data?.photos) ? v.quote_data.photos.length : 0;
-            const title = v.quote_data?.modelName || v.model || "Equipment submission";
-            const subtitle = v.quote_data?.packageName || v.package || "";
+            const title = v.quote_data?.modelName || v.model || firstItem?.item_name || "Equipment submission";
+            const subtitle = quoteItems.length > 1 ? `${quoteItems.length} items` : (v.quote_data?.packageName || v.package || "");
             const detailUrl = `admin-quote.html?id=${encodeURIComponent(v.id)}`;
             const actions = showingArchive
               ? `<button class="btn btn-secondary quote-action" data-action="restore" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">RESTORE</button><button class="btn quote-action quote-delete" data-action="delete" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">DELETE</button>`
               : `<button class="btn btn-secondary quote-action" data-action="archive" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">ARCHIVE</button><button class="btn quote-action quote-delete" data-action="delete" data-id="${esc(v.id)}" data-reference="${esc(v.quote_reference)}" type="button">DELETE</button>`;
             return `<article class="valuation-card admin-customer-quote" style="margin-bottom:1rem;">
-              <div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${esc(String(v.status || "submitted").replaceAll("_", " "))}</p><h3>${esc(title)}</h3><p>${esc(v.manufacturer || v.quote_data?.manufacturerName || "")}${subtitle ? " — " + esc(subtitle) : ""}</p><small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}${v.archived_at ? " · Archived " + new Date(v.archived_at).toLocaleString("en-GB") : ""}</small>
-                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;"><span class="status-badge">${photos} photo${photos === 1 ? "" : "s"}</span><span class="status-badge">${activeOffers.length} offer${activeOffers.length === 1 ? "" : "s"}</span>${responded ? `<span class="status-badge">${responded} response${responded === 1 ? "" : "s"}</span>` : ""}${accepted ? `<span class="status-badge">${accepted} accepted</span>` : ""}</div>
+              <div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">${esc(String(v.status || "submitted").replaceAll("_", " "))}</p><h3>${esc(title)}</h3><p>${esc(v.manufacturer || v.quote_data?.manufacturerName || firstItem?.manufacturer || "")}${subtitle ? " — " + esc(subtitle) : ""}</p><small>Submitted ${v.submitted_at ? new Date(v.submitted_at).toLocaleString("en-GB") : ""}${v.archived_at ? " · Archived " + new Date(v.archived_at).toLocaleString("en-GB") : ""}</small>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;"><span class="status-badge">${photos} photo${photos === 1 ? "" : "s"}</span><span class="status-badge">${activeOffers.length} offer${activeOffers.length === 1 ? "" : "s"}</span>${responded ? `<span class="status-badge">${responded} response${responded === 1 ? "" : "s"}` : ""}${accepted ? `<span class="status-badge">${accepted} accepted</span>` : ""}</div>
               </div>
-              <div class="valuation-meta" style="min-width:260px;"><strong>${v.quote_amount == null ? "Manual valuation" : money(v.quote_amount)}</strong><a class="btn btn-primary" href="${detailUrl}">VIEW QUOTE &amp; PHOTOS</a><div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;">${actions}</div></div>
+              <div class="valuation-meta" style="min-width:260px;"><strong>${v.quote_amount == null ? (itemOffers.some(o => o.offer_type === "automatic" && o.status === "draft") ? "Automatic valuation ready" : "Manual valuation") : money(v.quote_amount)}</strong><a class="btn btn-primary" href="${detailUrl}">REVIEW &amp; SEND OFFER</a><div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;">${actions}</div></div>
             </article>`;
           }).join("")}
         </div>
