@@ -1,6 +1,7 @@
 /* Live quote navigation and resume state.
-   Shows a top-navigation link only while an unsubmitted quote basket exists,
-   and restores the saved basket when the customer returns to quote.html. */
+   Shows a top-navigation link only while an unsubmitted quote basket exists for a customer,
+   and restores the saved basket when the customer returns to quote.html. Staff accounts
+   never see or restore the customer quote basket. */
 (function () {
   "use strict";
 
@@ -8,6 +9,8 @@
   const NAV_ID = "live-quote-nav";
   let restoring = false;
   let restoreTimer = null;
+  let roleKnown = false;
+  let isStaff = false;
 
   function clean(value) {
     return String(value || "").trim().toLowerCase();
@@ -46,21 +49,55 @@
     return /(^|\/)quote\.html$/i.test(window.location.pathname);
   }
 
+  function removeNavigation() {
+    const existing = document.getElementById(NAV_ID);
+    if (existing) existing.remove();
+  }
+
+  async function detectRole() {
+    roleKnown = false;
+    isStaff = false;
+    try {
+      const auth = window.actionBuyerAuth;
+      if (!auth) {
+        roleKnown = true;
+        return;
+      }
+      const session = await auth.getSession();
+      if (session?.user?.id) {
+        const { data, error } = await auth.supabase
+          .from("staff_users")
+          .select("user_id")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        if (error) console.error("Staff role check failed", error);
+        isStaff = !!data;
+      }
+    } catch (error) {
+      console.error("Quote navigation role check failed", error);
+    } finally {
+      roleKnown = true;
+      updateNavigation();
+    }
+  }
+
   function updateNavigation() {
     const navList = document.querySelector("header .nav-list");
     if (!navList) return;
+    if (!roleKnown || isStaff) {
+      removeNavigation();
+      return;
+    }
 
     const basket = readBasket();
     const existing = document.getElementById(NAV_ID);
-
     if (!basket.length) {
-      if (existing) existing.remove();
+      removeNavigation();
       return;
     }
 
     const itemWord = basket.length === 1 ? "item" : "items";
     const label = "Your Quote (" + basket.length + " " + itemWord + ")";
-
     if (existing) {
       const link = existing.querySelector("a");
       if (link) link.textContent = label;
@@ -88,14 +125,10 @@
     if (!form) return false;
     const target = form.querySelector('.wizard-step[data-step="' + number + '"]');
     if (!target) return false;
-
-    const alreadyVisible = !target.hidden;
-    if (!alreadyVisible) {
+    if (target.hidden) {
       form.querySelectorAll(".wizard-step").forEach(function (step) {
         step.hidden = step !== target;
       });
-      /* Scroll to the top once when the quote is first restored. Do not keep
-         issuing smooth scroll commands while the page is initialising. */
       window.scrollTo({ top: 0, behavior: "auto" });
     }
     return true;
@@ -112,27 +145,19 @@
   }
 
   function restoreLiveQuote() {
-    if (!isQuotePage() || !readBasket().length) return;
-
+    if (isStaff || !roleKnown || !isQuotePage() || !readBasket().length) return;
     restoring = true;
     let attempts = 0;
     clearInterval(restoreTimer);
-
     restoreTimer = window.setInterval(function () {
       attempts += 1;
-
-      if (!readBasket().length) {
+      if (isStaff || !roleKnown || !readBasket().length) {
         clearInterval(restoreTimer);
         restoring = false;
         return;
       }
-
       const restored = showStepDirect(12);
       const rendered = restored && renderQuoteList();
-
-      /* Once Step 12 exists and the quote renderer is available, the page is
-         restored. Further retries are unnecessary and caused repeated scroll
-         movement while the customer was trying to scroll normally. */
       if (rendered || attempts >= 30) {
         clearInterval(restoreTimer);
         restoring = false;
@@ -156,13 +181,11 @@
     if (!isQuotePage()) return;
     const form = document.getElementById("quote-form");
     if (!form) return;
-
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
       if (!button || !form.contains(button)) return;
       const step = button.closest('.wizard-step[data-step="13"]');
       if (!step || !button.classList.contains("btn-next")) return;
-
       window.setTimeout(function () {
         const submitted = form.querySelector('.wizard-step[data-step="14"]');
         if (submitted && !submitted.hidden) clearSubmittedBasket();
@@ -170,19 +193,27 @@
     });
   }
 
-  function init() {
-    updateNavigation();
+  async function init() {
+    removeNavigation();
     watchSubmission();
     stopRestoreOnUserInteraction();
-    restoreLiveQuote();
-
     window.addEventListener("storage", updateNavigation);
     window.addEventListener("gearCashOutBasketChanged", updateNavigation);
-    window.addEventListener("pageshow", function () {
+    window.addEventListener("pageshow", async function () {
+      await detectRole();
       updateNavigation();
       restoreLiveQuote();
     });
-
+    if (window.actionBuyerAuth?.supabase) {
+      window.actionBuyerAuth.supabase.auth.onAuthStateChange(async function () {
+        await detectRole();
+        updateNavigation();
+        restoreLiveQuote();
+      });
+    }
+    await detectRole();
+    updateNavigation();
+    restoreLiveQuote();
     window.setInterval(updateNavigation, 1000);
   }
 
