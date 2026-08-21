@@ -23,13 +23,14 @@
 
   function isPlaceholder(v){
     const s=clean(v).toLowerCase();
-    return !s || /^[-–—]/.test(s) || s.includes("select a model") || s.includes("select model") || s.includes("select package") || s.includes("select your model") || s.includes("select accessory");
+    return !s || /^[-–—]/.test(s) || /\bselect\b.*\b(model|package|accessory|manufacturer)\b/.test(s);
   }
   function isCompleteItem(item){
     if(!item || typeof item!=="object")return false;
-    if(isPlaceholder(item.categoryName) || isPlaceholder(item.manufacturerName))return false;
-    if(isPlaceholder(item.modelName))return false;
-    if(item.category==="drone" && isPlaceholder(item.packageName))return false;
+    if(isPlaceholder(item.category) || isPlaceholder(item.categoryName))return false;
+    if(isPlaceholder(item.manufacturer) || isPlaceholder(item.manufacturerName))return false;
+    if(isPlaceholder(item.model) || isPlaceholder(item.modelName))return false;
+    if(item.category==="drone" && (isPlaceholder(item.package) || isPlaceholder(item.packageName)))return false;
     return true;
   }
 
@@ -107,6 +108,7 @@
       if(window.__gcoCurrentItemIndex===index)window.__gcoCurrentItemIndex=null;
       else if(window.__gcoCurrentItemIndex>index)window.__gcoCurrentItemIndex--;
     }
+    window.dispatchEvent(new CustomEvent("gearCashOutBasketChanged"));
     if(typeof window.renderGearCashOutManualResult==="function")window.renderGearCashOutManualResult();
   }
 
