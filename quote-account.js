@@ -115,24 +115,27 @@
       if(!authenticated){event.preventDefault();event.stopImmediatePropagation();saveResume();saveReturnPath();window.location.href="login.html?return=quote.html";return;}
 
       try{
-        if(sessionStorage.getItem("actionBuyerManualValuation")==="true"){
-          event.preventDefault();event.stopImmediatePropagation();
-          prepareManual(step);
-          const name=document.getElementById("full-name"),email=document.getElementById("email-address"),phone=document.getElementById("phone-number");
-          if(!name?.value.trim())return alert("Please enter your full name.");
-          if(!email?.value.trim())return alert("Please enter your email address.");
-          if(!phone?.value.trim())return alert("Please enter your phone number.");
-          const manual=buildResume();
-          manual.manualValuation=true;manual.quoteAmount=null;
-          const record=makeRecord(manual);saveLocal(record);
-          (async()=>{
-            const result=await saveQuoteToAccount();
-            if(!result){alert("We could not submit your valuation. Please try again.");return;}
-            record.quoteReference=result.quote_reference||record.quoteReference;
-            try{sessionStorage.removeItem("actionBuyerManualValuation");}catch(_){}
-            showSubmitted(record);
-          })();
-        }
+        /* Automatic quotes use the same account-save path as resumed/manual
+           quotes, but deliberately do not require a return address at this
+           stage. The address is captured when a purchase actually proceeds. */
+        event.preventDefault();event.stopImmediatePropagation();
+        const manual=sessionStorage.getItem("actionBuyerManualValuation")==="true";
+        if(manual)prepareManual(step);
+        const name=document.getElementById("full-name"),email=document.getElementById("email-address"),phone=document.getElementById("phone-number");
+        if(!name?.value.trim())return alert("Please enter your full name.");
+        if(!email?.value.trim())return alert("Please enter your email address.");
+        if(!phone?.value.trim())return alert("Please enter your phone number.");
+        const saved=buildResume();
+        saved.manualValuation=manual;
+        if(manual)saved.quoteAmount=null;
+        const record=makeRecord(saved);saveLocal(record);
+        (async()=>{
+          const result=await saveQuoteToAccount();
+          if(!result){alert("We could not submit your valuation. Please try again.");return;}
+          record.quoteReference=result.quote_reference||record.quoteReference;
+          try{sessionStorage.removeItem("actionBuyerManualValuation");}catch(_){}
+          showSubmitted(record);
+        })();
       }catch(error){console.error(error);}
     },true);
   });
