@@ -37,13 +37,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const ids = items.map(item => item.id);
     const { data: offers } = await auth.supabase
       .from("quote_offers")
-      .select("id,item_id,offer_type,amount,status,published_at,responded_at")
+      .select("id,item_id,offer_type,amount,status,published_at,responded_at,created_at")
       .in("item_id", ids)
-      .eq("offer_type", "automatic")
       .order("created_at", { ascending: false });
 
     const automaticByItem = new Map();
     (offers || []).forEach(offer => {
+      if (offer.offer_type !== "automatic") return;
+      if (["superseded", "withdrawn"].includes(offer.status)) return;
       if (!automaticByItem.has(offer.item_id)) automaticByItem.set(offer.item_id, offer);
     });
 
@@ -79,6 +80,38 @@ document.addEventListener("DOMContentLoaded", async () => {
       manualRow.replaceWith(replacement);
       card.dataset.automaticOfferId = automatic.id;
     });
+
+    // Keep the quote-level amount consistent with the actual offers sent.
+    // The previous total only considered manual/final offers, so automatic
+    // £500 offers appeared as £0.00 when the quote was opened.
+    const currentByItem = new Map();
+    (offers || []).forEach(offer => {
+      if (["superseded", "withdrawn"].includes(offer.status)) return;
+      if (!offer.published_at) return;
+      if (!currentByItem.has(offer.item_id)) currentByItem.set(offer.item_id, offer);
+    });
+
+    const total = items.reduce((sum, item) => {
+      const offer = currentByItem.get(item.id);
+      return sum + (offer && Number.isFinite(Number(offer.amount)) ? Number(offer.amount) : 0);
+    }, 0);
+
+    const label = items.length === 1 ? "Quote amount" : "Current combined offer total";
+    const summary = box.querySelector("#resilient-quote-total, .quote-basket-total");
+    if (summary) {
+      const strongs = summary.querySelectorAll("strong");
+      if (strongs.length >= 2) {
+        strongs[0].textContent = label;
+        strongs[1].textContent = money(total);
+      }
+    } else {
+      const summary = document.createElement("div");
+      summary.id = "sent-quote-total";
+      summary.className = "quote-basket-total";
+      summary.style.cssText = "display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;margin:0 0 1rem;font-size:1.2rem";
+      summary.innerHTML = `<strong>${label}</strong><strong>${money(total)}</strong>`;
+      box.prepend(summary);
+    }
   }
 
   function queueApply() {
