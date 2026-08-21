@@ -23,11 +23,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "Insta360":[["x-series-battery","Insta360 X-Series Battery"],["quick-reader","Insta360 Quick Reader"],["x-series-case","Insta360 X-Series Carry Case"]],
       "Manfrotto":[["tripod","Manfrotto Tripod"],["head","Manfrotto Video Head"],["bag","Manfrotto Camera Bag"]],
       "RØDE":[["wireless-pro","RØDE Wireless PRO"],["videomic","RØDE VideoMic"],["charging-case","RØDE Charging Case"]]
+    },
+    "dji-controller": {
+      "DJI":[["rc-n1","DJI RC-N1"],["rc-n2","DJI RC-N2"],["rc-n3","DJI RC-N3"],["rc","DJI RC"],["rc-2","DJI RC 2"],["rc-pro","DJI RC Pro"],["rc-plus","DJI RC Plus"],["smart-controller","DJI Smart Controller"],["fpv-remote","DJI FPV Remote Controller"],["fpv-remote-2","DJI FPV Remote Controller 2"],["fpv-remote-3","DJI FPV Remote Controller 3"],["motion-controller","DJI Motion Controller"],["rc-motion-2","DJI RC Motion 2"],["rc-motion-3","DJI RC Motion 3"]]
+    },
+    "dji-battery": {
+      "DJI":[["neo-battery","DJI Neo Intelligent Flight Battery"],["mini-2-mini-4k-mini-se-battery","DJI Mini 2 / Mini 4K / Mini SE Intelligent Flight Battery"],["mini-3-mini-4-pro-battery","DJI Mini 3 / Mini 4 Pro Intelligent Flight Battery"],["air-3-air-3s-battery","DJI Air 3 / Air 3S Intelligent Flight Battery"],["mavic-3-battery","DJI Mavic 3 Intelligent Flight Battery"],["avata-2-battery","DJI Avata 2 Intelligent Flight Battery"],["fpv-battery","DJI FPV Intelligent Flight Battery"],["tb65-battery","DJI TB65 Intelligent Flight Battery"],["wb37-battery","DJI WB37 Intelligent Battery"]]
     }
   };
 
   window.gearCatalogue = catalog;
-  const categories = [["drone","Drone"],["action-camera","Action Camera"],["camera","Camera"],["lens","Camera Lens"],["accessory","Accessory"]];
+  const categories = [["drone","Drone"],["action-camera","Action Camera"],["camera","Camera"],["lens","Camera Lens"],["accessory","Accessory"],["dji-controller","DJI Controller"],["dji-battery","DJI Battery"]];
   category.innerHTML = '<option value="">-- Select equipment type --</option>' + categories.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join("");
   function reset(s,p){s.innerHTML='<option value="">'+p+'</option>';}
   function manufacturers(){reset(manufacturer,"-- Select manufacturer --");reset(model,"-- Select a model --");manufacturer.disabled=true;model.disabled=true;const data=catalog[category.value];if(!data)return;Object.keys(data).forEach(function(name){const o=document.createElement("option");o.value=name;o.textContent=name;manufacturer.appendChild(o);});manufacturer.disabled=false;}
