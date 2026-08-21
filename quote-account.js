@@ -139,5 +139,8 @@
 
   window.gearCashOutSaveQuoteToAccount=saveQuoteToAccount;
   (function(){const load=function(){if(document.querySelector('script[data-gear-enhancements]'))return;const script=document.createElement("script");script.src="quote-enhancements.js";script.defer=true;script.dataset.gearEnhancements="true";document.head.appendChild(script);};if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load,{once:true});else load();})();
-  (function(){const load=function(){if(document.querySelector('script[data-multi-item-quote]'))return;const script=document.createElement("script");script.src="multi-item-quote.js";script.defer=true;script.dataset.multiItemQuote="true";document.head.appendChild(script);};if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load,{once:true});else load();})();
+  /* Legacy multi-item-quote.js used to be loaded dynamically here. It has been
+     disabled because quote.html now uses quote-multi-item-fix.js as the single
+     multi-item basket controller. Loading both controllers caused a blank
+     "Select a DJI model" row to be rendered after a page refresh. */
 })();
