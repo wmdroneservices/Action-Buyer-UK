@@ -52,4 +52,13 @@ document.addEventListener("DOMContentLoaded", function () {
     batteryScript.dataset.quoteBatteryCountFix = "true";
     document.head.appendChild(batteryScript);
   }
+
+  /* Final flow guard: loaded with a unique URL so browser cache cannot keep the previous fix. */
+  if (!document.querySelector('script[data-quote-final-flow-fix]')) {
+    const finalScript = document.createElement("script");
+    finalScript.src = "quote-final-flow-fix.js?v=20260821-1";
+    finalScript.defer = true;
+    finalScript.dataset.quoteFinalFlowFix = "true";
+    document.head.appendChild(finalScript);
+  }
 });
