@@ -17,20 +17,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
-  const label = state => state.replaceAll("_", " ");
 
-  const machineScript = document.createElement('script');
-  machineScript.src = 'asset-state-machine.js';
-  document.head.appendChild(machineScript);
-  await new Promise(resolve => machineScript.addEventListener('load', resolve, { once: true }));
-
-  const actionScript = document.createElement('script');
-  actionScript.src = 'asset-state-actions.js';
-  document.head.appendChild(actionScript);
-  await new Promise(resolve => actionScript.addEventListener('load', resolve, { once: true }));
-
+  const machine = window.AssetStateMachine;
   const render = (currentAsset) => {
-    const machine = window.AssetStateMachine;
     const nextStates = machine?.getAllowedNextStates(currentAsset.status || 'Awaiting Receipt') || [];
     const progress = machine?.getLifecycleProgress(currentAsset.status || 'Awaiting Receipt');
 
@@ -50,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <h3>Asset Lifecycle</h3>
         ${progress !== null ? `<p><strong>${progress}% complete</strong></p>` : ''}
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem">
-          ${nextStates.length ? nextStates.map(state => `<button class="btn btn-primary lifecycle-action" type="button" data-state="${esc(state)}">${esc(label(state))}</button>`).join('') : '<p>No further state changes are available.</p>'}
+          ${nextStates.length ? nextStates.map(state => `<button class="btn btn-primary lifecycle-action" type="button" data-state="${esc(state)}">${esc(state)}</button>`).join('') : '<p>No further state changes are available.</p>'}
         </div>
         <p id="state-message" class="form-message" style="margin-top:1rem" aria-live="polite"></p>
       </div>
@@ -71,8 +60,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         msg.className = 'form-message';
         try {
           const updated = await window.AssetStateActions.transitionAsset(id, nextState, 'Staff lifecycle action');
-          msg.textContent = `Asset updated to ${updated.status}.`;
-          msg.className = 'form-message success';
           render(updated);
         } catch (err) {
           msg.textContent = err?.message || 'Could not update asset status.';
@@ -82,6 +69,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
   };
+
+  if (!machine) {
+    container.innerHTML = '<p>Asset lifecycle controls could not be loaded.</p>';
+    return;
+  }
 
   render(asset);
 });
