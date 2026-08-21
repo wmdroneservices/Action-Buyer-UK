@@ -58,11 +58,6 @@
     "avata-2|fly-more": 3
   };
 
-  function isDJIDrone() {
-    return String(document.getElementById("gear-category")?.value || "").toLowerCase() === "drone" &&
-           String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase() === "dji";
-  }
-
   function removeLegacyStep6(form) {
     const step6 = form.querySelector('.wizard-step[data-step="6"]');
     if (step6) step6.remove();
@@ -90,62 +85,33 @@
 
     removeLegacyStep6(form);
 
+    /* If an old compatibility script recreates Step 6, remove it again. */
     const observer = new MutationObserver(function () {
       removeLegacyStep6(form);
     });
     observer.observe(form, { childList: true, subtree: true });
 
     form.addEventListener("click", function (event) {
-      if (!isDJIDrone()) return;
+      if (String(document.getElementById("gear-category")?.value || "").toLowerCase() !== "drone" ||
+          String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase() !== "dji") return;
 
       const button = event.target.closest("button");
-      if (!button || !form.contains(button)) return;
-
+      if (!button || !form.contains(button) || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
-      if (!step) return;
-      const number = Number(step.dataset.step);
+      if (!step || Number(step.dataset.step) !== 5) return;
 
-      /* Old quote.js used Step 6 as a battery page. With that page removed,
-         Step 5 goes directly to Step 7, but Step 5 validation is retained. */
-      if (button.classList.contains("btn-next") && number === 5) {
-        const hours = document.getElementById("flight-hours")?.value.trim() || "";
-        const range = form.querySelector('input[name="flightHoursRange"]:checked');
-        if (!hours && !range) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          alert("Please enter the flight hours or select a flight-time range.");
-          return;
-        }
-        if (hours && (!Number.isFinite(Number(hours)) || Number(hours) < 0)) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          alert("Please enter a valid flight-hour figure.");
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+      /* Let quote.js validate and store the flight information first. It will
+         attempt to open the removed Step 6; immediately route to Step 7 after
+         that handler has completed. */
+      window.setTimeout(function () {
         const step7 = form.querySelector('.wizard-step[data-step="7"]');
-        if (step7) {
+        if (!step7) return;
+        const visible = form.querySelector('.wizard-step:not([hidden])');
+        if (visible && Number(visible.dataset.step) === 5) {
           form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step7; });
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
-        return;
-      }
-
-      if (button.classList.contains("btn-back") && number === 7) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        const step5 = form.querySelector('.wizard-step[data-step="5"]');
-        if (step5) {
-          form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step5; });
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-      }
+      }, 0);
     }, true);
   });
 })();
