@@ -15,3 +15,18 @@ supabaseClient.auth.onAuthStateChange((_e,s)=>{setAuthMarker(s);actionBuyerAuth.
   function normaliseBatterySelect(){const select=document.getElementById('package-battery-count');if(!select)return;const current=select.value;const options=Array.from(select.options);const alreadyEight=options.length===9&&options.every((o,i)=>o.value===String(i)&&o.textContent===String(i));if(!alreadyEight){select.innerHTML='';for(let i=0;i<=8;i++)select.add(new Option(String(i),String(i)));}if(current!==''&&Number.isInteger(Number(current))&&Number(current)>=0&&Number(current)<=8)select.value=current;else if(window.gearExpectedPackageBatteries)select.value=String(Math.min(8,Math.max(0,Number(window.gearExpectedPackageBatteries())||0)));const label=select.closest('label');if(label&&label.firstChild)label.firstChild.textContent='Number of package batteries being supplied (up to 8)';}
   document.addEventListener('DOMContentLoaded',()=>{const form=document.getElementById('quote-form');if(!form)return;const observer=new MutationObserver(()=>{normaliseBatterySelect();});observer.observe(form,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});form.addEventListener('change',e=>{if(e.target?.id==='package-select')setTimeout(normaliseBatterySelect,50);},true);setTimeout(normaliseBatterySelect,100);setTimeout(normaliseBatterySelect,500);setTimeout(normaliseBatterySelect,1200);});
 })();
+
+/* Keep the account link correct on every page, including pages restored from cache/back-forward navigation. */
+(function(){
+  function sync(){
+    if(!window.actionBuyerAuth||typeof window.actionBuyerAuth.updateAccountNavigation!=="function")return;
+    window.actionBuyerAuth.ensureAccountNavigation();
+    window.actionBuyerAuth.updateAccountNavigation();
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",sync,{once:true});else sync();
+  window.addEventListener("pageshow",sync);
+  window.addEventListener("focus",sync);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)sync()});
+  window.setTimeout(sync,300);
+  window.setTimeout(sync,1200);
+})();
