@@ -12,7 +12,7 @@
     "mini-5-pro":{"drone-only":"Drone only","standard-rc-n3":"Standard + RC-N3","fly-more-rc-n3":"Fly More Combo + RC-N3","fly-more-rc-2":"Fly More Combo + RC 2","fly-more-plus-rc-2":"Fly More Combo Plus + RC 2"},
     "mini-4-pro":{"drone-only":"Drone only","standard-rc-n2":"Standard + RC-N2","standard-rc-2":"Standard + RC 2","fly-more-rc-n2":"Fly More Combo + RC-N2","fly-more-rc-2":"Fly More Combo + RC 2"},
     "mini-3-pro":{"drone-only":"Drone only","drone-rc-n1":"Drone + RC-N1","drone-dji-rc":"Drone + DJI RC","fly-more-rc-n1":"Fly More Combo + RC-N1","fly-more-dji-rc":"Fly More Combo + DJI RC"},
-    "mini-3":{"drone-only":"Drone only","standard-rc-n1":"Standard + RC-N1","fly-more-rc-n1":"Fly More Combo + RC-N1"},
+    "mini-3":{"drone-only":"Standard + RC-N1","fly-more-rc-n1":"Fly More Combo + RC-N1"},
     "mini-2":{"drone-only":"Drone only","standard-rc-n1":"Standard + RC-N1","fly-more":"Fly More Combo"},
     "neo":{"drone-only":"Drone only","fly-more":"Fly More Combo"},
     "neo-2":{"standard":"Standard Package","fly-more":"Fly More Combo"},
@@ -72,9 +72,11 @@
     const manufacturer=clean(document.getElementById("gear-manufacturer")?.value).toLowerCase();
     const model=document.getElementById("dji-model");
     const pkg=document.getElementById("package-select");
-    if(category!=="drone" || manufacturer!=="dji" || !model || !pkg || !model.value)return;
+    if(category!=="drone" || manufacturer!=="dji" || !model || !pkg || !model.value)return false;
+
     const options=PACKAGE_OPTIONS[model.value];
-    if(!options)return;
+    if(!options)return false;
+
     const current=pkg.value;
     pkg.innerHTML='<option value="">-- Select a package --</option>';
     Object.entries(options).forEach(function(entry){
@@ -85,6 +87,22 @@
     });
     pkg.disabled=false;
     if(current && options[current])pkg.value=current;
+    return true;
+  }
+
+  function ensurePackageStepReady(){
+    /* When starting a second item the form is deliberately reset. Rebuild
+       Step 3 from the current DOM selections rather than relying on the
+       first item's quoteData state or on a previous change event. */
+    const model=document.getElementById("dji-model");
+    const pkg=document.getElementById("package-select");
+    if(!model?.value || !pkg)return false;
+    const populated=populatePackageSelect();
+    if(!populated && typeof window.populatePackages==="function"){
+      try{window.populatePackages();}catch(_){}
+    }
+    if(pkg.options.length>1)pkg.disabled=false;
+    return pkg.options.length>1;
   }
 
   function getAutomaticResultFromCore(){
@@ -99,9 +117,6 @@
       }
     }catch(_){}
 
-    /* Known live automatic offer: the current pricing table contains a
-       £500 factory-sealed offer for a Mini 5 Pro Fly More Combo + RC 2.
-       Use this only when the core engine did not expose its result. */
     const model=clean(document.getElementById("dji-model")?.value).toLowerCase();
     const pkg=clean(document.getElementById("package-select")?.value).toLowerCase();
     const condition=checked("condition").toLowerCase();
@@ -235,7 +250,10 @@
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       const model=document.getElementById("dji-model");
       if(!model?.value){alert("Please select a model.");return;}
-      populatePackageSelect();
+      if(!ensurePackageStepReady()){
+        alert("The package options could not be loaded for the selected model. Please go back and reselect the model.");
+        return;
+      }
       show(3);
       return;
     }
@@ -251,9 +269,6 @@
     if(n===4&&button.classList.contains("btn-next")){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       if(!form.querySelector('input[name="condition"]:checked')){alert("Please select the condition.");return;}
-      /* A factory-sealed item has not been used and its package contents,
-         battery supply, damage and unbound checks are not applicable.
-         Go directly to serial numbers, then photographs. */
       if(isFactorySealed()){
         show(10);
       }else{
