@@ -18,7 +18,6 @@ function createPricingApproval({ assetId, pricing, approvedBy, notes = null } = 
 if (typeof window !== 'undefined') window.PricingApproval = { calculatePricing, createPricingApproval };
 if (typeof module !== 'undefined') module.exports = { calculatePricing, createPricingApproval };
 
-// Page workflow
 if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', async () => {
   const auth = window.actionBuyerAuth;
   const panel = document.getElementById('pricing-panel');
@@ -54,6 +53,8 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
     const approval = createPricingApproval({ assetId:id, pricing:result, approvedBy:session.user.id, notes:form.elements.notes.value.trim() || null });
     const { error: saveError } = await auth.supabase.from('inventory_pricing_approvals').insert({ asset_id:id, target_sale_price:approval.targetSalePrice, total_cost:approval.totalCost, selling_fees:approval.sellingFees, shipping_cost:Number(form.elements.shipping_cost.value || 0), expected_profit:approval.expectedProfit, expected_margin_percent:approval.expectedMarginPercent, approved_by:session.user.id, notes:approval.notes });
     if (saveError) { message.textContent = saveError.message || 'Could not save pricing approval.'; message.className='form-message error'; return; }
-    message.textContent = 'Pricing approved and recorded.'; message.className='form-message success';
+    const { error: assetError } = await auth.supabase.from('inventory_assets').update({ approved_resale_price: approval.targetSalePrice }).eq('id', id);
+    if (assetError) { message.textContent = `Pricing approval saved, but the asset price could not be updated: ${assetError.message}`; message.className='form-message error'; return; }
+    message.textContent = 'Pricing approved, recorded, and linked to the asset.'; message.className='form-message success';
   });
 });
