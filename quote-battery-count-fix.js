@@ -1,8 +1,6 @@
 /* GearCashOut - package battery count fix.
-   Step 6 is driven by the package allowance. The customer selects how many
-   package batteries are actually being supplied (1..allowance), and only
-   that many battery-entry cards are shown. Extra batteries remain separate
-   accessories in Step 9.
+   Step 6 is only required for DJI drones, where battery type and cycle count
+   are relevant to valuation. Other equipment bypasses Step 6 completely.
 */
 (function () {
   "use strict";
@@ -10,6 +8,12 @@
   function init() {
     const form = document.getElementById("quote-form");
     if (!form) return;
+
+    function isBatteryCycleRelevant() {
+      const category = String(document.getElementById("gear-category")?.value || "").toLowerCase();
+      const manufacturer = String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase();
+      return category === "drone" && manufacturer === "dji";
+    }
 
     function expected() {
       return Math.max(1, Number(window.gearExpectedPackageBatteries?.() || 1));
@@ -78,6 +82,7 @@
     }
 
     function syncUI() {
+      if (!isBatteryCycleRelevant()) return;
       const step6 = createStep6();
       const allowance = expected();
       const select = step6.querySelector("#package-battery-count");
@@ -95,28 +100,48 @@
       renderEntries(Number(select.value));
     }
 
-    function showStep6IfNeeded() {
+    function skipStep6ForNonDJI() {
       const step6 = getStep6();
-      if (!step6) return;
-      const visible = form.querySelector('.wizard-step:not([hidden])');
-      if (visible && Number(visible.dataset.step) === 6) syncUI();
+      if (!step6 || isBatteryCycleRelevant()) return false;
+      step6.hidden = true;
+      const step7 = form.querySelector('.wizard-step[data-step="7"]');
+      if (step7) {
+        form.querySelectorAll(".wizard-step").forEach(function (s) { s.hidden = s !== step7; });
+        setTimeout(function () {
+          const next = step7.querySelector(".btn-next");
+          if (next && !step7.dataset.batteryStepSkipped) {
+            step7.dataset.batteryStepSkipped = "1";
+            next.click();
+          }
+        }, 0);
+      }
+      return true;
     }
 
     const step6 = createStep6();
-    syncUI();
+    if (isBatteryCycleRelevant()) syncUI();
+    else step6.hidden = true;
 
     step6.addEventListener("change", function (event) {
-      if (event.target.id === "package-battery-count") {
+      if (event.target.id === "package-battery-count" && isBatteryCycleRelevant()) {
         renderEntries(Number(event.target.value));
       }
     });
 
-    /* Capture the Step 5 transition so the newly-created Step 6 is used. */
+    /* Capture the Step 5 transition. Only DJI drones enter Step 6. */
     form.addEventListener("click", function (event) {
       const button = event.target.closest("button");
       if (!button || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
       if (!step || Number(step.dataset.step) !== 5) return;
+
+      if (!isBatteryCycleRelevant()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        skipStep6ForNonDJI();
+        return;
+      }
+
       setTimeout(function () {
         const s6 = getStep6();
         if (s6) {
@@ -133,6 +158,12 @@
       if (!button || !button.classList.contains("btn-next")) return;
       const step = button.closest(".wizard-step");
       if (!step || Number(step.dataset.step) !== 6) return;
+      if (!isBatteryCycleRelevant()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        skipStep6ForNonDJI();
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
       const entries = Array.from(step.querySelectorAll(".battery-entry"));
@@ -149,11 +180,15 @@
       }
     }, true);
 
-    /* If package/model changes, reset the count to the new package allowance. */
+    /* If package/model/category changes, reset the count to the new package allowance. */
     form.addEventListener("change", function (event) {
-      if (event.target.id === "package-select" || event.target.id === "dji-model") {
+      if (event.target.id === "package-select" || event.target.id === "dji-model" || event.target.id === "gear-category" || event.target.id === "gear-manufacturer") {
         setTimeout(function () {
           const s6 = createStep6();
+          if (!isBatteryCycleRelevant()) {
+            s6.hidden = true;
+            return;
+          }
           const allowance = expected();
           const select = s6.querySelector("#package-battery-count");
           select.innerHTML = "";
@@ -164,6 +199,11 @@
         }, 0);
       }
     });
+
+    const observer = new MutationObserver(function () {
+      if (!isBatteryCycleRelevant()) skipStep6ForNonDJI();
+    });
+    observer.observe(form, { attributes: true, subtree: true, attributeFilter: ["hidden"] });
   }
 
   function escapeHtml(value) {
