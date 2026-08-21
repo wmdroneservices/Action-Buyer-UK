@@ -71,8 +71,6 @@
     const progress = document.getElementById("progress-indicator");
     if (!form) return;
 
-    /* Step 6 is intentionally present in the wizard even though its HTML is
-       created dynamically by the battery-count fix. */
     if (progress && !Array.from(progress.querySelectorAll(".progress-step")).some(el => /^6\./.test(el.textContent.trim()))) {
       const item = document.createElement("li");
       item.className = "progress-step";
@@ -81,6 +79,55 @@
       if (step5 && step5.nextSibling) progress.insertBefore(item, step5.nextSibling);
       else progress.appendChild(item);
     }
+
+    function enforceBatteryCountDropdown() {
+      const step6 = form.querySelector('.wizard-step[data-step="6"]');
+      if (!step6) return;
+      const selects = Array.from(step6.querySelectorAll("select"));
+      if (!selects.length) return;
+
+      const select = selects.find(function (candidate) {
+        const label = candidate.id ? step6.querySelector('label[for="' + candidate.id + '"]') : null;
+        return label && /number of package batteries being supplied/i.test(label.textContent);
+      }) || selects[0];
+
+      const allowance = Math.max(1, Number(expectedPackageBatteries()) || 1);
+      const current = Number(select.value);
+      const selected = Number.isFinite(current) && current >= 1 && current <= allowance ? current : allowance;
+      const wanted = Array.from({ length: allowance }, (_, i) => String(i + 1));
+      const actual = Array.from(select.options).map(option => option.value);
+      const correct = actual.length === wanted.length && actual.every((value, index) => value === wanted[index]);
+
+      if (!correct) {
+        select.innerHTML = "";
+        wanted.forEach(function (value) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+      }
+      select.value = String(selected);
+      select.dataset.packageBatteryAllowance = String(allowance);
+    }
+
+    function scheduleBatteryCountFix() {
+      enforceBatteryCountDropdown();
+      setTimeout(enforceBatteryCountDropdown, 25);
+      setTimeout(enforceBatteryCountDropdown, 100);
+      setTimeout(enforceBatteryCountDropdown, 300);
+    }
+
+    form.addEventListener("change", function (event) {
+      if (event.target.id === "package-select" || event.target.id === "dji-model" || event.target.closest('.wizard-step[data-step="6"]')) {
+        scheduleBatteryCountFix();
+      }
+    }, true);
+
+    const batteryObserver = new MutationObserver(function () {
+      enforceBatteryCountDropdown();
+    });
+    batteryObserver.observe(form, { childList: true, subtree: true });
 
     form.addEventListener("click", function (event) {
       const category = String(document.getElementById("gear-category")?.value || "").toLowerCase();
@@ -97,7 +144,10 @@
           form.querySelectorAll(".wizard-step").forEach(s => { s.hidden = s !== step6; });
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
+        scheduleBatteryCountFix();
       }, 0);
     }, true);
+
+    scheduleBatteryCountFix();
   });
 })();
