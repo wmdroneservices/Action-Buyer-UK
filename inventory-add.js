@@ -2,6 +2,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const auth = window.actionBuyerAuth;
   const form = document.getElementById("asset-form");
   const message = document.getElementById("asset-message");
+  const packageSelect = document.getElementById("package_name");
+  const packageSummary = document.getElementById("package-summary");
+  const modelInput = document.getElementById("model");
   if (!auth || !form) return;
 
   const session = await auth.getSession();
@@ -9,15 +12,42 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { data: staff } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (!staff) { form.innerHTML = "<p>You do not have permission to access inventory.</p>"; return; }
 
+  const updatePackageSummary = () => {
+    const model = modelInput.value.trim();
+    const packageName = packageSelect.value;
+    const spec = window.PackageSpecifications?.getPackageSpecification(model, packageName);
+    if (!packageName) { packageSummary.textContent = ""; return; }
+    if (!spec) {
+      packageSummary.textContent = "No exact package specification is configured for this model. Select Other / Unknown if the package cannot be identified.";
+      return;
+    }
+    packageSummary.textContent = `Selected package: ${spec.package}. Expected batteries: ${spec.expectedBatteries}.`;
+  };
+
+  modelInput.addEventListener("input", updatePackageSummary);
+  packageSelect.addEventListener("change", updatePackageSummary);
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     message.textContent = "Saving asset…";
     message.className = "form-message";
     const fd = new FormData(form);
+    const model = fd.get("model").trim();
+    const packageName = fd.get("package_name");
+    const spec = window.PackageSpecifications?.getPackageSpecification(model, packageName);
+
+    if (packageName && packageName !== "Other / Unknown" && !spec) {
+      message.textContent = "No exact package specification is configured for this model. Please use Other / Unknown or add the package specification first.";
+      message.className = "form-message error";
+      return;
+    }
+
     const payload = {
       asset_reference: fd.get("asset_reference").trim(),
       manufacturer: fd.get("manufacturer").trim(),
-      model: fd.get("model").trim(),
+      model,
+      package_name: packageName || null,
+      expected_battery_count: spec?.expectedBatteries ?? null,
       serial_number: fd.get("serial_number").trim() || null,
       purchase_price: Number(fd.get("purchase_price")),
       condition_grade: fd.get("condition_grade") || null,
@@ -34,5 +64,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     message.textContent = "Asset created successfully and placed into Awaiting Receipt.";
     message.className = "form-message success";
     form.reset();
+    updatePackageSummary();
   });
 });
