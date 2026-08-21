@@ -6,6 +6,8 @@
 
   const BASKET_KEY = "gearCashOutQuoteBasket";
   const NAV_ID = "live-quote-nav";
+  let restoring = false;
+  let restoreTimer = null;
 
   function readBasket() {
     try {
@@ -44,7 +46,7 @@
     const li = document.createElement("li");
     li.id = NAV_ID;
     const link = document.createElement("a");
-    link.href = "quote.html";
+    link.href = "quote.html?resume=1";
     link.textContent = label;
     link.setAttribute("aria-label", "Resume your saved quote with " + basket.length + " " + itemWord);
     li.appendChild(link);
@@ -69,26 +71,65 @@
     return true;
   }
 
-  function restoreLiveQuote() {
-    if (!isQuotePage()) return;
-    if (!readBasket().length) return;
+  function renderQuoteList() {
+    if (typeof window.renderGearCashOutManualResult === "function") {
+      window.renderGearCashOutManualResult();
+      return;
+    }
+    const form = document.getElementById("quote-form");
+    if (!form) return;
+    const summary = document.getElementById("quote-summary");
+    if (!summary) return;
+    window.setTimeout(function () {
+      if (typeof window.renderGearCashOutManualResult === "function") {
+        window.renderGearCashOutManualResult();
+      }
+    }, 50);
+  }
 
-    /* The core quote engine keeps showStep() private inside quote.js, so do
-       not rely on window.showStep. Directly restore Step 12 instead. */
-    function restore() {
-      if (!readBasket().length) return;
-      if (!showStepDirect(12)) {
-        window.setTimeout(restore, 100);
+  function restoreLiveQuote() {
+    if (!isQuotePage() || !readBasket().length) return;
+
+    restoring = true;
+    let attempts = 0;
+    clearInterval(restoreTimer);
+
+    restoreTimer = window.setInterval(function () {
+      attempts += 1;
+
+      if (!readBasket().length) {
+        clearInterval(restoreTimer);
+        restoring = false;
         return;
       }
-      window.setTimeout(function () {
-        if (typeof window.renderGearCashOutManualResult === "function") {
-          window.renderGearCashOutManualResult();
-        }
-      }, 50);
-    }
 
-    window.setTimeout(restore, 100);
+      const restored = showStepDirect(12);
+      if (restored) {
+        renderQuoteList();
+      }
+
+      /* Keep trying briefly because the quote wizard has several compatibility
+         scripts which can initialise Step 1 after the first render. */
+      if (restored && attempts >= 30) {
+        clearInterval(restoreTimer);
+        restoring = false;
+      } else if (attempts >= 50) {
+        clearInterval(restoreTimer);
+        restoring = false;
+      }
+    }, 100);
+  }
+
+  function stopRestoreOnUserInteraction() {
+    if (!isQuotePage()) return;
+    document.addEventListener("click", function (event) {
+      const button = event.target.closest("button");
+      if (!button || !button.closest("#quote-form")) return;
+      if (restoring) {
+        restoring = false;
+        clearInterval(restoreTimer);
+      }
+    }, true);
   }
 
   function watchSubmission() {
@@ -102,8 +143,6 @@
       const step = button.closest('.wizard-step[data-step="13"]');
       if (!step || !button.classList.contains("btn-next")) return;
 
-      /* quote-account.js handles the actual save. Only clear the live basket
-         after the UI has genuinely reached the submitted step. */
       window.setTimeout(function () {
         const submitted = form.querySelector('.wizard-step[data-step="14"]');
         if (submitted && !submitted.hidden) clearSubmittedBasket();
@@ -114,11 +153,15 @@
   function init() {
     updateNavigation();
     watchSubmission();
+    stopRestoreOnUserInteraction();
     restoreLiveQuote();
 
     window.addEventListener("storage", updateNavigation);
     window.addEventListener("gearCashOutBasketChanged", updateNavigation);
-    window.addEventListener("pageshow", updateNavigation);
+    window.addEventListener("pageshow", function () {
+      updateNavigation();
+      restoreLiveQuote();
+    });
 
     window.setInterval(updateNavigation, 1000);
   }
