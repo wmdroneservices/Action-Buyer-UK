@@ -1,7 +1,7 @@
 /* GearCashOut result compatibility layer.
-   DJI navigation is handled by quote.js itself so that its internal
-   currentStep state stays synchronised. This file intentionally does not
-   intercept DJI Step 3 navigation. */
+   The basket is the source of truth for multi-item quotes. Automatic prices
+   are shown only for items for which the core quote engine has produced a
+   verified automatic offer; manual items never display £0.00. */
 (function () {
   "use strict";
 
@@ -13,27 +13,28 @@
     const summary = document.getElementById("quote-summary");
     if (!step || !summary) return;
 
-    const selectedText = function (select) {
-      return select && select.options && select.selectedIndex >= 0
-        ? select.options[select.selectedIndex].textContent.trim()
-        : "";
+    const esc = function (value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     };
 
-    const category = document.getElementById("gear-category");
-    const manufacturer = document.getElementById("gear-manufacturer");
-    const model = document.getElementById("dji-model");
-    if (!category || !manufacturer || !model) return;
-
-    const categoryName = selectedText(category) || category.value;
-    const manufacturerName = selectedText(manufacturer) || manufacturer.value;
-    const modelName = selectedText(model) || model.value;
+    const money = function (value) {
+      return new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: "GBP"
+      }).format(Number(value));
+    };
 
     step.querySelectorAll("#quote-important, #gear-basket-box, .quote-basket-box, #quote-result-action").forEach(function (el) {
       el.remove();
     });
 
     const title = document.getElementById("quote-result-title");
-    if (title) title.textContent = "Manual Valuation Required";
+    if (title) title.textContent = "Your Quote";
 
     let basket = [];
     try {
@@ -43,38 +44,54 @@
     }
     if (!Array.isArray(basket)) basket = [];
 
-    if (!basket.some(function (item) {
-      return item.model === model.value && item.manufacturer === manufacturer.value;
-    })) {
-      basket.push({
-        category: category.value,
-        categoryName: categoryName,
-        manufacturer: manufacturer.value,
-        manufacturerName: manufacturerName,
-        model: model.value,
-        modelName: modelName,
-        valuation: "manual",
-        amount: null
-      });
+    if (!basket.length) {
+      summary.innerHTML =
+        '<div class="manual-valuation-box">' +
+          '<h3>No items in this quote</h3>' +
+          '<p>Please add at least one item before continuing.</p>' +
+        '</div>';
+      return;
     }
 
+    const automaticCount = basket.filter(function (item) {
+      return item.valuation === "automatic" && Number.isFinite(Number(item.amount));
+    }).length;
+
     const rows = basket.map(function (item, index) {
-      return "<li><strong>" + (index + 1) + ". " + String(item.modelName || item.model) + "</strong><br><span>" + String(item.manufacturerName || item.manufacturer) + " — Manual valuation</span></li>";
+      const name = item.modelName || item.itemName || item.categoryName || "Equipment item";
+      const maker = item.manufacturerName || item.manufacturer || "";
+      const packageName = item.packageName || "";
+      const automatic = item.valuation === "automatic" && Number.isFinite(Number(item.amount));
+      const valueHtml = automatic
+        ? '<div style="font-weight:800;font-size:1.25rem;margin-top:.35rem;">' + money(item.amount) + '</div>'
+        : '<div style="font-weight:700;margin-top:.35rem;">Manual valuation — price confirmed after review</div>';
+
+      return '<li style="margin-bottom:1rem;">' +
+        '<div><strong>' + (index + 1) + '. ' + esc(name) + '</strong></div>' +
+        '<div>' + esc(maker) + (packageName ? ' — ' + esc(packageName) : '') + '</div>' +
+        valueHtml +
+        '<button type="button" class="btn btn-secondary" data-remove-quote-item="' + index + '" style="margin-top:.6rem;">Remove this item</button>' +
+      '</li>';
     }).join("");
 
+    let automaticTotal = 0;
+    basket.forEach(function (item) {
+      if (item.valuation === "automatic" && Number.isFinite(Number(item.amount))) {
+        automaticTotal += Number(item.amount);
+      }
+    });
+
+    const totalHtml = automaticCount
+      ? '<p style="margin-top:1rem;"><strong>Automatic offer total:</strong> ' + money(automaticTotal) + '</p>' +
+        '<p>Any item marked for manual valuation will be priced separately after review.</p>'
+      : '<p style="margin-top:1rem;"><strong>No automatic price has been offered.</strong> Your item(s) will receive a valuation after manual review.</p>';
+
     summary.innerHTML =
-      '<div class="manual-valuation-box">' +
-        '<p><strong>Equipment:</strong> ' + categoryName + '</p>' +
-        '<p><strong>Manufacturer:</strong> ' + manufacturerName + '</p>' +
-        '<p><strong>Model:</strong> ' + modelName + '</p>' +
-        '<p>Your information and photographs will be reviewed manually before a purchase valuation is confirmed.</p>' +
-        '<p><strong>No £0 offer has been made.</strong></p>' +
-      '</div>' +
       '<div class="quote-basket-preview">' +
-        '<h3>Your Quote</h3>' +
-        '<p>You can add more equipment before submitting your quote.</p>' +
+        '<h3>This Quote</h3>' +
+        '<p>Check your items carefully before submitting. If you added something by mistake, use <strong>Remove this item</strong>.</p>' +
         '<ol>' + rows + '</ol>' +
-        '<p><strong>Total:</strong> Manual valuation after review</p>' +
+        totalHtml +
       '</div>' +
       '<div class="manual-quote-actions" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem;">' +
         '<button type="button" class="btn btn-secondary" id="add-another-item">Add Another Item</button>' +
