@@ -26,6 +26,30 @@
     return true;
   }
 
+  /*
+     Current automatic valuation rule:
+     DJI Mini 5 Pro + Fly More Combo + RC 2 + Factory Sealed = £500.
+
+     The core wizard can fall back to manual mode when the sealed flow skips
+     the later condition/usage/unbound/damage fields. The sealed item is still
+     a complete, valid item, so this exact pricing rule must be applied from
+     the saved basket as well as from the core wizard.
+  */
+  function applyKnownAutomaticPricing(item) {
+    if (!item || typeof item !== "object") return item;
+
+    const model = clean(item.model);
+    const packageId = clean(item.package);
+    const condition = clean(item.condition);
+
+    if (model === "mini-5-pro" && packageId === "fly-more-rc-2" && condition === "factory-sealed") {
+      item.valuation = "automatic";
+      item.amount = 500;
+    }
+
+    return item;
+  }
+
   function readCleanBasket() {
     let basket = [];
     try {
@@ -35,8 +59,10 @@
     }
     if (!Array.isArray(basket)) basket = [];
 
-    const valid = basket.filter(isCompleteItem);
-    if (valid.length !== basket.length) {
+    const valid = basket.filter(isCompleteItem).map(applyKnownAutomaticPricing);
+    const changed = valid.length !== basket.length || JSON.stringify(valid) !== JSON.stringify(basket);
+
+    if (changed) {
       try { localStorage.setItem("gearCashOutQuoteBasket", JSON.stringify(valid)); } catch (_) {}
       window.dispatchEvent(new CustomEvent("gearCashOutBasketChanged"));
     }
