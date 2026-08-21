@@ -1,7 +1,8 @@
 /* Package flow fix.
    The old standalone Step 6 battery-entry page has been removed.
-   Package battery quantity belongs to the selected package/package-contents
-   logic, while additional batteries remain separate accessories.
+   Package battery quantity is determined by the selected package and shown
+   in Step 9 Package Contents. Additional batteries remain separate
+   accessories.
 */
 (function () {
   "use strict";
@@ -57,6 +58,11 @@
     "avata-2|fly-more": 3
   };
 
+  function isDJIDrone() {
+    return String(document.getElementById("gear-category")?.value || "").toLowerCase() === "drone" &&
+           String(document.getElementById("gear-manufacturer")?.value || "").toLowerCase() === "dji";
+  }
+
   function removeLegacyStep6(form) {
     const step6 = form.querySelector('.wizard-step[data-step="6"]');
     if (step6) step6.remove();
@@ -90,6 +96,8 @@
     observer.observe(form, { childList: true, subtree: true });
 
     form.addEventListener("click", function (event) {
+      if (!isDJIDrone()) return;
+
       const button = event.target.closest("button");
       if (!button || !form.contains(button)) return;
 
@@ -98,8 +106,25 @@
       const number = Number(step.dataset.step);
 
       /* Old quote.js used Step 6 as a battery page. With that page removed,
-         Step 5 goes directly to Step 7 (Unbound Status). */
+         Step 5 goes directly to Step 7, but Step 5 validation is retained. */
       if (button.classList.contains("btn-next") && number === 5) {
+        const hours = document.getElementById("flight-hours")?.value.trim() || "";
+        const range = form.querySelector('input[name="flightHoursRange"]:checked');
+        if (!hours && !range) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          alert("Please enter the flight hours or select a flight-time range.");
+          return;
+        }
+        if (hours && (!Number.isFinite(Number(hours)) || Number(hours) < 0)) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          alert("Please enter a valid flight-hour figure.");
+          return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
