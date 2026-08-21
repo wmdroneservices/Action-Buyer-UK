@@ -11,12 +11,55 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("staff-sign-out").addEventListener("click", async () => { const b=document.getElementById("staff-sign-out"); b.disabled=true; try { await auth.signOut(); } catch(e) { b.disabled=false; notice(e?.message||"Could not sign out.",false); } });
 
   async function loadCounts() {
-    const { data: valuations, error: valuationError } = await auth.supabase.from("valuations").select("id,status,archived_at").is("archived_at", null);
+    const { data: valuations, error: valuationError } = await auth.supabase
+      .from("valuations")
+      .select("id,status,archived_at")
+      .is("archived_at", null);
     if (valuationError) { notice("Could not load work queue counts.", false); return; }
 
-    // Only active valuations needing staff attention belong in the valuation counter.
+    const activeValuations = valuations || [];
+    const valuationIds = activeValuations.map(v => v.id);
+    let items = [];
+    let offers = [];
+
+    if (valuationIds.length) {
+      const { data: itemRows, error: itemError } = await auth.supabase
+        .from("quote_items")
+        .select("id,valuation_id")
+        .in("valuation_id", valuationIds);
+      if (itemError) { notice("Could not load valuation items.", false); return; }
+      items = itemRows || [];
+
+      const itemIds = items.map(i => i.id);
+      if (itemIds.length) {
+        const { data: offerRows, error: offerError } = await auth.supabase
+          .from("quote_offers")
+          .select("id,item_id,offer_type,status")
+          .in("item_id", itemIds);
+        if (offerError) { notice("Could not load valuation offers.", false); return; }
+        offers = offerRows || [];
+      }
+    }
+
+    // A quote is awaiting staff review when it is in the normal review queue,
+    // or when an automatic valuation has been prepared as a draft. Automatic
+    // offers are deliberately NOT published to the customer until staff confirms
+    // or revises the amount on the quote review page.
     const awaitingStatuses = new Set(["submitted", "manual_review", "pending_review", "awaiting_valuation"]);
-    document.getElementById("valuation-count").textContent = (valuations || []).filter(v => awaitingStatuses.has(v.status)).length;
+    const itemsByValuation = new Map();
+    items.forEach(i => {
+      if (!itemsByValuation.has(i.valuation_id)) itemsByValuation.set(i.valuation_id, []);
+      itemsByValuation.get(i.valuation_id).push(i);
+    });
+    const activeOfferStatuses = new Set(["draft", "published", "accepted"]);
+    const awaitingReviewCount = activeValuations.filter(v => {
+      if (awaitingStatuses.has(v.status)) return true;
+      if (v.status !== "valued") return false;
+      return (itemsByValuation.get(v.id) || []).some(item =>
+        offers.some(o => o.item_id === item.id && o.offer_type === "automatic" && o.status === "draft")
+      );
+    }).length;
+    document.getElementById("valuation-count").textContent = awaitingReviewCount;
 
     // Only active sales belong in the live dashboard queue. Archived sales remain
     // available in Sales Archive and must not be counted here.
