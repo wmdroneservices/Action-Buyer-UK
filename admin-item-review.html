@@ -8,15 +8,15 @@
 <link rel="stylesheet" href="admin-actions.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="admin-item-review.js?v=20260821-1" defer></script>
+<script src="admin-item-review.js?v=20260821-2" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html" aria-current="page">Valuations</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></nav></div></header>
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">STAFF · ITEM REVIEW</p><h1 id="item-title">Loading item...</h1><p id="item-reference">Loading submission...</p></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:flex-end;"><a id="back-quote" class="btn btn-secondary" href="admin-valuations.html">BACK TO QUOTE</a><a class="btn btn-secondary" href="admin-valuations.html">BACK TO VALUATIONS</a></div></div>
 <div id="review-message" class="form-message" role="status" aria-live="polite"></div>
-<section class="account-panel"><div class="section-heading"><p class="section-kicker">ONLINE REVIEW</p><h2>Submitted item evidence</h2><p>This is the item-specific record submitted by the customer. Use it for the initial valuation review and later to compare the physical item received against the submitted information and photographs.</p></div><div id="item-details"><p>Loading...</p></div></section>
-<section class="account-panel"><div class="section-heading"><p class="section-kicker">PHYSICAL INSPECTION REFERENCE</p><h2>Compare when received</h2><p>Check the physical product against the condition, serial numbers, batteries, accessories, package contents and photographs shown above before completing the final inspection offer.</p></div><div class="notice" style="background:#f8f5ef;border:1px solid #ddd6c9;padding:1rem 1.25rem;"><strong>Submitted evidence is preserved as the reference record.</strong><p style="margin:.5rem 0 0;color:#555;">Any later physical inspection should be assessed against this item-specific page rather than the generic multi-item summary.</p></div></section>
+<section id="submitted-evidence-panel" class="account-panel"><div class="section-heading"><p class="section-kicker">ONLINE REVIEW</p><h2>Submitted item evidence</h2><p>This is the item-specific record submitted by the customer. Use it for the initial valuation review and later to compare the physical item received against the submitted information and photographs.</p></div><div id="item-details"><p>Loading...</p></div></section>
+<section id="physical-reference-panel" class="account-panel"><div class="section-heading"><p class="section-kicker">PHYSICAL INSPECTION REFERENCE</p><h2>Compare when received</h2><p>Check the physical product against the condition, serial numbers, batteries, accessories, package contents and photographs shown above before completing the final inspection offer.</p></div><div class="notice" style="background:#f8f5ef;border:1px solid #ddd6c9;padding:1rem 1.25rem;"><strong>Submitted evidence is preserved as the reference record.</strong><p style="margin:.5rem 0 0;color:#555;">Any later physical inspection should be assessed against this item-specific page rather than the generic multi-item summary.</p></div></section>
 </div></main>
 <footer class="footer"><div class="container footer-container"><strong>GEARCASHOUT STAFF</strong><br>Internal administration.</div></footer>
 </body>
