@@ -1,35 +1,14 @@
 <!DOCTYPE html>
-<html lang="en-GB"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Register | GearCashOut</title><meta name="description" content="Create a GearCashOut account to track your valuations and submissions." /><link rel="stylesheet" href="style.css" /><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script></head>
-<body><header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li></ul></nav></div></header>
+<html lang="en-GB"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Register | GearCashOut</title><meta name="description" content="Create a GearCashOut account to track your valuations and submissions." /><link rel="stylesheet" href="style.css" /><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="live-quote-nav.js?v=20260821-4" defer></script></head>
+<body><header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="login.html" data-account-link>Register / Login</a></li></ul></nav></div></header>
 <main class="auth-page"><div class="auth-card"><p class="section-kicker">CREATE YOUR ACCOUNT</p><h1>Register</h1><p class="auth-intro">Create an account so you can keep track of your valuations and future submissions.</p><div id="return-quote-notice" class="notice" hidden><strong>Your valuation is saved.</strong> After your account is created, you can return to your quote.</div><form id="register-form" class="auth-form"><label for="full-name">Full name</label><input id="full-name" type="text" autocomplete="name" required /><label for="email">Email address</label><input id="email" type="email" autocomplete="email" required /><label for="phone">Phone number <span class="optional">(optional)</span></label><input id="phone" type="tel" autocomplete="tel" /><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" required /><small>Use at least 8 characters.</small><label class="checkbox-label"><input id="terms" type="checkbox" required /> <span>I agree to the <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</span></label><button class="btn btn-primary" type="submit">CREATE ACCOUNT</button><p id="register-message" class="form-message" role="status" aria-live="polite"></p></form><p class="auth-switch">Already have an account? <a id="login-link" href="login.html">Sign in</a></p></div></main>
 <footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT</strong><br />We buy drones, cameras, video and audio equipment.</div></div></footer>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-  const params = new URLSearchParams(window.location.search);
-  const returnToQuote = params.get("return") === "quote.html";
-  if (returnToQuote) {
-    try { localStorage.setItem("actionBuyerReturnAfterAuth", "quote.html"); } catch (_) {}
-    document.getElementById("return-quote-notice").hidden = false;
-    document.getElementById("login-link").href = "login.html?return=quote.html";
-  }
+  const params = new URLSearchParams(window.location.search); const returnToQuote = params.get("return") === "quote.html";
+  if (returnToQuote) { try { localStorage.setItem("actionBuyerReturnAfterAuth", "quote.html"); } catch (_) {} document.getElementById("return-quote-notice").hidden = false; document.getElementById("login-link").href = "login.html?return=quote.html"; }
   const form = document.getElementById("register-form"), message = document.getElementById("register-message");
-  form.addEventListener("submit", async event => {
-    event.preventDefault(); message.textContent = "Creating your account..."; message.className = "form-message";
-    const fullName = document.getElementById("full-name").value.trim(), email = document.getElementById("email").value.trim(), phone = document.getElementById("phone").value.trim(), password = document.getElementById("password").value;
-    const redirectTo = new URL("login.html", window.location.href).href + (returnToQuote ? "?return=quote.html" : "");
-    const { data, error } = await actionBuyerAuth.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, phone }, emailRedirectTo: redirectTo } });
-    if (error) { message.textContent = error.message; message.className = "form-message error"; return; }
-    if (data.session) {
-      try { localStorage.setItem("gearCashOutAuthenticated", "true"); } catch (_) {}
-      let destination = "account.html";
-      try { destination = localStorage.getItem("actionBuyerReturnAfterAuth") || destination; } catch (_) {}
-      window.location.href = destination;
-      return;
-    }
-    message.textContent = returnToQuote ? "Account created. Please confirm your email, then sign in. Your valuation will still be waiting for you." : "Account created. Please check your email and confirm your address before signing in.";
-    message.className = "form-message success";
-    form.reset();
-  });
+  form.addEventListener("submit", async event => { event.preventDefault(); message.textContent = "Creating your account..."; message.className = "form-message"; const fullName = document.getElementById("full-name").value.trim(), email = document.getElementById("email").value.trim(), phone = document.getElementById("phone").value.trim(), password = document.getElementById("password").value; const redirectTo = new URL("login.html", window.location.href).href + (returnToQuote ? "?return=quote.html" : ""); const { data, error } = await actionBuyerAuth.supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, phone }, emailRedirectTo: redirectTo } }); if (error) { message.textContent = error.message; message.className = "form-message error"; return; } if (data.session) { try { localStorage.setItem("gearCashOutAuthenticated", "true"); } catch (_) {} let destination = "account.html"; try { destination = localStorage.getItem("actionBuyerReturnAfterAuth") || destination; } catch (_) {} window.location.href = destination; return; } message.textContent = returnToQuote ? "Account created. Please confirm your email, then sign in. Your valuation will still be waiting for you." : "Account created. Please check your email and confirm your address before signing in."; message.className = "form-message success"; form.reset(); });
 });
 </script>
 </body></html>
