@@ -1,6 +1,6 @@
-/* Multi-item quote wizard: keep each item separate, preserve its photos,
-   and make the Step 12 actions deterministic even when result controls are
-   rebuilt dynamically by the manual valuation renderer. */
+/* Multi-item quote wizard: keep each item separate, preserve photos,
+   allow customers to remove mistaken items, and preserve verified automatic
+   prices where the core quote engine has actually produced one. */
 (function(){
   "use strict";
   const form=document.getElementById("quote-form");
@@ -11,6 +11,22 @@
   const selectedText=id=>{const el=document.getElementById(id);return el?.selectedIndex>=0?el.options[el.selectedIndex].textContent.trim():""};
   const checked=name=>form.querySelector(`input[name="${name}"]:checked`)?.value||"";
   function ensureState(){if(!Array.isArray(window.__gcoMultiItemFiles))window.__gcoMultiItemFiles=[];if(window.__gcoCurrentItemIndex===undefined)window.__gcoCurrentItemIndex=null;}
+
+  function getAutomaticResultFromCore(){
+    try{
+      if(typeof window.showStep!=="function")return null;
+      /* The core quote engine owns the verified pricing rules. Temporarily
+         render Step 12 so it performs its normal calculation; we then read
+         the resulting price. Manual valuations deliberately render no price. */
+      window.showStep(12);
+      const priceEl=document.querySelector('[data-step="12"] .quote-price');
+      if(!priceEl)return null;
+      const text=clean(priceEl.textContent).replace(/[^0-9.\-]/g,"");
+      const amount=Number(text);
+      if(!Number.isFinite(amount))return null;
+      return {status:"automatic",amount:amount};
+    }catch(_){return null;}
+  }
 
   function collectItem(){
     const equipmentStatus=document.getElementById("equipment-serial-status")?.value||"available";
@@ -41,6 +57,8 @@
       valuation:"manual",
       amount:null
     };
+    const automatic=getAutomaticResultFromCore();
+    if(automatic){q.valuation="automatic";q.amount=automatic.amount;}
     return{itemName:q.modelName||q.categoryName||"Equipment item",...q};
   }
 
@@ -55,6 +73,20 @@
     window.__gcoMultiItemFiles[idx]=Array.from(input?.files||[]);
     window.__gcoCurrentItemIndex=idx;
     return idx;
+  }
+
+  function removeItem(index){
+    let b=basket();
+    if(index<0||index>=b.length)return;
+    b.splice(index,1);
+    saveBasket(b);
+    ensureState();
+    window.__gcoMultiItemFiles.splice(index,1);
+    if(window.__gcoCurrentItemIndex!==null){
+      if(window.__gcoCurrentItemIndex===index)window.__gcoCurrentItemIndex=null;
+      else if(window.__gcoCurrentItemIndex>index)window.__gcoCurrentItemIndex--;
+    }
+    if(typeof window.renderGearCashOutManualResult==="function")window.renderGearCashOutManualResult();
   }
 
   function clearAllFields(){
@@ -91,7 +123,7 @@
     clearAllFields();
     show(1);
     const category=document.getElementById("gear-category");
-    if(category) category.focus();
+    if(category)category.focus();
   }
 
   function goToCustomerDetails(){
@@ -115,6 +147,12 @@
       return;
     }
 
+    if(n===12&&button.dataset.removeQuoteItem!==undefined){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      removeItem(Number(button.dataset.removeQuoteItem));
+      return;
+    }
+
     if(n===12&&button.id==="add-another-item"){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       goToNewItem();
@@ -131,6 +169,7 @@
   ensureState();
   window.gearCashOutGetMultiItemBasket=()=>basket();
   window.gearCashOutGetMultiItemFiles=()=>window.__gcoMultiItemFiles||[];
+  window.gearCashOutRemoveQuoteItem=removeItem;
   window.gearCashOutResetForNewItem=goToNewItem;
   document.addEventListener("click",handleClick,true);
 })();
