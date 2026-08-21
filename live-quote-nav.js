@@ -9,10 +9,34 @@
   let restoring = false;
   let restoreTimer = null;
 
+  function clean(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function isPlaceholder(value) {
+    const text = clean(value);
+    return !text || /^[-–—]/.test(text) || /\bselect\b.*\b(model|package|accessory|manufacturer)\b/.test(text);
+  }
+
+  function isCompleteItem(item) {
+    if (!item || typeof item !== "object") return false;
+    if (isPlaceholder(item.category) || isPlaceholder(item.categoryName)) return false;
+    if (isPlaceholder(item.manufacturer) || isPlaceholder(item.manufacturerName)) return false;
+    if (isPlaceholder(item.model) || isPlaceholder(item.modelName)) return false;
+    if (item.category === "drone" && (isPlaceholder(item.package) || isPlaceholder(item.packageName))) return false;
+    return true;
+  }
+
   function readBasket() {
     try {
       const value = JSON.parse(localStorage.getItem(BASKET_KEY) || "[]");
-      return Array.isArray(value) ? value : [];
+      if (!Array.isArray(value)) return [];
+      const valid = value.filter(isCompleteItem);
+      if (valid.length !== value.length) {
+        localStorage.setItem(BASKET_KEY, JSON.stringify(valid));
+        window.dispatchEvent(new CustomEvent("gearCashOutBasketChanged"));
+      }
+      return valid;
     } catch (_) {
       return [];
     }
@@ -64,27 +88,27 @@
     if (!form) return false;
     const target = form.querySelector('.wizard-step[data-step="' + number + '"]');
     if (!target) return false;
-    form.querySelectorAll(".wizard-step").forEach(function (step) {
-      step.hidden = step !== target;
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const alreadyVisible = !target.hidden;
+    if (!alreadyVisible) {
+      form.querySelectorAll(".wizard-step").forEach(function (step) {
+        step.hidden = step !== target;
+      });
+      /* Scroll to the top once when the quote is first restored. Do not keep
+         issuing smooth scroll commands while the page is initialising. */
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
     return true;
   }
 
   function renderQuoteList() {
     if (typeof window.renderGearCashOutManualResult === "function") {
       window.renderGearCashOutManualResult();
-      return;
+      return true;
     }
-    const form = document.getElementById("quote-form");
-    if (!form) return;
     const summary = document.getElementById("quote-summary");
-    if (!summary) return;
-    window.setTimeout(function () {
-      if (typeof window.renderGearCashOutManualResult === "function") {
-        window.renderGearCashOutManualResult();
-      }
-    }, 50);
+    if (!summary) return false;
+    return false;
   }
 
   function restoreLiveQuote() {
@@ -104,16 +128,12 @@
       }
 
       const restored = showStepDirect(12);
-      if (restored) {
-        renderQuoteList();
-      }
+      const rendered = restored && renderQuoteList();
 
-      /* Keep trying briefly because the quote wizard has several compatibility
-         scripts which can initialise Step 1 after the first render. */
-      if (restored && attempts >= 30) {
-        clearInterval(restoreTimer);
-        restoring = false;
-      } else if (attempts >= 50) {
+      /* Once Step 12 exists and the quote renderer is available, the page is
+         restored. Further retries are unnecessary and caused repeated scroll
+         movement while the customer was trying to scroll normally. */
+      if (rendered || attempts >= 30) {
         clearInterval(restoreTimer);
         restoring = false;
       }
