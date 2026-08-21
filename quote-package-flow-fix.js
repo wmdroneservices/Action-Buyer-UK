@@ -117,9 +117,25 @@
       setTimeout(enforceBatteryCountDropdown, 400);
     }
 
+    let dynamicFixTimer = null;
+    function watchStep6Briefly() {
+      if (dynamicFixTimer) clearInterval(dynamicFixTimer);
+      let checks = 0;
+      dynamicFixTimer = setInterval(function () {
+        checks += 1;
+        const step6 = form.querySelector('.wizard-step[data-step="6"]');
+        if (step6 && !step6.hidden) enforceBatteryCountDropdown();
+        if (checks >= 50 || !step6 || step6.hidden) {
+          clearInterval(dynamicFixTimer);
+          dynamicFixTimer = null;
+        }
+      }, 100);
+    }
+
     form.addEventListener("change", function (event) {
       if (event.target.id === "package-select" || event.target.id === "dji-model" || event.target.closest('.wizard-step[data-step="6"]')) {
         scheduleBatteryCountFix();
+        if (event.target.id === "package-select" || event.target.id === "dji-model") watchStep6Briefly();
       }
     }, true);
 
@@ -139,6 +155,7 @@
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
         scheduleBatteryCountFix();
+        watchStep6Briefly();
       }, 0);
     }, true);
 
