@@ -77,6 +77,7 @@ function populateFilters(){
 }
 
 function renderList(){
+  populateFilters();
   const list=$('catalog-list');
   const q=val('search').toLowerCase();
   const manufacturer=val('manufacturer-filter').toLowerCase();
