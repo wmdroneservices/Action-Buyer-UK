@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   let item = {};
   let currentStep = 1;
   let packageOptions = [];
+  let currentItemFiles = [];
 
   function readBasket() {
     try { const value = JSON.parse(localStorage.getItem(basketKey) || "[]"); return Array.isArray(value) ? value : []; }
@@ -30,6 +31,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   window.gearCashOutReverseBasket = { readBasket, writeBasket, filesStore };
   window.gearCashOutGetMultiItemBasket = readBasket;
   window.gearCashOutGetMultiItemFiles = filesStore;
+
+  function renderPhotoList() {
+    const target = el("photo-list");
+    if (!target) return;
+    if (!currentItemFiles.length) {
+      target.textContent = "No photos added yet.";
+      return;
+    }
+    target.innerHTML = `<strong>${currentItemFiles.length} photo${currentItemFiles.length === 1 ? "" : "s"} added</strong><ul>${currentItemFiles.map((file, index) => `<li>${esc(file.name)} <button type="button" class="btn btn-remove-photo" data-photo-index="${index}">Remove</button></li>`).join("")}</ul>`;
+  }
 
   function isFactorySealed() {
     return checked("condition") === "factory-sealed";
@@ -89,8 +100,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (step === 5 && !checked("condition")) { alert("Please select the condition."); return false; }
     if (step === 6 && !checked("missingItems")) { alert("Please tell us whether anything is missing."); return false; }
     if (step === 7) {
-      const photos = el("photo-uploads")?.files;
-      if (!photos || !photos.length) { alert("Please upload at least one photograph."); return false; }
+      if (!currentItemFiles.length) { alert("Please upload at least one photograph."); return false; }
       if (checked("legalRight") !== "yes") { alert("You must confirm that you have the legal right to sell this equipment."); return false; }
       const category = clean(item.category).toLowerCase();
       const manufacturer = clean(item.manufacturer).toLowerCase();
@@ -108,10 +118,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const missingItems = checked("missingItems") === "yes";
     const damaged = item.condition === "damaged" || item.condition === "not-working";
 
-    // The catalogue is already loaded from quote_catalog_products above. Use
-    // that same live catalogue for valuation instead of a second RPC lookup.
-    // This keeps product selection and price lookup on exactly the same data
-    // source and avoids the stale/missing PostgREST RPC problem.
     const product = catalog.find(p =>
       clean(p.category).toLowerCase() === clean(item.category).toLowerCase() &&
       clean(p.manufacturer).toLowerCase() === clean(item.manufacturer).toLowerCase() &&
@@ -140,7 +146,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   async function addCurrentItem() {
     const result = await lookup();
-    const photos = Array.from(el("photo-uploads")?.files || []);
+    const photos = [...currentItemFiles];
     const entry = {
       category:item.category,
       categoryName:item.categoryName,
@@ -172,6 +178,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   function resetItem() {
     item={};
     packageOptions=[];
+    currentItemFiles=[];
     el("gear-category").value="";
     el("gear-manufacturer").innerHTML='<option value="">-- Select manufacturer --</option>';
     el("dji-model").innerHTML='<option value="">-- Select model --</option>';
@@ -181,6 +188,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     el("exception-notes").value="";
     el("drone-serial-number").value="";
     el("photo-uploads").value="";
+    renderPhotoList();
   }
   function renderBasket() {
     const basket=readBasket();
@@ -205,6 +213,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   setSelect(el("gear-category"),categories(),"-- Select category --");
   renderBasket();
+  renderPhotoList();
   progressLabels();
 
   el("gear-category").addEventListener("change",function(){
@@ -232,6 +241,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     item.packageName=this.options[this.selectedIndex]?.textContent||this.value;
   });
 
+  el("photo-uploads").addEventListener("change", function () {
+    const selected = Array.from(this.files || []);
+    if (selected.length) currentItemFiles.push(...selected);
+    this.value = "";
+    renderPhotoList();
+  });
+  el("add-another-photo").addEventListener("click", function () {
+    el("photo-uploads").click();
+  });
+
   form.querySelectorAll('input[name="condition"]').forEach(input => {
     input.addEventListener("change", function () {
       if (isFactorySealed()) {
@@ -248,6 +267,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const section=button.closest(".wizard-step");
     if(!section)return;
     const step=Number(section.dataset.step);
+    if(button.classList.contains("btn-remove-photo")){
+      event.preventDefault();
+      const index=Number(button.dataset.photoIndex);
+      currentItemFiles.splice(index,1);
+      renderPhotoList();
+      return;
+    }
     if(button.classList.contains("btn-back")){event.preventDefault();previousStep();return;}
     if(button.classList.contains("btn-next")){
       event.preventDefault();
