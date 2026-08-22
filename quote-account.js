@@ -104,6 +104,12 @@
       if(n===12&&isManualStep12(step)){try{sessionStorage.setItem("actionBuyerManualValuation","true");}catch(_){}return;}
       if(n!==13||!button.classList.contains("btn-next"))return;
 
+      /* A resumed quote must be handled by the normal quote submission flow.
+         This bridge used to submit the saved quote immediately here as well,
+         before the normal flow ran, which created a second valuation and also
+         submitted before the customer's photographs were included. */
+      if(getResume())return;
+
       event.preventDefault();
       event.stopImmediatePropagation();
       if(submissionInFlight)return;
@@ -111,25 +117,7 @@
       button.disabled=true;
 
       const resetSubmission=()=>{submissionInFlight=false;button.disabled=false;};
-      const resumed=getResume();
       const authenticated=getSessionMarker();
-      if(resumed){
-        (async function(){
-          if(!(await window.actionBuyerAuth?.getSession?.())){saveResume();saveReturnPath();window.location.href="login.html?return=quote.html";return;}
-          const name=document.getElementById("full-name"),email=document.getElementById("email-address"),phone=document.getElementById("phone-number");
-          if(!name?.value.trim()){resetSubmission();return alert("Please enter your full name.");}
-          if(!email?.value.trim()){resetSubmission();return alert("Please enter your email address.");}
-          if(!phone?.value.trim()){resetSubmission();return alert("Please enter your telephone number.");}
-          const record=makeRecord(resumed);saveLocal(record);
-          const result=await saveQuoteToAccount();
-          if(!result){resetSubmission();return alert("We could not submit your valuation. Please try again.");}
-          record.quoteReference=result.quote_reference||record.quoteReference;
-          clearResume();clearReturnPath();
-          try{sessionStorage.removeItem("actionBuyerManualValuation");}catch(_){}
-          showSubmitted(record);
-        })().catch(error=>{console.error(error);resetSubmission();alert("We could not submit your valuation. Please try again.");});
-        return;
-      }
 
       if(!authenticated){saveResume();saveReturnPath();window.location.href="login.html?return=quote.html";return;}
 
