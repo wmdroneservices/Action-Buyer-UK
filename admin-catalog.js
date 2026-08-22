@@ -61,11 +61,41 @@ function loadProduct(p){
 }
 
 function showMessage(text,error=false){const el=$('catalog-message');if(!el)return;el.textContent=text;el.className=`form-message ${error?'error':'success'}`;}
+
+function populateFilters(){
+  const manufacturer=$('manufacturer-filter');
+  const category=$('category-filter');
+  if(!manufacturer||!category)return;
+  const currentManufacturer=manufacturer.value;
+  const currentCategory=category.value;
+  const manufacturers=[...new Set(products.map(p=>String(p.manufacturer||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  manufacturer.innerHTML='<option value="">All manufacturers</option>'+manufacturers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  category.innerHTML='<option value="">All types</option>'+categories.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if(manufacturers.includes(currentManufacturer))manufacturer.value=currentManufacturer;
+  if(categories.includes(currentCategory))category.value=currentCategory;
+}
+
 function renderList(){
-  const list=$('catalog-list'),q=val('search').toLowerCase();
-  const rows=products.filter(p=>[p.category,p.manufacturer,p.model,p.package_key,p.package_name].some(v=>String(v||'').toLowerCase().includes(q)));
-  if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>The catalogue database contains no matching products.</p></div>';return;}
+  const list=$('catalog-list');
+  const q=val('search').toLowerCase();
+  const manufacturer=val('manufacturer-filter').toLowerCase();
+  const category=val('category-filter').toLowerCase();
+  const rows=products.filter(p=>{
+    const textMatch=!q||[p.category,p.manufacturer,p.model,p.package_key,p.package_name].some(v=>String(v||'').toLowerCase().includes(q));
+    const manufacturerMatch=!manufacturer||String(p.manufacturer||'').toLowerCase()===manufacturer;
+    const categoryMatch=!category||String(p.category||'').toLowerCase()===category;
+    return textMatch&&manufacturerMatch&&categoryMatch;
+  });
+  if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>No catalogue products match the selected filters.</p></div>';return;}
   list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
+}
+
+function clearFilters(){
+  setVal('search','');
+  setVal('manufacturer-filter','');
+  setVal('category-filter','');
+  renderList();
 }
 
 async function load(){
@@ -78,7 +108,9 @@ async function load(){
     if(!staff){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1><p>This page is restricted to staff accounts.</p></section></div></main>';return;}
     const {data,error}=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').order('manufacturer').order('model').order('package_name');
     if(error)throw error;
-    products=data||[];renderList();
+    products=data||[];
+    populateFilters();
+    renderList();
   }catch(e){console.error(e);$('catalog-list').textContent='Unable to load the catalogue.';showMessage(e.message||String(e),true);}
 }
 
@@ -104,7 +136,16 @@ $('catalog-form')?.addEventListener('submit',async e=>{
   }catch(e){console.error(e);showMessage(e.message||String(e),true);}
 });
 
-document.addEventListener('click',e=>{const edit=e.target.closest('.edit-product');if(edit){const p=products.find(x=>x.id===edit.dataset.id);if(p)loadProduct(p);}if(e.target.closest('#clear-form'))clearForm();if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',condition:'',buy_price:null,sell_price:null,buy_method:'',source_url:''});renderRetailers();}if(e.target.closest('.remove-retailer')){readRetailers();const tr=e.target.closest('tr');retailerRows.splice(Number(tr.dataset.index),1);renderRetailers();}});
-$('search')?.addEventListener('input',renderList);
+document.addEventListener('click',e=>{
+  const edit=e.target.closest('.edit-product');
+  if(edit){const p=products.find(x=>x.id===edit.dataset.id);if(p)loadProduct(p);}
+  if(e.target.closest('#clear-form'))clearForm();
+  if(e.target.closest('#clear-filters'))clearFilters();
+  if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',condition:'',buy_price:null,sell_price:null,buy_method:'',source_url:''});renderRetailers();}
+  if(e.target.closest('.remove-retailer')){readRetailers();const tr=e.target.closest('tr');retailerRows.splice(Number(tr.dataset.index),1);renderRetailers();}
+});
 
+$('search')?.addEventListener('input',renderList);
+$('manufacturer-filter')?.addEventListener('change',renderList);
+$('category-filter')?.addEventListener('change',renderList);
 document.addEventListener('DOMContentLoaded',load);
