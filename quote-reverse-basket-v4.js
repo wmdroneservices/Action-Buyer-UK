@@ -31,8 +31,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   window.gearCashOutGetMultiItemBasket = readBasket;
   window.gearCashOutGetMultiItemFiles = filesStore;
 
+  // Factory-sealed items still require the evidence/ownership stage, but do not
+  // need the normal missing-items/exception questionnaire. The customer can
+  // therefore go directly from Condition to Photos & ownership.
+  function isFactorySealed() {
+    return checked("condition") === "factory-sealed";
+  }
   function flow() {
-    return packageOptions.length > 1 ? [1,2,3,4,5,6,7,8,9,10] : [1,2,3,5,6,7,8,9,10];
+    const steps = packageOptions.length > 1 ? [1,2,3,4,5,6,7,8,9,10] : [1,2,3,5,6,7,8,9,10];
+    return isFactorySealed() ? steps.filter(step => step !== 6) : steps;
   }
   function progressLabels() {
     const labels = {1:"Category",2:"Manufacturer",3:"Model",4:"Package",5:"Condition",6:"Exceptions",7:"Photos",8:"Your Quote",9:"Customer Details",10:"Submitted"};
@@ -88,6 +95,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       const photos = el("photo-uploads")?.files;
       if (!photos || !photos.length) { alert("Please upload at least one photograph."); return false; }
       if (checked("legalRight") !== "yes") { alert("You must confirm that you have the legal right to sell this equipment."); return false; }
+
+      // DJI drones and DJI controllers must have a serial number recorded.
+      const category = clean(item.category).toLowerCase();
+      const manufacturer = clean(item.manufacturer).toLowerCase();
+      const requiresDjiSerial = manufacturer === "dji" && (category === "drone" || category === "controller");
+      if (requiresDjiSerial && !clean(el("drone-serial-number")?.value)) {
+        alert("Please enter the DJI serial number before continuing.");
+        return false;
+      }
     }
     return true;
   }
@@ -196,6 +212,18 @@ document.addEventListener("DOMContentLoaded", async function () {
   el("package-select").addEventListener("change",function(){
     item.package=this.value;
     item.packageName=this.options[this.selectedIndex]?.textContent||this.value;
+  });
+
+  // Rebuild the progress flow immediately when the customer selects a
+  // condition, so Factory Sealed visibly skips the Exceptions step.
+  form.querySelectorAll('input[name="condition"]').forEach(input => {
+    input.addEventListener("change", function () {
+      if (isFactorySealed()) {
+        form.querySelectorAll('input[name="missingItems"]').forEach(control => control.checked = false);
+        el("exception-notes").value = "";
+      }
+      progressLabels();
+    });
   });
 
   form.addEventListener("click",async function(event){
