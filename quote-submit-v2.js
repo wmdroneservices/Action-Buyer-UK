@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if(!value("full-name")){alert("Please enter your full name.");return;}
       if(!value("email-address")){alert("Please enter your email address.");return;}
       if(!value("phone-number")){alert("Please enter your telephone number.");return;}
+      if(typeof auth.saveQuoteCustomerDetails === "function") await auth.saveQuoteCustomerDetails();
       const items=basket(); if(!items.length){alert("Please add at least one item to your quote.");return;}
       const reference=`WBA-${new Date().getFullYear()}-${Math.floor(100000+Math.random()*900000)}`;
       const uploaded=await uploadAll(session,reference); const record=recordFor(session,reference,uploaded);
