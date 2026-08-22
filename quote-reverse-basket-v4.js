@@ -31,9 +31,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   window.gearCashOutGetMultiItemBasket = readBasket;
   window.gearCashOutGetMultiItemFiles = filesStore;
 
-  // Factory-sealed items still require the evidence/ownership stage, but do not
-  // need the normal missing-items/exception questionnaire. The customer can
-  // therefore go directly from Condition to Photos & ownership.
   function isFactorySealed() {
     return checked("condition") === "factory-sealed";
   }
@@ -95,8 +92,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       const photos = el("photo-uploads")?.files;
       if (!photos || !photos.length) { alert("Please upload at least one photograph."); return false; }
       if (checked("legalRight") !== "yes") { alert("You must confirm that you have the legal right to sell this equipment."); return false; }
-
-      // DJI drones and DJI controllers must have a serial number recorded.
       const category = clean(item.category).toLowerCase();
       const manufacturer = clean(item.manufacturer).toLowerCase();
       const requiresDjiSerial = manufacturer === "dji" && (category === "drone" || category === "controller");
@@ -107,19 +102,42 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     return true;
   }
+
   async function lookup() {
-    const {data,error} = await auth.supabase.rpc("lookup_quote_catalog_price", {
-      p_category:item.category,
-      p_manufacturer:item.manufacturer,
-      p_model:item.model,
-      p_package_key:item.package || "standard",
-      p_condition:item.condition,
-      p_missing_items:checked("missingItems") === "yes",
-      p_damaged:item.condition === "damaged" || item.condition === "not-working"
-    });
-    if (error) throw error;
-    return data || {route:"manual",reason:"product_not_priced",price:null};
+    const packageKey = item.package || "standard";
+    const missingItems = checked("missingItems") === "yes";
+    const damaged = item.condition === "damaged" || item.condition === "not-working";
+
+    // The catalogue is already loaded from quote_catalog_products above. Use
+    // that same live catalogue for valuation instead of a second RPC lookup.
+    // This keeps product selection and price lookup on exactly the same data
+    // source and avoids the stale/missing PostgREST RPC problem.
+    const product = catalog.find(p =>
+      clean(p.category).toLowerCase() === clean(item.category).toLowerCase() &&
+      clean(p.manufacturer).toLowerCase() === clean(item.manufacturer).toLowerCase() &&
+      clean(p.model).toLowerCase() === clean(item.model).toLowerCase() &&
+      clean(p.package_key || "standard").toLowerCase() === clean(packageKey).toLowerCase()
+    );
+
+    if (missingItems) return {route:"manual", reason:"missing_items", price:null, product_id:product?.id || null};
+    if (damaged) return {route:"manual", reason:"condition_requires_manual", price:null, product_id:product?.id || null};
+    if (!product) return {route:"manual", reason:"product_not_found", price:null};
+
+    const priceField = {
+      "factory-sealed":"factory_sealed_price",
+      "opened-unused":"opened_unused_price",
+      "excellent":"excellent_price",
+      "good":"good_price",
+      "fair":"fair_price"
+    }[item.condition];
+    const price = priceField ? product[priceField] : null;
+
+    if (price === null || price === undefined || price === "") {
+      return {route:"manual", reason:"product_not_priced", price:null, product_id:product.id};
+    }
+    return {route:"automatic", reason:null, price:Number(price), product_id:product.id};
   }
+
   async function addCurrentItem() {
     const result = await lookup();
     const photos = Array.from(el("photo-uploads")?.files || []);
@@ -170,7 +188,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if(!target)return;
     if(!basket.length){target.innerHTML="<p>Your quote is empty. Add an item to begin.</p>";return;}
     const total=basket.reduce((sum,x)=>sum+(x.valuation==="automatic"?Number(x.amount||0):0),0);
-    target.innerHTML=`<div class="quote-basket">${basket.map((x,i)=>`<article class="notice"><strong>${esc(x.manufacturerName)} ${esc(x.modelName)}</strong><br><span>${esc(x.packageName)} · ${esc(x.condition)}</span><br>${x.valuation==="automatic"?`<strong>${money(x.amount)}</strong> <span>automatic valuation</span>`:`<strong>Manual valuation</strong><span> — ${esc(x.valuationReason === "missing_items" ? "missing items" : x.valuationReason === "condition_requires_manual" ? "condition requires manual review" : "no database price yet")}</span>`}<br><button type="button" class="btn btn-remove-item" data-index="${i}">Remove</button></article>`).join("")}<p><strong>Automatic total: ${money(total)}</strong>${basket.some(x=>x.valuation==="manual")?"<br>One or more items require manual review.":""}</p></div>`;
+    target.innerHTML=`<div class="quote-basket">${basket.map((x,i)=>`<article class="notice"><strong>${esc(x.manufacturerName)} ${esc(x.modelName)}</strong><br><span>${esc(x.packageName)} · ${esc(x.condition)}</span><br>${x.valuation==="automatic"?`<strong>${money(x.amount)}</strong> <span>automatic valuation</span>`:`<strong>Manual valuation</strong><span> — ${esc(x.valuationReason === "missing_items" ? "missing items" : x.valuationReason === "condition_requires_manual" ? "condition requires manual review" : x.valuationReason === "product_not_found" ? "product not found" : "no database price yet")}</span>`}<br><button type="button" class="btn btn-remove-item" data-index="${i}">Remove</button></article>`).join("")}<p><strong>Automatic total: ${money(total)}</strong>${basket.some(x=>x.valuation==="manual")?"<br>One or more items require manual review.":""}</p></div>`;
   }
 
   try {
@@ -214,8 +232,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     item.packageName=this.options[this.selectedIndex]?.textContent||this.value;
   });
 
-  // Rebuild the progress flow immediately when the customer selects a
-  // condition, so Factory Sealed visibly skips the Exceptions step.
   form.querySelectorAll('input[name="condition"]').forEach(input => {
     input.addEventListener("change", function () {
       if (isFactorySealed()) {
