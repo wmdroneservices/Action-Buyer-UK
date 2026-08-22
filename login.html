@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en-GB"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Sign In | GearCashOut</title><meta name="description" content="Sign in to your GearCashOut account." /><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script><script src="auth.js" defer></script><script src="live-quote-nav.js?v=20260821-6" defer></script></head>
-<body><header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="quote.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="login.html" data-account-link>Register / Login</a></li></ul></nav></div></header>
+<body><header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="valuation.html">Get a Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html">Contact</a></li><li><a href="login.html" data-account-link>Register / Login</a></li></ul></nav></div></header>
 <main class="auth-page"><div class="auth-card"><p class="section-kicker">YOUR ACCOUNT</p><h1>Sign in</h1><p class="auth-intro">Sign in to view your valuations and track your submissions.</p><div id="return-quote-notice" class="notice" hidden><strong>Your valuation is saved.</strong> After signing in, you will be returned to your quote.</div><form id="login-form" class="auth-form"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" required /><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required /><button class="btn btn-primary" type="submit">SIGN IN</button><p id="login-message" class="form-message" role="status" aria-live="polite"></p></form><p class="auth-links"><a href="forgot-password.html">Forgotten your password?</a></p><p class="auth-switch">Don't have an account? <a id="register-link" href="register.html">Register</a></p></div></main>
 <footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT</strong><br>We buy drones, cameras, video and audio equipment.</div></div></footer>
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
-  const returnToQuote = params.get("return") === "quote.html";
-  if (returnToQuote) { try { localStorage.setItem("actionBuyerReturnAfterAuth", "quote.html"); } catch (_) {} document.getElementById("return-quote-notice").hidden = false; document.getElementById("register-link").href = "register.html?return=quote.html"; }
+  const returnTarget = ["quote.html", "valuation.html"].includes(params.get("return")) ? params.get("return") : "";
+  if (returnTarget) { try { localStorage.setItem("actionBuyerReturnAfterAuth", returnTarget); } catch (_) {} document.getElementById("return-quote-notice").hidden = false; document.getElementById("register-link").href = `register.html?return=${encodeURIComponent(returnTarget)}`; }
   async function destinationForSession(session) {
     if (!session?.user?.id) return "account.html";
     let returnDestination = ""; try { returnDestination = localStorage.getItem("actionBuyerReturnAfterAuth") || ""; } catch (_) {}
-    if (returnDestination === "quote.html") return "quote.html";
+    if (["quote.html", "valuation.html"].includes(returnDestination)) return returnDestination;
     const STAFF_USER_ID = "ecb51873-46f8-4468-aa1d-aeda08178fd8";
     if (session.user.id !== STAFF_USER_ID) return "account.html";
     const { data: staff, error } = await actionBuyerAuth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
