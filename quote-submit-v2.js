@@ -1,0 +1,89 @@
+/* GearCashOut: single final submission path for the new reverse basket. */
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+  const form = document.getElementById("quote-form");
+  const auth = window.actionBuyerAuth;
+  if (!form || !auth) return;
+  const BUCKET = "quote-photos";
+  const basket = () => window.gearCashOutReverseBasket?.readBasket?.() || [];
+  const files = () => window.gearCashOutReverseBasket?.filesStore?.() || [];
+  const clean = value => String(value ?? "").trim();
+  const value = id => clean(document.getElementById(id)?.value);
+  const submissionKeyName = "gearCashOutQuoteSubmissionKey";
+  let busy = false;
+
+  function submissionKey() {
+    try {
+      let key = localStorage.getItem(submissionKeyName);
+      if (!key) { key = crypto.randomUUID ? crypto.randomUUID() : `gco-${Date.now()}-${Math.random().toString(36).slice(2)}`; localStorage.setItem(submissionKeyName, key); }
+      return key;
+    } catch (_) { return `gco-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+  }
+  function saveResume() {
+    try {
+      localStorage.setItem("gearCashOutQuoteResume", JSON.stringify({quoteBasket:basket(), submissionKey:submissionKey(), created:new Date().toISOString()}));
+      localStorage.setItem("actionBuyerReturnAfterAuth", "quote.html");
+    } catch (_) {}
+  }
+  function clearResume() { try { localStorage.removeItem("gearCashOutQuoteResume"); localStorage.removeItem("actionBuyerReturnAfterAuth"); } catch (_) {} }
+  function showSubmitted(reference) {
+    form.querySelectorAll(".wizard-step").forEach(section => section.hidden = Number(section.dataset.step) !== 10);
+    const ref = document.getElementById("quote-reference"); if (ref) ref.textContent = reference;
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  async function uploadAll(session, reference) {
+    const groups = files(); const items = basket();
+    if (groups.length !== items.length) throw new Error("The photographs for one or more items were not retained. Please return to the quote basket and add the photographs again.");
+    const updated = items.map(item => ({...item}));
+    for (let itemIndex=0; itemIndex<groups.length; itemIndex++) {
+      const group = Array.isArray(groups[itemIndex]) ? groups[itemIndex] : [];
+      if (!group.length) throw new Error("Each item must have at least one photograph.");
+      const photos=[];
+      for (let i=0;i<group.length;i++) {
+        const file=group[i]; const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+        const path=`${session.user.id}/${reference}/item-${itemIndex+1}/${Date.now()}-${i}.${ext}`;
+        const {error}=await auth.supabase.storage.from(BUCKET).upload(path,file,{upsert:false,contentType:file.type||"image/jpeg"});
+        if(error) throw error;
+        photos.push({path,name:file.name,type:file.type||"image/jpeg"});
+      }
+      updated[itemIndex].photos=photos;
+    }
+    return updated;
+  }
+  function recordFor(session, reference, items) {
+    const first=items[0]||{};
+    return {
+      category:first.category||"", categoryName:first.categoryName||"", manufacturer:first.manufacturer||null, model:first.model||null,
+      package:first.package||null, condition:first.condition||null, quoteBasket:items, multiItemQuote:items.length>1, quoteItemCount:items.length,
+      fullName:value("full-name"), email:value("email-address"), phone:value("phone-number"), addressLine1:value("address-line-1"), addressLine2:value("address-line-2"), city:value("city"), county:value("county"), postcode:value("postcode").toUpperCase(),
+      legalRight:items.every(x=>x.legalRight==="yes")?"yes":"", quoteAmount:items.every(x=>x.valuation==="automatic")?items.reduce((sum,x)=>sum+Number(x.amount||0),0):null,
+      submissionKey:submissionKey(), photosProvided:true, created:new Date().toISOString(), userId:session.user.id
+    };
+  }
+  async function submit() {
+    if (busy) return; busy=true;
+    const button=document.querySelector(".btn-submit-valuation"); if(button)button.disabled=true;
+    try {
+      const session=await auth.getSession();
+      if(!session){saveResume();window.location.href="login.html?return=quote.html";return;}
+      if(!value("full-name")){alert("Please enter your full name.");return;}
+      if(!value("email-address")){alert("Please enter your email address.");return;}
+      if(!value("phone-number")){alert("Please enter your telephone number.");return;}
+      const items=basket(); if(!items.length){alert("Please add at least one item to your quote.");return;}
+      const reference=`WBA-${new Date().getFullYear()}-${Math.floor(100000+Math.random()*900000)}`;
+      const uploaded=await uploadAll(session,reference); const record=recordFor(session,reference,uploaded);
+      const {data,error}=await auth.supabase.rpc("save_customer_valuation",{p_record:record,p_items:uploaded});
+      if(error)throw error;
+      const actualReference=data?.quote_reference||reference;
+      try { localStorage.setItem("wba_latest_quote",JSON.stringify({...record,quoteReference:actualReference,valuationId:data?.valuation_id||null})); localStorage.removeItem("gearCashOutQuoteBasket"); localStorage.removeItem(submissionKeyName); clearResume(); } catch (_) {}
+      if(Array.isArray(window.__gcoMultiItemFiles)) window.__gcoMultiItemFiles.length=0;
+      showSubmitted(actualReference);
+    } catch(error) { console.error("GearCashOut quote submission failed",error); alert(error?.message||"The quote could not be submitted. Please try again."); }
+    finally { busy=false;if(button)button.disabled=false; }
+  }
+  form.addEventListener("click",function(event){const button=event.target.closest("button.btn-submit-valuation");if(!button)return;event.preventDefault();event.stopImmediatePropagation();submit();},true);
+  try {
+    const saved=JSON.parse(localStorage.getItem("gearCashOutQuoteResume")||"null");
+    if(saved&&Array.isArray(saved.quoteBasket)&&saved.quoteBasket.length){window.gearCashOutReverseBasket.writeBasket(saved.quoteBasket);window.setTimeout(()=>{const note=document.getElementById("resume-note");if(note){note.hidden=false;note.textContent=`Your ${saved.quoteBasket.length} saved item${saved.quoteBasket.length===1?" has":"s have"} been restored. Please re-upload photographs before submitting.`;}},250);}
+  } catch (_) {}
+});
