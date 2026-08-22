@@ -19,6 +19,53 @@ document.addEventListener("DOMContentLoaded", async () => {
   const message = document.getElementById("test-reset-message");
   if (!button) return;
 
+  async function listStorageFiles(prefix = "") {
+    const files = [];
+    let offset = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await auth.supabase.storage
+        .from("quote-photos")
+        .list(prefix, { limit, offset, sortBy: { column: "name", order: "asc" } });
+
+      if (error) throw error;
+      const items = data || [];
+      if (!items.length) break;
+
+      for (const item of items) {
+        const path = `${prefix}${item.name}`;
+        if (item.id === null) {
+          const nested = await listStorageFiles(`${path}/`);
+          files.push(...nested);
+        } else {
+          files.push(path);
+        }
+      }
+
+      if (items.length < limit) break;
+      offset += limit;
+    }
+
+    return files;
+  }
+
+  async function removeQuotePhotos() {
+    const paths = await listStorageFiles();
+    let removed = 0;
+
+    for (let i = 0; i < paths.length; i += 1000) {
+      const batch = paths.slice(i, i + 1000);
+      const { data, error } = await auth.supabase.storage
+        .from("quote-photos")
+        .remove(batch);
+      if (error) throw error;
+      removed += Array.isArray(data) ? data.length : batch.length;
+    }
+
+    return removed;
+  }
+
   button.addEventListener("click", async () => {
     const confirmed = window.confirm(
       "WARNING: This permanently deletes TEST quote workflow data.\n\nThis removes test valuations, quote items, offers, offer events, refusals, queued quote emails, test sales records and quote photographs.\n\nCustomer accounts, staff accounts, catalogue products, pricing and retailer data are NOT deleted.\n\nContinue?"
@@ -30,16 +77,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     button.textContent = "RESETTING...";
 
     if (message) {
-      message.textContent = "Resetting test data...";
+      message.textContent = "Removing test quote photographs...";
       message.className = "form-message";
     }
 
     try {
+      // Storage objects must be removed through the Supabase Storage API,
+      // never by deleting rows from storage.objects with SQL.
+      const photosRemoved = await removeQuotePhotos();
+
+      if (message) message.textContent = "Removing test quote database records...";
+
       const { data, error } = await auth.supabase.rpc("reset_test_quote_data");
       if (error) throw error;
 
       const counts = data || {};
-      const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+      const databaseTotal = Object.values(counts).reduce(
+        (sum, value) => sum + Number(value || 0),
+        0
+      );
+      const total = databaseTotal + photosRemoved;
 
       if (message) {
         message.textContent = total
