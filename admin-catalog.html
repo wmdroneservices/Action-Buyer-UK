@@ -4,9 +4,12 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Automatic Quote Catalogue | GearCashOut</title>
 <link rel="stylesheet" href="style.css">
+<style>
+#catalog-form input[type="text"],#catalog-form input[type="number"],#catalog-form input[type="url"],#catalog-form textarea{color:#222;background:#fff;opacity:1}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="admin-catalog.js?v=20260822-2" defer></script>
+<script src="admin-catalog.js?v=20260822-3" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-catalog.html" aria-current="page">Quote Catalogue</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></div></header>
@@ -15,7 +18,7 @@
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">PRODUCT</p><h2>Add or edit product</h2><p>Leave a condition price blank when it should go to manual review.</p></div>
 <form id="catalog-form">
 <input type="hidden" id="product-id">
-<div class="form-grid"><label>Category<input id="category" required placeholder="Drone"></label><label>Manufacturer<input id="manufacturer" required placeholder="DJI"></label><label>Model<input id="model" required placeholder="Mini 5 Pro"></label><label>Package key<input id="package-key" value="standard" placeholder="standard"></label><label>Package name<input id="package-name" value="Standard Package" placeholder="Standard Package"></label></div>
+<div class="form-grid"><label>Category<input id="category" placeholder="Drone"></label><label>Manufacturer<input id="manufacturer" placeholder="DJI"></label><label>Model<input id="model" placeholder="Mini 5 Pro"></label><label>Package key<input id="package-key" value="standard" placeholder="standard"></label><label>Package name<input id="package-name" value="Standard Package" placeholder="Standard Package"></label></div>
 <h3>Automatic buying prices</h3><div class="form-grid"><label>Factory Sealed / Unopened (£)<input id="factory-sealed" type="number" min="0" step="0.01"></label><label>Opened but Unused (£)<input id="opened-unused" type="number" min="0" step="0.01"></label><label>Excellent (£)<input id="excellent" type="number" min="0" step="0.01"></label><label>Good (£)<input id="good" type="number" min="0" step="0.01"></label><label>Fair (£)<input id="fair" type="number" min="0" step="0.01"></label></div>
 <h3>Retailer market comparison</h3><p>Record what other retailers are currently paying and selling this product for. This data does not affect the GearCashOut automatic offer.</p>
 <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th>Retailer</th><th>Condition</th><th>Buying (£)</th><th>Selling (£)</th><th>Buy method</th><th>Source</th><th></th></tr></thead><tbody id="retailer-prices-body"></tbody></table></div>
