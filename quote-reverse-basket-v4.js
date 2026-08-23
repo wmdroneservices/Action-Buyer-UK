@@ -169,9 +169,20 @@ document.addEventListener("DOMContentLoaded", async function () {
       addedAt:new Date().toISOString()
     };
     const basket = readBasket();
-    basket.push(entry);
-    writeBasket(basket);
-    filesStore().push(photos);
+
+const duplicate = basket.some(existing =>
+  clean(existing.category).toLowerCase() === clean(entry.category).toLowerCase() &&
+  clean(existing.manufacturer).toLowerCase() === clean(entry.manufacturer).toLowerCase() &&
+  clean(existing.model).toLowerCase() === clean(entry.model).toLowerCase() &&
+  clean(existing.package).toLowerCase() === clean(entry.package).toLowerCase()
+);
+
+if (!duplicate) {
+  basket.push(entry);
+  filesStore().push(photos);
+}
+
+writeBasket(basket);
     renderBasket();
     show(8);
   }
