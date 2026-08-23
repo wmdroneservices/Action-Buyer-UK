@@ -73,6 +73,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers")
       .select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at,created_at")
       .in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
+const { data: sales } = await auth.supabase
+  .from("sales")
+  .select("id,sale_reference,status,total_amount,created_at")
+  .eq("user_id", user.id)
+  .order("created_at", { ascending: false });
+
+const saleIds = (sales || []).map(s => s.id);
+
+const { data: shipments } = saleIds.length ? await auth.supabase
+  .from("shipments")
+  .select("id,sale_id,status,carrier,tracking_number")
+  .in("sale_id", saleIds)
+  : { data: [] };
 
     const activeQuotes = (valuations || []).map(v => {
       const its = (items || []).filter(i => i.valuation_id === v.id).sort((a,b) => (a.item_position || 999) - (b.item_position || 999));
