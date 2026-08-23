@@ -200,11 +200,29 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   try {
-    const {data,error}=await auth.supabase.from("quote_catalog_products")
-      .select("id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price")
-      .eq("active",true).order("manufacturer").order("model");
-    if(error)throw error;
-    catalog=data||[];
+let allProducts=[];
+let from=0;
+const pageSize=1000;
+
+while(true){
+  const {data,error}=await auth.supabase
+    .from("quote_catalog_products")
+    .select("id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price")
+    .eq("active",true)
+    .range(from,from+pageSize-1)
+    .order("manufacturer")
+    .order("model");
+
+  if(error)throw error;
+
+  allProducts.push(...(data||[]));
+
+  if(!data || data.length < pageSize) break;
+
+  from += pageSize;
+}
+
+catalog=allProducts;
   } catch(error) {
     console.error("GearCashOut catalogue load failed",error);
     alert("We could not load the equipment catalogue. Please refresh and try again.");
