@@ -44,8 +44,25 @@
   }
 
   function normaliseBasketArray(basket) {
-    return basket.filter(valid).map(applyAutomaticPricing);
-  }
+  const seen = new Set();
+
+  return basket
+    .filter(valid)
+    .map(applyAutomaticPricing)
+    .filter(item => {
+      const key = [
+        text(item.category),
+        text(item.manufacturer || item.manufacturerName),
+        text(item.model || item.modelName),
+        text(item.package || item.packageName)
+      ].join("|");
+
+      if (seen.has(key)) return false;
+
+      seen.add(key);
+      return true;
+    });
+}
 
   function cleanBasket() {
     let raw;
