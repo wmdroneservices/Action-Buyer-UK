@@ -99,13 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }).join("") : "<p>No valuations currently in progress.</p>";
     }
 
-    document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      const { error } = await auth.supabase.rpc("accept_quote_offer", { p_offer_id: btn.dataset.id });
-      if (error) { alert(error.message || "The offer could not be accepted."); btn.disabled = false; return; }
-      await sendEmailForOffer(btn.dataset.id, "offer_accepted"); await load();
-    }));
-    document.querySelectorAll(".refuse-offer").forEach(btn => btn.addEventListener("click", async () => {
+      document.querySelectorAll(".refuse-offer").forEach(btn => btn.addEventListener("click", async () => {
       if (!confirm("Refuse this item?")) return;
       btn.disabled = true;
       const { error } = await auth.supabase.rpc("refuse_quote_offer", { p_offer_id: btn.dataset.id });
@@ -113,6 +107,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       await sendEmailForOffer(btn.dataset.id, "offer_refused"); await load();
     }));
   }
+
+  window.addEventListener("pageshow", async () => {
+    await load();
+  });
 
   await load();
 });
