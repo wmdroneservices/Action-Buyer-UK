@@ -173,8 +173,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 const duplicate = basket.some(existing =>
   clean(existing.category).toLowerCase() === clean(entry.category).toLowerCase() &&
   clean(existing.manufacturer).toLowerCase() === clean(entry.manufacturer).toLowerCase() &&
-  clean(existing.model).toLowerCase() === clean(entry.model).toLowerCase() &&
-  clean(existing.package).toLowerCase() === clean(entry.package).toLowerCase()
+  clean(existing.model).toLowerCase() === clean(entry.model).toLowerCase()
 );
 
 if (!duplicate) {
