@@ -100,17 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 
-      });
 
-      if (error) {
-        alert(error.message || "The offer could not be accepted.");
-        btn.disabled = false;
-        return;
-      }
-
-      await sendEmailForOffer(btn.dataset.id, "offer_accepted");
-      await load();
-    }));
 
     document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
   console.log("ACCEPT CLICKED", btn.dataset.id);
