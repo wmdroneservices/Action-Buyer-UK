@@ -131,21 +131,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   await load();
 }));
 
-document.querySelectorAll(".refuse-offer").forEach(btn => btn.addEventListener("click", async () => {
-  if (!confirm("Refuse this item?")) return;
+    document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
+      console.log("ACCEPT CLICKED", btn.dataset.id);
 
-  btn.disabled = true;
+      btn.disabled = true;
 
-  const { error } = await auth.supabase.rpc("refuse_quote_offer", {
-    p_offer_id: btn.dataset.id
+      const { error } = await auth.supabase.rpc("accept_quote_offer", {
+        p_offer_id: btn.dataset.id
+      });
+
+      if (error) {
+        alert(error.message || "The offer could not be accepted.");
+        btn.disabled = false;
+        return;
+      }
+
+      await sendEmailForOffer(btn.dataset.id, "offer_accepted");
+      await load();
+    }));
+
+    document.querySelectorAll(".refuse-offer").forEach(btn => btn.addEventListener("click", async () => {
+      if (!confirm("Refuse this item?")) return;
+
+      btn.disabled = true;
+
+      const { error } = await auth.supabase.rpc("refuse_quote_offer", {
+        p_offer_id: btn.dataset.id
+      });
+
+      if (error) {
+        alert(error.message || "The offer could not be refused.");
+        btn.disabled = false;
+        return;
+      }
+
+      await sendEmailForOffer(btn.dataset.id, "offer_refused");
+      await load();
+    }));
+       }
+
+  window.addEventListener("pageshow", async () => {
+    await load();
   });
 
-  if (error) {
-    alert(error.message || "The offer could not be refused.");
-    btn.disabled = false;
-    return;
-  }
-
-  await sendEmailForOffer(btn.dataset.id, "offer_refused");
   await load();
-}));
+});
