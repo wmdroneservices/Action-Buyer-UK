@@ -197,32 +197,30 @@ document.addEventListener("DOMContentLoaded", async function () {
     if(!basket.length){target.innerHTML="<p>Your quote is empty. Add an item to begin.</p>";return;}
     const total=basket.reduce((sum,x)=>sum+(x.valuation==="automatic"?Number(x.amount||0):0),0);
     target.innerHTML=`<div class="quote-basket">${basket.map((x,i)=>`<article class="notice"><strong>${esc(x.manufacturerName)} ${esc(x.modelName)}</strong><br><span>${esc(x.packageName)} · ${esc(x.condition)}</span><br>${x.valuation==="automatic"?`<strong>${money(x.amount)}</strong> <span>automatic valuation</span>`:`<strong>Manual valuation</strong><span> — ${esc(x.valuationReason === "missing_items" ? "missing items" : x.valuationReason === "condition_requires_manual" ? "condition requires manual review" : x.valuationReason === "product_not_found" ? "product not found" : "no database price yet")}</span>`}<br><button type="button" class="btn btn-remove-item" data-index="${i}">Remove</button></article>`).join("")}<p><strong>Automatic total: ${money(total)}</strong>${basket.some(x=>x.valuation==="manual")?"<br>One or more items require manual review.":""}</p></div>`;
-  }
+    try {
+    let allProducts=[];
+    let from=0;
+    const pageSize=1000;
 
-  try {
-let allProducts=[];
-let from=0;
-const pageSize=1000;
+    while(true){
+      const {data,error}=await auth.supabase
+        .from("quote_catalog_products")
+        .select("id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price")
+        .eq("active",true)
+        .range(from,from+pageSize-1)
+        .order("manufacturer")
+        .order("model");
 
-while(true){
-  const {data,error}=await auth.supabase
-    .from("quote_catalog_products")
-    .select("id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price")
-    .eq("active",true)
-    .range(from,from+pageSize-1)
-    .order("manufacturer")
-    .order("model");
+      if(error)throw error;
 
-  if(error)throw error;
+      allProducts.push(...(data||[]));
 
-  allProducts.push(...(data||[]));
+      if(!data || data.length < pageSize) break;
 
-  if(!data || data.length < pageSize) break;
+      from += pageSize;
+    }
 
-  from += pageSize;
-}
-
-catalog=allProducts;
+    catalog=allProducts;
   } catch(error) {
     console.error("GearCashOut catalogue load failed",error);
     alert("We could not load the equipment catalogue. Please refresh and try again.");
