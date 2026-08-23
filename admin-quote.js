@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function offerControl(label, offer, itemId, type, disabled) {
-    return `<div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(120px,180px) auto;gap:.5rem;align-items:end;"><div><strong>${esc(label)}</strong><div><span class="status-badge">${esc(pretty(offer?.status || "not published"))}</span>${offer?.responded_at ? `<small style="margin-left:.5rem">Responded ${new Date(offer.responded_at).toLocaleString("en-GB")}</small>` : ""}</div></div><label class="sr-only">${esc(label)} amount<input class="offer-price" data-item="${esc(itemId)}" data-type="${esc(type)}" type="number" min="0" step="0.01" value="${offer?.amount ?? ""}" placeholder="Price" ${disabled}></label><button class="btn btn-primary publish-offer" data-item="${esc(itemId)}" data-type="${esc(type)}" type="button" ${disabled}>${offer ? "UPDATE & SEND" : "PUBLISH"}</button></div>`;
+    return `<div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(120px,180px) auto;gap:.5rem;align-items:end;"><div><strong>${esc(label)}</strong><div><span class="status-badge">${esc(pretty(offer?.status || "not published"))}</span>${offer?.responded_at ? `<small style="margin-left:.5rem">Responded ${new Date(offer.responded_at).toLocaleString("en-GB")}</small>` : ""}<label>${esc(label)} amount<input class="offer-price" data-item="${esc(itemId)}" data-type="${esc(type)}" type="number" min="0" step="0.01" value="${offer?.amount ?? ""}" placeholder="Price" ${disabled}></label><button class="btn btn-primary publish-offer" data-item="${esc(itemId)}" data-type="${esc(type)}" type="button" ${disabled}>${offer ? "UPDATE & SEND" : "PUBLISH"}</button></div>`;
   }
 
   function offerCard(item, offers, refusals) {
