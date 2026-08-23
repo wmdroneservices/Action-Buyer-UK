@@ -107,9 +107,29 @@ async function load(){
     const {data:staff,error:staffError}=await sb().from('staff_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
     if(staffError)throw staffError;
     if(!staff){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1><p>This page is restricted to staff accounts.</p></section></div></main>';return;}
-    const {data,error}=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').order('manufacturer').order('model').order('package_name');
-    if(error)throw error;
-    products=data||[];
+    let allProducts=[];
+let from=0;
+const pageSize=1000;
+
+while(true){
+  const {data,error}=await sb()
+    .from('quote_catalog_products')
+    .select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at')
+    .range(from,from+pageSize-1)
+    .order('manufacturer')
+    .order('model')
+    .order('package_name');
+
+  if(error)throw error;
+
+  allProducts.push(...(data||[]));
+
+  if(!data || data.length < pageSize) break;
+
+  from += pageSize;
+}
+
+products=allProducts;
     populateFilters();
     renderList();
   }catch(e){console.error(e);$('catalog-list').textContent='Unable to load the catalogue.';showMessage(e.message||String(e),true);}
