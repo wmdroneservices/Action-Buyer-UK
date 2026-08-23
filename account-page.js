@@ -112,7 +112,46 @@ const { data: shipments } = saleIds.length ? await auth.supabase
       }).join("") : "<p>No valuations currently in progress.</p>";
     }
 
+    const salesBox = document.getElementById("sales");
 
+    if (salesBox) {
+      const activeSales = (sales || []).filter(s =>
+        ["collecting_items", "awaiting_label", "label_created", "shipping"].includes(s.status)
+      );
+
+      salesBox.innerHTML = activeSales.length
+        ? activeSales.map(s => {
+
+            const shipment = (shipments || []).find(
+              sh => sh.sale_id === s.id
+            );
+
+            let message = "Your offer has been accepted. We are preparing the next steps.";
+
+            if (shipment?.status === "awaiting_label") {
+              message = "Your shipping details are being prepared. We will send your instructions shortly.";
+            }
+
+            if (shipment?.status === "label_created") {
+              message = "Your shipping details are ready. Please follow the instructions provided.";
+            }
+
+            return `
+              <article class="valuation-card">
+                <div>
+                  <span class="valuation-ref">${esc(s.sale_reference || "")}</span>
+                  <p class="section-kicker">SALE UPDATE</p>
+                  <h3>${money(s.total_amount)}</h3>
+                  <p>${esc(message)}</p>
+                </div>
+                <div class="valuation-meta">
+                  <span class="status-badge">${esc(String(s.status).replaceAll("_", " "))}</span>
+                </div>
+              </article>
+            `;
+          }).join("")
+        : "<p>No active sales currently.</p>";
+    }
 
 
     document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
