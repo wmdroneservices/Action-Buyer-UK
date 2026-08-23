@@ -220,7 +220,27 @@ document.addEventListener("DOMContentLoaded", async function () {
       from += pageSize;
     }
 
-    catalog=allProducts;
+    catalog=acatalog = allProducts;
+
+console.log("Catalogue loaded:", catalog.length, catalog.slice(0,5));
+
+const categorySelect = document.getElementById("gear-category");
+
+if (categorySelect) {
+  const categories = [...new Set(
+    catalog.map(item => item.category).filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b));
+
+  categorySelect.innerHTML =
+    '<option value="">-- Select category --</option>';
+
+  categories.forEach(category => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categorySelect.appendChild(option);
+  });
+}llProducts;
   } catch(error) {
     console.error("GearCashOut catalogue load failed",error);
     alert("We could not load the equipment catalogue. Please refresh and try again.");
