@@ -48,10 +48,30 @@ document.addEventListener("DOMContentLoaded", () => {
         const hasRefusal = refusedBySale.has(sale.id);
         let title = "", text = "", tone = "wait";
 
-        // Shipment status is authoritative for the customer-posted step.
-        // This prevents the dashboard showing "WAITING FOR CUSTOMER" after
-        // the customer has actually marked the parcel in transit.
-        if (shipmentStatus === "in_transit") {
+        // The sale status is authoritative once the item has been received.
+        // A delivered shipment must not override a later payment/return state.
+        if (status === "payment_due" && !sale.bank_details_confirmed_at) {
+          tone="urgent";
+          title="AWAITING CUSTOMER BANK DETAILS";
+          text="The customer has accepted the final offer. Waiting for the customer's bank details before payment can be sent.";
+        } else if (status === "payment_due" && sale.bank_details_confirmed_at) {
+          tone="urgent";
+          title="PAYMENT DUE — ACTION REQUIRED";
+          text=`Customer bank details are confirmed. Pay ${new Intl.NumberFormat("en-GB", { style:"currency", currency:"GBP" }).format(Number(sale.total_amount || 0))} and record the payment.`;
+        } else if (status === "paid" && hasRefusal) {
+          tone="urgent";
+          title="CUSTOMER REFUSED — ACTION REQUIRED";
+          text="Arrange the GearCashOut → customer return shipment for the refused item.";
+        } else if (status === "paid") {
+          title="NO ACTION REQUIRED";
+          text="Payment has been sent. No return shipment is required unless a customer refusal requires the item to be returned.";
+        } else if (status === "return_shipped") {
+          title="RETURN SHIPPED — WAITING FOR DELIVERY";
+          text="The return is on its way to the customer.";
+        } else if (["completed", "cancelled"].includes(status)) {
+          title="NO ACTION REQUIRED";
+          text="This sale has been completed or cancelled.";
+        } else if (shipmentStatus === "in_transit") {
           title = "CUSTOMER HAS POSTED ITEM";
           text = "The item is in transit to GearCashOut. Await delivery.";
         } else if (shipmentStatus === "delivered") {
@@ -60,24 +80,21 @@ document.addEventListener("DOMContentLoaded", () => {
           text = "The customer's item has been delivered. Receive and inspect the item.";
         } else if (["collecting_items", "ready_for_shipping", "shipping"].includes(status)) {
           const inboundText = card.textContent.includes("CUSTOMER → US") && card.textContent.includes("label_created");
-          if (!inboundText) { tone="urgent"; title="CUSTOMER ACCEPTED OFFER — ACTION REQUIRED"; text="Create the customer → GearCashOut shipping label and send it to the customer."; }
-          else { title="WAITING FOR CUSTOMER"; text="The inbound shipment has been created. Wait for the customer to send the item."; }
+          if (!inboundText) {
+            tone="urgent";
+            title="CUSTOMER ACCEPTED OFFER — ACTION REQUIRED";
+            text="Create the customer → GearCashOut shipping label and send it to the customer.";
+          } else {
+            title="WAITING FOR CUSTOMER";
+            text="The inbound shipment has been created. Wait for the customer to send the item.";
+          }
         } else if (["received", "inspection"].includes(status)) {
-          tone="urgent"; title="ITEM RECEIVED — ACTION REQUIRED"; text="Inspect the item and complete the next valuation/payment decision.";
-        } else if (status === "payment_due" && !sale.bank_details_confirmed_at) {
-          tone="urgent"; title="AWAITING CUSTOMER BANK DETAILS"; text="Waiting for the customer's bank details before payment can be sent.";
-        } else if (status === "payment_due" && sale.bank_details_confirmed_at) {
-          tone="urgent"; title="PAYMENT DUE — ACTION REQUIRED"; text=`Customer bank details are confirmed. Pay ${new Intl.NumberFormat("en-GB", { style:"currency", currency:"GBP" }).format(Number(sale.total_amount || 0))} and record the payment.`;
-        } else if (status === "paid" && hasRefusal) {
-          tone="urgent"; title="CUSTOMER REFUSED — ACTION REQUIRED"; text="Arrange the GearCashOut → customer return shipment for the refused item.";
-        } else if (status === "paid") {
-          title="NO ACTION REQUIRED"; text="Payment has been sent. No return shipment is required unless a customer refusal requires the item to be returned.";
-        } else if (status === "return_shipped") {
-          title="RETURN SHIPPED — WAITING FOR DELIVERY"; text="The return is on its way to the customer.";
-        } else if (["completed", "cancelled"].includes(status)) {
-          title="NO ACTION REQUIRED"; text="This sale has been completed or cancelled.";
+          tone="urgent";
+          title="ITEM RECEIVED — ACTION REQUIRED";
+          text="Inspect the item and complete the next valuation/payment decision.";
         } else {
-          title="SALE IN PROGRESS"; text="Open the sale to see the current status and next step.";
+          title="SALE IN PROGRESS";
+          text="Open the sale to see the current status and next step.";
         }
 
         const styles=tone==="urgent"?"border-left:5px solid #c94b2c;background:#fff3ee;color:#8f321f;":"border-left:5px solid #d88732;background:#fffaf2;color:#68451f;";
