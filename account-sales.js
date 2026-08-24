@@ -15,10 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!box) { console.warn("completed-transactions box not found"); return; }
 
       const allSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
-      console.log("All sales count:", allSales.length, "Sales data:", allSales);
-
       const completedSales = allSales.filter(s => ["paid", "completed"].includes(String(s.status || "")) || !!s.payment_sent_at);
-      console.log("Completed sales count:", completedSales.length, "Completed sales data:", completedSales);
       if (!completedSales.length) { box.innerHTML = "<p>No completed transactions currently.</p>"; return; }
 
       const ids = completedSales.map(s => s.id);
@@ -36,7 +33,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         .select("id,sale_id,shipment_type,status,carrier,tracking_number,parcel_count,label_count,label_urls,qr_code_urls,shipped_at,delivered_at,created_at,notes")
         .in("sale_id", ids).order("created_at", { ascending: false });
       if (shipmentsError) { console.error("Shipments query error:", shipmentsError); return; }
-      console.log("Shipments count:", (shipments || []).length, "Shipments data:", shipments);
 
       const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
       const date = v => v ? new Date(v).toLocaleDateString("en-GB") : "";
@@ -74,8 +70,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else if (posted) {
           finalOutcome = `<div class="status-badge">ITEM POSTED</div><p><strong>Your item has been posted.</strong> We will update you when it arrives.</p>`;
         } else if (labelReady) {
-          finalOutcome = `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}${inbound[0] && !posted ? `
-            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound.find(x => x.status === "label_created")?.id}">I HAVE POSTED MY ITEM</button>` : ""}`;
+          const labelShipment = inbound.find(x => x.status === "label_created") || inbound[0];
+          finalOutcome = `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${labelShipment ? links(labelShipment.label_urls, "Download label") : ""}${labelShipment ? links(labelShipment.qr_code_urls, "View QR code") : ""}${labelShipment && !posted ? `
+            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${esc(labelShipment.id)}">I HAVE POSTED MY ITEM</button>` : ""}`;
         } else {
           finalOutcome = `<div class="status-badge">AWAITING SHIPMENT</div><p><strong>Preparing your shipment.</strong> We will update you when your label is ready.</p>`;
         }
@@ -90,8 +87,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (status === "payment_due") progress.push(`<p><strong>6. Bank details</strong> — ${s.payment_status === "bank_details_received" ? "Received — payment awaiting processing" : "Required before payment"}</p>`);
         if (paymentReceived) progress.push(`<p><strong>6. Payment received</strong> — ${date(s.payment_sent_at)}</p>`);
 
-        return `<details open class="valuation-card sale-card" style="margin-bottom:1rem">
-          <summary style="cursor:pointer;list-style:none"><div><span class="valuation-ref">${esc(s.sale_reference)}</span><p class="section-kicker">${paymentReceived ? "PAYMENT RECEIVED" : finalQuoteAccepted ? "FINAL QUOTE ACCEPTED" : "IN PROGRESS"}</p><h3>${money(s.total_amount)}</h3></div></summary>
+        const productNames = si.map(item => {
+          const qi = (qitems || []).find(q => q.id === item.quote_item_id);
+          return qi ? [qi.manufacturer, qi.model || qi.item_name].filter(Boolean).join(" ") : "Equipment";
+        }).filter(Boolean);
+        const product = productNames.length ? productNames.join(", ") : "Equipment";
+        const paidAmount = money(s.total_amount);
+
+        return `<details class="valuation-card sale-card completed-sale-card" style="margin-bottom:1rem">
+          <summary class="completed-sale-summary" style="cursor:pointer;list-style:none;display:grid;grid-template-columns:minmax(150px,1.4fr) auto auto auto minmax(180px,2fr);gap:.75rem;align-items:center;padding:.85rem 0">
+            <span class="valuation-ref">${esc(s.sale_reference)}</span>
+            <span class="completed-sale-status">COMPLETED SALE</span>
+            <span class="completed-sale-paid">PAID</span>
+            <strong class="completed-sale-amount">${paidAmount}</strong>
+            <span class="completed-sale-product">${esc(product)}</span>
+          </summary>
           <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4>${progress.join("")}</div>
           <div class="shipping-block">${finalOutcome}</div>
           ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
@@ -99,8 +109,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
           </div></details>`;
       }).join("");
-
-      console.log("Rendered completed sales successfully");
     } catch (err) {
       console.error("Unexpected error in load():", err);
       const box = document.getElementById("completed-transactions");
@@ -109,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   await load();
-  window.addEventListener("pageshow", async () => { console.log("Page shown, reloading completed sales..."); await load(); });
+  window.addEventListener("pageshow", async () => { await load(); });
 
   document.addEventListener("click", async event => {
     const button = event.target.closest(".post-shipment-btn");
@@ -118,13 +126,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const shipmentId = button.dataset.shipmentId;
     if (!shipmentId) return;
 
-    console.log("Customer confirmed posted shipment:", shipmentId);
     button.disabled = true;
     const postedAt = new Date().toISOString();
     const { data, error } = await auth.supabase.from("shipments")
       .update({ status: "in_transit", shipped_at: postedAt })
       .eq("id", shipmentId).select("id,sale_id,status,shipped_at").single();
-    console.log("Updated shipment:", data, error);
 
     if (error) {
       console.error("Shipment update failed:", error);
@@ -146,8 +152,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    alert("Thank you. Your item has been marked as posted and GearCashOut has been notified.");
-    console.log("Shipment and sale status updated successfully");
     await load();
+    const confirmation = document.createElement("div");
+    confirmation.className = "shipping-block shipment-confirmation";
+    confirmation.style.cssText = "margin-bottom:1rem;border-left:4px solid #d88732;background:#f3f1ec;padding:1rem 1.2rem";
+    confirmation.innerHTML = `<div class="status-badge">PARCEL ON ITS WAY</div><p><strong>Your parcel is on its way to GearCashOut.</strong> We’ll let you know when it arrives and your valuation progresses.</p>`;
+    const box = document.getElementById("completed-transactions");
+    if (box) box.prepend(confirmation);
+    window.setTimeout(() => confirmation.remove(), 5000);
   });
 });
