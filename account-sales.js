@@ -107,7 +107,7 @@ I HAVE POSTED MY ITEM
             <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4><p><strong>1. Offer accepted</strong> — ${firstAccepted ? date(firstAccepted) : "Accepted"}</p><p><strong>2. Shipping</strong> — ${labelReady ? "Label ready" : "Preparing"}</p>${received ? `<p><strong>3. Payment received</strong> — ${date(s.payment_sent_at)}</p>` : ""}</div>
             <div class="shipping-block">${finalOutcome}</div>
             ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
-            ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
+            ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p><strong>${x.status === "in_transit" ? "POSTED" : esc(x.status.replaceAll("_", " "))}</strong>${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
             ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
             </div></details>`;
         }).join("");
