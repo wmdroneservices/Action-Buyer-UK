@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           if (shipment?.status === "label_created") {
             message = "Your shipping details are ready. Please follow the instructions provided.";
           }
-          return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">SALE UPDATE</p><h3>' + money(s.total_amount) + '</h3><p>' + esc(message) + '</p></div><div class="valuation-meta"><span class="status-badge">' + esc(String(s.status).replaceAll("_", " ")) + '</span></div></article>';
+          return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">SALE UPDATE</p><h3>' + money(s.total_amount) + '</h3><p>' + esc(message) + '</p></div></article>';
         }).join("");
       } else {
         salesBox.innerHTML = "";
