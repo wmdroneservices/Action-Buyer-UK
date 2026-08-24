@@ -9,12 +9,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     .eq("user_id", session.user.id).order("created_at", { ascending: false });
   if (salesError) { console.error("Customer sales load failed", salesError); return; }
 
+  // Show all active sales with shipping, not just paid sales
+  const activeSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
   const completed = (sales || []).filter(s => s.status === "paid" || ["paid", "payment_sent"].includes(String(s.payment_status || "")) || !!s.payment_sent_at);
   const box = document.getElementById("completed-transactions");
   if (!box) return;
-  if (!completed.length) { box.innerHTML = "<p>No completed transactions yet.</p>"; return; }
 
-  const ids = completed.map(s => s.id);
+  const ids = activeSales.length ? activeSales.map(s => s.id) : completed.map(s => s.id);
+  if (!ids.length) { box.innerHTML = "<p>No transactions currently.</p>"; return; }
+  
   const { data: items } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id,amount,created_at").in("sale_id", ids);
   const qids = (items || []).map(i => i.quote_item_id);
   const { data: qitems } = qids.length ? await auth.supabase.from("quote_items").select("id,model,manufacturer,item_name").in("id", qids) : { data: [] };
@@ -28,25 +31,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   const safeUrl = v => /^https?:\/\//i.test(String(v || "")) ? String(v) : "";
   const links = (values, label) => (Array.isArray(values) ? values : []).map((url, i) => { const safe = safeUrl(url); return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">${esc(label)} ${i + 1}</a>` : ""; }).join(" ");
 
-  box.innerHTML = completed.map(s => {
-    const si = (items || []).filter(i => i.sale_id === s.id);
-    const sh = (shipments || []).filter(x => x.sale_id === s.id);
-    const inbound = sh.filter(x => x.shipment_type === "inbound");
-    const returns = sh.filter(x => x.shipment_type === "return");
-    const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
-    const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(s.status);
-    const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
-    const posted = inbound.some(x => x.shipped_at || ["in_transit", "delivered"].includes(x.status));
-    const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
-    const finalOutcome = `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}${s.payment_reference ? ` — reference ${esc(s.payment_reference)}` : ""}.</p>`;
+  // Render both completed AND active sales with shipments
+  const allSalesToShow = activeSales.length ? activeSales : completed;
+  box.innerHTML = allSalesToShow
+    .map(s => {
+      const si = (items || []).filter(i => i.sale_id === s.id);
+      const sh = (shipments || []).filter(x => x.sale_id === s.id);
+      const inbound = sh.filter(x => x.shipment_type === "inbound");
+      const returns = sh.filter(x => x.shipment_type === "return");
+      const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
+      const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(s.status);
+      const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
+      const posted = inbound.some(x => x.shipped_at || ["in_transit", "delivered"].includes(x.status));
+      const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
+      const finalOutcome = received
+        ? `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}.</p>`
+        : labelReady
+        ? `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}`
+        : `<div class="status-badge">AWAITING SHIPMENT</div><p><strong>Preparing your shipment.</strong> We will update you when your label is ready.</p>`;
 
-    return `<details class="valuation-card sale-card" style="margin-bottom:1rem">
-      <summary style="cursor:pointer;list-style:none"><div><span class="valuation-ref">${esc(s.sale_reference)}</span><p class="section-kicker">PAYMENT RECEIVED</p><h3>${money(s.total_amount)}</h3><p>${si.map(i => { const q = (qitems || []).find(x => x.id === i.quote_item_id); return esc(q?.model || q?.item_name || "Item") + " — " + money(i.amount); }).join("<br>")}</p></div><div class="valuation-meta"><span class="status-badge">VIEW RECORD</span><small>${firstAccepted ? `Accepted ${date(firstAccepted)}` : `Completed ${date(s.created_at)}`}</small></div></summary>
-      <div class="sale-details"><div class="purchase-progress"><h4>Completed transaction</h4><p><strong>1. Offer accepted</strong> — ${firstAccepted ? date(firstAccepted) : "Completed"}</p><p><strong>2. Item received</strong> — ${delivered ? "Received by GearCashOut" : "Completed"}</p><p><strong>3. Final outcome</strong> — Payment received</p></div>
-      <div class="shipping-block">${finalOutcome}</div>
-      ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
-      ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — Tracking: <strong>${esc(x.tracking_number)}</strong>` : ""}</p><p>${x.shipped_at ? `Posted ${date(x.shipped_at)}` : ""}${x.delivered_at ? ` — Delivered ${date(x.delivered_at)}` : ""}</p><div class="navigation-buttons">${links(x.label_urls, "POSTAL LABEL")} ${links(x.qr_code_urls, "QR CODE")}</div></div>`).join("")}
-      ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — Tracking: <strong>${esc(x.tracking_number)}</strong>` : ""}</p><p>${x.shipped_at ? `Posted ${date(x.shipped_at)}` : ""}${x.delivered_at ? ` — Delivered ${date(x.delivered_at)}` : ""}</p><div class="navigation-buttons">${links(x.label_urls, "RETURN LABEL")} ${links(x.qr_code_urls, "QR CODE")}</div></div>`).join("")}
-      </div></details>`;
-  }).join("");
+      return `<details class="valuation-card sale-card" style="margin-bottom:1rem">
+        <summary style="cursor:pointer;list-style:none"><div><span class="valuation-ref">${esc(s.sale_reference)}</span><p class="section-kicker">${received ? "PAYMENT RECEIVED" : "IN PROGRESS"}</p><h3>${money(s.total_amount)}</h3></div></summary>
+        <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4><p><strong>1. Offer accepted</strong> — ${firstAccepted ? date(firstAccepted) : "Accepted"}</p><p><strong>2. Shipping</strong> — ${labelReady ? "Label ready" : "Preparing"}</p>${received ? `<p><strong>3. Payment received</strong> — ${date(s.payment_sent_at)}</p>` : ""}</div>
+        <div class="shipping-block">${finalOutcome}</div>
+        ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
+        ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
+        ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
+        </div></details>`;
+    }).join("");
 });
