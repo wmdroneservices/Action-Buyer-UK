@@ -143,3 +143,4 @@ document.addEventListener("click", async (event) => {
 
   await load();
 });
+});
