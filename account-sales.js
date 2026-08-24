@@ -80,9 +80,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(s.status);
           const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
           const posted = inbound.some(x =>
-           x.shipped_at ||
-           ["in_transit", "delivered"].includes(x.status)
-            );
+  ["in_transit", "delivered"].includes(x.status)
+);
           const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
           
           const finalOutcome = received
