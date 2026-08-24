@@ -140,13 +140,17 @@ document.addEventListener("click", async (event) => {
 
   console.log("Customer confirmed posted shipment:", shipmentId);
 
-  const { error } = await auth.supabase
-    .from("shipments")
-    .update({
-      status: "in_transit",
-      shipped_at: new Date().toISOString()
-    })
-    .eq("id", shipmentId);
+  const { data, error } = await auth.supabase
+  .from("shipments")
+  .update({
+    status: "in_transit",
+    shipped_at: new Date().toISOString()
+  })
+  .eq("id", shipmentId)
+  .select()
+  .single();
+
+console.log("Updated shipment:", data, error);
 
   if (error) {
     console.error("Shipment update failed:", error);
