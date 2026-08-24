@@ -120,11 +120,16 @@ window.addEventListener("pageshow", async () => {
   await load();
 });
 
+// Customer confirms item has been posted
 document.addEventListener("click", async (event) => {
   const button = event.target.closest(".post-shipment-btn");
   if (!button) return;
 
+  event.preventDefault();
+
   const shipmentId = button.dataset.shipmentId;
+
+  console.log("Customer confirmed posted shipment:", shipmentId);
 
   const { error } = await auth.supabase
     .from("shipments")
@@ -140,8 +145,11 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  alert("Thank you. Your item has been marked as posted.");
+
   console.log("Shipment updated successfully");
 
   await load();
 });
+
 });
