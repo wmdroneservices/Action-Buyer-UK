@@ -41,10 +41,36 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const inbound = (shipments || []).find(x =>
         x.sale_id === sale.id &&
-        x.shipment_type === "inbound" &&
-        Array.isArray(x.label_urls) && x.label_urls.some(Boolean)
+        x.shipment_type === "inbound"
       );
       if (!inbound) return;
+
+      // Once the sale has reached payment or completion, the shipping label is
+      // no longer the customer's next action and must not be shown again.
+      const salePastShipping = ["payment_due", "payment_processing", "paid", "completed", "closed", "archived"].includes(String(sale.status || ""));
+      const shipmentStatus = String(inbound.status || "");
+
+      if (salePastShipping) return;
+
+      if (shipmentStatus === "in_transit") {
+        const action = document.createElement("div");
+        action.className = "customer-shipping-links";
+        action.style.cssText = "margin-top:12px;padding:12px;border-left:4px solid #d88732;background:#f7f4ee;";
+        action.innerHTML = `<div class="status-badge">PARCEL ON ITS WAY</div><p style="margin:.45rem 0 0"><strong>Your parcel is on its way to GearCashOut.</strong> We’ll let you know when it arrives and your valuation progresses.</p>`;
+        card.appendChild(action);
+        return;
+      }
+
+      if (shipmentStatus === "delivered") {
+        const action = document.createElement("div");
+        action.className = "customer-shipping-links";
+        action.style.cssText = "margin-top:12px;padding:12px;border-left:4px solid #d88732;background:#f7f4ee;";
+        action.innerHTML = `<div class="status-badge">ITEM RECEIVED</div><p style="margin:.45rem 0 0"><strong>Your item has arrived at GearCashOut.</strong> We are now processing the inspection and final valuation.</p>`;
+        card.appendChild(action);
+        return;
+      }
+
+      if (!Array.isArray(inbound.label_urls) || !inbound.label_urls.some(Boolean)) return;
 
       const labelLinks = (inbound.label_urls || []).map((url, i) => {
         const safe = safeUrl(url);
@@ -53,10 +79,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const qrLinks = (inbound.qr_code_urls || []).map((url, i) => {
         const safe = safeUrl(url);
-        return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">VIEW QR CODE${inbound.qr_code_urls.length > 1 ? ` ${i + 1}` : ""}</a>` : "";
+        return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">VIEW QR CODE${inbound.qr_code_urls.length > 1 ? ` ${i + 1}` : ""}</a>` : ""`;
       }).join(" ");
 
-      const showPostAction = ["awaiting_label", "label_created"].includes(String(inbound.status || ""));
+      const showPostAction = ["awaiting_label", "label_created"].includes(shipmentStatus);
 
       const action = document.createElement("div");
       action.className = "customer-shipping-links";
