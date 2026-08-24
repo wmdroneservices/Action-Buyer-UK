@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { data: staffRow } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (staffRow) { window.location.href = "admin.html"; return; }
-  
   document.querySelectorAll("[data-account-link]").forEach(link => { link.textContent = "My Account"; link.href = "account.html"; });
 
   const user = session.user;
@@ -80,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const pending = its.some(i => i.item_status !== "refused" && i.item_status !== "closed" && os.some(o => o.item_id === i.id && o.status === "published"));
       return { v, its, os, total: quoteTotal(its, os), pending };
     }).filter(x => x.pending);
-    
+
     if (newQuotesSection) newQuotesSection.style.display = activeQuotes.length ? "" : "none";
     if (offersBox) {
       if (activeQuotes.length) {
@@ -154,14 +153,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         salesBox.innerHTML = activeSales.map(s => {
           const shipment = (shipments || []).filter(sh => sh.sale_id === s.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
           let message = "Your offer has been accepted. We are preparing the next steps.";
-          if (String(s.status || "") === "payment_due") {
+          if (["payment_due", "payment_processing"].includes(String(s.status || ""))) {
             message = "Your bank details have been received. Payment is now being arranged and will be made shortly.";
-          }
-          if (shipment?.status === "awaiting_label") {
-            message = "Your shipping details are being prepared. We will send your instructions shortly.";
-          }
-          if (shipment?.status === "label_created") {
+          } else if (shipment?.status === "delivered") {
+            message = "Your item has arrived at GearCashOut. We are now processing the inspection and final valuation.";
+          } else if (shipment?.status === "in_transit") {
+            message = "Your parcel is on its way to GearCashOut. We’ll let you know when it arrives and your valuation progresses.";
+          } else if (shipment?.status === "label_created") {
             message = "Your shipping details are ready. Please follow the instructions provided.";
+          } else if (shipment?.status === "awaiting_label") {
+            message = "Your shipping details are being prepared. We will send your instructions shortly.";
           }
           return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">SALE UPDATE</p><h3>' + money(s.total_amount) + '</h3><p>' + esc(message) + '</p></div></article>';
         }).join("");
