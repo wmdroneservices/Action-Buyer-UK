@@ -114,4 +114,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   await loadCounts();
+
+  // Keep the staff dashboard in sync with quote/sale changes without requiring
+  // a manual page refresh. This makes newly published offers and accepted offers
+  // move between workflow stages promptly while leaving the underlying database
+  // as the single source of truth.
+  setInterval(() => {
+    if (!document.hidden) loadCounts();
+  }, 5000);
 });
