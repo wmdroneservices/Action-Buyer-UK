@@ -79,12 +79,9 @@ const { data: sales } = await auth.supabase
   .eq("user_id", user.id)
   .order("created_at", { ascending: false });
 
-const saleIds = (sales || []).map(s => s.id);
-
 const { data: shipments } = saleIds.length ? await auth.supabase
   .from("shipments")
-  .select("id,sal.select("id,sale_id,status,carrier,tracking_number,created_at")
-  fe_id,status,carrier,tracking_number")
+  .select("id,sale_id,status,carrier,tracking_number,created_at")
   .in("sale_id", saleIds)
   : { data: [] };
 
