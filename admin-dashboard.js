@@ -42,20 +42,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // A quote is awaiting staff review when it is in the normal review queue,
-    // or when an automatic valuation has been prepared as a draft. Automatic
-    // offers are deliberately NOT published to the customer until staff confirms
-    // or revises the amount on the quote review page.
+    // or when an automatic valuation has been prepared as a draft. Once an offer
+    // has actually been published or accepted, that quote has left the valuation
+    // queue and must not continue to be counted here.
     const awaitingStatuses = new Set(["submitted", "manual_review", "pending_review", "awaiting_valuation"]);
+    const activeOfferStatuses = new Set(["draft", "published", "accepted"]);
     const itemsByValuation = new Map();
     items.forEach(i => {
       if (!itemsByValuation.has(i.valuation_id)) itemsByValuation.set(i.valuation_id, []);
       itemsByValuation.get(i.valuation_id).push(i);
     });
-    const activeOfferStatuses = new Set(["draft", "published", "accepted"]);
     const awaitingReviewCount = activeValuations.filter(v => {
+      const valuationItems = itemsByValuation.get(v.id) || [];
+      const hasActiveOffer = valuationItems.some(item =>
+        offers.some(o => o.item_id === item.id && activeOfferStatuses.has(o.status))
+      );
+
+      // Published/accepted/draft offers mean the valuation is already being
+      // handled as an offer rather than a new valuation awaiting review.
+      if (hasActiveOffer) return false;
+
       if (awaitingStatuses.has(v.status)) return true;
       if (v.status !== "valued") return false;
-      return (itemsByValuation.get(v.id) || []).some(item =>
+      return valuationItems.some(item =>
         offers.some(o => o.item_id === item.id && o.offer_type === "automatic" && o.status === "draft")
       );
     }).length;
