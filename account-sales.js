@@ -8,23 +8,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: sales, error: salesError } = await auth.supabase.from("sales")
       .select("id,sale_reference,status,total_amount,created_at,payment_status,payment_sent_at,payment_reference")
       .eq("user_id", session.user.id).order("created_at", { ascending: false });
+    
     if (salesError) { console.error("Customer sales load failed", salesError); return; }
-
-    // Show all active sales with shipping, not just paid sales
-    const activeSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
-    const completed = (sales || []).filter(s => s.status === "paid" || ["paid", "payment_sent"].includes(String(s.payment_status || "")) || !!s.payment_sent_at);
+    
     const box = document.getElementById("completed-transactions");
     if (!box) return;
 
-    const ids = activeSales.length ? activeSales.map(s => s.id) : completed.map(s => s.id);
-    if (!ids.length) { box.innerHTML = "<p>No transactions currently.</p>"; return; }
+    // Show all active sales, not just paid/completed ones
+    const allSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
     
-    const { data: items } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id,amount,created_at").in("sale_id", ids);
+    if (!allSales.length) { 
+      box.innerHTML = "<p>No transactions currently.</p>"; 
+      return; 
+    }
+
+    const ids = allSales.map(s => s.id);
+    const { data: items } = await auth.supabase.from("sale_items")
+      .select("sale_id,quote_item_id,amount,created_at")
+      .in("sale_id", ids);
+    
     const qids = (items || []).map(i => i.quote_item_id);
-    const { data: qitems } = qids.length ? await auth.supabase.from("quote_items").select("id,model,manufacturer,item_name").in("id", qids) : { data: [] };
+    const { data: qitems } = qids.length ? await auth.supabase.from("quote_items")
+      .select("id,model,manufacturer,item_name")
+      .in("id", qids) : { data: [] };
+    
     const { data: shipments } = await auth.supabase.from("shipments")
       .select("id,sale_id,shipment_type,status,carrier,tracking_number,parcel_count,label_count,label_urls,qr_code_urls,shipped_at,delivered_at,created_at,notes")
-      .in("sale_id", ids).order("created_at", { ascending: false });
+      .in("sale_id", ids)
+      .order("created_at", { ascending: false });
 
     const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
     const date = v => v ? new Date(v).toLocaleDateString("en-GB") : "";
@@ -32,9 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const safeUrl = v => /^https?:\/\//i.test(String(v || "")) ? String(v) : "";
     const links = (values, label) => (Array.isArray(values) ? values : []).map((url, i) => { const safe = safeUrl(url); return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">${esc(label)} ${i + 1}</a>` : ""; }).join(" ");
 
-    // Render both completed AND active sales with shipments
-    const allSalesToShow = activeSales.length ? activeSales : completed;
-    box.innerHTML = allSalesToShow
+    box.innerHTML = allSales
       .map(s => {
         const si = (items || []).filter(i => i.sale_id === s.id);
         const sh = (shipments || []).filter(x => x.sale_id === s.id);
@@ -45,6 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
         const posted = inbound.some(x => x.shipped_at || ["in_transit", "delivered"].includes(x.status));
         const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
+        
         const finalOutcome = received
           ? `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}.</p>`
           : labelReady
