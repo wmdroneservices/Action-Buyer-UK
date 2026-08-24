@@ -15,8 +15,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const offersBox = document.getElementById("offers");
   const valuationsBox = document.getElementById("valuations");
   const detailsBox = document.getElementById("customer-details");
+  const newQuotesSection = document.getElementById("new-quotes-section");
+  const salesSection = document.getElementById("sales-section");
   const welcome = document.getElementById("welcome-text");
   const signOut = document.getElementById("sign-out");
+
+  if (newQuotesSection) newQuotesSection.style.display = "none";
+  if (salesSection) salesSection.style.display = "none";
 
   const { data: profile } = await auth.supabase.from("profiles")
     .select("full_name,account_number,phone,address_line1,address_line2,city,county,postcode")
@@ -54,6 +59,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       .eq("user_id", user.id).order("submitted_at", { ascending: false });
 
     if (error) {
+      if (newQuotesSection) newQuotesSection.style.display = "none";
+      if (salesSection) salesSection.style.display = "none";
       if (valuationsBox) valuationsBox.innerHTML = "<p>We couldn't load your valuations right now.</p>";
       if (offersBox) offersBox.innerHTML = "<p>We couldn't load your new quotes right now.</p>";
       return;
@@ -74,6 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return { v, its, os, total: quoteTotal(its, os), pending };
     }).filter(x => x.pending);
     
+    if (newQuotesSection) newQuotesSection.style.display = activeQuotes.length ? "" : "none";
     if (offersBox) {
       if (activeQuotes.length) {
         let html = '<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#fff7eb;border-left:4px solid #d88732"><strong>NEXT STEP · ACTION REQUIRED</strong><p style="margin:.25rem 0 0">Review the quotes below and let us know which items youd like to sell.</p></div>';
@@ -114,7 +122,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }).join("");
         offersBox.innerHTML = html;
       } else {
-        offersBox.innerHTML = "<p>No new quotes currently require your response.</p>";
+        offersBox.innerHTML = "";
       }
     }
 
@@ -134,7 +142,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const salesBox = document.getElementById("sales");
-    const salesSection = document.getElementById("sales-section");
     if (salesBox) {
       const activeSales = (sales || []).filter(s => !["paid", "completed", "cancelled", "closed", "archived"].includes(String(s.status || "")) && !s.payment_sent_at);
       if (salesSection) salesSection.style.display = activeSales.length ? "" : "none";
@@ -153,6 +160,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">SALE UPDATE</p><h3>' + money(s.total_amount) + '</h3><p>' + esc(message) + '</p></div><div class="valuation-meta"><span class="status-badge">' + esc(String(s.status).replaceAll("_", " ")) + '</span></div></article>';
         }).join("");
+      } else {
+        salesBox.innerHTML = "";
       }
     }
 
