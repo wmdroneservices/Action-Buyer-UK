@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { data: staffRow } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (staffRow) { window.location.href = "admin.html"; return; }
-
+r
   document.querySelectorAll("[data-account-link]").forEach(link => { link.textContent = "My Account"; link.href = "account.html"; });
 
   const user = session.user;
@@ -135,21 +135,25 @@ const { data: shipments } = saleIds.length ? await auth.supabase
             }
 
             return `
-              <article class="valuation-card">
-                <div>
-                  <span class="valuation-ref">${esc(s.sale_reference || "")}</span>
-                  <p class="section-kicker">SALE UPDATE</p>
-                  <h3>${money(s.total_amount)}</h3>
-                  <p>${esc(message)}</p>
-                </div>
-                <div class="valuation-meta">
-                  <span class="status-badge">${esc(String(s.status).replaceAll("_", " "))}</span>
-                </div>
-              </article>
-            `;
-          }).join("")
-        : "<p>No active sales currently.</p>";
-    }
+  <article class="valuation-card">
+    <div>
+      <span class="valuation-ref">${esc(s.sale_reference || "")}</span>
+      <p class="section-kicker">SALE UPDATE</p>
+      <h3>${money(s.total_amount)}</h3>
+      <p>${esc(message)}</p>
+
+      ${shipment?.status === "label_created" ? `
+        <a class="btn btn-primary" href="shipping.html?sale=${s.id}">
+          VIEW SHIPPING DETAILS
+        </a>
+      ` : ""}
+
+    </div>
+    <div class="valuation-meta">
+      <span class="status-badge">${esc(String(s.status).replaceAll("_", " "))}</span>
+    </div>
+  </article>
+`;
 
 
     document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
