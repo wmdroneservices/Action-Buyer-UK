@@ -93,7 +93,7 @@ const { data: shipments } = saleIds.length ? await auth.supabase
       const pending = its.some(i => i.item_status !== "refused" && i.item_status !== "closed" && os.some(o => o.item_id === i.id && o.status === "published"));
       return { v, its, os, total: quoteTotal(its, os), pending };
     }).filter(x => x.pending);
-
+f
     if (offersBox) {
       offersBox.innerHTML = activeQuotes.length ? `<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#fff7eb;border-left:4px solid #d88732"><strong>NEXT STEP · ACTION REQUIRED</strong><p style="margin:.25rem 0 0">Review the new quote below and accept or refuse each offered item.</p></div>` + activeQuotes.map(({v,its,os,total}) => `<section style="margin-bottom:1.5rem"><div class="section-heading"><p class="section-kicker">QUOTE</p><h3>${esc(v.quote_reference)}</h3><p>Review each item separately. Your total updates as you respond.</p></div><div>${its.map(item => {
         const current = os.filter(o => o.item_id === item.id && ["published", "accepted", "refused"].includes(o.status)).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
@@ -142,11 +142,11 @@ const { data: shipments } = saleIds.length ? await auth.supabase
       <h3>${money(s.total_amount)}</h3>
       <p>${esc(message)}</p>
 
-      ${shipment?.status === "label_created" ? `
-        <a class="btn btn-primary" href="shipping.html?sale=${s.id}">
-          VIEW SHIPPING DETAILS
-        </a>
-      ` : ""}
+     ${shipment?.status === "label_created" ? `
+  <a class="btn btn-primary" href="shipping.html?sale=${s.id}">
+    VIEW SHIPPING DETAILS
+  </a>
+` : ""}
 
     </div>
     <div class="valuation-meta">
