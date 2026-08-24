@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .order(showingArchive ? "archived_at" : "submitted_at", { ascending: false });
 
     valuationQuery = showingArchive ? valuationQuery.not("archived_at", "is", null) : valuationQuery.is("archived_at", null);
-    const { data: valuations, error } = await valuationQuery;
+    const { data: loadedValuations, error } = await valuationQuery;
 
     if (error) {
       box.innerHTML = "<p>We couldn't load valuations.</p>";
@@ -72,7 +72,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    if (!valuations?.length) {
+    let valuations = loadedValuations || [];
+    if (!valuations.length) {
       box.innerHTML = showingArchive
         ? "<div class=\"empty-account\"><h3>No archived quotes</h3><p>Archived quotes will appear here.</p></div>"
         : "<p>No active valuations have been submitted yet.</p>";
@@ -85,6 +86,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: offers } = itemIds.length
       ? await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status,internal_notes,customer_message,published_at,responded_at,created_at").in("item_id", itemIds).order("created_at", { ascending: false })
       : { data: [] };
+
+    // A valuation leaves the valuation-review queue as soon as an item from it
+    // has been turned into a sale. This remains true even when that sale is later
+    // completed and archived. Previously the valuation could reappear because
+    // the valuation itself had never been archived.
+    if (!showingArchive && itemIds.length) {
+      const { data: saleItems, error: saleItemsError } = await auth.supabase
+        .from("sale_items")
+        .select("quote_item_id")
+        .in("quote_item_id", itemIds);
+      if (saleItemsError) {
+        console.error("Sale linkage query error:", saleItemsError);
+      } else {
+        const linkedItemIds = new Set((saleItems || []).map(row => row.quote_item_id));
+        const linkedValuationIds = new Set((items || []).filter(i => linkedItemIds.has(i.id)).map(i => i.valuation_id));
+        valuations = valuations.filter(v => !linkedValuationIds.has(v.id));
+      }
+    }
+
+    if (!valuations.length) {
+      box.innerHTML = showingArchive
+        ? "<div class=\"empty-account\"><h3>No archived quotes</h3><p>Archived quotes will appear here.</p></div>"
+        : "<p>No active valuations require staff review.</p>";
+      return;
+    }
 
     const groups = new Map();
     valuations.forEach(v => { const key = customerKey(v); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(v); });
