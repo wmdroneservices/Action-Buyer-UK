@@ -112,12 +112,10 @@ const { data: shipments } = saleIds.length ? await auth.supabase
       }).join("") : "<p>No valuations currently in progress.</p>";
     }
 
-    const salesBox = document.getElementById("sales");
+        const salesBox = document.getElementById("sales");
 
     if (salesBox) {
-      const activeSales = (sales || []).filter(s =>
-        ["collecting_items", "awaiting_label", "label_created", "shipping"].includes(s.status)
-      );
+      const activeSales = (sales || []);
 
       salesBox.innerHTML = activeSales.length
         ? activeSales.map(s => {
