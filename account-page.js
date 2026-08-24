@@ -95,20 +95,24 @@ const { data: shipments } = saleIds.length ? await auth.supabase
     }).filter(x => x.pending);
     
     if (offersBox) {
-      offersBox.innerHTML = activeQuotes.length ? `<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#fff7eb;border-left:4px solid #d88732"><strong>NEXT STEP · ACTION REQUIRED</str[...]
-        const current = os.filter(o => o.item_id === item.id && ["published", "accepted", "refused"].includes(o.status)).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        const offered = current && ["published", "accepted"].includes(current.status);
-        const status = item.item_status || "under_assessment";
-        return `<article class="valuation-card offer-card"><div><span class="valuation-ref">ITEM ${esc(item.item_position || "")}</span><p class="section-kicker">${esc(String(status).replaceAll("[...]
-      }).join("")}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;margin-top:1rem;font-size:1.1rem"><strong>Current total offer</strong><s[...]
+      offersBox.innerHTML = activeQuotes.length ? `<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#fff7eb;border-left:4px solid #d88732"><strong>NEXT STEP · ACTION REQUIRED</strong><p style="margin:.25rem 0 0">Review the quotes below and let us know which items you'd like to sell.</p></div>` + activeQuotes.map(quote => {
+        const { v, its, os } = quote;
+        const total = quote.total;
+        return `<section style="display:grid;gap:1rem;margin-bottom:1.5rem">${its.map(item => {
+          const current = os.filter(o => o.item_id === item.id && ["published", "accepted", "refused"].includes(o.status)).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+          const offered = current && ["published", "accepted"].includes(current.status);
+          const status = item.item_status || "under_assessment";
+          return `<article class="valuation-card offer-card"><div><span class="valuation-ref">ITEM ${esc(item.item_position || "")}</span><p class="section-kicker">${esc(String(status).replaceAll("_", " "))}</p><h3>${esc(item.item_name || item.model || "Equipment")}</h3><p>${esc(item.manufacturer || "")}${item.package ? " — " + esc(item.package) : ""}</p>${current?.customer_message ? `<p>${esc(current.customer_message)}</p>` : ""}</div><div class="valuation-meta">${offered ? `<strong>${money(current.amount)}</strong>` : status === "refused" ? `<span class="status-badge">REFUSED</span>` : `<span class="status-badge">AWAITING OFFER</span>`}${current?.status === "accepted" ? `<span class="status-badge">ACCEPTED</span>` : ""}${current?.status === "published" ? `<div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${current.id}">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${current.id}">REFUSE</button></div>` : ""}</div></article>`;
+        }).join("")}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;margin-top:1rem;font-size:1.1rem"><strong>Current total offer</strong><strong>${money(total)}</strong></div></section>`;
+      }).join("") : "<p>No new quotes currently require your response.</p>";
     }
 
     const activeValuations = (valuations || []).filter(v => (items || []).filter(i => i.valuation_id === v.id).some(i => !["accepted", "closed"].includes(i.item_status)));
     if (valuationsBox) {
-      valuationsBox.innerHTML = activeValuations.length ? `<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>NEXT STEP</strong><p sty[...]
+      valuationsBox.innerHTML = activeValuations.length ? `<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>NEXT STEP</strong><p style="margin:.25rem 0 0">No action is needed from you right now. GearCashOut is processing the valuation and will contact you when the next stage is ready.</p></div>` + activeValuations.map(v => {
         const its = (items || []).filter(i => i.valuation_id === v.id);
         const date = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString("en-GB") : "";
-        return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">VALUATION IN PROGRESS</p><h3>${its.length} item${its.len[...]
+        return `<article class="valuation-card"><div><span class="valuation-ref">${esc(v.quote_reference)}</span><p class="section-kicker">VALUATION IN PROGRESS</p><h3>${its.length} item${its.length === 1 ? "" : "s"}</h3><p>${its.map(i => esc(i.item_name || i.model || "Equipment")).join(" · ")}</p></div><div class="valuation-meta"><span class="status-badge">IN PROGRESS</span><small>Submitted ${date}</small></div></article>`;
       }).join("") : "<p>No valuations currently in progress.</p>";
     }
 
