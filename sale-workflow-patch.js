@@ -60,7 +60,7 @@
   let applied=false;
   async function applyWorkflow() {
     const box=document.getElementById('sale-details');
-    if(!box || !box.children.length || applied) return;
+    if(!box || !box.querySelector('.account-panel') || applied) return;
     applied=true;
     await addCommunications();
     const section=document.createElement('section');
