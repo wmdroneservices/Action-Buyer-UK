@@ -96,9 +96,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 ? `<div class="status-badge">ITEM POSTED</div><p><strong>Your item has been posted.</strong> We will update you when it arrives.</p>`
 : labelReady
             ? `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}${inbound[0] && !posted ? `
-            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound[0].id}">
-            I HAVE POSTED MY ITEM
-            </button>` : ""}`
+            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound.find(x => x.status === 'label_created')?.id}">
+I HAVE POSTED MY ITEM
+</button>` : ""}`
+          
             : `<div class="status-badge">AWAITING SHIPMENT</div><p><strong>Preparing your shipment.</strong> We will update you when your label is ready.</p>`;
 
           return `<details open class="valuation-card sale-card" style="margin-bottom:1rem">
