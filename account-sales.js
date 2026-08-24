@@ -120,7 +120,6 @@ window.addEventListener("pageshow", async () => {
   await load();
 });
 
-// Customer confirms item has been posted
 document.addEventListener("click", async (event) => {
   const button = event.target.closest(".post-shipment-btn");
   if (!button) return;
