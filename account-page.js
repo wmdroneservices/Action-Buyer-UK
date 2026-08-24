@@ -83,7 +83,8 @@ const saleIds = (sales || []).map(s => s.id);
 
 const { data: shipments } = saleIds.length ? await auth.supabase
   .from("shipments")
-  .select("id,sale_id,status,carrier,tracking_number")
+  .select("id,sal.select("id,sale_id,status,carrier,tracking_number,created_at")
+  fe_id,status,carrier,tracking_number")
   .in("sale_id", saleIds)
   : { data: [] };
 
@@ -120,9 +121,9 @@ const { data: shipments } = saleIds.length ? await auth.supabase
       salesBox.innerHTML = activeSales.length
         ? activeSales.map(s => {
 
-            const shipment = (shipments || []).find(
-              sh => sh.sale_id === s.id
-            );
+           const shipment = (shipments || [])
+  .filter(sh => sh.sale_id === s.id)
+  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
             let message = "Your offer has been accepted. We are preparing the next steps.";
 
