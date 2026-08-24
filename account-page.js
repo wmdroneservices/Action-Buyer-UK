@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: items } = ids.length ? await auth.supabase.from("quote_items").select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position").in("valuation_id", ids) : { data: [] };
     const itemIds = (items || []).map(i => i.id);
     const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at,created_at").in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
-    const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,total_amount,created_at").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,total_amount,created_at,payment_sent_at").eq("user_id", user.id).order("created_at", { ascending: false });
     const saleIds = (sales || []).map(s => s.id);
     const { data: shipments } = saleIds.length ? await auth.supabase.from("shipments").select("id,sale_id,status,carrier,tracking_number,created_at").in("sale_id", saleIds) : { data: [] };
 
@@ -134,8 +134,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const salesBox = document.getElementById("sales");
+    const salesSection = document.getElementById("sales-section");
     if (salesBox) {
-      const activeSales = (sales || []);
+      const activeSales = (sales || []).filter(s => !["paid", "completed", "cancelled", "closed", "archived"].includes(String(s.status || "")) && !s.payment_sent_at);
+      if (salesSection) salesSection.style.display = activeSales.length ? "" : "none";
       if (activeSales.length) {
         salesBox.innerHTML = activeSales.map(s => {
           const shipment = (shipments || []).filter(sh => sh.sale_id === s.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
@@ -151,8 +153,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
           return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">SALE UPDATE</p><h3>' + money(s.total_amount) + '</h3><p>' + esc(message) + '</p></div><div class="valuation-meta"><span class="status-badge">' + esc(String(s.status).replaceAll("_", " ")) + '</span></div></article>';
         }).join("");
-      } else {
-        salesBox.innerHTML = "<p>No active sales currently.</p>";
       }
     }
 
