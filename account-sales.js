@@ -93,6 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }).filter(Boolean);
         const product = productNames.length ? productNames.join(", ") : "Equipment";
         const paidAmount = money(s.total_amount);
+        const paidDate = s.payment_sent_at ? date(s.payment_sent_at) : "";
 
         return `<details class="valuation-card sale-card completed-sale-card" style="margin-bottom:1rem">
           <summary class="completed-sale-summary" style="cursor:pointer;list-style:none;display:grid;grid-template-columns:minmax(150px,1.4fr) auto auto auto minmax(180px,2fr);gap:.75rem;align-items:center;padding:.85rem 0">
@@ -102,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <strong class="completed-sale-amount">${paidAmount}</strong>
             <span class="completed-sale-product">${esc(product)}</span>
           </summary>
+          <div class="completed-sale-paid-date" style="padding:0 0 .75rem;color:#666;font-size:.9rem"><strong>Paid:</strong> ${paidDate || "Date not recorded"}</div>
           <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4>${progress.join("")}</div>
           <div class="shipping-block">${finalOutcome}</div>
           ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
