@@ -96,10 +96,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             let article = '<article class="valuation-card offer-card"><div>';
             article += '<span class="valuation-ref">ITEM ' + esc(item.item_position || "") + '</span>';
             article += '<p class="section-kicker">' + esc(String(status).replaceAll("_", " ")) + '</p>';
-            article += '<h3>' + esc(item.item_name || item.model || "Equipment") + '</h3>';
-            article += '<p>' + esc(item.manufacturer || "");
-            if (item.package) article += ' — ' + esc(item.package);
-            article += '</p>';
+            const offerProductName = [item.manufacturer, item.model || item.item_name].filter(Boolean).join(" ");
+            const offerPackage = item.package ? String(item.package).toLowerCase() : "";
+            article += '<h3>' + esc([offerProductName || "Equipment", offerPackage].filter(Boolean).join(" ")) + '</h3>';
             if (current?.customer_message) article += '<p>' + esc(current.customer_message) + '</p>';
             article += '</div><div class="valuation-meta">';
             if (offered) article += '<strong>' + money(current.amount) + '</strong>';
@@ -133,7 +132,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         html += activeValuations.map(v => {
           const its = (items || []).filter(i => i.valuation_id === v.id);
           const date = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString("en-GB") : "";
-          return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(v.quote_reference) + '</span><p class="section-kicker">VALUATION IN PROGRESS</p><h3>' + its.length + ' item' + (its.length === 1 ? '' : 's') + '</h3><p>' + its.map(i => esc(i.item_name || i.model || "Equipment")).join(" · ") + '</p></div><div class="valuation-meta"><span class="status-badge">IN PROGRESS</span><small>Submitted ' + date + '</small></div></article>';
+          const valuationProductNames = its.map(i => {
+            const name = [i.manufacturer, i.model || i.item_name].filter(Boolean).join(" ");
+            const packageName = i.package ? String(i.package).toLowerCase() : "";
+            return [name || "Equipment", packageName].filter(Boolean).join(" ");
+          }).filter(Boolean);
+          const valuationProduct = valuationProductNames.join(" · ");
+          return '<article class="valuation-card"><div><span class="valuation-ref">' + esc(v.quote_reference) + '</span><p class="section-kicker">VALUATION IN PROGRESS</p><h3>' + esc(valuationProduct || (its.length + ' item' + (its.length === 1 ? '' : 's'))) + '</h3></div><div class="valuation-meta"><span class="status-badge">IN PROGRESS</span><small>Submitted ' + date + '</small></div></article>';
         }).join("");
         valuationsBox.innerHTML = html;
       } else {
