@@ -57,11 +57,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const hasActiveOffer = valuationItems.some(item =>
         offers.some(o => o.item_id === item.id && activeOfferStatuses.has(o.status))
       );
-
-      // Published/accepted/draft offers mean the valuation is already being
-      // handled as an offer rather than a new valuation awaiting review.
       if (hasActiveOffer) return false;
-
       if (awaitingStatuses.has(v.status)) return true;
       if (v.status !== "valued") return false;
       return valuationItems.some(item =>
@@ -70,17 +66,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     }).length;
     document.getElementById("valuation-count").textContent = awaitingReviewCount;
 
-    // Only active sales belong in the live dashboard queue. Archived sales remain
-    // available in Sales Archive and must not be counted here. "shipping" means
-    // the customer has posted the item and it is now awaiting delivery to us.
-    const { data: sales, error: salesError } = await auth.supabase.from("sales").select("id,status,archived_at").is("archived_at", null);
+    // Sales are kept as a stage-by-stage live pipeline. Archived sales are excluded.
+    const { data: sales, error: salesError } = await auth.supabase
+      .from("sales")
+      .select("id,status,payment_status,archived_at")
+      .is("archived_at", null);
     if (salesError) { notice("Could not load sales counts.", false); return; }
-    const acceptedStatuses = new Set(["collecting_items", "ready_for_shipping", "shipping", "awaiting_delivery", "awaiting_inspection", "inspection", "final_valuation", "payment_processing", "paid"]);
-    const accepted = (sales || []).filter(s => acceptedStatuses.has(s.status));
-    document.getElementById("accepted-count").textContent = accepted.length;
+    const activeSales = sales || [];
+
+    // Initial/manual offers that are published and waiting for the customer to
+    // accept or refuse. Final offers are counted separately as the final-offer stage.
+    const awaitingCustomerResponse = offers.filter(o =>
+      o.status === "published" && ["automatic", "manual"].includes(o.offer_type)
+    ).length;
+    document.getElementById("customer-response-count").textContent = awaitingCustomerResponse;
+
     const deliveryStatuses = new Set(["collecting_items", "ready_for_shipping", "shipping", "awaiting_delivery"]);
-    document.getElementById("delivery-count").textContent = accepted.filter(s => deliveryStatuses.has(s.status)).length;
-    document.getElementById("paid-count").textContent = accepted.filter(s => s.status === "paid").length;
+    document.getElementById("delivery-count").textContent = activeSales.filter(s => deliveryStatuses.has(s.status)).length;
+
+    // Once received, the next staff stages are inspection and the final physical
+    // inspection offer. The database keeps the sale at 'inspection' while the
+    // final offer is being prepared/sent, so this is the dashboard's final-offer stage.
+    const inspectionCount = activeSales.filter(s => s.status === "received").length;
+    document.getElementById("inspection-count").textContent = inspectionCount;
+    const finalOfferItemIds = new Set(
+      offers.filter(o => o.status === "published" && o.offer_type === "final").map(o => o.item_id)
+    );
+    const finalOfferStage = activeSales.filter(s => s.status === "inspection").length;
+    document.getElementById("final-offer-count").textContent = finalOfferStage;
+
+    const paymentDueCount = activeSales.filter(s => s.status === "payment_due").length;
+    document.getElementById("payment-due-count").textContent = paymentDueCount;
+
+    const paymentProcessingCount = activeSales.filter(s =>
+      s.payment_status === "payment_processing"
+    ).length;
+    document.getElementById("payment-processing-count").textContent = paymentProcessingCount;
+
+    const paidCount = activeSales.filter(s =>
+      s.status === "completed" || s.status === "paid" || s.payment_status === "paid"
+    ).length;
+    document.getElementById("paid-count").textContent = paidCount;
 
     const { data: customers, error: customerError } = await auth.supabase.rpc("staff_customer_list");
     if (customerError) { notice("Could not load customer count.", false); return; }
