@@ -142,11 +142,7 @@ f
       <h3>${money(s.total_amount)}</h3>
       <p>${esc(message)}</p>
 
-     ${shipment?.status === "label_created" ? `
-  <a class="btn btn-primary" href="shipping.html?sale=${s.id}">
-    VIEW SHIPPING DETAILS
-  </a>
-` : ""}
+   <p>${esc(message)}</p>
 
     </div>
     <div class="valuation-meta">
