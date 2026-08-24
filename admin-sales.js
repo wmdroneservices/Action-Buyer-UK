@@ -83,8 +83,106 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(archiveView||returnedView)return;
     box.querySelectorAll(".mark-received").forEach(b=>b.onclick=async()=>{if(!confirm("Confirm that the customer's item(s) have been received? This will update the sale and email the customer."))return;b.disabled=true;const{data,error}=await auth.supabase.functions.invoke("mark-item-received",{body:{sale_id:b.dataset.sale}});if(error||data?.error){b.disabled=false;notice(data?.error||error?.message||"Could not mark item received.",false);return;}notice(data?.email_sent?"Item marked received and customer email sent.":"Item marked received; customer email was not sent.",!data?.email_error);await load();});
     box.querySelectorAll(".new-shipment").forEach(b=>b.onclick=()=>{const f=document.getElementById("shipment-"+b.dataset.sale);f.hidden=false;f.dataset.type=b.dataset.type;const inbound=b.dataset.type==="inbound";f.querySelector(".label-urls").value=inbound?setting.inboundLabel:setting.returnLabel;f.querySelector(".qr-urls").value=inbound?setting.inboundQr:setting.returnQr;});
-    box.querySelectorAll(".save-shipment").forEach(b=>b.onclick=async()=>{const f=document.getElementById("shipment-"+b.dataset.sale),sale=sales.find(x=>x.id===b.dataset.sale),type=f.dataset.type;const labelCount=Number(f.querySelector(".label-count").value),parcelCount=Number(f.querySelector(".parcel-count").value);const urls=f.querySelector(".label-urls").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),qrUrls=f.querySelector(".qr-urls").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),quoteItemIds=(items||[]).filter(i=>i.sale_id===sale.id).map(i=>i.quote_item_id);if(labelCount<1||parcelCount<1){notice("Labels and parcels must be at least 1.",false);return;}b.disabled=true;const postedDate=f.querySelector(".posted-date").value;const shippedAt=type==="return"?null:(postedDate?new Date(postedDate+"T12:00:00").toISOString():null);const{data:shipment,error}=await auth.supabase.from("shipments").insert({sale_id:sale.id,user_id:sale.user_id,shipment_type:type,status:"label_created",carrier:f.querySelector(".carrier").value.trim()||null,tracking_number:f.querySelector(".tracking").value.trim()||null,shipped_at:shippedAt,parcel_count:parcelCount,label_count:labelCount,label_urls:urls,qr_code_urls:qrUrls,quote_item_ids:quoteItemIds,notes:f.querySelector(".notes").value.trim()||null}).select("id").single();b.disabled=false;if(error){notice(error.message||"Shipment could not be saved.",false);return;}const email=await emailShipment(shipment.id);notice(email.ok?"Shipment saved and customer emailed with the label / QR code.":`Shipment saved, but customer email could not be sent: ${email.message}`,email.ok);await load();});
+box.querySelectorAll(".save-shipment").forEach(b=>b.onclick=async()=>{
+
+  const f = document.getElementById("shipment-" + b.dataset.sale);
+  const sale = sales.find(x => x.id === b.dataset.sale);
+  const type = f.dataset.type;
+
+  const labelCount = Number(f.querySelector(".label-count").value);
+  const parcelCount = Number(f.querySelector(".parcel-count").value);
+
+  const urls = f.querySelector(".label-urls").value
+    .split(/\r?\n/)
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  const qrUrls = f.querySelector(".qr-urls").value
+    .split(/\r?\n/)
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  const quoteItemIds = (items || [])
+    .filter(i => i.sale_id === sale.id)
+    .map(i => i.quote_item_id);
+
+  if (labelCount < 1 || parcelCount < 1) {
+    notice("Labels and parcels must be at least 1.", false);
+    return;
   }
+
+  b.disabled = true;
+
+  const postedDate = f.querySelector(".posted-date").value;
+
+  const shippedAt = type === "return"
+    ? null
+    : (postedDate ? new Date(postedDate + "T12:00:00").toISOString() : null);
+
+  const shipmentData = {
+    sale_id: sale.id,
+    user_id: sale.user_id,
+    shipment_type: type,
+    status: "label_created",
+    carrier: f.querySelector(".carrier").value.trim() || null,
+    tracking_number: f.querySelector(".tracking").value.trim() || null,
+    shipped_at: shippedAt,
+    parcel_count: parcelCount,
+    label_count: labelCount,
+    label_urls: urls,
+    qr_code_urls: qrUrls,
+    quote_item_ids: quoteItemIds,
+    notes: f.querySelector(".notes").value.trim() || null
+  };
+
+  const { data: existingShipment } = await auth.supabase
+    .from("shipments")
+    .select("id")
+    .eq("sale_id", sale.id)
+    .eq("shipment_type", type)
+    .maybeSingle();
+
+  let shipment;
+  let error;
+
+  if (existingShipment) {
+
+    ({ data: shipment, error } = await auth.supabase
+      .from("shipments")
+      .update(shipmentData)
+      .eq("id", existingShipment.id)
+      .select("id")
+      .single());
+
+  } else {
+
+    ({ data: shipment, error } = await auth.supabase
+      .from("shipments")
+      .insert(shipmentData)
+      .select("id")
+      .single());
+
+  }
+
+  b.disabled = false;
+
+  if (error) {
+    notice(error.message || "Shipment could not be saved.", false);
+    return;
+  }
+
+  const email = await emailShipment(shipment.id);
+
+  notice(
+    email.ok
+      ? "Shipment saved and customer emailed with the label / QR code."
+      : `Shipment saved, but customer email could not be sent: ${email.message}`,
+    email.ok
+  );
+
+  await load();
+
+});  }
 
   const nav=document.getElementById("sales-view-nav");
   if(nav)nav.innerHTML=`<a class="btn ${!archiveView&&!returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html">ACTIVE SALES</a><a class="btn ${archiveView?"btn-primary":"btn-secondary"}" href="admin-sales.html?archive=1">SALES ARCHIVE</a><a class="btn ${returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html?returned=1">RETURNED</a><button class="btn btn-secondary" id="refresh-sales" type="button">REFRESH</button>`;
