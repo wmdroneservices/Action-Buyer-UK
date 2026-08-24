@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!card) return;
 
       card.querySelector(".customer-shipping-links")?.remove();
+      card.querySelector(".valuation-meta .status-badge")?.remove();
 
       const inbound = (shipments || []).find(x =>
         x.sale_id === sale.id &&
@@ -55,6 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">VIEW QR CODE${inbound.qr_code_urls.length > 1 ? ` ${i + 1}` : ""}</a>` : "";
       }).join(" ");
 
+      const showPostAction = ["awaiting_label", "label_created"].includes(String(inbound.status || ""));
+
       const action = document.createElement("div");
       action.className = "customer-shipping-links";
       action.style.cssText = "margin-top:12px;padding:12px;border-left:4px solid #d88732;background:#f7f4ee;";
@@ -62,7 +65,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <p style="margin:0 0 .5rem"><strong>YOUR SHIPPING LABEL IS READY</strong></p>
         <p style="margin:.25rem 0 .75rem">Use the shipping label below to send your item to GearCashOut.</p>
         <div class="navigation-buttons" style="display:flex;gap:.5rem;flex-wrap:wrap;">${labelLinks}${qrLinks}</div>
-        ${!inbound.shipped_at && !["in_transit", "delivered"].includes(inbound.status) ? `
+        ${showPostAction ? `
           <div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid #ddd;">
             <p style="margin:0 0 .5rem"><strong>Once you have handed the parcel to the carrier:</strong></p>
             <button type="button" class="btn btn-primary customer-posted-button">I HAVE POSTED MY ITEM</button>
