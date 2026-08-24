@@ -77,7 +77,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           const inbound = sh.filter(x => x.shipment_type === "inbound");
           const returns = sh.filter(x => x.shipment_type === "return");
           const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
-          const received = ["received", "inspection", "payment_due", "paid", "completed", "return_shipped"].includes(s.status);
+          const received = [
+  "received",
+  "inspection",
+  "payment_due",
+  "paid",
+  "completed"
+].includes(s.status);
           const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
           const posted = inbound.some(x =>
   ["in_transit", "delivered"].includes(x.status)
