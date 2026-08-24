@@ -94,14 +94,27 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
           }
 
-          if (["collecting_items", "ready_for_shipping"].includes(String(sale.status || ""))) {
-            await auth.supabase.from("sales")
-              .update({ status: "shipping" })
-              .eq("id", sale.id)
-              .eq("user_id", session.user.id);
+          const { error: saleError } = await auth.supabase.from("sales")
+            .update({ status: "shipping" })
+            .eq("id", sale.id)
+            .eq("user_id", session.user.id)
+            .in("status", ["collecting_items", "ready_for_shipping", "shipping"]);
+
+          if (saleError) {
+            console.error("Sale status update failed:", saleError);
+            postedButton.disabled = false;
+            const message = action.querySelector(".customer-shipping-message");
+            message.textContent = "Your parcel was marked as shipped, but we could not update the sale status. Please refresh the page.";
+            message.className = "customer-shipping-message form-message error";
+            return;
           }
 
-          await loadShippingLinks();
+          action.innerHTML = `
+            <div class="status-badge">PARCEL ON ITS WAY</div>
+            <p style="margin:.45rem 0 0"><strong>Your parcel is on its way to GearCashOut.</strong> We’ll let you know when it arrives and your valuation progresses.</p>
+          `;
+
+          window.setTimeout(loadShippingLinks, 5000);
         });
       }
     });
