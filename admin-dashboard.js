@@ -62,13 +62,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("valuation-count").textContent = awaitingReviewCount;
 
     // Only active sales belong in the live dashboard queue. Archived sales remain
-    // available in Sales Archive and must not be counted here.
+    // available in Sales Archive and must not be counted here. "shipping" means
+    // the customer has posted the item and it is now awaiting delivery to us.
     const { data: sales, error: salesError } = await auth.supabase.from("sales").select("id,status,archived_at").is("archived_at", null);
     if (salesError) { notice("Could not load sales counts.", false); return; }
-    const acceptedStatuses = new Set(["collecting_items", "awaiting_delivery", "awaiting_inspection", "inspection", "final_valuation", "payment_processing", "paid"]);
+    const acceptedStatuses = new Set(["collecting_items", "ready_for_shipping", "shipping", "awaiting_delivery", "awaiting_inspection", "inspection", "final_valuation", "payment_processing", "paid"]);
     const accepted = (sales || []).filter(s => acceptedStatuses.has(s.status));
     document.getElementById("accepted-count").textContent = accepted.length;
-    const deliveryStatuses = new Set(["collecting_items", "awaiting_delivery"]);
+    const deliveryStatuses = new Set(["collecting_items", "ready_for_shipping", "shipping", "awaiting_delivery"]);
     document.getElementById("delivery-count").textContent = accepted.filter(s => deliveryStatuses.has(s.status)).length;
     document.getElementById("paid-count").textContent = accepted.filter(s => s.status === "paid").length;
 
