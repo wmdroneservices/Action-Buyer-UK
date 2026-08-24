@@ -109,18 +109,37 @@ I HAVE POSTED MY ITEM
     }
   }
 
-  // Load on initial page load
+ // Load on initial page load
+await load();
+
+// Reload when customer returns to the page (e.g., after viewing shipment label)
+window.addEventListener("pageshow", async () => {
+  console.log("Page shown, reloading sales...");
   await load();
+});
 
-  // Reload when customer returns to the page (e.g., after viewing shipment label)
-  window.addEventListener("pageshow", async () => {
-    console.log("Page shown, reloading sales...");
-    await load();
-  });
+// Customer confirms item has been posted
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest(".post-shipment-btn");
+  if (!button) return;
 
-  // Also reload periodically in case customer keeps the tab open
-  setInterval(async () => {
-    console.log("Polling sales data...");
-    await load();
-  }, 30000);
+  const shipmentId = button.dataset.shipmentId;
+
+  const { error } = await auth.supabase
+    .from("shipments")
+    .update({
+      status: "in_transit",
+      shipped_at: new Date().toISOString()
+    })
+    .eq("id", shipmentId);
+
+  if (error) {
+    console.error("Shipment update failed:", error);
+    alert("Unable to update shipment status. Please try again.");
+    return;
+  }
+
+  console.log("Shipment updated successfully");
+
+  await load();
 });
