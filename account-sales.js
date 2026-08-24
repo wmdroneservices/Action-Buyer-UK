@@ -92,7 +92,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           
           const finalOutcome = received
             ? `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}.</p>`
-            : labelReady
+            : posted
+? `<div class="status-badge">ITEM POSTED</div><p><strong>Your item has been posted.</strong> We will update you when it arrives.</p>`
+: labelReady
             ? `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}${inbound[0] && !posted ? `
             <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound[0].id}">
             I HAVE POSTED MY ITEM
