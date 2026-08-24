@@ -16,9 +16,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const allSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
       console.log("All sales count:", allSales.length, "Sales data:", allSales);
-      if (!allSales.length) { box.innerHTML = "<p>No transactions currently.</p>"; return; }
 
-      const ids = allSales.map(s => s.id);
+      const completedSales = allSales.filter(s => ["paid", "completed"].includes(String(s.status || "")) || !!s.payment_sent_at);
+      console.log("Completed sales count:", completedSales.length, "Completed sales data:", completedSales);
+      if (!completedSales.length) { box.innerHTML = "<p>No completed transactions currently.</p>"; return; }
+
+      const ids = completedSales.map(s => s.id);
       const { data: items, error: itemsError } = await auth.supabase.from("sale_items")
         .select("sale_id,quote_item_id,amount,created_at").in("sale_id", ids);
       if (itemsError) { console.error("Items query error:", itemsError); return; }
@@ -44,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">${esc(label)} ${i + 1}</a>` : "";
       }).join(" ");
 
-      box.innerHTML = allSales.map(s => {
+      box.innerHTML = completedSales.map(s => {
         const si = (items || []).filter(i => i.sale_id === s.id);
         const sh = (shipments || []).filter(x => x.sale_id === s.id);
         const inbound = sh.filter(x => x.shipment_type === "inbound");
@@ -84,7 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (itemReceived) progress.push(`<p><strong>3. Item received</strong> — Received by GearCashOut</p>`);
         if (inspection) progress.push(`<p><strong>4. Inspection</strong> — ${status === "inspection" ? "In progress" : "Complete"}</p>`);
         if (finalQuoteAccepted) progress.push(`<p><strong>5. Final quote</strong> — Accepted</p>`);
-        if (status === "payment_due") progress.push(`<p><strong>6. Bank details</strong> — Required before payment</p>`);
+        if (status === "payment_due") progress.push(`<p><strong>6. Bank details</strong> — ${s.payment_status === "bank_details_received" ? "Received — payment awaiting processing" : "Required before payment"}</p>`);
         if (paymentReceived) progress.push(`<p><strong>6. Payment received</strong> — ${date(s.payment_sent_at)}</p>`);
 
         return `<details open class="valuation-card sale-card" style="margin-bottom:1rem">
@@ -97,16 +100,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div></details>`;
       }).join("");
 
-      console.log("Rendered sales successfully");
+      console.log("Rendered completed sales successfully");
     } catch (err) {
       console.error("Unexpected error in load():", err);
       const box = document.getElementById("completed-transactions");
-      if (box) box.innerHTML = `<p>Error loading transactions. Check browser console for details.</p>`;
+      if (box) box.innerHTML = `<p>Error loading completed transactions. Check browser console for details.</p>`;
     }
   }
 
   await load();
-  window.addEventListener("pageshow", async () => { console.log("Page shown, reloading sales..."); await load(); });
+  window.addEventListener("pageshow", async () => { console.log("Page shown, reloading completed sales..."); await load(); });
 
   document.addEventListener("click", async event => {
     const button = event.target.closest(".post-shipment-btn");
