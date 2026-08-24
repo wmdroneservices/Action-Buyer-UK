@@ -9,109 +9,94 @@ document.addEventListener("DOMContentLoaded", async () => {
       const { data: sales, error: salesError } = await auth.supabase.from("sales")
         .select("id,sale_reference,status,total_amount,created_at,payment_status,payment_sent_at,payment_reference")
         .eq("user_id", session.user.id).order("created_at", { ascending: false });
-      
-      if (salesError) { 
-        console.error("Sales query error:", salesError);
-        return; 
-      }
-      
-      const box = document.getElementById("completed-transactions");
-      if (!box) {
-        console.warn("completed-transactions box not found");
-        return;
-      }
+      if (salesError) { console.error("Sales query error:", salesError); return; }
 
-      // Show all active sales, not just paid/completed ones
+      const box = document.getElementById("completed-transactions");
+      if (!box) { console.warn("completed-transactions box not found"); return; }
+
       const allSales = (sales || []).filter(s => !["cancelled", "closed", "archived"].includes(s.status));
-      
       console.log("All sales count:", allSales.length, "Sales data:", allSales);
-      
-      if (!allSales.length) { 
-        box.innerHTML = "<p>No transactions currently.</p>"; 
-        return; 
-      }
+      if (!allSales.length) { box.innerHTML = "<p>No transactions currently.</p>"; return; }
 
       const ids = allSales.map(s => s.id);
-      
       const { data: items, error: itemsError } = await auth.supabase.from("sale_items")
-        .select("sale_id,quote_item_id,amount,created_at")
-        .in("sale_id", ids);
-      
-      if (itemsError) {
-        console.error("Items query error:", itemsError);
-        return;
-      }
-      
+        .select("sale_id,quote_item_id,amount,created_at").in("sale_id", ids);
+      if (itemsError) { console.error("Items query error:", itemsError); return; }
+
       const qids = (items || []).map(i => i.quote_item_id);
-      const { data: qitems, error: qitemsError } = qids.length ? await auth.supabase.from("quote_items")
-        .select("id,model,manufacturer,item_name")
-        .in("id", qids) : { data: [] };
-      
-      if (qitemsError) {
-        console.error("Quote items query error:", qitemsError);
-        return;
-      }
-      
+      const { data: qitems, error: qitemsError } = qids.length
+        ? await auth.supabase.from("quote_items").select("id,model,manufacturer,item_name").in("id", qids)
+        : { data: [] };
+      if (qitemsError) { console.error("Quote items query error:", qitemsError); return; }
+
       const { data: shipments, error: shipmentsError } = await auth.supabase.from("shipments")
         .select("id,sale_id,shipment_type,status,carrier,tracking_number,parcel_count,label_count,label_urls,qr_code_urls,shipped_at,delivered_at,created_at,notes")
-        .in("sale_id", ids)
-        .order("created_at", { ascending: false });
-
-      if (shipmentsError) {
-        console.error("Shipments query error:", shipmentsError);
-        return;
-      }
-
+        .in("sale_id", ids).order("created_at", { ascending: false });
+      if (shipmentsError) { console.error("Shipments query error:", shipmentsError); return; }
       console.log("Shipments count:", (shipments || []).length, "Shipments data:", shipments);
 
       const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
       const date = v => v ? new Date(v).toLocaleDateString("en-GB") : "";
       const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
       const safeUrl = v => /^https?:\/\//i.test(String(v || "")) ? String(v) : "";
-      const links = (values, label) => (Array.isArray(values) ? values : []).map((url, i) => { const safe = safeUrl(url); return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">${esc(label)} ${i + 1}</a>` : ""; }).join(" ");
+      const links = (values, label) => (Array.isArray(values) ? values : []).map((url, i) => {
+        const safe = safeUrl(url);
+        return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">${esc(label)} ${i + 1}</a>` : "";
+      }).join(" ");
 
-      box.innerHTML = allSales
-        .map(s => {
-          const si = (items || []).filter(i => i.sale_id === s.id);
-          const sh = (shipments || []).filter(x => x.sale_id === s.id);
-          const inbound = sh.filter(x => x.shipment_type === "inbound");
-          const returns = sh.filter(x => x.shipment_type === "return");
-          const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
-          const received = [
-  "received",
-  "inspection",
-  "payment_due",
-  "paid",
-  "completed"
-].includes(s.status);
-          const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
-          const posted = inbound.some(x =>
-  ["in_transit", "delivered"].includes(x.status)
-);
-          const delivered = inbound.some(x => x.delivered_at || x.status === "delivered") || received;
-          
-          const finalOutcome = received
-            ? `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}.</p>`
-            : posted
-? `<div class="status-badge">ITEM POSTED</div><p><strong>Your item has been posted.</strong> We will update you when it arrives.</p>`
-: labelReady
-            ? `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}${inbound[0] && !posted ? `
-            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound.find(x => x.status === 'label_created')?.id}">
-I HAVE POSTED MY ITEM
-</button>` : ""}`
-          
-            : `<div class="status-badge">AWAITING SHIPMENT</div><p><strong>Preparing your shipment.</strong> We will update you when your label is ready.</p>`;
+      box.innerHTML = allSales.map(s => {
+        const si = (items || []).filter(i => i.sale_id === s.id);
+        const sh = (shipments || []).filter(x => x.sale_id === s.id);
+        const inbound = sh.filter(x => x.shipment_type === "inbound");
+        const returns = sh.filter(x => x.shipment_type === "return");
+        const firstAccepted = si.map(x => x.created_at).filter(Boolean).sort()[0];
+        const status = String(s.status || "");
+        const labelReady = inbound.some(x => x.status !== "awaiting_label" || (Array.isArray(x.label_urls) && x.label_urls.length));
+        const posted = inbound.some(x => ["in_transit", "delivered"].includes(x.status));
+        const itemReceived = ["received", "inspection", "payment_due", "paid", "completed"].includes(status)
+          || inbound.some(x => x.delivered_at || x.status === "delivered");
+        const inspection = ["inspection", "payment_due", "paid", "completed"].includes(status);
+        const finalQuoteAccepted = ["payment_due", "paid", "completed"].includes(status);
+        const paymentReceived = ["paid", "completed"].includes(status) || !!s.payment_sent_at;
 
-          return `<details open class="valuation-card sale-card" style="margin-bottom:1rem">
-            <summary style="cursor:pointer;list-style:none"><div><span class="valuation-ref">${esc(s.sale_reference)}</span><p class="section-kicker">${received ? "PAYMENT RECEIVED" : "IN PROGRESS"}</p><h3>${money(s.total_amount)}</h3></div></summary>
-            <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4><p><strong>1. Offer accepted</strong> — ${firstAccepted ? date(firstAccepted) : "Accepted"}</p><p><strong>2. Shipping</strong> — ${labelReady ? "Label ready" : "Preparing"}</p>${received ? `<p><strong>3. Payment received</strong> — ${date(s.payment_sent_at)}</p>` : ""}</div>
-            <div class="shipping-block">${finalOutcome}</div>
-            ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
-            ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p><strong>${x.status === "in_transit" ? "POSTED" : esc(x.status.replaceAll("_", " "))}</strong>${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
-            ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
-            </div></details>`;
-        }).join("");
-      
+        let finalOutcome;
+        if (paymentReceived) {
+          finalOutcome = `<div class="status-badge">PAYMENT RECEIVED</div><p><strong>Payment received.</strong> Your payment was sent to your bank account${s.payment_sent_at ? ` on ${date(s.payment_sent_at)}` : ""}.</p>`;
+        } else if (status === "payment_due") {
+          finalOutcome = `<div class="status-badge">FINAL QUOTE ACCEPTED</div><p><strong>Your final quote has been accepted.</strong> Please provide your bank details so we can arrange payment.</p>`;
+        } else if (inspection) {
+          finalOutcome = `<div class="status-badge">UNDER INSPECTION</div><p><strong>Your item has been received and is being inspected.</strong> We will send your final quote when the inspection is complete.</p>`;
+        } else if (itemReceived) {
+          finalOutcome = `<div class="status-badge">ITEM RECEIVED</div><p><strong>We have received your item.</strong> It is now awaiting inspection.</p>`;
+        } else if (posted) {
+          finalOutcome = `<div class="status-badge">ITEM POSTED</div><p><strong>Your item has been posted.</strong> We will update you when it arrives.</p>`;
+        } else if (labelReady) {
+          finalOutcome = `<div class="status-badge">LABEL READY</div><p><strong>Your shipping label is ready.</strong></p>${inbound[0] ? links(inbound[0].label_urls, "Download label") : ""}${inbound[0] ? links(inbound[0].qr_code_urls, "View QR code") : ""}${inbound[0] && !posted ? `
+            <button class="btn btn-primary post-shipment-btn" data-shipment-id="${inbound.find(x => x.status === "label_created")?.id}">I HAVE POSTED MY ITEM</button>` : ""}`;
+        } else {
+          finalOutcome = `<div class="status-badge">AWAITING SHIPMENT</div><p><strong>Preparing your shipment.</strong> We will update you when your label is ready.</p>`;
+        }
+
+        const progress = [
+          `<p><strong>1. Offer accepted</strong> — ${firstAccepted ? date(firstAccepted) : "Accepted"}</p>`,
+          `<p><strong>2. Shipping</strong> — ${labelReady ? "Label ready" : posted ? "Item posted" : "Preparing"}</p>`
+        ];
+        if (itemReceived) progress.push(`<p><strong>3. Item received</strong> — Received by GearCashOut</p>`);
+        if (inspection) progress.push(`<p><strong>4. Inspection</strong> — ${status === "inspection" ? "In progress" : "Complete"}</p>`);
+        if (finalQuoteAccepted) progress.push(`<p><strong>5. Final quote</strong> — Accepted</p>`);
+        if (status === "payment_due") progress.push(`<p><strong>6. Bank details</strong> — Required before payment</p>`);
+        if (paymentReceived) progress.push(`<p><strong>6. Payment received</strong> — ${date(s.payment_sent_at)}</p>`);
+
+        return `<details open class="valuation-card sale-card" style="margin-bottom:1rem">
+          <summary style="cursor:pointer;list-style:none"><div><span class="valuation-ref">${esc(s.sale_reference)}</span><p class="section-kicker">${paymentReceived ? "PAYMENT RECEIVED" : finalQuoteAccepted ? "FINAL QUOTE ACCEPTED" : "IN PROGRESS"}</p><h3>${money(s.total_amount)}</h3></div></summary>
+          <div class="sale-details"><div class="purchase-progress"><h4>Sale progress</h4>${progress.join("")}</div>
+          <div class="shipping-block">${finalOutcome}</div>
+          ${labelReady ? `<p>Your postal label was issued for this transaction.</p>` : ""}
+          ${inbound.map(x => `<div class="shipping-block"><h4>Customer → GearCashOut</h4><p><strong>${x.status === "in_transit" ? "POSTED" : esc(x.status.replaceAll("_", " "))}</strong>${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
+          ${returns.map(x => `<div class="shipping-block"><h4>GearCashOut → Customer</h4><p>${esc(x.status.replaceAll("_", " "))}${x.carrier ? ` — ${esc(x.carrier)}` : ""}${x.tracking_number ? ` — ${esc(x.tracking_number)}` : ""}</p></div>`).join("")}
+          </div></details>`;
+      }).join("");
+
       console.log("Rendered sales successfully");
     } catch (err) {
       console.error("Unexpected error in load():", err);
@@ -121,36 +106,21 @@ I HAVE POSTED MY ITEM
   }
 
   await load();
+  window.addEventListener("pageshow", async () => { console.log("Page shown, reloading sales..."); await load(); });
 
-  window.addEventListener("pageshow", async () => {
-    console.log("Page shown, reloading sales...");
-    await load();
-  });
-
-  // Single customer posting action: update the shipment and its parent sale together.
-  document.addEventListener("click", async (event) => {
+  document.addEventListener("click", async event => {
     const button = event.target.closest(".post-shipment-btn");
     if (!button) return;
-
     event.preventDefault();
-
     const shipmentId = button.dataset.shipmentId;
     if (!shipmentId) return;
 
     console.log("Customer confirmed posted shipment:", shipmentId);
     button.disabled = true;
-
     const postedAt = new Date().toISOString();
-    const { data, error } = await auth.supabase
-      .from("shipments")
-      .update({
-        status: "in_transit",
-        shipped_at: postedAt
-      })
-      .eq("id", shipmentId)
-      .select("id,sale_id,status,shipped_at")
-      .single();
-
+    const { data, error } = await auth.supabase.from("shipments")
+      .update({ status: "in_transit", shipped_at: postedAt })
+      .eq("id", shipmentId).select("id,sale_id,status,shipped_at").single();
     console.log("Updated shipment:", data, error);
 
     if (error) {
@@ -161,13 +131,9 @@ I HAVE POSTED MY ITEM
     }
 
     if (data?.sale_id) {
-      const { error: saleError } = await auth.supabase
-        .from("sales")
-        .update({ status: "shipping" })
-        .eq("id", data.sale_id)
-        .eq("user_id", session.user.id)
+      const { error: saleError } = await auth.supabase.from("sales")
+        .update({ status: "shipping" }).eq("id", data.sale_id).eq("user_id", session.user.id)
         .in("status", ["collecting_items", "ready_for_shipping", "shipping"]);
-
       if (saleError) {
         console.error("Sale status update failed:", saleError);
         button.disabled = false;
