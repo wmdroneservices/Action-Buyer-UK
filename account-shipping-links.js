@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         ${showPostAction ? `
           <div style="margin-top:.9rem;padding-top:.8rem;border-top:1px solid #ddd;">
             <p style="margin:0 0 .5rem"><strong>Once you have handed the parcel to the carrier:</strong></p>
-            <button type="button" class="btn btn-primary customer-posted-button">I HAVE POSTED MY ITEM</button>
+            <button type="button" class="btn btn-primary customer-posted-button">I HAVE SHIPPED THIS ITEM</button>
             <p class="customer-shipping-message form-message" role="status" aria-live="polite"></p>
           </div>` : ""}
       `;
@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const postedButton = action.querySelector(".customer-posted-button");
       if (postedButton) {
         postedButton.addEventListener("click", async () => {
-          if (!confirm("Confirm that you have posted your item using the supplied shipping label?")) return;
+          if (!confirm("Confirm that you have shipped this item using the supplied shipping label?")) return;
           postedButton.disabled = true;
 
           const { error: shipmentError } = await auth.supabase
