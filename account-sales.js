@@ -120,49 +120,65 @@ I HAVE POSTED MY ITEM
     }
   }
 
- // Load on initial page load
-await load();
-
-// Reload when customer returns to the page (e.g., after viewing shipment label)
-window.addEventListener("pageshow", async () => {
-  console.log("Page shown, reloading sales...");
   await load();
-});
 
-// Customer confirms item has been posted
-document.addEventListener("click", async (event) => {
-  const button = event.target.closest(".post-shipment-btn");
-  if (!button) return;
+  window.addEventListener("pageshow", async () => {
+    console.log("Page shown, reloading sales...");
+    await load();
+  });
 
-  event.preventDefault();
+  // Single customer posting action: update the shipment and its parent sale together.
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest(".post-shipment-btn");
+    if (!button) return;
 
-  const shipmentId = button.dataset.shipmentId;
+    event.preventDefault();
 
-  console.log("Customer confirmed posted shipment:", shipmentId);
+    const shipmentId = button.dataset.shipmentId;
+    if (!shipmentId) return;
 
-  const { data, error } = await auth.supabase
-  .from("shipments")
-  .update({
-    status: "in_transit",
-    shipped_at: new Date().toISOString()
-  })
-  .eq("id", shipmentId)
-  .select()
-  .single();
+    console.log("Customer confirmed posted shipment:", shipmentId);
+    button.disabled = true;
 
-console.log("Updated shipment:", data, error);
+    const postedAt = new Date().toISOString();
+    const { data, error } = await auth.supabase
+      .from("shipments")
+      .update({
+        status: "in_transit",
+        shipped_at: postedAt
+      })
+      .eq("id", shipmentId)
+      .select("id,sale_id,status,shipped_at")
+      .single();
 
-  if (error) {
-    console.error("Shipment update failed:", error);
-    alert("Unable to update shipment status. Please try again.");
-    return;
-  }
+    console.log("Updated shipment:", data, error);
 
-  alert("Thank you. Your item has been marked as posted.");
+    if (error) {
+      console.error("Shipment update failed:", error);
+      button.disabled = false;
+      alert("Unable to update shipment status. Please try again.");
+      return;
+    }
 
-  console.log("Shipment updated successfully");
+    if (data?.sale_id) {
+      const { error: saleError } = await auth.supabase
+        .from("sales")
+        .update({ status: "shipping" })
+        .eq("id", data.sale_id)
+        .eq("user_id", session.user.id)
+        .in("status", ["collecting_items", "ready_for_shipping", "shipping"]);
 
-  await load();
-});
+      if (saleError) {
+        console.error("Sale status update failed:", saleError);
+        button.disabled = false;
+        alert("Your item was marked as posted, but we could not update the sale status. Please refresh and try again.");
+        await load();
+        return;
+      }
+    }
 
+    alert("Thank you. Your item has been marked as posted and GearCashOut has been notified.");
+    console.log("Shipment and sale status updated successfully");
+    await load();
+  });
 });
