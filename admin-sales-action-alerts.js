@@ -26,9 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const { data: saleItems } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("sale_id", saleIds);
       const quoteItemIds = (saleItems || []).map(x => x.quote_item_id).filter(Boolean);
       const { data: refusedOffers } = quoteItemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,status,offer_type,responded_at").in("item_id", quoteItemIds).eq("status", "refused") : { data: [] };
+      const { data: shipments } = await auth.supabase.from("shipments").select("id,sale_id,shipment_type,status,shipped_at,delivered_at").in("sale_id", saleIds);
+
       const refusedBySale = new Set();
       (saleItems || []).forEach(si => { if ((refusedOffers || []).some(o => o.item_id === si.quote_item_id)) refusedBySale.add(si.sale_id); });
       const byRef = new Map(sales.map(s => [s.sale_reference, s]));
+      const inboundBySale = new Map();
+      (shipments || []).filter(sh => sh.shipment_type === "inbound").forEach(sh => {
+        const existing = inboundBySale.get(sh.sale_id);
+        if (!existing || new Date(sh.created_at || 0) > new Date(existing.created_at || 0)) inboundBySale.set(sh.sale_id, sh);
+      });
 
       cards.forEach(card => {
         if (card.querySelector(".sale-next-action")) return;
@@ -36,10 +43,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const sale = byRef.get(ref);
         if (!sale) return;
         const status = String(sale.status || "");
+        const inbound = inboundBySale.get(sale.id);
+        const shipmentStatus = String(inbound?.status || "");
         const hasRefusal = refusedBySale.has(sale.id);
         let title = "", text = "", tone = "wait";
 
-        if (["collecting_items", "ready_for_shipping", "shipping"].includes(status)) {
+        // Shipment status is authoritative for the customer-posted step.
+        // This prevents the dashboard showing "WAITING FOR CUSTOMER" after
+        // the customer has actually marked the parcel in transit.
+        if (shipmentStatus === "in_transit") {
+          title = "CUSTOMER HAS POSTED ITEM";
+          text = "The item is in transit to GearCashOut. Await delivery.";
+        } else if (shipmentStatus === "delivered") {
+          tone = "urgent";
+          title = "ITEM DELIVERED — ACTION REQUIRED";
+          text = "The customer's item has been delivered. Receive and inspect the item.";
+        } else if (["collecting_items", "ready_for_shipping", "shipping"].includes(status)) {
           const inboundText = card.textContent.includes("CUSTOMER → US") && card.textContent.includes("label_created");
           if (!inboundText) { tone="urgent"; title="CUSTOMER ACCEPTED OFFER — ACTION REQUIRED"; text="Create the customer → GearCashOut shipping label and send it to the customer."; }
           else { title="WAITING FOR CUSTOMER"; text="The inbound shipment has been created. Wait for the customer to send the item."; }
