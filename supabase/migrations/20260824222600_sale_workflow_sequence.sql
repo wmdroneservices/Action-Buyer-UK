@@ -85,8 +85,8 @@ declare v_sale public.sales%rowtype;
 begin
  if auth.uid() is null then raise exception 'You must be signed in'; end if;
  if coalesce(trim(p_account_name),'')='' or coalesce(trim(p_sort_code),'')='' or coalesce(trim(p_account_number),'')='' then raise exception 'Please provide account name, sort code and account number'; end if;
- if regexp_replace(trim(p_sort_code),'[^0-9]','','g') !~ '^\\d{6}$' then raise exception 'Please provide a valid 6 digit sort code'; end if;
- if regexp_replace(trim(p_account_number),'[^0-9]','','g') !~ '^\\d{8}$' then raise exception 'Please provide a valid 8 digit account number'; end if;
+ if regexp_replace(trim(p_sort_code),'[^0-9]','','g') !~ '^[0-9]{6}$' then raise exception 'Please provide a valid 6 digit sort code'; end if;
+ if regexp_replace(trim(p_account_number),'[^0-9]','','g') !~ '^[0-9]{8}$' then raise exception 'Please provide a valid 8 digit account number'; end if;
  select * into v_sale from public.sales where id=p_sale_id and user_id=auth.uid() for update;
  if not found then raise exception 'Sale not found'; end if;
  if v_sale.status<>'payment_due' then raise exception 'Bank details are requested only after the final quote has been accepted'; end if;
