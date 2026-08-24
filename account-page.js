@@ -152,8 +152,6 @@ f
     }
 
 
-    document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
-
 
     document.querySelectorAll(".accept-offer").forEach(btn => btn.addEventListener("click", async () => {
       console.log("ACCEPT CLICKED", btn.dataset.id);
