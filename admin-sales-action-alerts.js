@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { data: saleItems } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("sale_id", saleIds);
       const quoteItemIds = (saleItems || []).map(x => x.quote_item_id).filter(Boolean);
       const { data: refusedOffers } = quoteItemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,status,offer_type,responded_at").in("item_id", quoteItemIds).eq("status", "refused") : { data: [] };
-      const { data: shipments } = await auth.supabase.from("shipments").select("id,sale_id,shipment_type,status,shipped_at,delivered_at").in("sale_id", saleIds);
+      const { data: shipments } = await auth.supabase.from("shipments").select("id,sale_id,shipment_type,status,shipped_at,delivered_at,created_at").in("sale_id", saleIds);
 
       const refusedBySale = new Set();
       (saleItems || []).forEach(si => { if ((refusedOffers || []).some(o => o.item_id === si.quote_item_id)) refusedBySale.add(si.sale_id); });
