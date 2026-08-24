@@ -140,6 +140,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         salesBox.innerHTML = activeSales.map(s => {
           const shipment = (shipments || []).filter(sh => sh.sale_id === s.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
           let message = "Your offer has been accepted. We are preparing the next steps.";
+          if (String(s.status || "") === "payment_due") {
+            message = "Your bank details have been received. Payment is now being arranged and will be made shortly.";
+          }
           if (shipment?.status === "awaiting_label") {
             message = "Your shipping details are being prepared. We will send your instructions shortly.";
           }
