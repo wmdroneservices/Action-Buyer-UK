@@ -6,15 +6,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-dashboard.js?v=20260825-4" defer></script>
 </head>
 <body>
-<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list"><li><a href="admin-purchasing.html">PURCHASING</a></li><li><a href="admin-sales-dashboard.html">SALES</a></li></ul></nav></div></header>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list"><li><a href="admin-purchasing.html">PURCHASING</a></li><li><a href="admin-sales-dashboard.html">SALES</a></li><li><a href="admin-customers.html">CUSTOMERS</a></li></ul></nav></div></header>
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">STAFF</p><h1>GearCashOut Dashboard</h1><p id="staff-welcome">Choose the part of the operation you need.</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div>
 <div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
-<section class="account-panel" style="margin-bottom:1rem"><div class="section-heading"><p class="section-kicker">TWO-PART WORKFLOW</p><h2>Choose Dashboard</h2><p>Purchasing and Sales are now deliberately separated. Purchasing runs from the customer valuation through payment and Purchase Inventory. Sales begins only after staff send an inspected item to Sales.</p></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem">
+<section class="account-panel" style="margin-bottom:1rem"><div class="section-heading"><p class="section-kicker">OPERATIONS</p><h2>Choose Dashboard</h2><p>Purchasing and Sales are deliberately separated, while Customer Management is available independently from both workflows.</p></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-top:1rem">
 <a href="admin-purchasing.html" class="dashboard-link-card" style="text-decoration:none"><div><p class="section-kicker">PART 1</p><strong class="dashboard-count" style="font-size:1.6rem">PURCHASING</strong><span>Valuations → Sales &amp; Shipping → Purchase Inventory</span></div><span class="btn btn-primary">OPEN PURCHASING</span></a>
-<a href="admin-sales-dashboard.html" class="dashboard-link-card" style="text-decoration:none"><div><p class="section-kicker">PART 2</p><strong class="dashboard-count" style="font-size:1.6rem">SALES</strong><span>Inventory → Sales Channels → Sold Items → Returns</span></div><span class="btn btn-primary">OPEN SALES</span></a>
+<a href="admin-sales-dashboard.html" class="dashboard-link-card" style="text-decoration:none"><div><p class="section-kicker">PART 2</p><strong class="dashboard-count" style="font-size:1.6rem">SALES</strong><span>Inventory → Sales → Active Sales / Listings → Sold Items</span></div><span class="btn btn-primary">OPEN SALES</span></a>
+<a href="admin-customers.html" class="dashboard-link-card" style="text-decoration:none"><div><p class="section-kicker">CUSTOMER MANAGEMENT</p><strong class="dashboard-count" style="font-size:1.6rem">CUSTOMERS</strong><span>Customer accounts → account numbers → account closure</span></div><span class="btn btn-primary">MANAGE CUSTOMERS</span></a>
 </div></section>
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">WORKFLOW BOUNDARY</p><h2>Where the two sections meet</h2><p><strong>Purchase Inventory</strong> is the handover point. Items remain in the purchasing workflow while they are being received, inspected, tested and prepared. When staff use <strong>Send to Sales</strong>, the item leaves Purchase Inventory and becomes available in the Sales Dashboard.</p></div></section>
-</div></main><footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Purchasing and Sales operations.</div></div></footer>
+</div></main><footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Purchasing, Sales and Customer Management.</div></div></footer>
 </body></html>
