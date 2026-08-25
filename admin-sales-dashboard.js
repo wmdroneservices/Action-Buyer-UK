@@ -10,29 +10,73 @@ document.addEventListener("DOMContentLoaded", async () => {
   const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   const actionFor=state=>window.AssetStateMachine?.getNextAction(state)||{label:"ACTION REQUIRED",detail:"Review this item and determine its next workflow step.",tone:"warning"};
   const toneStyle=tone=>({action:"border:2px solid #b06b00;background:#fff8e8",warning:"border:2px solid #b42318;background:#fff5f5",success:"border:2px solid #18794e;background:#f1fbf5",info:"border:1px solid #b8c4d1;background:#f7f9fb"}[tone]||"border:1px solid #b8c4d1;background:#f7f9fb");
+  const inventoryStates=["Received","Inspection Required","Testing","Repair Required","Ready for Resale"];
   const salesStates=["Sent to Sales","Listed","Reserved","Sold","Returned","Dispatched"];
+
+  function setStepNotice(id, html, tone="info"){
+    const el=document.getElementById(id); if(!el)return;
+    el.innerHTML=`<div style="margin-top:.75rem;padding:.9rem 1rem;${toneStyle(tone)}"><strong>${html}</strong></div>`;
+  }
+
   async function load(){
-    const {data:assets,error}=await auth.supabase.from("inventory_assets").select("id,status,manufacturer,model,asset_reference,transaction_number").in("status",salesStates).order("status_changed_at",{ascending:true});
+    const {data:assets,error}=await auth.supabase.from("inventory_assets").select("id,status,manufacturer,model,asset_reference,transaction_number").in("status",[...inventoryStates,...salesStates]).order("status_changed_at",{ascending:true});
     if(error){notice("Could not load Sales Dashboard counts.",false);return;}
     const rows=assets||[];
     const count=s=>rows.filter(a=>a.status===s).length;
-    document.getElementById("sent-count").textContent=count("Sent to Sales");
-    document.getElementById("listed-count").textContent=count("Listed");
-    document.getElementById("reserved-count").textContent=count("Reserved");
-    document.getElementById("sold-count").textContent=count("Sold");
-    document.getElementById("returned-count").textContent=count("Returned");
+    const inventoryRows=rows.filter(a=>inventoryStates.includes(a.status));
+    const salesRows=rows.filter(a=>salesStates.includes(a.status));
+    const inventoryCount=inventoryRows.length;
+    const sent=count("Sent to Sales");
+    const listed=count("Listed");
+    const reserved=count("Reserved");
+    const sold=count("Sold");
+    const returned=count("Returned");
+    document.getElementById("inventory-count").textContent=inventoryCount;
+    document.getElementById("sent-count").textContent=sent;
+    document.getElementById("listed-count").textContent=listed;
+    document.getElementById("reserved-count").textContent=reserved;
+    document.getElementById("sold-count").textContent=sold;
+    document.getElementById("returned-count").textContent=returned;
+
     const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,status");
     if(le){notice("Could not load sales listing counts.",false);return;}
-    document.getElementById("delist-count").textContent=(listings||[]).filter(x=>x.status==="Delist Required").length;
+    const listingRows=listings||[];
+    const delistWarnings=listingRows.filter(x=>x.status==="Delist Required").length;
 
-    const actionable=rows.filter(a=>["Sent to Sales","Sold","Returned","Dispatched"].includes(a.status));
+    const inspection=count("Received");
+    const testing=count("Inspection Required");
+    const testingInProgress=count("Testing");
+    const repairs=count("Repair Required");
+    const readyToSend=count("Ready for Resale");
+
+    const inventoryParts=[];
+    if(inspection) inventoryParts.push(`${inspection} READY FOR INSPECTION`);
+    if(testing) inventoryParts.push(`${testing} READY FOR TESTING`);
+    if(testingInProgress) inventoryParts.push(`${testingInProgress} TESTING IN PROGRESS`);
+    if(repairs) inventoryParts.push(`${repairs} REPAIR REQUIRED`);
+    if(readyToSend) inventoryParts.push(`${readyToSend} READY TO SEND TO PRE-SALE`);
+    setStepNotice("inventory-step-notice", inventoryParts.length ? inventoryParts.join(" &nbsp;·&nbsp; ") : "NO INVENTORY ACTIONS CURRENTLY REQUIRED", inventoryParts.length ? (repairs ? "warning" : "action") : "success");
+
+    setStepNotice("presale-step-notice", sent ? `${sent} ${sent===1?"PRODUCT":"PRODUCTS"} READY TO LIST FOR SALE — OPEN PRE-SALE` : "NO PRODUCTS CURRENTLY READY TO LIST", sent ? "action" : "success");
+
+    const activeTotal=listed+reserved;
+    const activeParts=[];
+    if(listed) activeParts.push(`${listed} LISTED`);
+    if(reserved) activeParts.push(`${reserved} RESERVED`);
+    if(delistWarnings) activeParts.push(`${delistWarnings} DELIST WARNING${delistWarnings===1?"":"S"}`);
+    setStepNotice("active-step-notice", activeParts.length ? activeParts.join(" &nbsp;·&nbsp; ") : "NO ACTIVE LISTINGS CURRENTLY", delistWarnings ? "warning" : (activeTotal ? "info" : "success"));
+
+    setStepNotice("sold-step-notice", sold ? `${sold} ${sold===1?"SOLD PRODUCT":"SOLD PRODUCTS"}${sold ? " — CHECK DISPATCH / COMPLETION ACTIONS" : ""}` : "NO SOLD PRODUCTS CURRENTLY", sold ? "action" : "success");
+    setStepNotice("returns-step-notice", returned ? `${returned} ${returned===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION", returned ? "warning" : "success");
+
+    const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Returned","Dispatched"].includes(a.status));
     const summary=document.getElementById("sales-action-summary"), list=document.getElementById("sales-action-list");
     const grouped={};
     actionable.forEach(a=>{const action=actionFor(a.status);if(!grouped[action.label])grouped[action.label]={action,items:[]};grouped[action.label].items.push(a);});
     const groupEntries=Object.values(grouped);
     summary.innerHTML=groupEntries.length
       ? groupEntries.map(g=>`<div style="display:inline-block;margin:.25rem .75rem .25rem 0;padding:.7rem 1rem;${toneStyle(g.action.tone)}"><strong>${g.items.length}</strong> ${esc(g.action.label.toLowerCase())}</div>`).join("")
-      : '<div class="form-message success"><strong>NO IMMEDIATE SALES ACTIONS</strong><br>There are no sales-stage products currently waiting for a staff action.</div>';
+      : '<div class="form-message success"><strong>NO IMMEDIATE SALES ACTIONS</strong><br>There are no products currently waiting for a staff action.</div>';
     if(!actionable.length){list.innerHTML="";return;}
     list.innerHTML=actionable.map(a=>{
       const action=actionFor(a.status);
