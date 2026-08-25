@@ -72,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     enhanced = true;
     const wrapper = document.createElement("div");
     wrapper.className = "sale-accordion-list";
+    let quoteIndex = 0;
 
     sections.forEach((section, index) => {
       const heading = section.querySelector(".section-heading h2");
@@ -92,7 +93,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       details.appendChild(content);
       wrapper.appendChild(details);
 
-      if (/original quote/i.test(label)) addInspectionEvidence(section, items[index] || items[0]);
+      if (/original quote/i.test(label)) {
+        addInspectionEvidence(section, items[quoteIndex] || items[0]);
+        quoteIndex += 1;
+      }
     });
 
     box.replaceChildren(wrapper);
