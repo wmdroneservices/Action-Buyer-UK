@@ -27,11 +27,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `<div class="valuation-card" style="display:block;margin-bottom:1rem;"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem 1.5rem;"><div><strong>Item</strong><p>${esc(display(item.item_name || d.modelName || d.model || `Item ${index + 1}`))}</p></div><div><strong>Manufacturer</strong><p>${esc(display(item.manufacturer || d.manufacturerName || d.manufacturer))}</p></div><div><strong>Model</strong><p>${esc(display(item.model || d.modelName || d.model))}</p></div><div><strong>Package</strong><p>${esc(display(item.package || d.packageName || d.package))}</p></div><div><strong>Serial number</strong><p>${esc(display(serial))}</p></div><div><strong>Missing items</strong><p>${missing ? 'Yes' : 'No'}</p></div></div><div style="margin-top:1rem;"><strong>Missing items / exceptions notes</strong><textarea readonly rows="3" style="width:100%;box-sizing:border-box;margin-top:.4rem;resize:vertical;">${esc(notes || (missing ? 'Customer marked missing items but supplied no additional notes.' : 'No additional notes supplied.'))}</textarea></div></div>`;
   }).join('')}`;
 
+  const removeRedundantPlaceholders = () => {
+    const removable = ['Package contents', 'Additional accessories'];
+    box.querySelectorAll('.account-panel, .valuation-card, .sale-accordion-content').forEach(root => {
+      [...root.querySelectorAll('h2,h3,h4,strong,p,li')].forEach(el => {
+        const text = el.textContent.trim().replace(/\s+/g, ' ');
+        if (removable.includes(text)) {
+          const parent = el.closest('div,section,article') || el;
+          const next = parent.nextElementSibling;
+          parent.remove();
+          if (next && /^(No package contents recorded\.|None recorded\.)$/.test(next.textContent.trim())) next.remove();
+        }
+      });
+      [...root.querySelectorAll('p')].forEach(p => {
+        if (p.textContent.trim() === 'No photographs stored against this quote.') {
+          const previous = p.previousElementSibling;
+          p.remove();
+          if (previous && /^Photographs$/i.test(previous.textContent.trim())) previous.remove();
+        }
+      });
+    });
+  };
+
   const insert = () => {
     if (!box.querySelector('.customer-submitted-evidence')) {
       const target = [...box.querySelectorAll('h2')].find(h => h.textContent.trim() === 'Complete process')?.closest('.account-panel');
       if (target) target.before(section); else box.appendChild(section);
     }
+    removeRedundantPlaceholders();
   };
 
   const observer = new MutationObserver(insert);
