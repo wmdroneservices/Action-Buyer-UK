@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function simplify() {
     box.querySelectorAll("article.valuation-card").forEach(card => {
       const ref = card.querySelector(".valuation-ref");
+      const saleHref = ref?.getAttribute("href") || card.querySelector('a[href*="admin-sale.html"]')?.getAttribute("href") || "";
+
       if (ref && ref.tagName === "A") {
         const span = document.createElement("span");
         span.className = ref.className;
@@ -24,15 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!card.querySelector(".sale-next-action a")) {
         const meta = card.querySelector(".valuation-meta");
-        if (!meta || meta.querySelector(".open-sale-workbench")) return;
+        if (!meta || meta.querySelector(".open-sale-workbench") || !saleHref) return;
         const row = document.createElement("div");
         row.className = "navigation-buttons open-sale-workbench";
         row.style.cssText = "margin-top:1rem;display:flex;justify-content:flex-start;";
-        row.innerHTML = `<a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(card.dataset.saleId || "")}">OPEN SALE WORKBENCH</a>`;
-        const saleButton = card.querySelector(".mark-received")?.dataset.sale;
-        const refText = card.querySelector(".valuation-ref")?.textContent?.trim();
-        if (saleButton) row.querySelector("a").href = `admin-sale.html?id=${encodeURIComponent(saleButton)}`;
-        else if (!refText) return;
+        row.innerHTML = `<a class="btn btn-primary" href="${saleHref}">OPEN SALE WORKBENCH</a>`;
         meta.appendChild(row);
       }
     });
