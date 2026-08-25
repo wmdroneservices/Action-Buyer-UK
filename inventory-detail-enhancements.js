@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
   const labelCondition = v => conditions[String(v || '').toLowerCase()] || v || 'Not recorded';
   const money = v => Number(v || 0).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
+  const categories = ['Repair','Parts','Accessories','Cleaning','Packaging','Listing','Shipping','Other'];
 
   async function load() {
     if (document.getElementById('inventory-comparison-panel')) return;
@@ -26,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
       db.from('inventory_expenses').select('*').eq('asset_id', id).order('incurred_at',{ascending:false})
     ]);
     if (error || !asset) return;
+
+    const expenseRows = expenses || [];
+    const expenseTotal = expenseRows.reduce((s,x)=>s+Number(x.amount||0),0);
+    const expenseHtml = expenseRows.length
+      ? `<div style="display:grid;gap:.75rem">${expenseRows.map(x=>`<form class="expense-edit notice" data-expense-id="${esc(x.id)}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;align-items:end"><label>Category<select name="category">${categories.map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>Amount<input name="amount" type="number" min="0" step="0.01" value="${esc(x.amount)}" required></label><label>Description<input name="description" value="${esc(x.description||'')}"></label><button class="btn btn-secondary" type="submit">SAVE COST</button><p class="form-message expense-edit-message" aria-live="polite"></p></form>`).join('')}</div><p style="margin-top:1rem"><strong>Total additional costs: ${money(expenseTotal)}</strong></p>`
+      : '<p>No additional costs recorded.</p>';
 
     const panel = document.createElement('div');
     panel.id = 'inventory-comparison-panel';
@@ -56,10 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div class="valuation-card" style="margin-top:1rem">
         <h3>Inventory Costs</h3>
-        <p>All additional costs remain attached to this asset and feed the existing profit/loss calculation.</p>
-        <div id="inventory-expense-list">${(expenses || []).length ? `<ul>${expenses.map(x => `<li><strong>${esc(x.category || 'Other')}</strong> — ${money(x.amount)}${x.description ? ` — ${esc(x.description)}` : ''}</li>`).join('')}</ul><p><strong>Total additional costs: ${money((expenses || []).reduce((s,x)=>s+Number(x.amount||0),0))}</strong></p>` : '<p>No additional costs recorded.</p>'}</div>
+        <p>Repair costs, replacement parts, accessories, preparation, listing and other costs remain attached to this asset and feed the existing profit/loss calculation.</p>
+        <div id="inventory-expense-list">${expenseHtml}</div>
         <form id="inventory-expense-form" class="auth-form" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75rem;align-items:end">
-          <label>Cost category<select name="category"><option>Repair</option><option>Parts</option><option>Accessories</option><option>Cleaning</option><option>Packaging</option><option>Listing</option><option>Shipping</option><option>Other</option></select></label>
+          <label>Cost category<select name="category">${categories.map(c=>`<option>${c}</option>`).join('')}</select></label>
           <label>Amount<input name="amount" type="number" min="0" step="0.01" required></label>
           <label>Description<input name="description" placeholder="What was the cost for?"></label>
           <button class="btn btn-secondary" type="submit">ADD COST</button>
@@ -105,6 +112,36 @@ document.addEventListener('DOMContentLoaded', () => {
       button.disabled = false;
     });
 
+    panel.querySelectorAll('.expense-edit').forEach(form => form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const fd = new FormData(form);
+      const message = form.querySelector('.expense-edit-message');
+      const button = form.querySelector('button');
+      const amount = Number(fd.get('amount'));
+      if (!Number.isFinite(amount) || amount < 0) {
+        message.textContent = 'Enter a valid non-negative amount.';
+        message.className = 'form-message error';
+        return;
+      }
+      button.disabled = true;
+      message.textContent = 'Saving cost…';
+      message.className = 'form-message';
+      const { error: saveError } = await db.from('inventory_expenses').update({
+        category: String(fd.get('category') || 'Other'),
+        amount,
+        description: String(fd.get('description') || '').trim() || null
+      }).eq('id', form.dataset.expenseId);
+      if (saveError) {
+        message.textContent = saveError.message;
+        message.className = 'form-message error';
+        button.disabled = false;
+        return;
+      }
+      message.textContent = 'Cost updated.';
+      message.className = 'form-message success';
+      button.disabled = false;
+    }));
+
     panel.querySelector('#inventory-expense-form').addEventListener('submit', async event => {
       event.preventDefault();
       const form = event.currentTarget;
@@ -133,10 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = false;
         return;
       }
-      message.textContent = 'Cost added to this asset.';
+      message.textContent = 'Cost added to this asset. Refresh to see the updated total.';
       message.className = 'form-message success';
       button.disabled = false;
-      setTimeout(() => load(), 150);
     });
   }
 
