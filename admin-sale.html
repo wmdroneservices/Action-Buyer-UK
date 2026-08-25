@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Sale Details | GearCashOut</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin-sale-consolidated.css?v=20260825-1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js" defer></script>
   <script src="admin-sale.js" defer></script>
   <script src="admin-sale-actions.js" defer></script>
   <script src="sale-workflow-patch.js?v=20260824-2240" defer></script>
   <script src="admin-sale-evidence-fix.js?v=20260825-1" defer></script>
+  <script src="admin-sale-consolidated.js?v=20260825-1" defer></script>
 </head>
 <body>
 <header class="header">
@@ -22,32 +24,28 @@
         <li><a href="admin-valuations.html">Valuations</a></li>
         <li><a href="admin-sales.html">Sales &amp; Shipping</a></li>
       </ul>
-    </nav>
-  </div>
-</header>
-<main class="account-page">
-  <div class="container">
-    <div class="account-header">
-      <div>
-        <p class="section-kicker">SALE RECORD</p>
-        <h1 id="sale-title">Sale details</h1>
-        <p id="sale-subtitle">Loading the complete sale history...</p>
-      </div>
-      <div class="navigation-buttons">
-        <a class="btn btn-secondary" href="admin-sales.html">BACK TO SALES</a>
-      </div>
     </div>
-
-    <div id="admin-sale-message" class="form-message" role="status" aria-live="polite"></div>
-    <div id="sale-details">
-      <p>Loading sale details...</p>
+  </header>
+  <main class="account-page">
+    <div class="container">
+      <div class="account-header">
+        <div>
+          <p class="section-kicker">SALE RECORD</p>
+          <h1 id="sale-title">Sale details</h1>
+          <p id="sale-subtitle">Loading the complete sale history...</p>
+        </div>
+        <div class="navigation-buttons">
+          <a class="btn btn-secondary" href="admin-sales.html">BACK TO SALES</a>
+        </div>
+      </div>
+      <div id="admin-sale-message" class="form-message" role="status" aria-live="polite"></div>
+      <div id="sale-details"><p>Loading sale details...</p></div>
     </div>
-  </div>
-</main>
-<footer class="footer">
-  <div class="container footer-container">
-    <div><strong>GEARCASHOUT</strong><br>We buy drones, cameras, video and audio equipment.</div>
-  </div>
-</footer>
+  </main>
+  <footer class="footer">
+    <div class="container footer-container">
+      <div><strong>GEARCASHOUT</strong><br>We buy drones, cameras, video and audio equipment.</div>
+    </div>
+  </footer>
 </body>
 </html>
