@@ -10,7 +10,10 @@
   if (!machine) return;
 
   function client() {
-    return window.supabaseClient || window.supabase || window.actionBuyerAuth?.supabase;
+    // The CDN exposes window.supabase as a library namespace. The actual
+    // client is actionBuyerAuth.supabase (or a dedicated supabaseClient).
+    return window.actionBuyerAuth?.supabase || window.supabaseClient ||
+      (window.supabase?.from ? window.supabase : null);
   }
 
   async function getAsset(assetId) {
@@ -28,23 +31,15 @@
     const asset = await getAsset(assetId);
     const sessionResult = await db.auth.getSession();
     const userId = sessionResult?.data?.session?.user?.id || null;
-    const updated = machine.transitionAsset(asset, nextState, {
-      reason,
-      changedBy: userId
-    });
+    const updated = machine.transitionAsset(asset, nextState, { reason, changedBy: userId });
 
-    const { data, error } = await db
-      .from('inventory_assets')
-      .update({
-        status: updated.status,
-        previous_status: updated.previous_status,
-        status_changed_at: updated.status_changed_at,
-        status_change_reason: updated.status_change_reason,
-        status_changed_by: updated.status_changed_by
-      })
-      .eq('id', assetId)
-      .select()
-      .single();
+    const { data, error } = await db.from('inventory_assets').update({
+      status: updated.status,
+      previous_status: updated.previous_status,
+      status_changed_at: updated.status_changed_at,
+      status_change_reason: updated.status_change_reason,
+      status_changed_by: updated.status_changed_by
+    }).eq('id', assetId).select().single();
 
     if (error) throw error;
     return data;
