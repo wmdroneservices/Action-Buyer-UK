@@ -88,12 +88,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isNew = !row.id;
             const readyFields = Boolean(title.trim()) && Boolean(description.trim()) && row.asking_price !== null && row.asking_price !== undefined && row.asking_price !== '';
             const isReady = row.status === 'Ready For Listing';
+            const delistRequired = row.status === 'Delist Required';
+            const statusBackground = row.status === 'Published' ? '#eaf7ef' : delistRequired ? '#fde8e8' : isReady ? '#fff4df' : '#eef2f5';
+            const statusColor = row.status === 'Published' ? '#287b50' : delistRequired ? '#a61b1b' : isReady ? '#a65f16' : '#102f4f';
             return `
-              <article class="sales-channel-block" style="border:1px solid #d7dce2;border-radius:10px;padding:1rem;background:#fff;box-shadow:0 2px 7px rgba(16,47,79,.05)">
+              <article class="sales-channel-block" style="border:1px solid ${delistRequired ? '#c92a2a' : '#d7dce2'};border-radius:10px;padding:1rem;background:#fff;box-shadow:${delistRequired ? '0 4px 14px rgba(166,27,27,.14)' : '0 2px 7px rgba(16,47,79,.05)'}">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
                   <div><h3 style="margin:0">${esc(channel)}</h3><small>${isNew ? 'Not started' : 'Listing saved'}</small></div>
-                  <span style="display:inline-block;padding:.42rem .75rem;border-radius:999px;background:${row.status === 'Published' ? '#eaf7ef' : isReady ? '#fff4df' : '#eef2f5'};color:${row.status === 'Published' ? '#287b50' : isReady ? '#a65f16' : '#102f4f'};font-size:.78rem;font-weight:900;letter-spacing:.04em"><strong>${esc(statusLabel(row.status))}</strong></span>
+                  <span style="display:inline-block;padding:.42rem .75rem;border-radius:999px;background:${statusBackground};color:${statusColor};font-size:.78rem;font-weight:900;letter-spacing:.04em"><strong>${esc(statusLabel(row.status))}</strong></span>
                 </div>
+                ${delistRequired ? `<div style="margin:0 0 1rem;padding:1rem 1.1rem;background:#fff0f0;border:3px solid #c92a2a;border-radius:8px;color:#7d1111;box-shadow:0 3px 10px rgba(166,27,27,.12)"><div style="font-size:1rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.25rem">CLOSE THIS LISTING NOW</div><div style="font-weight:800">This item has been sold through another sales channel. Remove or close this ${esc(channel)} listing immediately to prevent a duplicate sale.</div>${row.listing_url ? '<div style="margin-top:.6rem;font-weight:900">Use VIEW LIVE LISTING below to open the marketplace listing.</div>' : ''}</div>` : ''}
                 <form class="channel-form" data-id="${esc(row.id || '')}" data-channel="${esc(channel)}">
                   <div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(130px,.45fr) minmax(130px,.45fr);gap:.75rem">
                     <label>Listing title<input name="listing_title" value="${esc(title)}" required></label>
@@ -106,11 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label>Live listing link<input name="listing_url" type="url" value="${esc(row.listing_url || '')}" placeholder="Add after the listing is published"></label>
                   </div>
                   <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.85rem">
-                    <button class="btn btn-primary" type="submit">${isNew ? 'SAVE DRAFT' : 'SAVE CHANGES'}</button>
-                    ${row.id && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
+                    <button class="btn btn-primary" type="submit" ${delistRequired ? 'disabled title="This listing must be closed because the item sold through another channel"' : ''}>${isNew ? 'SAVE DRAFT' : 'SAVE CHANGES'}</button>
+                    ${row.id && !delistRequired && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
                     ${isReady ? `<button class="btn btn-secondary publish-button" type="button" data-id="${esc(row.id)}" style="background:#2d9a62;color:#fff;font-weight:900;box-shadow:0 3px 9px rgba(45,154,98,.24)" ${row.listing_url ? '' : 'disabled title="Paste the live marketplace listing link first"'}>MARK AS UPLOADED / LIVE</button>` : ''}
                     ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LIVE LISTING</a>` : ''}
-                    ${row.id && row.status !== 'Sold' && row.status !== 'Cancelled' ? `<button class="btn btn-secondary mark-sold" type="button" data-id="${esc(row.id)}">MARK SOLD</button>` : ''}
+                    ${row.id && !delistRequired && row.status !== 'Sold' && row.status !== 'Cancelled' ? `<button class="btn btn-secondary mark-sold" type="button" data-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                     <span class="form-message channel-message" aria-live="polite"></span>
                   </div>
                 </form>
