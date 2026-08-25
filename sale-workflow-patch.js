@@ -1,14 +1,12 @@
-// GearCashOut sale workflow patch.
-// The next-step CTA is rendered into the stable #sale-workflow-next-step
-// container so admin-sale.js and admin-sale-consolidated.js cannot overwrite it.
-(async () => {
+// GearCashOut sale workflow UI.
+// This file owns the prominent next-step box on admin-sale.html.
+// It intentionally waits for DOMContentLoaded so auth.js/admin-sale.js are ready.
+document.addEventListener('DOMContentLoaded', async () => {
+  const container = document.getElementById('sale-workflow-next-step');
+  const message = document.getElementById('admin-sale-message');
   const auth = window.actionBuyerAuth;
-  if (!auth) return;
-  const session = await auth.getSession();
-  if (!session) return;
-
   const saleId = new URLSearchParams(location.search).get('id');
-  if (!saleId) return;
+  if (!container || !auth || !saleId) return;
 
   const esc = v => String(v ?? '')
     .replaceAll('&','&amp;')
@@ -17,113 +15,74 @@
     .replaceAll('"','&quot;')
     .replaceAll("'",'&#039;');
   const money = n => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(Number(n||0));
-  const message = document.getElementById('admin-sale-message');
-  const notice = (text, ok=true) => {
-    if(message){
-      message.textContent=text;
-      message.className=`form-message ${ok?'success':'error'}`;
-    }
+  const notice = text => `<div role="alert" class="sale-next-step-alert"><strong>NEXT STEP REQUIRED</strong><span>${esc(text)}</span></div>`;
+  const setMessage = (text, ok=true) => {
+    if (!message) return;
+    message.textContent=text;
+    message.className=`form-message ${ok?'success':'error'}`;
   };
 
-  const {data:sale,error:saleError}=await auth.supabase
-    .from('sales')
-    .select('*')
-    .eq('id',saleId)
-    .maybeSingle();
-  if(saleError || !sale) return;
+  try {
+    const session = await auth.getSession();
+    if (!session) return;
 
-  async function addCommunications() {
-    const box=document.getElementById('sale-details');
-    if(!box || box.querySelector('.customer-communications')) return false;
-
-    const {data:items}=await auth.supabase
-      .from('sale_items')
-      .select('quote_item_id,accepted_offer_id')
-      .eq('sale_id',saleId);
-    const offerIds=(items||[]).map(x=>x.accepted_offer_id).filter(Boolean);
-    let query=auth.supabase
-      .from('email_queue')
-      .select('event_type,subject,status,created_at,sent_at,offer_id')
-      .eq('user_id',sale.user_id)
-      .order('created_at',{ascending:false})
-      .limit(30);
-    if(offerIds.length) query=query.or(`offer_id.in.(${offerIds.join(',')}),offer_id.is.null`);
-    const {data:emails}=await query;
-    if(!emails?.length) return true;
-
-    const section=document.createElement('section');
-    section.className='account-panel customer-communications';
-    section.innerHTML=`<div class="section-heading"><p class="section-kicker">CUSTOMER COMMUNICATIONS</p><h2>Emails &amp; notifications</h2><p>A record of customer emails queued and sent for this sale.</p></div><div class="valuation-card"><div style="width:100%">${emails.map(e=>`<p style="margin:.7rem 0"><strong>${esc(e.subject||e.event_type||'Notification')}</strong> — ${esc(e.status||'queued')} — ${esc(new Date(e.sent_at||e.created_at).toLocaleString('en-GB'))}</p>`).join('')}</div></div>`;
-    box.appendChild(section);
-    return true;
-  }
-
-  async function getValuationId() {
-    const {data:items}=await auth.supabase
-      .from('sale_items')
-      .select('quote_item_id')
-      .eq('sale_id',saleId)
-      .order('created_at',{ascending:true});
-    const quoteItemId=items?.[0]?.quote_item_id;
-    if(!quoteItemId) return '';
-
-    const {data:item}=await auth.supabase
-      .from('quote_items')
-      .select('valuation_id')
-      .eq('id',quoteItemId)
+    const {data:sale,error:saleError}=await auth.supabase
+      .from('sales')
+      .select('*')
+      .eq('id',saleId)
       .maybeSingle();
-    return item?.valuation_id || '';
-  }
-
-  async function startInspection(button) {
-    button.disabled=true;
-    const {data,error}=await auth.supabase.rpc('staff_start_sale_inspection',{p_sale_id:saleId});
-    if(error || data?.error){
-      button.disabled=false;
-      notice(data?.error||error?.message||'Inspection could not be started.',false);
+    if (saleError || !sale) {
+      console.error('Sale workflow: could not load sale', saleError);
       return;
     }
-    notice('Inspection started. The sale is now ready for the final decision.');
-    setTimeout(()=>location.reload(),500);
-  }
 
-  async function confirmPayment(button, referenceInput) {
-    const reference=(referenceInput?.value||'').trim()||null;
-    if(!confirm('Confirm that the bank payment has been sent to the customer? This will mark the sale completed and create the inventory record.')) return;
-    button.disabled=true;
-    const {error}=await auth.supabase.rpc('staff_mark_sale_paid_and_create_inventory',{p_sale_id:saleId,p_payment_reference:reference});
-    if(error){
-      button.disabled=false;
-      notice(error.message||'Payment could not be confirmed.',false);
-      return;
+    const {data:shipments}=await auth.supabase
+      .from('shipments')
+      .select('shipment_type,status,delivered_at,shipped_at,tracking_number,created_at')
+      .eq('sale_id',saleId)
+      .order('created_at',{ascending:false});
+
+    const inbound=(shipments||[]).filter(s=>s.shipment_type==='inbound');
+    const delivered=inbound.some(s=>s.delivered_at || s.status==='delivered');
+    const status=String(sale.status||'').toLowerCase();
+
+    async function getValuationId(){
+      const {data:items}=await auth.supabase
+        .from('sale_items').select('quote_item_id').eq('sale_id',saleId).order('created_at',{ascending:true});
+      const quoteItemId=items?.[0]?.quote_item_id;
+      if(!quoteItemId) return '';
+      const {data:item}=await auth.supabase.from('quote_items').select('valuation_id').eq('id',quoteItemId).maybeSingle();
+      return item?.valuation_id||'';
     }
-    notice('Payment recorded. The customer will now see Payment received.');
-    setTimeout(()=>location.reload(),600);
-  }
 
-  document.addEventListener('click', event => {
-    const paymentButton=event.target.closest?.('#mark-payment-sent');
-    if(paymentButton){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      confirmPayment(paymentButton,document.getElementById('workflow-payment-reference'));
+    async function startInspection(button){
+      button.disabled=true;
+      const {data,error}=await auth.supabase.rpc('staff_start_sale_inspection',{p_sale_id:saleId});
+      if(error || data?.error){
+        button.disabled=false;
+        setMessage(data?.error||error?.message||'Inspection could not be started.',false);
+        return;
+      }
+      setMessage('Inspection started. The sale is now ready for the final decision.');
+      setTimeout(()=>location.reload(),500);
     }
-  }, true);
 
-  const requiredNotice = (text) => `
-    <div role="alert" style="margin:0 0 1rem;padding:1rem 1.15rem;background:#f7dede;border:2px solid #b94a48;border-left:7px solid #b94a48;color:#6d1f1d;border-radius:3px;">
-      <strong style="display:block;font-size:1rem;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.25rem;">NEXT STEP REQUIRED</strong>
-      <span>${text}</span>
-    </div>`;
+    async function confirmPayment(button,input){
+      const reference=(input?.value||'').trim()||null;
+      if(!confirm('Confirm that the bank payment has been sent to the customer?')) return;
+      button.disabled=true;
+      const {error}=await auth.supabase.rpc('staff_mark_sale_paid_and_create_inventory',{p_sale_id:saleId,p_payment_reference:reference});
+      if(error){button.disabled=false;setMessage(error.message||'Payment could not be confirmed.',false);return;}
+      setMessage('Payment recorded. The customer will now see Payment received.');
+      setTimeout(()=>location.reload(),600);
+    }
 
-  async function renderNextStep() {
-    const container=document.getElementById('sale-workflow-next-step');
-    if(!container) return;
-
-    if(sale.status==='received'){
+    // Received takes priority when the carrier says the item is delivered,
+    // even if an earlier status field was not advanced correctly.
+    if(status==='received' || delivered){
       container.innerHTML=`
-        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #d88732;">
-          ${requiredNotice('The item has been received. Start the inspection before taking any further action.')}
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #b94a48;">
+          ${notice('The item has been received. Start the inspection before taking any further action.')}
           <div class="section-heading">
             <p class="section-kicker">ITEM RECEIVED</p>
             <h2>Inspect the item</h2>
@@ -134,78 +93,60 @@
             <button id="start-inspection" class="btn btn-primary" type="button" style="font-size:1.05rem;padding:.9rem 1.25rem;">START INSPECTION</button>
           </div>
         </section>`;
-      document.getElementById('start-inspection')?.addEventListener('click',()=>startInspection(document.getElementById('start-inspection')));
+      document.getElementById('start-inspection')?.addEventListener('click',e=>startInspection(e.currentTarget));
       return;
     }
 
-    if(sale.status==='inspection'){
+    if(status==='inspection'){
       const valuationId=await getValuationId();
       container.innerHTML=`
-        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #d88732;">
-          ${requiredNotice('The item is under inspection. Complete the inspection, then send the final offer or refuse the item.')}
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #b94a48;">
+          ${notice('The item is under inspection. Complete the inspection, then send the final offer or refuse the item.')}
           <div class="section-heading">
             <p class="section-kicker">INSPECTION</p>
             <h2>Final offer or refuse item</h2>
-            <p>The sale is under inspection. Complete your checks, then use the quote controls to either send the final inspection offer or refuse the item.</p>
+            <p>Complete the physical checks and then use the final-offer controls. You should not have to search through the sale page to find the next action.</p>
           </div>
           <div class="valuation-card" style="display:grid;gap:.75rem;">
             <strong style="font-size:1.2rem;">NEXT ACTION</strong>
-            ${valuationId
-              ? `<a class="btn btn-primary" href="admin-quote.html?id=${encodeURIComponent(valuationId)}" style="font-size:1.05rem;padding:.9rem 1.25rem;text-align:center;">OPEN FINAL OFFER / REFUSE ITEM</a>`
-              : '<p>The original quote could not be located from this sale.</p>'}
+            ${valuationId ? `<a class="btn btn-primary" href="admin-quote.html?id=${encodeURIComponent(valuationId)}" style="font-size:1.05rem;padding:.9rem 1.25rem;text-align:center;">OPEN FINAL OFFER / REFUSE ITEM</a>` : '<p>The original quote could not be located from this sale.</p>'}
           </div>
         </section>`;
       return;
     }
 
-    if(sale.status==='payment_due'){
+    if(status==='payment_due'){
+      const bankReady=!!(sale.bank_details_confirmed_at || sale.bank_details_received_at);
       container.innerHTML=`
-        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
-          ${requiredNotice(sale.bank_details_confirmed_at ? 'Bank details have been received. Payment is now the next action.' : 'The final quote has been accepted. Wait for the customer to provide bank details before sending payment.')}
-          <div class="section-heading"><p class="section-kicker">PAYMENT</p><h2>Final quote accepted</h2><p>Bank details should now have been supplied by the customer before payment is sent.</p></div>
-          <div class="valuation-card"><div style="width:100%"><p><strong>Amount:</strong> ${money(sale.total_amount)}</p><p><strong>Bank details:</strong> ${sale.bank_details_confirmed_at?'Received':'Still waiting for customer'}</p>${sale.bank_details_confirmed_at?`<label>Bank transaction / payment reference <input id="workflow-payment-reference" type="text" maxlength="120" placeholder="Enter transaction number"></label><button id="workflow-payment-button" class="btn btn-primary" type="button">PAYMENT SENT TO CUSTOMER</button>`:'<p>Do not mark payment as sent until the customer has supplied bank details.</p>'}</div></div>
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #b94a48;">
+          ${notice(bankReady ? 'Bank details have been received. Payment is now the next action.' : 'The final quote has been accepted. Wait for the customer to provide bank details before sending payment.')}
+          <div class="section-heading"><p class="section-kicker">PAYMENT</p><h2>Final quote accepted</h2><p>Bank details must be supplied before payment is sent.</p></div>
+          <div class="valuation-card"><div style="width:100%"><p><strong>Amount:</strong> ${money(sale.total_amount)}</p><p><strong>Bank details:</strong> ${bankReady?'Received':'Still waiting for customer'}</p>${bankReady?`<label>Bank transaction / payment reference <input id="workflow-payment-reference" type="text" maxlength="120" placeholder="Enter transaction number"></label><button id="workflow-payment-button" class="btn btn-primary" type="button">PAYMENT SENT TO CUSTOMER</button>`:'<p>Do not mark payment as sent until the customer has supplied bank details.</p>'}</div></div>
         </section>`;
-      document.getElementById('workflow-payment-button')?.addEventListener('click',()=>confirmPayment(document.getElementById('workflow-payment-button'),document.getElementById('workflow-payment-reference')));
+      document.getElementById('workflow-payment-button')?.addEventListener('click',e=>confirmPayment(e.currentTarget,document.getElementById('workflow-payment-reference')));
       return;
     }
 
-    if(sale.status==='completed'){
+    if(status==='completed' || status==='paid'){
       container.innerHTML=`
-        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
-          ${requiredNotice('Payment has been completed. Check the inventory record and complete any remaining dispatch or return administration.')}
-          <div class="section-heading"><p class="section-kicker">COMPLETED</p><h2>Sale completed</h2><p>The payment workflow is complete and the inventory record has been created.</p></div>
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #b94a48;">
+          ${notice('Payment has been completed. Check the inventory record and complete any remaining administration.')}
+          <div class="section-heading"><p class="section-kicker">COMPLETED</p><h2>Sale completed</h2><p>The payment workflow is complete.</p></div>
         </section>`;
       return;
     }
 
-    // Keep the workflow visible for other known operational states instead of
-    // silently removing it. These states are informational until their existing
-    // sale controls move the sale to the next guarded stage.
-    if(['shipping','collecting_items','ready_for_shipping'].includes(sale.status)){
-      const labels={
-        shipping:'The item is currently in the shipping stage. Monitor the inbound shipment until it is delivered.',
-        collecting_items:'The customer is sending the item. Monitor the inbound shipment until it is delivered.',
-        ready_for_shipping:'The sale is ready for the inbound shipment. Continue the existing shipping process.'
-      };
+    if(['shipping','collecting_items','ready_for_shipping'].includes(status)){
       container.innerHTML=`
-        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
-          ${requiredNotice(labels[sale.status])}
-          <div class="section-heading"><p class="section-kicker">${esc(String(sale.status).replaceAll('_',' ').toUpperCase())}</p><h2>Awaiting item receipt</h2><p>When the item is delivered, the next required action will be to mark it received and begin inspection.</p></div>
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #b94a48;">
+          ${notice('Monitor the inbound shipment. When the item is delivered, mark it received and start the inspection.')}
+          <div class="section-heading"><p class="section-kicker">${esc(status.replaceAll('_',' ').toUpperCase())}</p><h2>Awaiting item receipt</h2><p>The next workflow stage is item receipt and inspection.</p></div>
         </section>`;
       return;
     }
 
     container.replaceChildren();
+  } catch(error) {
+    console.error('Sale workflow UI error',error);
   }
-
-  await renderNextStep();
-
-  const box=document.getElementById('sale-details');
-  if(box){
-    const communicationObserver=new MutationObserver(async () => {
-      if(await addCommunications()) communicationObserver.disconnect();
-    });
-    communicationObserver.observe(box,{childList:true,subtree:true});
-    await addCommunications();
-  }
-})();
+});
