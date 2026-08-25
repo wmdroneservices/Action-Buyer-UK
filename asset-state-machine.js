@@ -5,7 +5,7 @@
 
 const ASSET_STATES = Object.freeze([
   'Awaiting Receipt', 'Received', 'Inspection Required', 'Testing',
-  'Repair Required', 'Ready for Resale', 'Listed', 'Reserved', 'Sold',
+  'Repair Required', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Reserved', 'Sold', 'Returned',
   'Dispatched', 'Completed', 'Held', 'Written Off'
 ]);
 
@@ -15,13 +15,15 @@ const TRANSITIONS = Object.freeze({
   'Inspection Required': ['Testing', 'Repair Required', 'Held'],
   'Testing': ['Ready for Resale', 'Repair Required', 'Held'],
   'Repair Required': ['Testing', 'Held', 'Written Off'],
-  'Ready for Resale': ['Listed', 'Held'],
-  'Listed': ['Reserved', 'Sold', 'Held'],
-  'Reserved': ['Listed', 'Sold', 'Held'],
-  'Sold': ['Dispatched', 'Held'],
+  'Ready for Resale': ['Sent to Sales', 'Held'],
+  'Sent to Sales': ['Listed', 'Held'],
+  'Listed': ['Reserved', 'Sold', 'Sent to Sales', 'Held'],
+  'Reserved': ['Listed', 'Sold', 'Sent to Sales', 'Held'],
+  'Sold': ['Returned', 'Dispatched', 'Held'],
+  'Returned': [],
   'Dispatched': ['Completed', 'Held'],
   'Completed': [],
-  'Held': ['Awaiting Receipt', 'Received', 'Inspection Required', 'Testing', 'Repair Required', 'Ready for Resale', 'Listed', 'Written Off'],
+  'Held': ['Awaiting Receipt', 'Received', 'Inspection Required', 'Testing', 'Repair Required', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Written Off'],
   'Written Off': []
 });
 
@@ -44,7 +46,7 @@ function transitionAsset(asset, nextState, metadata = {}) {
 
 function getAllowedNextStates(state) { return isValidState(state) ? [...TRANSITIONS[state]] : []; }
 function getLifecycleProgress(state) {
-  const milestones = ['Received', 'Testing', 'Ready for Resale', 'Listed', 'Sold', 'Dispatched', 'Completed'];
+  const milestones = ['Received', 'Testing', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Sold', 'Returned', 'Dispatched', 'Completed'];
   if (state === 'Awaiting Receipt') return 0;
   const index = milestones.indexOf(state);
   return index < 0 ? null : Math.round(((index + 1) / milestones.length) * 100);
