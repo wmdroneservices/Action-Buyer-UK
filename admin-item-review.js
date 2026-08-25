@@ -12,11 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const { data: staff } = await auth.supabase
-    .from("staff_users")
-    .select("user_id")
-    .eq("user_id", session.user.id)
-    .maybeSingle();
+  const { data: staff } = await auth.supabase.from("staff_users").select("user_id").eq("user_id", session.user.id).maybeSingle();
   if (!staff) {
     box.innerHTML = "<p>You do not have permission to access item review.</p>";
     return;
@@ -73,17 +69,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     phone: q.phone || q.phoneNumber || "No phone recorded"
   };
 
-  // The authoritative photo paths for multi-item quotes are item-level. Legacy quote_data.itemPhotos is
-  // retained only as a backward-compatible fallback for older submissions created before quote_items existed.
   let rawPhotos = Array.isArray(data.photos) ? data.photos : [];
   if (!rawPhotos.length && Array.isArray(q.itemPhotos) && Array.isArray(q.itemPhotos[item.item_position - 1])) {
     rawPhotos = q.itemPhotos[item.item_position - 1];
   }
-  // Some older records retained the original item photo list in quoteBasket/quoteBasket item records.
   if (!rawPhotos.length && Array.isArray(q.quoteBasket) && q.quoteBasket[item.item_position - 1]?.photos) {
     rawPhotos = q.quoteBasket[item.item_position - 1].photos;
   }
   const photos = (await Promise.all(rawPhotos.map(photoUrl))).filter(Boolean);
+
+  const serialNumber = data.serialNumber || data.droneSerial || data.droneSerialNumber || "";
+  const missingItems = data.missingItems === true || data.missingItems === "yes";
+  const exceptionNotes = data.exceptionNotes || data.exceptionNotesText || "";
 
   const fields = [
     ["Equipment type", data.categoryName || data.category || item.item_type],
@@ -97,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ["Damage description", data.damageDescription],
     ["Unbound status", data.unbound],
     ["Legal right to sell", data.legalRight],
-    ["Drone serial", data.droneSerial],
+    ["Serial number", serialNumber],
     ["Drone serial status", data.droneSerialStatus],
     ["Controller serial", data.controllerSerial],
     ["Controller serial status", data.controllerSerialStatus],
@@ -113,15 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ? `<h3>Batteries</h3><ul>${batteries.map((battery, index) => `<li><strong>Battery ${index + 1}:</strong> ${esc(battery.type || "Unknown")} · ${esc(battery.cycles ?? "—")} cycles</li>`).join("")}</ul>`
     : `<h3>Batteries</h3><p>No battery information recorded.</p>`;
 
-  const contents = data.packageContents && typeof data.packageContents === "object" ? data.packageContents : {};
-  const contentsHtml = Object.keys(contents).length
-    ? `<h3>Package contents</h3><ul>${Object.entries(contents).map(([key, value]) => `<li><strong>${esc(pretty(key))}:</strong> ${esc(pretty(value))}</li>`).join("")}</ul>`
-    : `<h3>Package contents</h3><p>No package contents recorded.</p>`;
-
-  const accessories = Array.isArray(data.additionalAccessories) ? data.additionalAccessories : [];
-  const accessoriesHtml = accessories.length
-    ? `<h3>Additional accessories</h3><ul>${accessories.map(value => `<li>${esc(typeof value === "string" ? value : JSON.stringify(value))}</li>`).join("")}</ul>`
-    : `<h3>Additional accessories</h3><p>None recorded.</p>`;
+  const missingHtml = `<h3>Missing items / exceptions</h3><p><strong>Missing items:</strong> ${missingItems ? "Yes" : "No"}</p>${exceptionNotes ? `<p><strong>Customer notes:</strong> ${esc(exceptionNotes)}</p>` : "<p>No additional exception notes supplied.</p>"}`;
 
   const photosHtml = photos.length
     ? `<h3>Photographs (${photos.length})</h3><div class="admin-photo-grid item-photo-grid">${photos.map((url, index) => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${esc(item.item_name || "Item")} photograph ${index + 1}" loading="lazy"></a>`).join("")}</div>`
@@ -138,8 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     </div>
     ${fieldHtml}
     ${batteryHtml}
-    ${contentsHtml}
-    ${accessoriesHtml}
+    ${missingHtml}
     ${photosHtml}
   </div>`;
 
