@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Data Reset | GearCashOut</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-test-reset.js?v=20260825-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list"><li><a href="admin-purchasing.html">PURCHASING</a></li><li><a href="admin-sales-dashboard.html">SALES</a></li><li><a href="admin-customers.html">CUSTOMERS</a></li><li><a href="inventory-finance.html">PROFIT &amp; LOSS</a></li></ul></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">STAFF TOOLS</p><h1>Test Data Reset</h1><p>Development and testing only.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a></div>
+<section class="account-panel test-reset-panel">
+<div class="section-heading"><p class="section-kicker">DANGER ZONE</p><h2>Reset Test Data</h2><p>This permanently removes test quote workflow data, including test valuations, quote items, offers, offer events, refusals, queued quote emails, test sales records and quote photographs. Customer accounts, staff accounts, catalogue products, pricing and retailer data are not deleted.</p></div>
+<button id="test-reset-button" class="btn btn-danger" type="button">RESET ALL TEST DATA</button>
+<div id="test-reset-message" class="form-message" role="status" aria-live="polite"></div>
+</section>
+</div></main><footer class="footer"><div class="container"><strong>GEARCASHOUT STAFF</strong><br>Test Data Reset — development and testing only.</div></footer>
+</body></html>
