@@ -19,30 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const money = v => Number(v || 0).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
   const categories = ['Repair','Parts','Accessories','Cleaning','Packaging','Listing','Shipping','Other'];
 
-  function lockStaffCondition() {
+  function unlockStaffCondition() {
     const form = root.querySelector('#asset-edit-form');
     if (!form) return;
     const select = form.querySelector('select[name="condition_grade"]');
     if (!select) return;
-    const value = select.value || '';
-    select.disabled = true;
-    select.title = 'Staff condition is recorded by the inspection workflow and cannot be edited here.';
-    let hidden = form.querySelector('input[data-locked-staff-condition]');
-    if (!hidden) {
-      hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'condition_grade';
-      hidden.dataset.lockedStaffCondition = 'true';
-      select.insertAdjacentElement('afterend', hidden);
-    }
-    hidden.value = value;
-    const label = select.closest('label');
-    if (label && !label.querySelector('.condition-lock-note')) {
-      const note = document.createElement('small');
-      note.className = 'condition-lock-note';
-      note.textContent = 'Recorded by staff during inspection. Edit it from the inspection record.';
-      label.appendChild(note);
-    }
+    select.disabled = false;
+    select.title = 'Staff condition recorded during inspection. Staff can update it here.';
+    const hidden = form.querySelector('input[data-locked-staff-condition]');
+    if (hidden) hidden.remove();
+    const note = select.closest('label')?.querySelector('.condition-lock-note');
+    if (note) note.remove();
   }
 
   async function load() {
@@ -106,19 +93,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn btn-secondary" type="submit">ADD COST</button>
           <p id="inventory-expense-message" class="form-message" aria-live="polite"></p>
         </form>
-      </div>
-
-      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
-        <a class="btn btn-secondary" href="inventory-sales.html?asset=${encodeURIComponent(id)}">VIEW SALES CHANNELS</a>
-        <a class="btn btn-secondary" href="inventory-finance.html">VIEW PROFIT &amp; LOSS</a>
-        <a class="btn btn-secondary" href="sold-items.html">SOLD ITEMS</a>
       </div>`;
 
     const editForm = root.querySelector('#asset-edit-form');
     if (editForm) editForm.parentElement.insertAdjacentElement('afterend', panel);
     else root.prepend(panel);
 
-    lockStaffCondition();
+    unlockStaffCondition();
 
     panel.querySelector('#inventory-completeness-form').addEventListener('submit', async event => {
       event.preventDefault();
@@ -170,10 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let timer;
   const observer = new MutationObserver(() => {
-    lockStaffCondition();
+    unlockStaffCondition();
     clearTimeout(timer);
     timer = setTimeout(load, 80);
   });
   observer.observe(root, { childList: true, subtree: true });
-  setTimeout(() => { lockStaffCondition(); load(); }, 200);
+  setTimeout(() => { unlockStaffCondition(); load(); }, 200);
 });
