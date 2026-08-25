@@ -101,8 +101,6 @@
     setTimeout(()=>location.reload(),600);
   }
 
-  // Keep the existing payment action safe: this intercepts the legacy button
-  // rendered by admin-sale.js without changing the payment workflow itself.
   document.addEventListener('click', event => {
     const paymentButton=event.target.closest?.('#mark-payment-sent');
     if(paymentButton){
@@ -112,6 +110,12 @@
     }
   }, true);
 
+  const requiredNotice = (text) => `
+    <div role="alert" style="margin:0 0 1rem;padding:1rem 1.15rem;background:#f7dede;border:2px solid #b94a48;border-left:7px solid #b94a48;color:#6d1f1d;border-radius:3px;">
+      <strong style="display:block;font-size:1rem;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.25rem;">NEXT STEP REQUIRED</strong>
+      <span>${text}</span>
+    </div>`;
+
   async function renderNextStep() {
     const container=document.getElementById('sale-workflow-next-step');
     if(!container) return;
@@ -119,6 +123,7 @@
     if(sale.status==='received'){
       container.innerHTML=`
         <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #d88732;">
+          ${requiredNotice('The item has been received. Start the inspection before taking any further action.')}
           <div class="section-heading">
             <p class="section-kicker">ITEM RECEIVED</p>
             <h2>Inspect the item</h2>
@@ -137,6 +142,7 @@
       const valuationId=await getValuationId();
       container.innerHTML=`
         <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;border:3px solid #d88732;">
+          ${requiredNotice('The item is under inspection. Complete the inspection, then send the final offer or refuse the item.')}
           <div class="section-heading">
             <p class="section-kicker">INSPECTION</p>
             <h2>Final offer or refuse item</h2>
@@ -155,6 +161,7 @@
     if(sale.status==='payment_due'){
       container.innerHTML=`
         <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
+          ${requiredNotice(sale.bank_details_confirmed_at ? 'Bank details have been received. Payment is now the next action.' : 'The final quote has been accepted. Wait for the customer to provide bank details before sending payment.')}
           <div class="section-heading"><p class="section-kicker">PAYMENT</p><h2>Final quote accepted</h2><p>Bank details should now have been supplied by the customer before payment is sent.</p></div>
           <div class="valuation-card"><div style="width:100%"><p><strong>Amount:</strong> ${money(sale.total_amount)}</p><p><strong>Bank details:</strong> ${sale.bank_details_confirmed_at?'Received':'Still waiting for customer'}</p>${sale.bank_details_confirmed_at?`<label>Bank transaction / payment reference <input id="workflow-payment-reference" type="text" maxlength="120" placeholder="Enter transaction number"></label><button id="workflow-payment-button" class="btn btn-primary" type="button">PAYMENT SENT TO CUSTOMER</button>`:'<p>Do not mark payment as sent until the customer has supplied bank details.</p>'}</div></div>
         </section>`;
@@ -162,14 +169,37 @@
       return;
     }
 
-    // No extra CTA is needed for later completed/returned states.
+    if(sale.status==='completed'){
+      container.innerHTML=`
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
+          ${requiredNotice('Payment has been completed. Check the inventory record and complete any remaining dispatch or return administration.')}
+          <div class="section-heading"><p class="section-kicker">COMPLETED</p><h2>Sale completed</h2><p>The payment workflow is complete and the inventory record has been created.</p></div>
+        </section>`;
+      return;
+    }
+
+    // Keep the workflow visible for other known operational states instead of
+    // silently removing it. These states are informational until their existing
+    // sale controls move the sale to the next guarded stage.
+    if(['shipping','collecting_items','ready_for_shipping'].includes(sale.status)){
+      const labels={
+        shipping:'The item is currently in the shipping stage. Monitor the inbound shipment until it is delivered.',
+        collecting_items:'The customer is sending the item. Monitor the inbound shipment until it is delivered.',
+        ready_for_shipping:'The sale is ready for the inbound shipment. Continue the existing shipping process.'
+      };
+      container.innerHTML=`
+        <section class="account-panel workflow-next-step" style="margin:0 0 1.25rem;">
+          ${requiredNotice(labels[sale.status])}
+          <div class="section-heading"><p class="section-kicker">${esc(String(sale.status).replaceAll('_',' ').toUpperCase())}</p><h2>Awaiting item receipt</h2><p>When the item is delivered, the next required action will be to mark it received and begin inspection.</p></div>
+        </section>`;
+      return;
+    }
+
     container.replaceChildren();
   }
 
   await renderNextStep();
 
-  // Communications belong to the detailed sale record, which is rendered by
-  // admin-sale.js. Wait for that render without allowing it to affect the CTA.
   const box=document.getElementById('sale-details');
   if(box){
     const communicationObserver=new MutationObserver(async () => {
