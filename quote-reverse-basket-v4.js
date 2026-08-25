@@ -281,6 +281,7 @@ console.log("Catalogue loaded:", catalog.length, catalog.slice(0,5));
 
   form.querySelectorAll('input[name="condition"]').forEach(input => {
     input.addEventListener("change", function () {
+      item.condition = this.value;
       if (isFactorySealed()) {
         form.querySelectorAll('input[name="missingItems"]').forEach(control => control.checked = false);
         el("exception-notes").value = "";
