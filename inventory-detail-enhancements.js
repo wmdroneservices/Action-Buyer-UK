@@ -18,11 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const labelCondition = v => conditions[String(v || '').toLowerCase()] || v || 'Not recorded';
 
   async function load() {
+    if (document.getElementById('inventory-comparison-panel')) return;
     const db = auth.supabase;
     const { data: asset, error } = await db.from('inventory_assets').select('*').eq('id', id).single();
     if (error || !asset) return;
-    const existing = document.getElementById('inventory-comparison-panel');
-    if (existing) existing.remove();
 
     const panel = document.createElement('div');
     panel.id = 'inventory-comparison-panel';
