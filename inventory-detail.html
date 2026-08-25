@@ -2,4 +2,24 @@
 <html lang="en-GB"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Asset Details | GearCashOut</title><link rel="stylesheet" href="style.css"></head>
 <body><header class="header"><div class="container header-container"><a class="logo" href="inventory.html">GEARCASHOUT</a></div></header>
 <main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF INVENTORY</p><h1>Asset Details</h1><p>Individual equipment record.</p></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="inventory.html">INVENTORY</a><a class="btn btn-secondary" href="inventory-sales.html">SALES CHANNELS</a><a class="btn btn-secondary" href="sold-items.html">SOLD ITEMS</a><a class="btn btn-secondary" href="returns.html">RETURNS</a><a class="btn btn-secondary" href="inventory-finance.html">PROFIT &amp; LOSS</a></div></div><div id="asset-detail" class="account-panel">Loading asset...</div></div></main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260825-8"></script><script src="asset-state-machine.js?v=20260825-8"></script><script src="asset-state-actions.js?v=20260825-8"></script><script src="inventory-detail.js?v=20260825-8"></script><script src="inventory-detail-enhancements.js?v=20260825-3"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260825-8"></script><script src="asset-state-machine.js?v=20260825-8"></script><script src="asset-state-actions.js?v=20260825-8"></script><script src="inventory-detail.js?v=20260825-8"></script><script src="inventory-detail-enhancements.js?v=20260825-3"></script><script>
+// Staff condition is editable; customer condition remains a locked purchase record.
+(function(){
+  function unlockStaffCondition(){
+    const form=document.getElementById('asset-edit-form');
+    if(!form)return;
+    const select=form.querySelector('select[name="condition_grade"]');
+    if(!select)return;
+    select.disabled=false;
+    select.title='Staff condition recorded during inspection. Staff can update it here.';
+    const hidden=form.querySelector('input[data-locked-staff-condition]');
+    if(hidden)hidden.remove();
+    const note=select.closest('label')?.querySelector('.condition-lock-note');
+    if(note)note.remove();
+  }
+  const root=document.getElementById('asset-detail');
+  if(root){new MutationObserver(unlockStaffCondition).observe(root,{childList:true,subtree:true});}
+  document.addEventListener('DOMContentLoaded',unlockStaffCondition);
+  setInterval(unlockStaffCondition,250);
+})();
+</script></body></html>
