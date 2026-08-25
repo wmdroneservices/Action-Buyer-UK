@@ -18,12 +18,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
   const machineScript = document.createElement("script");
-  machineScript.src = "asset-state-machine.js";
+  machineScript.src = "asset-state-machine.js?v=20260825-1";
   document.head.appendChild(machineScript);
   await new Promise(resolve => machineScript.addEventListener("load", resolve, { once: true }));
 
   const actionScript = document.createElement("script");
-  actionScript.src = "asset-state-actions.js";
+  actionScript.src = "asset-state-actions.js?v=20260825-1";
   document.head.appendChild(actionScript);
   await new Promise(resolve => actionScript.addEventListener("load", resolve, { once: true }));
 
