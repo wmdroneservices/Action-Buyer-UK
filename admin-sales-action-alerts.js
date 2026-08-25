@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const refs = cards.map(c => c.querySelector(".valuation-ref")?.textContent?.trim()).filter(Boolean);
       if (!refs.length) return;
 
-      const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,bank_details_confirmed_at,total_amount").in("sale_reference", refs);
+      const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,bank_details_confirmed_at,bank_account_name,bank_sort_code,bank_account_number,total_amount").in("sale_reference", refs);
       if (!sales?.length) return;
       const saleIds = sales.map(s => s.id);
       const { data: saleItems } = await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("sale_id", saleIds);
@@ -48,8 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const hasRefusal = refusedBySale.has(sale.id);
         let title = "", text = "", tone = "wait";
 
-        // The sale status is authoritative once the item has been received.
-        // A delivered shipment must not override a later payment/return state.
         if (status === "payment_due" && !sale.bank_details_confirmed_at) {
           tone="urgent";
           title="AWAITING CUSTOMER BANK DETAILS";
@@ -72,12 +70,12 @@ document.addEventListener("DOMContentLoaded", () => {
           title="NO ACTION REQUIRED";
           text="This sale has been completed or cancelled.";
         } else if (shipmentStatus === "in_transit") {
-          title = "CUSTOMER HAS POSTED ITEM";
-          text = "The item is in transit to GearCashOut. Await delivery.";
+          title="CUSTOMER HAS POSTED ITEM";
+          text="The item is in transit to GearCashOut. Await delivery.";
         } else if (shipmentStatus === "delivered") {
-          tone = "urgent";
-          title = "ITEM DELIVERED — ACTION REQUIRED";
-          text = "The customer's item has been delivered. Receive and inspect the item.";
+          tone="urgent";
+          title="ITEM DELIVERED — ACTION REQUIRED";
+          text="The customer's item has been delivered. Receive and inspect the item.";
         } else if (["collecting_items", "ready_for_shipping", "shipping"].includes(status)) {
           const inboundText = card.textContent.includes("CUSTOMER → US") && card.textContent.includes("label_created");
           if (!inboundText) {
@@ -98,8 +96,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const styles=tone==="urgent"?"border-left:5px solid #c94b2c;background:#fff3ee;color:#8f321f;":"border-left:5px solid #d88732;background:#fffaf2;color:#68451f;";
+        const bankBlock = status === "payment_due" && sale.bank_details_confirmed_at
+          ? `<div style="margin-top:.7rem;padding:.7rem .8rem;background:#fff;border:1px solid #e0cfc8;border-radius:4px;"><strong>BANK DETAILS CONFIRMED</strong><div style="margin-top:.35rem;line-height:1.55;">Account name: ${esc(sale.bank_account_name)}<br>Sort code: ${esc(sale.bank_sort_code)}<br>Account number: ${esc(sale.bank_account_number)}</div></div>`
+          : "";
         const el=document.createElement("div"); el.className="sale-next-action"; el.style.cssText=`margin:.9rem 0;padding:12px 14px;border-radius:4px;${styles}`;
-        el.innerHTML=`<strong style="display:block;font-size:.8rem;letter-spacing:.08em;">${esc(title)}</strong><span style="display:block;margin-top:.25rem;font-weight:600;">${esc(text)}</span>${tone==="urgent"?`<a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(sale.id)}" style="margin-top:.6rem;">VIEW SALE &amp; ACTION</a>`:""}`;
+        el.innerHTML=`<strong style="display:block;font-size:.8rem;letter-spacing:.08em;">${esc(title)}</strong><span style="display:block;margin-top:.25rem;font-weight:600;">${esc(text)}</span>${bankBlock}${tone==="urgent"?`<a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(sale.id)}" style="margin-top:.6rem;">VIEW SALE &amp; ACTION</a>`:""}`;
         card.querySelector(".valuation-meta")?.prepend(el);
       });
     } finally { loading=false; }
