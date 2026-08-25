@@ -15,9 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
   const money = v => v === null || v === undefined || v === '' ? 'Not set' : Number(v).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
   const channels = ['eBay','Facebook Marketplace','Vinted','Amazon','Website','Marketplace','Central','Other'];
-  const statuses = ['Draft','Ready For Listing','Published','Reserved','Sold','Cancelled','Delist Required'];
   const statusLabel = status => ({Draft:'DRAFT', 'Ready For Listing':'READY TO UPLOAD', Published:'LIVE', Reserved:'RESERVED', Sold:'SOLD', Cancelled:'CANCELLED', 'Delist Required':'DELIST REQUIRED'}[status] || status || 'NOT STARTED');
-  const statusClass = status => ({Draft:'info', 'Ready For Listing':'action', Published:'success', Reserved:'success', Sold:'success', Cancelled:'muted', 'Delist Required':'warning'}[status] || 'muted');
 
   const load = async () => {
     box.innerHTML = '<p>Loading sales workbench…</p>';
@@ -38,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       asset.final_package_contents ? `Package contents: ${asset.final_package_contents}` : '',
       asset.actual_battery_count != null ? `Batteries included: ${asset.actual_battery_count}` : ''
     ].filter(Boolean).join('\n\n');
-    const liveCount = rows.filter(x => ['Published','Reserved'].includes(x.status)).length;
+    const liveCount = rows.filter(x => x.status === 'Published').length;
     const readyCount = rows.filter(x => x.status === 'Ready For Listing').length;
     const draftCount = rows.filter(x => x.status === 'Draft').length;
 
@@ -55,10 +53,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <a class="btn btn-secondary" href="inventory-detail.html?id=${encodeURIComponent(id)}">PRODUCT WORKBENCH</a>
           </div>
         </div>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
-          <div class="notice"><strong>${draftCount}</strong><br>DRAFT</div>
-          <div class="notice"><strong>${readyCount}</strong><br>READY TO UPLOAD</div>
-          <div class="notice"><strong>${liveCount}</strong><br>LIVE / RESERVED</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:.85rem;flex-wrap:wrap;margin-top:1.25rem">
+          <div style="background:#f3f1ec;border:1px solid #d8d5ce;border-radius:8px;padding:1rem 1.15rem;text-align:center;box-shadow:0 2px 6px rgba(16,47,79,.06)"><strong style="display:block;font-size:1.65rem;line-height:1.1;color:#102f4f">${draftCount}</strong><span style="display:block;margin-top:.35rem;font-size:.75rem;font-weight:800;letter-spacing:.12em;color:#5d6570">DRAFT</span></div>
+          <div style="background:#fff4df;border:2px solid #e6a23c;border-radius:8px;padding:1rem 1.15rem;text-align:center;box-shadow:0 4px 12px rgba(216,135,50,.18)"><strong style="display:block;font-size:1.65rem;line-height:1.1;color:#b86f27">${readyCount}</strong><span style="display:block;margin-top:.35rem;font-size:.75rem;font-weight:900;letter-spacing:.12em;color:#a65f16">READY TO UPLOAD</span></div>
+          <div style="background:#eaf7ef;border:2px solid #36a269;border-radius:8px;padding:1rem 1.15rem;text-align:center;box-shadow:0 4px 12px rgba(54,162,105,.15)"><strong style="display:block;font-size:1.65rem;line-height:1.1;color:#287b50">${liveCount}</strong><span style="display:block;margin-top:.35rem;font-size:.75rem;font-weight:900;letter-spacing:.12em;color:#287b50">LIVE</span></div>
         </div>
       </section>
 
@@ -81,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <section class="valuation-card" style="margin-top:1rem">
         <h2>Sales channels</h2>
-        <p>Each channel is a separate block. Create a draft, edit it, mark it <strong>Ready to Upload</strong>, then add the live link after publishing.</p>
+        <p>Each channel is a separate block. Save a draft, mark it <strong>Ready to Upload</strong>, publish it on the marketplace, paste the live listing link, then mark it <strong>Uploaded / Live</strong>.</p>
         <div style="display:grid;gap:1rem;margin-top:1rem">
           ${channels.map(channel => {
             const row = map.get(channel) || {};
@@ -89,11 +87,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const description = row.listing_description || descriptionDefault;
             const isNew = !row.id;
             const readyFields = Boolean(title.trim()) && Boolean(description.trim()) && row.asking_price !== null && row.asking_price !== undefined && row.asking_price !== '';
+            const isReady = row.status === 'Ready For Listing';
             return `
-              <article class="sales-channel-block" style="border:1px solid #d7dce2;border-radius:10px;padding:1rem;background:#fff">
+              <article class="sales-channel-block" style="border:1px solid #d7dce2;border-radius:10px;padding:1rem;background:#fff;box-shadow:0 2px 7px rgba(16,47,79,.05)">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
                   <div><h3 style="margin:0">${esc(channel)}</h3><small>${isNew ? 'Not started' : 'Listing saved'}</small></div>
-                  <span class="notice" style="padding:.35rem .65rem"><strong>${esc(statusLabel(row.status))}</strong></span>
+                  <span style="display:inline-block;padding:.42rem .75rem;border-radius:999px;background:${row.status === 'Published' ? '#eaf7ef' : isReady ? '#fff4df' : '#eef2f5'};color:${row.status === 'Published' ? '#287b50' : isReady ? '#a65f16' : '#102f4f'};font-size:.78rem;font-weight:900;letter-spacing:.04em"><strong>${esc(statusLabel(row.status))}</strong></span>
                 </div>
                 <form class="channel-form" data-id="${esc(row.id || '')}" data-channel="${esc(channel)}">
                   <div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(130px,.45fr) minmax(130px,.45fr);gap:.75rem">
@@ -106,9 +105,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label>Marketplace listing reference<input name="listing_reference" value="${esc(row.listing_reference || '')}" placeholder="Optional item/listing ID"></label>
                     <label>Live listing link<input name="listing_url" type="url" value="${esc(row.listing_url || '')}" placeholder="Add after the listing is published"></label>
                   </div>
-                  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.75rem">
+                  <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.85rem">
                     <button class="btn btn-primary" type="submit">${isNew ? 'SAVE DRAFT' : 'SAVE CHANGES'}</button>
-                    ${row.id && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
+                    ${row.id && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
+                    ${isReady ? `<button class="btn btn-secondary publish-button" type="button" data-id="${esc(row.id)}" style="background:#2d9a62;color:#fff;font-weight:900;box-shadow:0 3px 9px rgba(45,154,98,.24)" ${row.listing_url ? '' : 'disabled title="Paste the live marketplace listing link first"'}>MARK AS UPLOADED / LIVE</button>` : ''}
                     ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LIVE LISTING</a>` : ''}
                     ${row.id && row.status !== 'Sold' && row.status !== 'Cancelled' ? `<button class="btn btn-secondary mark-sold" type="button" data-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                     <span class="form-message channel-message" aria-live="polite"></span>
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const message = box.querySelector('#master-message');
       button.disabled = true;
       const fd = new FormData(form);
-      const { error } = await db.from('inventory_assets').update({ description: String(fd.get('description') || '').trim() || null, updated_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await db.from('inventory_assets').update({ listing_title: String(fd.get('title') || '').trim() || null, description: String(fd.get('description') || '').trim() || null, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) { message.textContent = error.message; message.className = 'form-message error'; button.disabled = false; return; }
       message.textContent = 'Sales information saved.';
       message.className = 'form-message success';
@@ -177,6 +177,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { error } = await db.from('resale_listings').update({ status: 'Ready For Listing', updated_at: new Date().toISOString() }).eq('id', button.dataset.id);
       if (error) { message.textContent = error.message; message.className = 'form-message error'; button.disabled = false; return; }
       message.textContent = 'Marked ready to upload.';
+      message.className = 'form-message success';
+      setTimeout(load, 350);
+    }));
+
+    box.querySelectorAll('.publish-button').forEach(button => button.addEventListener('click', async () => {
+      const listingUrl = button.closest('.channel-form')?.querySelector('input[name="listing_url"]')?.value.trim();
+      if (!listingUrl) {
+        const message = button.parentElement.querySelector('.channel-message');
+        message.textContent = 'Paste the live marketplace listing link before marking this listing as uploaded.';
+        message.className = 'form-message error';
+        return;
+      }
+      button.disabled = true;
+      const message = button.parentElement.querySelector('.channel-message');
+      const { error } = await db.from('resale_listings').update({ status: 'Published', listing_url: listingUrl, updated_at: new Date().toISOString() }).eq('id', button.dataset.id);
+      if (error) { message.textContent = error.message; message.className = 'form-message error'; button.disabled = false; return; }
+      message.textContent = 'Listing marked as uploaded and live.';
       message.className = 'form-message success';
       setTimeout(load, 350);
     }));
