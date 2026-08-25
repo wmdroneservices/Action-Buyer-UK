@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </form>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
         <a class="btn btn-primary" href="listing-readiness.html?id=${encodeURIComponent(id)}">SEND / MANAGE SALES CHANNELS</a>
-        <a class="btn btn-secondary" href="sales-channels.html?asset=${encodeURIComponent(id)}">VIEW SALES CHANNELS</a>
+        <a class="btn btn-secondary" href="inventory-sales.html?asset=${encodeURIComponent(id)}">VIEW SALES CHANNELS</a>
       </div>`;
 
     const editForm = root.querySelector('#asset-edit-form');
