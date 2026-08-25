@@ -1,6 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const box = document.getElementById("sale-details");
-  if (!box) return;
+  const auth = window.actionBuyerAuth;
+  const saleId = new URLSearchParams(window.location.search).get("id");
+  if (!box || !auth || !saleId) return;
 
   const pretty = value => String(value ?? "")
     .replaceAll("_", " ")
@@ -12,6 +14,24 @@ document.addEventListener("DOMContentLoaded", () => {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
+  let items = [];
+  try {
+    const { data: saleItems } = await auth.supabase
+      .from("sale_items")
+      .select("quote_item_id")
+      .eq("sale_id", saleId)
+      .order("created_at", { ascending: true });
+    const ids = (saleItems || []).map(row => row.quote_item_id).filter(Boolean);
+    if (ids.length) {
+      const { data } = await auth.supabase
+        .from("quote_items")
+        .select("id,item_status,item_data")
+        .in("id", ids)
+        .order("created_at", { ascending: true });
+      items = data || [];
+    }
+  } catch (_) {}
 
   let enhanced = false;
 
@@ -72,15 +92,12 @@ document.addEventListener("DOMContentLoaded", () => {
       details.appendChild(content);
       wrapper.appendChild(details);
 
-      if (/original quote/i.test(label)) {
-        const itemId = Number(section.dataset.itemIndex || index);
-        const items = window.__gearCashOutSaleItems || [];
-        addInspectionEvidence(section, items[itemId] || items[0]);
-      }
+      if (/original quote/i.test(label)) addInspectionEvidence(section, items[index] || items[0]);
     });
 
     box.replaceChildren(wrapper);
     box.querySelectorAll('a[href*="admin-quote.html"]').forEach(link => link.remove());
+    box.querySelectorAll('a[href*="admin-item-review.html"]').forEach(link => link.remove());
     return true;
   }
 
