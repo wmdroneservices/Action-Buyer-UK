@@ -19,6 +19,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
   const machine = window.AssetStateMachine;
 
+  let sourceItem = null;
+  if (asset.source_quote_item_id) {
+    const { data } = await auth.supabase.from("quote_items")
+      .select("id,item_name,manufacturer,model,package,item_data")
+      .eq("id", asset.source_quote_item_id)
+      .maybeSingle();
+    sourceItem = data || null;
+  }
+
+  const sourceData = sourceItem?.item_data && typeof sourceItem.item_data === "object" ? sourceItem.item_data : {};
+  const customerCondition = asset.condition_grade || sourceData.condition || sourceData.singleItem?.condition || "";
+  const conditionLabels = {
+    "factory-sealed": "Factory Sealed / Unopened",
+    "opened-unused": "Opened but Unused",
+    excellent: "Excellent",
+    good: "Good",
+    fair: "Fair",
+    damaged: "Damaged",
+    "not-working": "Not Working / Spares Only"
+  };
+  const displayCondition = conditionLabels[String(customerCondition).toLowerCase()] || customerCondition || "Not recorded";
+  const missingItems = sourceData.missingItems === true || sourceData.missingItems === "true";
+  const damageReported = sourceData.damage === true || sourceData.damage === "true";
+  const exceptionNotes = String(sourceData.exceptionNotes || "").trim();
+
   async function loadModuleRecords() {
     const [testing, preparation] = await Promise.all([
       auth.supabase.from("inventory_testing").select("*").eq("asset_id", id).order("created_at", { ascending: false }),
@@ -50,14 +75,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         <p class="section-kicker">${esc(currentAsset.status || "Awaiting Receipt")}</p>
         <h2>${esc([currentAsset.manufacturer, currentAsset.model].filter(Boolean).join(" "))}</h2>
         <p>Asset reference: ${esc(currentAsset.asset_reference)}</p>
-        <p>Serial number: ${esc(currentAsset.serial_number || "Not recorded")}</p>
-        <p>Package: ${esc(currentAsset.package_name || "Not recorded")}</p>
+        <p>Serial number: ${esc(currentAsset.serial_number || sourceData.serialNumber || "Not recorded")}</p>
+        <p>Package: ${esc(currentAsset.package_name || sourceItem?.package || "Not recorded")}</p>
         <hr>
         <p><strong>Purchase price:</strong> ${money(currentAsset.purchase_price)}</p>
-        <p><strong>Description:</strong> ${esc(currentAsset.description || currentAsset.model || "Not recorded")}</p>
-        <p><strong>Condition:</strong> ${esc(currentAsset.condition_grade || "Not recorded")}</p>
+        <p><strong>Description:</strong> ${esc(currentAsset.description || sourceItem?.item_name || currentAsset.model || "Not recorded")}</p>
+        <p><strong>Condition:</strong> ${esc(displayCondition)}</p>
         <p><strong>Current location:</strong> ${esc(currentAsset.current_location || "Not recorded")}</p>
         <p><strong>Notes:</strong> ${esc(currentAsset.notes || "No notes")}</p>
+      </div>
+      <div class="valuation-card" style="margin-top:1rem">
+        <h3>Customer valuation details</h3>
+        <p><strong>Condition selected by customer:</strong> ${esc(displayCondition)}</p>
+        <p><strong>Missing items:</strong> ${missingItems ? "Yes" : "No"}</p>
+        <p><strong>Damage reported:</strong> ${damageReported ? "Yes" : "No"}</p>
+        <p><strong>Packaging / exception notes:</strong> ${esc(exceptionNotes || "None recorded")}</p>
+        <p><strong>Customer serial number:</strong> ${esc(sourceData.serialNumber || "Not recorded")}</p>
       </div>
       <div class="valuation-card" style="margin-top:1rem">
         <h3>Asset Lifecycle</h3>
