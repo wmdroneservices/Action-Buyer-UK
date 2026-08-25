@@ -3,14 +3,14 @@
 /**
  * Browser adapter for the central asset state machine.
  * Requires asset-state-machine.js to be loaded first and a Supabase client
- * available as window.supabaseClient or window.supabase.
+ * available as window.supabaseClient, window.supabase, or actionBuyerAuth.supabase.
  */
 (function () {
   const machine = window.AssetStateMachine;
   if (!machine) return;
 
   function client() {
-    return window.supabaseClient || window.supabase;
+    return window.supabaseClient || window.supabase || window.actionBuyerAuth?.supabase;
   }
 
   async function getAsset(assetId) {
