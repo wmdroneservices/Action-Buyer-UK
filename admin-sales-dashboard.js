@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const rows=assets||[];
     const count=s=>rows.filter(a=>a.status===s).length;
     const inventoryRows=rows.filter(a=>inventoryStates.includes(a.status));
-    const salesRows=rows.filter(a=>salesStates.includes(a.status));
     const inventoryCount=inventoryRows.length;
     const sent=count("Sent to Sales");
     const listed=count("Listed");
@@ -38,10 +37,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("sold-count").textContent=sold;
     document.getElementById("returned-count").textContent=returned;
 
-    const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,status");
+    const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,asset_id,status,sales_channel,listing_url");
     if(le){notice("Could not load sales listing counts.",false);return;}
     const listingRows=listings||[];
-    const delistWarnings=listingRows.filter(x=>x.status==="Delist Required").length;
+    const delistWarnings=listingRows.filter(x=>x.status==="Delist Required");
+    const delistCount=delistWarnings.length;
+    const urgent=document.getElementById("urgent-delist-actions");
+    if(urgent){
+      urgent.innerHTML=delistCount
+        ? `<div style="border:3px solid #b42318;background:#fff1f1;border-radius:10px;padding:1rem 1.1rem;box-shadow:0 5px 16px rgba(180,35,24,.14)"><div style="font-size:.78rem;font-weight:900;letter-spacing:.12em;color:#b42318">URGENT SALES ACTION</div><div style="font-size:1.25rem;font-weight:900;color:#7f1d1d;margin:.25rem 0">${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} MUST BE CLOSED</div><p style="margin:.25rem 0 .8rem;color:#5f1b18">A product has sold through another channel. Close the remaining marketplace listing${delistCount===1?"":"s"} immediately to prevent a duplicate sale.</p><a class="btn btn-primary" href="sold-items.html#delist-actions" style="background:#b42318;border-color:#b42318;color:#fff;font-weight:900;box-shadow:0 4px 10px rgba(180,35,24,.25)">CLOSE OTHER MARKETPLACE LISTINGS NOW</a></div>`
+        : "";
+    }
 
     const inspection=count("Received");
     const testing=count("Inspection Required");
@@ -63,14 +69,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const activeParts=[];
     if(listed) activeParts.push(`${listed} LISTED`);
     if(reserved) activeParts.push(`${reserved} RESERVED`);
-    if(delistWarnings) activeParts.push(`${delistWarnings} DELIST WARNING${delistWarnings===1?"":"S"}`);
-    setStepNotice("active-step-notice", activeParts.length ? activeParts.join(" &nbsp;·&nbsp; ") : "NO ACTIVE LISTINGS CURRENTLY", delistWarnings ? "warning" : (activeTotal ? "info" : "success"));
+    setStepNotice("active-step-notice", activeParts.length ? activeParts.join(" &nbsp;·&nbsp; ") : "NO ACTIVE LISTINGS CURRENTLY", activeTotal ? "info" : "success");
 
-    setStepNotice("sold-step-notice", sold ? `${sold} ${sold===1?"SOLD PRODUCT":"SOLD PRODUCTS"}${sold ? " — CHECK DISPATCH / COMPLETION ACTIONS" : ""}` : "NO SOLD PRODUCTS CURRENTLY", sold ? "action" : "success");
-    setStepNotice("returns-step-notice", returned ? `${returned} ${returned===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION", returned ? "warning" : "success");
+    const soldMessage=sold
+      ? `${sold} ${sold===1?"SOLD PRODUCT":"SOLD PRODUCTS"}${delistCount ? ` — ${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : " — CHECK DISPATCH / COMPLETION ACTIONS"}`
+      : (delistCount ? `${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : "NO SOLD PRODUCTS CURRENTLY");
+    setStepNotice("sold-step-notice", soldMessage, delistCount ? "warning" : (sold ? "action" : "success"));
+    const soldLink=document.getElementById("open-sold-items");
+    if(soldLink) soldLink.href=delistCount ? "sold-items.html#delist-actions" : "sold-items.html";
+    const returnsNotice=returned ? `${returned} ${returned===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION";
+    setStepNotice("returns-step-notice", returnsNotice, returned ? "warning" : "success");
 
     const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Returned","Dispatched"].includes(a.status));
     const summary=document.getElementById("sales-action-summary"), list=document.getElementById("sales-action-list");
+    if(!summary||!list)return;
     const grouped={};
     actionable.forEach(a=>{const action=actionFor(a.status);if(!grouped[action.label])grouped[action.label]={action,items:[]};grouped[action.label].items.push(a);});
     const groupEntries=Object.values(grouped);
