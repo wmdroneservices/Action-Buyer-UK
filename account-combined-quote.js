@@ -1,4 +1,4 @@
-/* GearCashOut: combined customer quote presentation. */
+/* GearCashOut: customer quote presentation for combined and single submissions. */
 (function(){
   "use strict";
   let rendering=false;
@@ -23,7 +23,6 @@
       .select("id,quote_reference,status,submitted_at,quote_data")
       .eq("user_id",session.user.id).is("archived_at",null).order("submitted_at",{ascending:false});
     if(error)return;
-
     const vals=valuations||[];
     const ids=vals.map(v=>v.id);
     if(!ids.length)return;
@@ -48,19 +47,27 @@
       groups.get(key).push(v);
     }
 
-    // Never take ownership of the normal single-item quote area.
     if(!combinedSeen)return;
 
     const cards=[];
     for(const [key,group] of groups){
       const groupIds=new Set(group.map(v=>v.id));
       const groupItems=itemList.filter(i=>groupIds.has(i.valuation_id));
-      if(groupItems.length<=1)continue;
+      const groupOffers=offerList.filter(o=>groupItems.some(i=>i.id===o.item_id));
+
+      if(groupItems.length===1){
+        const item=groupItems[0];
+        if(['accepted','refused','closed'].includes(item.item_status))continue;
+        const offer=effectiveOffer(groupOffers,item.id);
+        if(!offer)continue;
+        const name=[item.manufacturer,item.model||item.item_name].filter(Boolean).join(" ");
+        const pkg=item.package?String(item.package).toLowerCase():"";
+        cards.push(`<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">${esc(group[0]?.quote_reference||"")}</span><p class="section-kicker">CUSTOMER OFFER</p><h3>${esc([name||"Equipment",pkg].filter(Boolean).join(" "))}</h3>${offer.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta"><strong>${money(offer.amount)}</strong><div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div></div></article>`);
+        continue;
+      }
 
       const pendingItems=groupItems.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
       if(!pendingItems.length)continue;
-
-      const groupOffers=offerList.filter(o=>groupItems.some(i=>i.id===o.item_id));
       const effectiveMap=new Map(groupItems.map(i=>[i.id,effectiveOffer(groupOffers,i.id)]));
       const ready=pendingItems.every(i=>!!effectiveMap.get(i.id));
       const combinedTotal=groupItems.reduce((sum,item)=>sum+(Number(effectiveMap.get(item.id)?.amount)||0),0);
@@ -69,12 +76,11 @@
         const offer=effectiveMap.get(item.id);
         const name=[item.manufacturer,item.model||item.item_name].filter(Boolean).join(" ");
         const pkg=item.package?String(item.package).toLowerCase():"";
-        const pending=!['accepted','refused','closed'].includes(item.item_status);
         let actionHtml="";
-        if(item.item_status==="accepted") actionHtml='<span class="status-badge">ACCEPTED</span>';
-        else if(item.item_status==="refused") actionHtml='<span class="status-badge">REFUSED</span>';
-        else if(!ready || !offer) actionHtml='<span class="status-badge">AWAITING OFFER</span>';
-        else if(pending) actionHtml=`<div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div>`;
+        if(item.item_status==="accepted")actionHtml='<span class="status-badge">ACCEPTED</span>';
+        else if(item.item_status==="refused")actionHtml='<span class="status-badge">REFUSED</span>';
+        else if(!ready||!offer)actionHtml='<span class="status-badge">AWAITING OFFER</span>';
+        else actionHtml=`<div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div>`;
         return `<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">ITEM ${esc(item.item_position||index+1)}</span><p class="section-kicker">${esc(String(item.item_status||"under_assessment").replaceAll("_"," "))}</p><h3>${esc([name||"Equipment",pkg].filter(Boolean).join(" "))}</h3>${offer?.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta">${offer?`<strong>${money(offer.amount)}</strong>`:"<span class=\"status-badge\">AWAITING OFFER</span>"}${actionHtml}</div></article>`;
       }).join("");
 
@@ -95,7 +101,5 @@
     observer.observe(box,{childList:true,subtree:true});
     window.addEventListener("pageshow",load);
   }
-
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
-  else init();
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
