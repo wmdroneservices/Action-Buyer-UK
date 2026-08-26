@@ -70,13 +70,14 @@ declare
  v_user uuid:=auth.uid();
  v_item_status text;
  v_submission_key text;
+ v_valuation_id uuid;
 begin
  select qo.* into v_offer from public.quote_offers qo join public.quote_items qi on qi.id=qo.item_id join public.valuations v on v.id=qi.valuation_id where qo.id=p_offer_id and v.user_id=v_user for update;
  if not found or v_offer.status<>'published' then raise exception 'Offer is not available for refusal'; end if;
- select quote_data->>'submissionKey' into v_submission_key from public.valuations v join public.quote_items qi on qi.valuation_id=v.id where qi.id=v_offer.item_id;
+ select qi.valuation_id,v.quote_data->>'submissionKey' into v_valuation_id,v_submission_key from public.valuations v join public.quote_items qi on qi.valuation_id=v.id where qi.id=v_offer.item_id;
  if nullif(trim(v_submission_key),'') is not null and exists (
    select 1 from public.quote_items qi2
-   where qi2.valuation_id=v_offer.item_id
+   where qi2.valuation_id=v_valuation_id
      and qi2.item_status not in ('refused','closed','accepted')
      and not exists (select 1 from public.quote_offers qo2 where qo2.item_id=qi2.id and qo2.status='published' and qo2.offer_type in ('manual','final'))
      and not exists (select 1 from public.quote_offers qo3 where qo3.item_id=qi2.id and qo3.status='published' and qo3.offer_type='automatic')
