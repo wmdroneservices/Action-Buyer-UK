@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { error } = await db.rpc('staff_close_resale_listing', { p_listing_id: listingId });
     if (error) {
       button.disabled = false;
-      button.textContent = 'LISTING CLOSED';
+      button.textContent = 'TRY AGAIN';
       button.classList.add('error');
       const msg = document.createElement('span');
       msg.className = 'form-message error';
