@@ -26,7 +26,7 @@
 
     const vals=valuations||[];
     const ids=vals.map(v=>v.id);
-    if(!ids.length){section.style.display="none";return;}
+    if(!ids.length)return;
 
     const {data:items}=await auth.supabase.from("quote_items")
       .select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position")
@@ -39,14 +39,19 @@
     const offerList=offers||[];
 
     const groups=new Map();
+    let combinedSeen=false;
     for(const v of vals){
       const key=v.quote_data?.submissionKey||v.id;
+      const groupItems=itemList.filter(i=>i.valuation_id===v.id);
+      if(groupItems.length>1)combinedSeen=true;
       if(!groups.has(key))groups.set(key,[]);
       groups.get(key).push(v);
     }
 
-    const cards=[];
+    // Never take ownership of the normal single-item quote area.
+    if(!combinedSeen)return;
 
+    const cards=[];
     for(const [key,group] of groups){
       const groupIds=new Set(group.map(v=>v.id));
       const groupItems=itemList.filter(i=>groupIds.has(i.valuation_id));
@@ -66,17 +71,10 @@
         const pkg=item.package?String(item.package).toLowerCase():"";
         const pending=!['accepted','refused','closed'].includes(item.item_status);
         let actionHtml="";
-
-        if(item.item_status==="accepted"){
-          actionHtml='<span class="status-badge">ACCEPTED</span>';
-        } else if(item.item_status==="refused"){
-          actionHtml='<span class="status-badge">REFUSED</span>';
-        } else if(!ready || !offer){
-          actionHtml='<span class="status-badge">AWAITING OFFER</span>';
-        } else if(pending){
-          actionHtml=`<div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div>`;
-        }
-
+        if(item.item_status==="accepted") actionHtml='<span class="status-badge">ACCEPTED</span>';
+        else if(item.item_status==="refused") actionHtml='<span class="status-badge">REFUSED</span>';
+        else if(!ready || !offer) actionHtml='<span class="status-badge">AWAITING OFFER</span>';
+        else if(pending) actionHtml=`<div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div>`;
         return `<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">ITEM ${esc(item.item_position||index+1)}</span><p class="section-kicker">${esc(String(item.item_status||"under_assessment").replaceAll("_"," "))}</p><h3>${esc([name||"Equipment",pkg].filter(Boolean).join(" "))}</h3>${offer?.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta">${offer?`<strong>${money(offer.amount)}</strong>`:"<span class=\"status-badge\">AWAITING OFFER</span>"}${actionHtml}</div></article>`;
       }).join("");
 
