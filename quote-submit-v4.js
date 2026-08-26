@@ -78,6 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if(!items.length){alert("Please add at least one item to your quote.");return;}
       const storedFiles = filesStore();
       const references=[];
+      const submissionKey = crypto.randomUUID ? crypto.randomUUID() : `submission-${Date.now()}`;
       for(let index=0; index<items.length; index++){
         const item=items[index];
         const files = storedFiles[index] || [];
@@ -90,7 +91,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const submittedItem={...item, photos};
         const record=baseRecord(submittedItem);
         record.userId=session.user.id;
-        record.submissionKey=crypto.randomUUID ? crypto.randomUUID() : reference;
+        record.submissionKey=submissionKey;
+        record.multiItemQuote=items.length>1;
+        record.quoteItemCount=items.length;
         const {data,error}=await auth.supabase.rpc("create_customer_quotes",{p_record:record,p_items:[submittedItem]});
         if(error)throw error;
         const returnedReference = data?.quotes?.[0]?.quote_reference || data?.quote_reference || reference;
