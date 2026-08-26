@@ -29,14 +29,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       const a=await auth.supabase.from("quote_items").select("id,valuation_id").in("valuation_id",ids); if(a.error){notice("Could not load valuation items.",false);return;} items=a.data||[];
       const itemIds=items.map(i=>i.id); if(itemIds.length){const b=await auth.supabase.from("quote_offers").select("id,item_id,offer_type,status").in("item_id",itemIds);if(b.error){notice("Could not load offers",false);return;}offers=b.data||[];}
     }
-    const awaiting=new Set(["submitted","manual_review","pending_review","awaiting_valuation"]), activeOffers=new Set(["draft","published","accepted"]);
+
+    // Only valuations that still require staff assessment belong in the valuation queue.
+    // Published automatic offers have already been sent to the customer and belong in
+    // the purchase pipeline instead.
+    const awaiting=new Set(["submitted","manual_review","pending_review","awaiting_valuation"]);
     const awaitingReview=active.filter(v=>{
       const vi=items.filter(i=>i.valuation_id===v.id);
-      if(vi.some(i=>offers.some(o=>o.item_id===i.id&&activeOffers.has(o.status)))) return false;
+      if(vi.some(i=>offers.some(o=>o.item_id===i.id&&o.status==="published"))) return false;
       if(awaiting.has(v.status)) return true;
-      return v.status==="valued" && vi.some(i=>offers.some(o=>o.item_id===i.id&&o.offer_type==="automatic"&&o.status==="draft"));
+      return v.status==="valued" && vi.some(i=>offers.some(o=>o.item_id===i.id&&o.offer_type!=="automatic"&&o.status==="draft"));
     }).length;
     setCount("valuation-count", awaitingReview);
+
+    const automaticAwaitingCustomer=offers.filter(o=>o.offer_type==="automatic"&&o.status==="published").length;
+    const automaticCta=document.getElementById("automatic-response-cta");
+    const automaticText=document.getElementById("automatic-response-text");
+    if(automaticCta) automaticCta.hidden=automaticAwaitingCustomer===0;
+    if(automaticText) automaticText.textContent=automaticAwaitingCustomer===1
+      ? "1 automatic valuation is live and awaiting the customer's response."
+      : `${automaticAwaitingCustomer} automatic valuations are live and awaiting customer responses.`;
 
     const {data:sales,error:se}=await auth.supabase.from("sales").select("id,status,payment_status,archived_at,bank_details_confirmed_at").is("archived_at",null);
     if(se){notice("Could not load purchase pipeline counts.",false);return;}
@@ -51,10 +63,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setCount("customer-response-count", offers.filter(o=>o.status==="published"&&["automatic","manual"].includes(o.offer_type)).length);
     const terminal=new Set(["paid","completed","cancelled"]);
-
-    // An accepted offer creates an inbound shipment immediately with status awaiting_label.
-    // That is a shipping-label task, not an awaiting-delivery task. Delivery starts only
-    // after the label/shipment has actually been created and is label_created/in_transit.
     const shippingLabelRequired=activeSales.filter(s=>{
       if(terminal.has(String(s.status||""))) return false;
       const x=inbound.get(s.id);
