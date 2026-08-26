@@ -4,7 +4,7 @@
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   const money=n=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(Number(n||0));
-  let client=null,busy=false,lastKey="";
+  let client=null,busy=false,lastKey="",writing=false,combinedPresent=false;
 
   function effective(offers,itemId){
     const list=(offers||[]).filter(o=>o.item_id===itemId&&["published","accepted"].includes(o.status));
@@ -12,7 +12,6 @@
     return pick("final")||pick("manual")||pick("automatic")||null;
   }
   function isTerminal(s){return ["accepted","refused","closed"].includes(String(s||""));}
-
   async function loadData(){
     if(!client)client=window.actionBuyerAuth;
     if(!client?.supabase)return null;
@@ -28,28 +27,21 @@
     if(oe)throw oe;
     return {vals:vals||[],items:items||[],offers:offers||[]};
   }
-
   function combinedGroups(data){
     const map=new Map();
-    for(const v of data.vals){
-      const key=String(v.quote_data?.submissionKey||v.id);
-      if(!map.has(key))map.set(key,[]);
-      map.get(key).push(v);
-    }
+    for(const v of data.vals){const key=String(v.quote_data?.submissionKey||v.id);if(!map.has(key))map.set(key,[]);map.get(key).push(v);}
     return [...map.entries()].map(([key,vals])=>{
       const ids=new Set(vals.map(v=>v.id));
       const items=data.items.filter(i=>ids.has(i.valuation_id)).sort((a,b)=>(a.item_position||999)-(b.item_position||999));
       return {key,vals,items,offers:data.offers.filter(o=>items.some(i=>i.id===o.item_id))};
     }).filter(g=>g.items.length>1);
   }
-
   async function respond(button,accept){
     if(busy)return;
     busy=true;button.disabled=true;
     try{
       const data=await loadData();
-      const key=button.dataset.group;
-      const group=combinedGroups(data).find(g=>g.key===key);
+      const group=combinedGroups(data).find(g=>g.key===button.dataset.group);
       if(!group)throw new Error("The combined transaction could not be found. Please refresh the page.");
       const item=group.items.find(i=>i.id===button.dataset.item);
       if(!item)throw new Error("The selected item could not be found.");
@@ -62,12 +54,12 @@
       if(!confirm(accept?"Accept this item? It will be added to your GearCashOut basket.":"Refuse this item?"))return;
       const {error}=await client.supabase.rpc(accept?"accept_quote_offer":"refuse_quote_offer",{p_offer_id:offer.id});
       if(error)throw error;
+      lastKey="";
       await render();
     }catch(error){alert(error?.message||"The response could not be saved.");}finally{busy=false;button.disabled=false;}
   }
-
   async function render(){
-    if(busy)return;
+    if(busy||writing)return;
     let data;
     try{data=await loadData();}catch(error){console.error("Combined transaction authority:",error);return;}
     if(!data)return;
@@ -75,10 +67,8 @@
     if(!section||!box)return;
     const groups=combinedGroups(data);
     const activeGroups=groups.filter(g=>g.items.some(i=>!isTerminal(i.item_status)));
-    if(!activeGroups.length){
-      if(data.items.some(i=>groups.some(g=>g.items.some(x=>x.id===i.id)))){section.style.display="none";box.innerHTML="";}
-      return;
-    }
+    combinedPresent=groups.length>0;
+    if(!activeGroups.length){if(combinedPresent){writing=true;section.style.display="none";box.innerHTML="";writing=false;}return;}
     const html=activeGroups.map(group=>{
       const sent=group.vals.some(v=>v.status==="customer_review");
       const active=group.items.filter(i=>!isTerminal(i.item_status));
@@ -97,20 +87,27 @@
       }).join("");
       const badge=!sent?"AWAITING VALUATION":ready?`READY TO RESPOND${decided.length?` · ${decided.length} ALREADY DECIDED`:""}`:"AWAITING FINAL ITEM OFFER";
       const intro=!sent?"GearCashOut is still completing this combined valuation. No item can be accepted or refused yet.":ready?"Your combined quote is ready. You can accept or refuse each item separately.":"GearCashOut is still completing this combined quote. You cannot respond until every item has a published offer.";
-      return `<article class="valuation-card" style="display:grid;gap:1rem;margin-bottom:1.5rem"><div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start"><div><span class="valuation-ref">${esc(group.vals[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${group.items.length} items</h3></div><span class="status-badge">${badge}</span></div><p>${esc(intro)}</p><div>${itemsHtml}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f"><strong>${decided.length?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(decided.length?basket:quoted)}</strong></div></article>`;
+      return `<article class="valuation-card combined-authority-block" data-combined-key="${esc(group.key)}" style="display:grid;gap:1rem;margin-bottom:1.5rem"><div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start"><div><span class="valuation-ref">${esc(group.vals[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${group.items.length} items</h3></div><span class="status-badge">${badge}</span></div><p>${esc(intro)}</p><div>${itemsHtml}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f"><strong>${decided.length?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(decided.length?basket:quoted)}</strong></div></article>`;
     }).join("");
-    const signature=html;
-    if(signature===lastKey)return;
-    lastKey=signature;
-    box.innerHTML=html;
-    section.style.display="";
+    if(html===lastKey)return;
+    lastKey=html;writing=true;box.innerHTML=html;section.style.display="";writing=false;
     box.querySelectorAll(".combined-authority-accept").forEach(b=>b.addEventListener("click",()=>respond(b,true)));
     box.querySelectorAll(".combined-authority-refuse").forEach(b=>b.addEventListener("click",()=>respond(b,false)));
   }
-
-  function init(){
-    const start=()=>{render();setInterval(()=>render(),2000);};
-    if(window.actionBuyerAuth)start();else setTimeout(start,500);
+  function guardLegacy(){
+    const box=document.getElementById("offers");
+    if(!box||writing||!combinedPresent)return;
+    if(box.querySelectorAll(".accept-offer,.refuse-offer").length||(!box.querySelector(".combined-authority-block")&&box.children.length)){
+      lastKey="";render();
+    }
+  }
+  async function init(){
+    while(!window.actionBuyerAuth)await sleep(200);
+    client=window.actionBuyerAuth;
+    await render();
+    const box=document.getElementById("offers");
+    if(box)new MutationObserver(()=>queueMicrotask(guardLegacy)).observe(box,{childList:true,subtree:true});
+    setInterval(()=>{if(!document.hidden&&!busy)render();},2000);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
