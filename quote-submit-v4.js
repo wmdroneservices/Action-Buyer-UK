@@ -41,19 +41,29 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/^-+|-+$/g, "") || "photo.jpg";
   }
 
+  function isValidImageFile(file) {
+    if (!file) return false;
+    const name = String(file.name || "").toLowerCase();
+    const allowed = /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(name);
+    return String(file.type || "").toLowerCase().startsWith("image/") && allowed;
+  }
+
   async function uploadPhotos(userId, reference, files) {
     const photos = [];
     for (const file of Array.isArray(files) ? files : []) {
       if (!file) continue;
+      if (!isValidImageFile(file)) {
+        throw new Error(`"${file.name || "Selected file"}" is not a photograph. Please select a JPG, PNG, WEBP, GIF, BMP or HEIC/HEIF image.`);
+      }
       const path = `${userId}/${reference}/${crypto.randomUUID ? crypto.randomUUID() : Date.now()}-${safeFileName(file.name)}`;
       const { error } = await auth.supabase.storage
         .from("quote-photos")
         .upload(path, file, {
-          contentType: file.type || "image/jpeg",
+          contentType: file.type,
           upsert: false
         });
       if (error) throw error;
-      photos.push({ path, name:file.name || "Customer photograph", type:file.type || "image/jpeg" });
+      photos.push({ path, name:file.name || "Customer photograph", type:file.type });
     }
     return photos;
   }
@@ -70,8 +80,13 @@ document.addEventListener("DOMContentLoaded", function () {
       const references=[];
       for(let index=0; index<items.length; index++){
         const item=items[index];
+        const files = storedFiles[index] || [];
+        if (!files.length || files.some(file => !isValidImageFile(file))) {
+          const bad = files.find(file => !isValidImageFile(file));
+          throw new Error(bad ? `"${bad.name || "Selected file"}" is not a photograph. Please go back and select an actual image file.` : "Please add at least one actual photograph.");
+        }
         const reference=`WBA-${new Date().getFullYear()}-${Math.floor(100000+Math.random()*900000)}`;
-        const photos=await uploadPhotos(session.user.id, reference, storedFiles[index] || []);
+        const photos=await uploadPhotos(session.user.id, reference, files);
         const submittedItem={...item, photos};
         const record=baseRecord(submittedItem);
         record.userId=session.user.id;
