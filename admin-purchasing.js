@@ -20,55 +20,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     el.style.fontWeight = count > 0 ? "800" : "";
   }
 
-  const effectiveOffer = (offers, itemId) => {
-    const published = offers.filter(o => o.item_id === itemId && o.status === "published");
-    return published.find(o => o.offer_type === "final")
-      || published.find(o => o.offer_type === "manual")
-      || published.find(o => o.offer_type === "automatic")
-      || null;
-  };
-
   async function loadCounts() {
-    const { data: valuations, error } = await auth.supabase.from("valuations").select("id,status,archived_at,quote_data").is("archived_at", null);
-    if (error) { notice("Could not load purchasing counts.", false); return; }
-    const active = valuations || [], ids = active.map(v=>v.id);
-    let items=[], offers=[];
-    if(ids.length){
-      const a=await auth.supabase.from("quote_items").select("id,valuation_id,item_status").in("valuation_id",ids); if(a.error){notice("Could not load valuation items.",false);return;} items=a.data||[];
-      const itemIds=items.map(i=>i.id); if(itemIds.length){const b=await auth.supabase.from("quote_offers").select("id,item_id,offer_type,status").in("item_id",itemIds);if(b.error){notice("Could not load offers",false);return;}offers=b.data||[];}
-    }
-
-    const states = active.map(v => {
-      const vi = items.filter(i => i.valuation_id === v.id);
-      const unresolved = vi.filter(i => !["accepted","refused","closed"].includes(i.item_status));
-      const effective = new Map(vi.map(i => [i.id, effectiveOffer(offers, i.id)]));
-      const readyForCustomer = unresolved.length > 0 && unresolved.every(i => !!effective.get(i.id));
-      const needsStaff = unresolved.length > 0 && unresolved.some(i => !effective.get(i.id));
-      const hasAutomatic = unresolved.some(i => effective.get(i.id)?.offer_type === "automatic");
-      return { v, vi, unresolved, effective, readyForCustomer, needsStaff, hasAutomatic };
-    });
-
-    // A valuation stays in the staff valuation queue until every unresolved item
-    // has an effective published offer. This is what makes mixed automatic/manual
-    // submissions wait for the manual item instead of exposing the automatic item early.
-    const awaitingReview = states.filter(s => s.needsStaff).length;
-    const awaitingCustomer = states.filter(s => s.readyForCustomer).length;
-    const automaticReady = states.filter(s => s.readyForCustomer && s.hasAutomatic).length;
-
-    setCount("valuation-count", awaitingReview);
-    setCount("customer-response-count", awaitingCustomer);
-
-    const automaticCta=document.getElementById("automatic-response-cta");
-    const automaticText=document.getElementById("automatic-response-text");
-    if(automaticCta) automaticCta.hidden=automaticReady===0;
-    if(automaticText) automaticText.textContent=automaticReady===1
-      ? "1 automatic valuation is complete and awaiting the customer's response."
-      : `${automaticReady} automatic valuations are complete and awaiting customer responses.`;
-
-    const {data:sales,error:se}=await auth.supabase.from("sales").select("id,status,payment_status,archived_at,bank_details_confirmed_at").is("archived_at",null);
+    // valuation-count and customer-response-count are deliberately owned by
+    // admin-purchasing-combined-status.js so a mixed automatic/manual submission
+    // can never jump into the purchase pipeline before the combined quote is sent.
+    const { data: sales, error: se } = await auth.supabase
+      .from("sales")
+      .select("id,status,payment_status,archived_at,bank_details_confirmed_at")
+      .is("archived_at", null);
     if(se){notice("Could not load purchase pipeline counts.",false);return;}
+
     const activeSales=sales||[], saleIds=activeSales.map(s=>s.id);
-    const {data:shipments,error:she}=saleIds.length?await auth.supabase.from("shipments").select("sale_id,shipment_type,status,delivered_at,created_at").in("sale_id",saleIds).order("created_at",{ascending:false}):{data:[],error:null};
+    const {data:shipments,error:she}=saleIds.length
+      ? await auth.supabase.from("shipments").select("sale_id,shipment_type,status,delivered_at,created_at").in("sale_id",saleIds).order("created_at",{ascending:false})
+      : {data:[],error:null};
     if(she){notice("Could not load shipping counts.",false);return;}
 
     const inbound=new Map();
@@ -101,7 +66,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const deliveryCta=document.getElementById("delivery-cta");
     if(deliveryCta) deliveryCta.hidden=awaitingDelivery.length===0;
 
-    const {data:customers,error:ce}=await auth.supabase.rpc("staff_customer_list"); if(ce){notice("Could not load customer count.",false);return;} const customerCount=document.getElementById("customer-count"); if(customerCount) customerCount.textContent=(customers||[]).length;
+    const {data:customers,error:ce}=await auth.supabase.rpc("staff_customer_list");
+    if(ce){notice("Could not load customer count.",false);return;}
+    const customerCount=document.getElementById("customer-count");
+    if(customerCount) customerCount.textContent=(customers||[]).length;
   }
-  await loadCounts(); setInterval(()=>{if(!document.hidden)loadCounts();},5000);
+
+  await loadCounts();
+  setInterval(()=>{if(!document.hidden)loadCounts();},5000);
 });
