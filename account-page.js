@@ -69,6 +69,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: items } = ids.length ? await auth.supabase.from("quote_items").select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position").in("valuation_id", ids) : { data: [] };
     const itemIds = (items || []).map(i => i.id);
     const { data: offers } = itemIds.length ? await auth.supabase.from("quote_offers").select("id,item_id,offer_type,amount,status,customer_message,published_at,responded_at,created_at").in("item_id", itemIds).order("created_at", { ascending: false }) : { data: [] };
+
+    // A valuation is no longer an active customer valuation once any of its
+    // quote items has been turned into a sale. The sale is the authoritative
+    // record from that point onward, including after the sale is completed,
+    // paid, archived or otherwise closed. This prevents closed transactions
+    // from reappearing in the Valuations Received section.
+    const { data: linkedSaleItems } = itemIds.length
+      ? await auth.supabase.from("sale_items").select("quote_item_id").in("quote_item_id", itemIds)
+      : { data: [] };
+    const linkedItemIds = new Set((linkedSaleItems || []).map(row => row.quote_item_id));
+    const closedValuationIds = new Set((items || []).filter(item => linkedItemIds.has(item.id)).map(item => item.valuation_id));
+
     const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,total_amount,created_at,payment_sent_at").eq("user_id", user.id).order("created_at", { ascending: false });
     const saleIds = (sales || []).map(s => s.id);
     const { data: shipments } = saleIds.length ? await auth.supabase.from("shipments").select("id,sale_id,status,carrier,tracking_number,created_at").in("sale_id", saleIds) : { data: [] };
@@ -78,7 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const os = (offers || []).filter(o => its.some(i => i.id === o.item_id));
       const pending = its.some(i => i.item_status !== "refused" && i.item_status !== "closed" && os.some(o => o.item_id === i.id && o.status === "published"));
       return { v, its, os, total: quoteTotal(its, os), pending };
-    }).filter(x => x.pending);
+    }).filter(x => x.pending && !closedValuationIds.has(x.v.id));
 
     if (newQuotesSection) newQuotesSection.style.display = activeQuotes.length ? "" : "none";
     if (offersBox) {
@@ -124,7 +136,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    const activeValuations = (valuations || []).filter(v => (items || []).filter(i => i.valuation_id === v.id).some(i => !["accepted", "closed"].includes(i.item_status)));
+    // Once a quote item has been converted into a sale, the customer should
+    // follow that item through the sale/purchase workflow rather than seeing
+    // the original valuation again. Also exclude accepted/closed items that
+    // have not yet been linked to a sale as an extra status safeguard.
+    const activeValuations = (valuations || []).filter(v => !closedValuationIds.has(v.id) && (items || []).filter(i => i.valuation_id === v.id).some(i => !["accepted", "closed"].includes(i.item_status)));
     if (valuationsBox) {
       if (activeValuations.length) {
         let html = '<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>NEXT STEP</strong><p style="margin:.25rem 0 0">No action is needed from you right now. GearCashOut is processing the valuation and will contact you when the next stage is ready.</p></div>';
