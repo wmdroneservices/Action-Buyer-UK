@@ -69,8 +69,8 @@
     if(!section||!box)return;
     const gs=groups(data);
     const active=gs.filter(g=>g.items.some(i=>!terminal(i.item_status)));
-    combinedPresent=gs.length>0;
-    if(!active.length){if(combinedPresent){writingOffers=true;section.style.display="none";box.innerHTML="";writingOffers=false;}return;}
+    combinedPresent=active.length>0;
+    if(!active.length)return;
     const html=active.map(group=>{
       const sent=group.vals.some(v=>["customer_review","final_valuation"].includes(String(v.status)));
       const live=group.items.filter(i=>!terminal(i.item_status));
