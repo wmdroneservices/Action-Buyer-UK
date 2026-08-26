@@ -47,7 +47,7 @@
       const groupIds=new Set(groupVals.map(v=>v.id));
       const groupItems=(data.items||[]).filter(i=>groupIds.has(i.valuation_id));
       const active=groupItems.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
-      const offers=(data.offers||[]);
+      const offers=data.offers||[];
       const ready=active.length>0&&active.every(i=>!!effectiveOffer(offers,i.id));
       if(!groupVals.some(v=>v.status==="customer_review"))throw new Error("This combined quote is not ready for a customer response yet.");
       if(!ready)throw new Error("This combined quote is not complete yet. Please wait until every item has a published offer.");
@@ -89,7 +89,9 @@
       const pending=items.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
       const ready=pending.length>0&&pending.every(i=>!!effectiveOffer(offers,i.id));
       const sent=vals.some(v=>v.status==="customer_review");
-      if(!sent)continue;
+      const allDecided=items.every(i=>['accepted','refused','closed'].includes(i.item_status));
+      if(allDecided)continue;
+
       const rows=items.map((item,index)=>{
         const offer=effectiveOffer(offers,item.id);
         const title=[item.manufacturer,item.model||item.item_name].filter(Boolean).join(" ")||"Equipment";
@@ -97,13 +99,15 @@
         let action="<span class=\"status-badge\">AWAITING OFFER</span>";
         if(item.item_status==="accepted")action="<span class=\"status-badge\">ACCEPTED — IN YOUR BASKET</span>";
         else if(item.item_status==="refused")action="<span class=\"status-badge\">REFUSED</span>";
-        else if(ready&&offer)action=`<div class="navigation-buttons"><button type="button" class="btn btn-primary combined-override-accept" data-group="${esc(key)}" data-item="${esc(item.id)}">ACCEPT</button><button type="button" class="btn btn-secondary combined-override-refuse" data-group="${esc(key)}" data-item="${esc(item.id)}">REFUSE</button></div>`;
+        else if(sent&&ready&&offer)action=`<div class="navigation-buttons"><button type="button" class="btn btn-primary combined-override-accept" data-group="${esc(key)}" data-item="${esc(item.id)}">ACCEPT</button><button type="button" class="btn btn-secondary combined-override-refuse" data-group="${esc(key)}" data-item="${esc(item.id)}">REFUSE</button></div>`;
         return `<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">ITEM ${esc(item.item_position||index+1)}</span><p class="section-kicker">${esc(String(item.item_status||"under_assessment").replaceAll("_"," "))}</p><h3>${esc(title)}</h3>${pkg?`<p>${esc(pkg)}</p>`:""}${offer?.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta">${offer?`<strong>${money(offer.amount)}</strong>`:"<strong>Awaiting offer</strong>"}${action}</div></article>`;
       }).join("");
       const quoted=items.reduce((s,i)=>s+(Number(effectiveOffer(offers,i.id)?.amount)||0),0);
       const basket=items.reduce((s,i)=>i.item_status==="accepted"?s+(Number(effectiveOffer(offers,i.id)?.amount)||0):s,0);
       const responded=items.some(i=>['accepted','refused'].includes(i.item_status));
-      combined.push(`<article class="valuation-card" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;"><div><span class="valuation-ref">${esc(vals[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${items.length} items</h3></div><span class="status-badge">${ready?"READY TO RESPOND":"AWAITING FINAL ITEM OFFER"}</span></div><p>${ready?"You can accept or refuse each item separately.":"GearCashOut is still completing this quote. You cannot accept or refuse an item yet."}</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>${responded?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(responded?basket:quoted)}</strong></div></article>`);
+      const badge=!sent?"AWAITING VALUATION":ready?"READY TO RESPOND":"AWAITING FINAL ITEM OFFER";
+      const intro=!sent?"GearCashOut is still completing your combined valuation. You cannot accept or refuse any item yet.":ready?"Your combined quote is ready. You can accept or refuse each item separately.":"GearCashOut is still completing this quote. You cannot respond until every item has a published offer.";
+      combined.push(`<article class="valuation-card" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;"><div><span class="valuation-ref">${esc(vals[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${items.length} items</h3></div><span class="status-badge">${badge}</span></div><p>${intro}</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>${responded?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(responded?basket:quoted)}</strong></div></article>`);
     }
 
     if(!combined.length)return;
@@ -119,7 +123,17 @@
   async function init(){
     for(let i=0;i<20;i++){
       await sleep(250);
-      try{const d=await getData(); if(d?.items?.some(item=>d.items.filter(x=>x.valuation_id===item.valuation_id).length>1)){await render(true);break;}}catch(_){ }
+      try{
+        const d=await getData();
+        const hasCombined=d?.items?.some(item=>d.items.filter(x=>x.valuation_id===item.valuation_id).length>1);
+        if(hasCombined){
+          const section=document.getElementById("new-quotes-section");
+          const box=document.getElementById("offers");
+          if(section&&box){section.style.display="";box.innerHTML="<p>Loading combined valuation...</p>";}
+          await render(true);
+          break;
+        }
+      }catch(_){ }
     }
     setInterval(()=>render(false),1500);
   }
