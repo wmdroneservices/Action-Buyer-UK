@@ -10,6 +10,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   const maskAccount = value => value ? `XXXX${String(value).slice(-4)}` : "";
   const maskSort = value => value ? `XX-XX-${String(value).slice(-2)}` : "";
 
+  async function getSavedBankDetails() {
+    const { data, error } = await auth.supabase.rpc("get_saved_customer_bank_details");
+    if (error) return null;
+    return data || null;
+  }
+
+  async function submitBankDetails(sale, values, storageConsent) {
+    return auth.supabase.rpc("submit_sale_bank_details", {
+      p_sale_id: sale.id,
+      p_account_name: String(values.account_name || "").trim(),
+      p_sort_code: String(values.sort_code || "").trim(),
+      p_account_number: String(values.account_number || "").trim(),
+      p_storage_consent: !!storageConsent
+    });
+  }
+
   async function attachForms() {
     const cards = document.querySelectorAll(".sale-card");
     for (const card of cards) {
@@ -44,6 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const { error } = await auth.supabase.rpc("withdraw_bank_details_consent");
           const msg = panel.querySelector(".bank-withdraw-message");
           if (error) { withdraw.disabled = false; msg.textContent = error.message || "Could not remove the saved bank details."; msg.className = "bank-withdraw-message error"; return; }
+          await auth.supabase.rpc("delete_saved_customer_bank_details");
           msg.textContent = "Saved bank details removed.";
           msg.className = "bank-withdraw-message success";
           setTimeout(() => window.location.reload(), 700);
@@ -51,32 +68,58 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else if (deleted) {
         panel.innerHTML = `<h4>Bank details</h4><p>Your bank details have been securely deleted because they are no longer required.</p>`;
       } else if (sale.status === "payment_due") {
-        panel.innerHTML = `<h4>Bank details required</h4><p>Your final quote has been accepted. Please provide the bank account details you would like us to use for payment.</p><form class="customer-bank-form">
-          <label>Account name<input name="account_name" type="text" autocomplete="name" required></label>
-          <label>Sort code<input name="sort_code" type="text" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="12-34-56" required></label>
-          <label>Account number<input name="account_number" type="text" inputmode="numeric" autocomplete="off" maxlength="8" required></label>
-          <label style="display:flex;gap:.6rem;align-items:flex-start;margin-top:.75rem"><input name="storage_consent" type="checkbox" value="yes" style="width:auto;margin-top:.2rem"><span><strong>Keep my bank details for future payments</strong><br><small>I authorise GearCashOut to securely retain these bank details for future payments for items I sell to GearCashOut. I understand I can withdraw this permission.</small></span></label>
-          <button class="btn btn-primary" type="submit">SAVE BANK DETAILS</button>
-          <p class="bank-form-message" role="status" aria-live="polite"></p>
-        </form>`;
-        const form = panel.querySelector("form");
-        const msg = panel.querySelector(".bank-form-message");
-        form.addEventListener("submit", async event => {
-          event.preventDefault();
-          const button = form.querySelector("button[type=submit]");
-          button.disabled = true; msg.textContent = "Saving..."; msg.className = "bank-form-message";
-          const data = new FormData(form);
-          const { error } = await auth.supabase.rpc("submit_sale_bank_details", {
-            p_sale_id: sale.id,
-            p_account_name: String(data.get("account_name") || "").trim(),
-            p_sort_code: String(data.get("sort_code") || "").trim(),
-            p_account_number: String(data.get("account_number") || "").trim(),
-            p_storage_consent: data.get("storage_consent") === "yes"
+        const saved = await getSavedBankDetails();
+        if (saved?.account_name && saved?.sort_code && saved?.account_number) {
+          panel.innerHTML = `<h4>Bank details</h4><p><strong>Saved bank details available.</strong> Because you are signed in, you can use the bank details you previously chose to save rather than entering them again.</p><p>Account name: ${esc(saved.account_name)}<br>Sort code: ${esc(maskSort(saved.sort_code))}<br>Account number: ${esc(maskAccount(saved.account_number))}</p><div class="navigation-buttons"><button type="button" class="btn btn-primary use-saved-bank">USE SAVED BANK DETAILS</button><button type="button" class="btn btn-secondary enter-bank-manually">ENTER DIFFERENT DETAILS</button></div><p class="bank-form-message" role="status" aria-live="polite"></p><div class="manual-bank-form" style="display:none"></div>`;
+          const msg = panel.querySelector(".bank-form-message");
+          const useSaved = panel.querySelector(".use-saved-bank");
+          useSaved.addEventListener("click", async () => {
+            useSaved.disabled = true;
+            msg.textContent = "Confirming saved bank details...";
+            const { error } = await submitBankDetails(sale, saved, true);
+            if (error) { msg.textContent = error.message || "Saved bank details could not be used."; msg.className = "bank-form-message error"; useSaved.disabled = false; return; }
+            msg.textContent = "Bank details received. Thank you.";
+            msg.className = "bank-form-message success";
+            setTimeout(() => window.location.reload(), 700);
           });
-          if (error) { msg.textContent = error.message || "Bank details could not be saved."; msg.className = "bank-form-message error"; button.disabled = false; return; }
-          msg.textContent = "Bank details received. Thank you."; msg.className = "bank-form-message success";
-          setTimeout(() => window.location.reload(), 700);
-        });
+          panel.querySelector(".enter-bank-manually").addEventListener("click", () => {
+            const holder = panel.querySelector(".manual-bank-form");
+            holder.style.display = "";
+            holder.innerHTML = `<form class="customer-bank-form"><label>Account name<input name="account_name" type="text" autocomplete="name" required value="${esc(saved.account_name)}"></label><label>Sort code<input name="sort_code" type="text" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="12-34-56" required value="${esc(saved.sort_code)}"></label><label>Account number<input name="account_number" type="text" inputmode="numeric" autocomplete="off" maxlength="8" required value="${esc(saved.account_number)}"></label><label style="display:flex;gap:.6rem;align-items:flex-start;margin-top:.75rem"><input name="storage_consent" type="checkbox" value="yes" checked style="width:auto;margin-top:.2rem"><span><strong>Keep my bank details for future payments</strong><br><small>I authorise GearCashOut to securely retain these bank details for future payments for items I sell to GearCashOut. I understand I can withdraw this permission.</small></span></label><button class="btn btn-primary" type="submit">SAVE BANK DETAILS</button></form>`;
+            const form = holder.querySelector("form");
+            form.addEventListener("submit", async event => {
+              event.preventDefault();
+              const button = form.querySelector("button[type=submit]");
+              button.disabled = true; msg.textContent = "Saving..."; msg.className = "bank-form-message";
+              const data = new FormData(form);
+              const { error } = await submitBankDetails(sale, { account_name: data.get("account_name"), sort_code: data.get("sort_code"), account_number: data.get("account_number") }, data.get("storage_consent") === "yes");
+              if (error) { msg.textContent = error.message || "Bank details could not be saved."; msg.className = "bank-form-message error"; button.disabled = false; return; }
+              msg.textContent = "Bank details received. Thank you."; msg.className = "bank-form-message success";
+              setTimeout(() => window.location.reload(), 700);
+            });
+          });
+        } else {
+          panel.innerHTML = `<h4>Bank details required</h4><p>Your final quote has been accepted. Please provide the bank account details you would like us to use for payment.</p><form class="customer-bank-form">
+            <label>Account name<input name="account_name" type="text" autocomplete="name" required></label>
+            <label>Sort code<input name="sort_code" type="text" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="12-34-56" required></label>
+            <label>Account number<input name="account_number" type="text" inputmode="numeric" autocomplete="off" maxlength="8" required></label>
+            <label style="display:flex;gap:.6rem;align-items:flex-start;margin-top:.75rem"><input name="storage_consent" type="checkbox" value="yes" style="width:auto;margin-top:.2rem"><span><strong>Keep my bank details for future payments</strong><br><small>I authorise GearCashOut to securely retain these bank details for future payments for items I sell to GearCashOut. I understand I can withdraw this permission.</small></span></label>
+            <button class="btn btn-primary" type="submit">SAVE BANK DETAILS</button>
+            <p class="bank-form-message" role="status" aria-live="polite"></p>
+          </form>`;
+          const form = panel.querySelector("form");
+          const msg = panel.querySelector(".bank-form-message");
+          form.addEventListener("submit", async event => {
+            event.preventDefault();
+            const button = form.querySelector("button[type=submit]");
+            button.disabled = true; msg.textContent = "Saving..."; msg.className = "bank-form-message";
+            const data = new FormData(form);
+            const { error } = await submitBankDetails(sale, { account_name: data.get("account_name"), sort_code: data.get("sort_code"), account_number: data.get("account_number") }, data.get("storage_consent") === "yes");
+            if (error) { msg.textContent = error.message || "Bank details could not be saved."; msg.className = "bank-form-message error"; button.disabled = false; return; }
+            msg.textContent = "Bank details received. Thank you."; msg.className = "bank-form-message success";
+            setTimeout(() => window.location.reload(), 700);
+          });
+        }
       }
       details.prepend(panel);
 
