@@ -9,6 +9,20 @@
   };
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
+  function ensureCombinedSection(){
+    let section=document.getElementById("combined-quotes-section");
+    if(section)return section;
+    section=document.createElement("section");
+    section.id="combined-quotes-section";
+    section.className="account-panel";
+    section.style.marginBottom="1.5rem";
+    section.innerHTML='<div class="section-heading"><p class="section-kicker">2 · COMBINED QUOTE</p><h2>Combined quote</h2><p>Your completed multi-item quote. Each item can be accepted or refused separately.</p></div><div id="combined-offers"></div>';
+    const valuations=document.getElementById("valuations-section");
+    if(valuations)valuations.parentNode.insertBefore(section,valuations);
+    else document.querySelector("main .container")?.appendChild(section);
+    return section;
+  }
+
   async function getData(){
     const auth=window.actionBuyerAuth;
     if(!auth)return null;
@@ -33,10 +47,6 @@
   }
 
   async function load(){
-    const combinedSection=document.getElementById("combined-quotes-section");
-    const combinedBox=document.getElementById("combined-offers");
-    if(!combinedSection||!combinedBox)return;
-
     try{
       let data=null;
       for(let attempt=0;attempt<15;attempt++){
@@ -52,15 +62,22 @@
         if(!groups.has(key))groups.set(key,[]);
         groups.get(key).push(v);
       }
-
       const combinedGroups=[];
       for(const [key,group] of groups){
         const ids=new Set(group.map(v=>v.id));
         const groupItems=items.filter(i=>ids.has(i.valuation_id));
-        if(groupItems.length<=1)continue;
-        combinedGroups.push({key,group,groupItems});
+        if(groupItems.length>1)combinedGroups.push({key,group,groupItems});
       }
-      if(!combinedGroups.length){combinedSection.style.display="none";return;}
+      if(!combinedGroups.length)return;
+
+      // Important: the legacy single-item account renderer also writes to #offers.
+      // Hide that section for combined submissions so its ACCEPT/REFUSE handlers
+      // cannot compete with the dedicated combined renderer.
+      const legacySection=document.getElementById("new-quotes-section");
+      if(legacySection)legacySection.style.display="none";
+      const section=ensureCombinedSection();
+      const box=document.getElementById("combined-offers");
+      if(!box)return;
 
       const cards=[];
       for(const state of combinedGroups){
@@ -70,44 +87,44 @@
         const effectiveMap=new Map(state.groupItems.map(i=>[i.id,effectiveOffer(groupOffers,i.id)]));
         const pending=state.groupItems.filter(i=>!["accepted","refused","closed"].includes(i.item_status));
         const ready=pending.length>0&&pending.every(i=>!!effectiveMap.get(i.id));
-        const anyResponded=state.groupItems.some(i=>["accepted","refused"].includes(i.item_status));
         const quotedTotal=state.groupItems.reduce((s,i)=>s+(Number(effectiveMap.get(i.id)?.amount)||0),0);
         const basketTotal=state.groupItems.reduce((s,i)=>i.item_status==="accepted"?s+(Number(effectiveMap.get(i.id)?.amount)||0):s,0);
         const rows=state.groupItems.map((item,index)=>{
           const offer=effectiveMap.get(item.id);
           const title=[item.manufacturer,item.model||item.item_name].filter(Boolean).join(" ")||"Equipment";
-          let action="<span class=\"status-badge\">AWAITING OFFER</span>";
-          if(item.item_status==="accepted")action="<span class=\"status-badge\">ACCEPTED — IN YOUR BASKET</span>";
-          else if(item.item_status==="refused")action="<span class=\"status-badge\">REFUSED</span>";
+          let action='<span class="status-badge">AWAITING OFFER</span>';
+          if(item.item_status==="accepted")action='<span class="status-badge">ACCEPTED — IN YOUR BASKET</span>';
+          else if(item.item_status==="refused")action='<span class="status-badge">REFUSED</span>';
           else if(ready&&offer)action=`<div class="navigation-buttons"><button type="button" class="btn btn-primary combined-item-accept" data-offer-id="${esc(offer.id)}">ACCEPT</button><button type="button" class="btn btn-secondary combined-item-refuse" data-offer-id="${esc(offer.id)}">REFUSE</button></div>`;
           return `<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">ITEM ${esc(item.item_position||index+1)}</span><p class="section-kicker">${esc(String(item.item_status||"under_assessment").replaceAll("_"," "))}</p><h3>${esc(title)}</h3><p>${esc(item.package||"")}</p></div><div class="valuation-meta">${offer?`<strong>${money(offer.amount)}</strong>`:"<strong>Awaiting offer</strong>"}${action}</div></article>`;
         }).join("");
         const ref=state.group[0]?.quote_reference||"Combined quote";
-        cards.push(`<article class="valuation-card" data-combined-key="${esc(state.key)}" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;"><div><span class="valuation-ref">${esc(ref)}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${state.groupItems.length} items</h3></div><span class="status-badge">${ready?"READY TO RESPOND":"AWAITING FINAL ITEM OFFER"}</span></div><p>${anyResponded?`Your current basket total is ${money(basketTotal)}.`:"Your combined quote is ready. Accept or refuse each item separately."}</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>${anyResponded?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(anyResponded?basketTotal:quotedTotal)}</strong></div></article>`);
+        cards.push(`<article class="valuation-card" data-combined-key="${esc(state.key)}" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;"><div><span class="valuation-ref">${esc(ref)}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${state.groupItems.length} items</h3></div><span class="status-badge">${ready?"READY TO RESPOND":"AWAITING FINAL ITEM OFFER"}</span></div><p>${pending.length<state.groupItems.length?`Your current basket total is ${money(basketTotal)}.`:"Your completed combined quote is ready. Accept or refuse each item separately."}</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>${pending.length<state.groupItems.length?"CURRENT BASKET TOTAL":"COMBINED TOTAL OFFER"}</strong><strong>${money(pending.length<state.groupItems.length?basketTotal:quotedTotal)}</strong></div></article>`);
       }
-      combinedSection.style.display=cards.length?"":"none";
-      combinedBox.innerHTML=cards.join("");
+      box.innerHTML=cards.length?cards.join(""):"<p>No combined quote is currently awaiting a response.</p>";
+      section.style.display=cards.length?"":"none";
 
-      combinedBox.querySelectorAll(".combined-item-accept").forEach(btn=>btn.addEventListener("click",async()=>{
+      box.querySelectorAll(".combined-item-accept").forEach(btn=>btn.addEventListener("click",async()=>{
         btn.disabled=true;
-        const auth=(await getData()).auth;
-        const {error}=await auth.supabase.rpc("accept_quote_offer",{p_offer_id:btn.dataset.offerId});
+        const latest=await getData();
+        const {error}=await latest.auth.supabase.rpc("accept_quote_offer",{p_offer_id:btn.dataset.offerId});
         if(error){alert(error.message||"The offer could not be accepted.");btn.disabled=false;return;}
-        try{await auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:btn.dataset.offerId,event_type:"offer_accepted"}});}catch(_){ }
+        try{await latest.auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:btn.dataset.offerId,event_type:"offer_accepted"}});}catch(_){ }
         window.location.reload();
       }));
-      combinedBox.querySelectorAll(".combined-item-refuse").forEach(btn=>btn.addEventListener("click",async()=>{
+      box.querySelectorAll(".combined-item-refuse").forEach(btn=>btn.addEventListener("click",async()=>{
         if(!confirm("Refuse this item?"))return;
         btn.disabled=true;
-        const auth=(await getData()).auth;
-        const {error}=await auth.supabase.rpc("refuse_quote_offer",{p_offer_id:btn.dataset.offerId});
+        const latest=await getData();
+        const {error}=await latest.auth.supabase.rpc("refuse_quote_offer",{p_offer_id:btn.dataset.offerId});
         if(error){alert(error.message||"The offer could not be refused.");btn.disabled=false;return;}
-        try{await auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:btn.dataset.offerId,event_type:"offer_refused"}});}catch(_){ }
+        try{await latest.auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:btn.dataset.offerId,event_type:"offer_refused"}});}catch(_){ }
         window.location.reload();
       }));
     }catch(error){
       console.error("Combined quote load failed:",error);
-      combinedSection.style.display="none";
+      const section=document.getElementById("combined-quotes-section");
+      if(section)section.style.display="none";
     }
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load,{once:true});else load();
