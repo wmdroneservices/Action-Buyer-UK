@@ -32,8 +32,9 @@
   }
 
   function effectiveOffer(offers,itemId){
-    const list=(offers||[]).filter(o=>o.item_id===itemId&&o.status==="published");
-    return list.find(o=>o.offer_type==="final")||list.find(o=>o.offer_type==="manual")||list.find(o=>o.offer_type==="automatic")||null;
+    const list=(offers||[]).filter(o=>o.item_id===itemId&&["published","accepted"].includes(o.status));
+    const pick=type=>list.filter(o=>o.offer_type===type).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]||null;
+    return pick("final")||pick("manual")||pick("automatic");
   }
 
   async function respond(button,accepted){
@@ -50,7 +51,6 @@
       const ready=active.length>0&&active.every(i=>!!effectiveOffer(offers,i.id));
       if(!groupVals.some(v=>v.status==="customer_review"))throw new Error("This combined quote is not ready for a customer response yet.");
       if(!ready)throw new Error("This combined quote is not complete yet. Please wait until every item has a published offer.");
-      const verb=accepted?"accept":"refuse";
       if(!confirm(accepted?"Accept this item? It will be added to your GearCashOut basket.":"Refuse this item?"))return;
       const itemId=button.dataset.item;
       const offer=effectiveOffer(offers,itemId);
@@ -117,8 +117,6 @@
   }
 
   async function init(){
-    // Wait for the existing account script to establish the authenticated UI,
-    // then take control only when a valuation actually contains multiple items.
     for(let i=0;i<20;i++){
       await sleep(250);
       try{const d=await getData(); if(d?.items?.some(item=>d.items.filter(x=>x.valuation_id===item.valuation_id).length>1)){await render(true);break;}}catch(_){ }
