@@ -25,7 +25,7 @@
     if(error)return;
     const vals=valuations||[];
     const ids=vals.map(v=>v.id);
-    if(!ids.length)return;
+    if(!ids.length){section.style.display="none";return;}
 
     const {data:items}=await auth.supabase.from("quote_items")
       .select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position")
@@ -47,7 +47,7 @@
       groups.get(key).push(v);
     }
 
-    if(!combinedSeen)return;
+    if(!combinedSeen){section.style.display="none";return;}
 
     const cards=[];
     for(const [key,group] of groups){
@@ -65,6 +65,11 @@
         cards.push(`<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">${esc(group[0]?.quote_reference||"")}</span><p class="section-kicker">CUSTOMER OFFER</p><h3>${esc([name||"Equipment",pkg].filter(Boolean).join(" "))}</h3>${offer.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta"><strong>${money(offer.amount)}</strong><div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="${esc(offer.id)}" type="button">ACCEPT</button><button class="btn btn-secondary refuse-offer" data-id="${esc(offer.id)}" type="button">REFUSE</button></div></div></article>`);
         continue;
       }
+
+      // A multi-item customer submission is invisible to the customer until
+      // staff have actually sent the single combined quote. Published automatic
+      // prices alone are not customer-facing in this flow.
+      if(!group.some(v=>v.status==='customer_review'))continue;
 
       const pendingItems=groupItems.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
       if(!pendingItems.length)continue;
@@ -84,7 +89,7 @@
         return `<article class="valuation-card offer-card" style="margin-bottom:1rem;"><div><span class="valuation-ref">ITEM ${esc(item.item_position||index+1)}</span><p class="section-kicker">${esc(String(item.item_status||"under_assessment").replaceAll("_"," "))}</p><h3>${esc([name||"Equipment",pkg].filter(Boolean).join(" "))}</h3>${offer?.customer_message?`<p>${esc(offer.customer_message)}</p>`:""}</div><div class="valuation-meta">${offer?`<strong>${money(offer.amount)}</strong>`:"<span class=\"status-badge\">AWAITING OFFER</span>"}${actionHtml}</div></article>`;
       }).join("");
 
-      cards.push(`<article class="valuation-card" data-combined-key="${esc(key)}" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;"><div><span class="valuation-ref">${esc(group[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${groupItems.length} items</h3></div><span class="status-badge">${ready?"READY FOR CUSTOMER RESPONSE":"WAITING FOR ALL ITEM PRICES"}</span></div><p style="margin:0">${ready?"Your combined valuation is complete. You can now accept or refuse each item separately.":"GearCashOut is still completing this valuation. No item can be accepted or refused until every item has a published price."}</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>Current combined total</strong><strong>${money(combinedTotal)}</strong></div></article>`);
+      cards.push(`<article class="valuation-card" data-combined-key="${esc(key)}" style="display:grid;gap:1rem;margin-bottom:1.5rem;"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;"><div><span class="valuation-ref">${esc(group[0]?.quote_reference||"")}</span><p class="section-kicker">COMBINED QUOTE</p><h3>${groupItems.length} items</h3></div><span class="status-badge">${ready?"READY TO RESPOND":"AWAITING FINAL ITEM OFFER"}</span></div><p style="margin:0">Your combined quote is now ready. You can accept or refuse each item separately; the total updates as you respond.</p><div>${rows}</div><div style="display:flex;justify-content:space-between;padding:1rem 0;border-top:2px solid #102f4f;font-size:1.1rem;"><strong>Current combined total</strong><strong>${money(combinedTotal)}</strong></div></article>`);
     }
 
     rendering=true;
