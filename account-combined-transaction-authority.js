@@ -52,7 +52,7 @@
       const item=group.items.find(i=>i.id===button.dataset.item);
       if(!item)throw new Error("The selected item could not be found.");
       if(terminal(item.item_status))throw new Error("This item has already been decided.");
-      if(!group.vals.some(v=>v.status==="customer_review"))throw new Error("This combined quote is not yet available for a customer response.");
+      if(!group.vals.some(v=>["customer_review","final_valuation"].includes(String(v.status))))throw new Error("This combined quote is not yet available for a customer response.");
       const active=group.items.filter(i=>!terminal(i.item_status));
       if(active.some(i=>!effective(group.offers,i.id)))throw new Error("This combined quote is incomplete. Please wait until every item has a published offer.");
       const offer=effective(group.offers,item.id);
@@ -60,8 +60,7 @@
       if(!confirm(accept?"Accept this item? It will be added to your GearCashOut basket.":"Refuse this item?"))return;
       const {error}=await client.supabase.rpc(accept?"accept_quote_offer":"refuse_quote_offer",{p_offer_id:offer.id});
       if(error)throw error;
-      lastOffersKey="";lastSalesKey="";
-      await render();
+      lastOffersKey="";lastSalesKey="";await render();
     }catch(error){alert(error?.message||"The response could not be saved.");}finally{busy=false;button.disabled=false;}
   }
 
@@ -73,7 +72,7 @@
     combinedPresent=gs.length>0;
     if(!active.length){if(combinedPresent){writingOffers=true;section.style.display="none";box.innerHTML="";writingOffers=false;}return;}
     const html=active.map(group=>{
-      const sent=group.vals.some(v=>v.status==="customer_review");
+      const sent=group.vals.some(v=>["customer_review","final_valuation"].includes(String(v.status)));
       const live=group.items.filter(i=>!terminal(i.item_status));
       const ready=live.length>0&&live.every(i=>!!effective(group.offers,i.id));
       const decided=group.items.filter(i=>terminal(i.item_status));
