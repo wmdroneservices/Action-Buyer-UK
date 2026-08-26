@@ -7,9 +7,14 @@
   let busy=false;
   let lastSignature="";
 
-  async function getData(){
+  function getAuth(){
     const auth=window.actionBuyerAuth;
-    if(!auth)return null;
+    if(!auth||!auth.supabase)throw new Error("Your account connection is not ready. Please refresh the page and try again.");
+    return auth;
+  }
+
+  async function getData(){
+    const auth=getAuth();
     const session=await auth.getSession();
     if(!session?.user?.id)return null;
     const {data:valuations,error}=await auth.supabase.from("valuations")
@@ -18,7 +23,7 @@
     if(error)throw error;
     const vals=valuations||[];
     const ids=vals.map(v=>v.id);
-    if(!ids.length)return {auth,session,vals,items:[],offers:[]};
+    if(!ids.length)return {session,vals,items:[],offers:[]};
     const {data:items,error:itemError}=await auth.supabase.from("quote_items")
       .select("id,valuation_id,item_name,manufacturer,model,package,item_status,item_position")
       .in("valuation_id",ids).order("item_position",{ascending:true});
@@ -28,7 +33,7 @@
       .select("id,item_id,offer_type,amount,status,customer_message,created_at")
       .in("item_id",itemIds).order("created_at",{ascending:false}):{data:[]};
     if(offerError)throw offerError;
-    return {auth,session,vals,items:items||[],offers:offers||[]};
+    return {session,vals,items:items||[],offers:offers||[]};
   }
 
   function effectiveOffer(offers,itemId){
@@ -39,38 +44,56 @@
 
   async function respond(button,accepted){
     if(busy)return;
-    busy=true; button.disabled=true;
+    busy=true;button.disabled=true;
     try{
+      const auth=getAuth();
       const data=await getData();
+      if(!data)throw new Error("Your session has expired. Please sign in again.");
       const groupKey=button.dataset.group;
       const groupVals=(data.vals||[]).filter(v=>(v.quote_data?.submissionKey||v.id)===groupKey);
       const groupIds=new Set(groupVals.map(v=>v.id));
       const groupItems=(data.items||[]).filter(i=>groupIds.has(i.valuation_id));
-      const active=groupItems.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
-      const offers=data.offers||[];
-      const ready=active.length>0&&active.every(i=>!!effectiveOffer(offers,i.id));
-      if(!groupVals.some(v=>v.status==="customer_review"))throw new Error("This combined quote is not ready for a customer response yet.");
-      if(!ready)throw new Error("This combined quote is not complete yet. Please wait until every item has a published offer.");
-      if(!confirm(accepted?"Accept this item? It will be added to your GearCashOut basket.":"Refuse this item?"))return;
       const itemId=button.dataset.item;
-      const offer=effectiveOffer(offers,itemId);
-      if(!offer)throw new Error("The offer is no longer available.");
+      const item=groupItems.find(i=>i.id===itemId);
+      if(!item)throw new Error("This quote item could not be found. Please refresh the page.");
+      if(item.item_status==="accepted")throw new Error("This item has already been accepted.");
+      if(item.item_status==="refused")throw new Error("This item has already been refused.");
+      const offer=effectiveOffer(data.offers,itemId);
+      if(!offer||offer.status!=="published")throw new Error("This offer is no longer available. Please refresh the page.");
+      if(!groupVals.some(v=>v.status==="customer_review"))throw new Error("This combined quote is not ready for a customer response yet.");
+      const active=groupItems.filter(i=>!['accepted','refused','closed'].includes(i.item_status));
+      if(active.some(i=>!effectiveOffer(data.offers,i.id)))throw new Error("This combined quote is incomplete. Please wait until every item has a published offer.");
+      if(!confirm(accepted?"Accept this item? It will be added to your GearCashOut basket.":"Refuse this item?"))return;
+
       const rpc=accepted?"accept_quote_offer":"refuse_quote_offer";
-      const {error}=await data.auth.supabase.rpc(rpc,{p_offer_id:offer.id});
+      const {data:result,error}=await auth.supabase.rpc(rpc,{p_offer_id:offer.id});
       if(error)throw error;
-      try{await data.auth.supabase.functions.invoke("send-quote-email-v2",{body:{offer_id:offer.id,event_type:accepted?"offer_accepted":"offer_refused"}});}catch(_){ }
+
+      // Notification email is supplementary; the acceptance/refusal itself has
+      // already been committed successfully and must not be rolled back because
+      // an email provider is unavailable.
+      try{
+        await auth.supabase.functions.invoke("send-quote-email-v2",{
+          body:{offer_id:offer.id,event_type:accepted?"offer_accepted":"offer_refused",response_result:result||null}
+        });
+      }catch(emailError){console.warn("Offer response email failed:",emailError);}
+
       lastSignature="";
       await render(true);
     }catch(error){
       alert(error?.message||"The response could not be saved.");
-    }finally{busy=false;button.disabled=false;}
+    }finally{
+      busy=false;
+      button.disabled=false;
+    }
   }
 
   async function render(force){
     const box=document.getElementById("offers");
     const section=document.getElementById("new-quotes-section");
     if(!box||!section||busy)return;
-    const data=await getData().catch(()=>null);
+    let data;
+    try{data=await getData();}catch(error){console.error("Combined quote load error:",error);return;}
     if(!data)return;
 
     const groups=new Map();
@@ -133,7 +156,7 @@
           await render(true);
           break;
         }
-      }catch(_){ }
+      }catch(error){console.error("Combined quote initialisation error:",error);}
     }
     setInterval(()=>render(false),1500);
   }
