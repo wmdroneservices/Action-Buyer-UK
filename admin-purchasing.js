@@ -20,35 +20,50 @@ document.addEventListener("DOMContentLoaded", async () => {
     el.style.fontWeight = count > 0 ? "800" : "";
   }
 
+  const effectiveOffer = (offers, itemId) => {
+    const published = offers.filter(o => o.item_id === itemId && o.status === "published");
+    return published.find(o => o.offer_type === "final")
+      || published.find(o => o.offer_type === "manual")
+      || published.find(o => o.offer_type === "automatic")
+      || null;
+  };
+
   async function loadCounts() {
-    const { data: valuations, error } = await auth.supabase.from("valuations").select("id,status,archived_at").is("archived_at", null);
+    const { data: valuations, error } = await auth.supabase.from("valuations").select("id,status,archived_at,quote_data").is("archived_at", null);
     if (error) { notice("Could not load purchasing counts.", false); return; }
     const active = valuations || [], ids = active.map(v=>v.id);
     let items=[], offers=[];
     if(ids.length){
-      const a=await auth.supabase.from("quote_items").select("id,valuation_id").in("valuation_id",ids); if(a.error){notice("Could not load valuation items.",false);return;} items=a.data||[];
+      const a=await auth.supabase.from("quote_items").select("id,valuation_id,item_status").in("valuation_id",ids); if(a.error){notice("Could not load valuation items.",false);return;} items=a.data||[];
       const itemIds=items.map(i=>i.id); if(itemIds.length){const b=await auth.supabase.from("quote_offers").select("id,item_id,offer_type,status").in("item_id",itemIds);if(b.error){notice("Could not load offers",false);return;}offers=b.data||[];}
     }
 
-    // Only valuations that still require staff assessment belong in the valuation queue.
-    // Published automatic offers have already been sent to the customer and belong in
-    // the purchase pipeline instead.
-    const awaiting=new Set(["submitted","manual_review","pending_review","awaiting_valuation"]);
-    const awaitingReview=active.filter(v=>{
-      const vi=items.filter(i=>i.valuation_id===v.id);
-      if(vi.some(i=>offers.some(o=>o.item_id===i.id&&o.status==="published"))) return false;
-      if(awaiting.has(v.status)) return true;
-      return v.status==="valued" && vi.some(i=>offers.some(o=>o.item_id===i.id&&o.offer_type!=="automatic"&&o.status==="draft"));
-    }).length;
-    setCount("valuation-count", awaitingReview);
+    const states = active.map(v => {
+      const vi = items.filter(i => i.valuation_id === v.id);
+      const unresolved = vi.filter(i => !["accepted","refused","closed"].includes(i.item_status));
+      const effective = new Map(vi.map(i => [i.id, effectiveOffer(offers, i.id)]));
+      const readyForCustomer = unresolved.length > 0 && unresolved.every(i => !!effective.get(i.id));
+      const needsStaff = unresolved.length > 0 && unresolved.some(i => !effective.get(i.id));
+      const hasAutomatic = unresolved.some(i => effective.get(i.id)?.offer_type === "automatic");
+      return { v, vi, unresolved, effective, readyForCustomer, needsStaff, hasAutomatic };
+    });
 
-    const automaticAwaitingCustomer=offers.filter(o=>o.offer_type==="automatic"&&o.status==="published").length;
+    // A valuation stays in the staff valuation queue until every unresolved item
+    // has an effective published offer. This is what makes mixed automatic/manual
+    // submissions wait for the manual item instead of exposing the automatic item early.
+    const awaitingReview = states.filter(s => s.needsStaff).length;
+    const awaitingCustomer = states.filter(s => s.readyForCustomer).length;
+    const automaticReady = states.filter(s => s.readyForCustomer && s.hasAutomatic).length;
+
+    setCount("valuation-count", awaitingReview);
+    setCount("customer-response-count", awaitingCustomer);
+
     const automaticCta=document.getElementById("automatic-response-cta");
     const automaticText=document.getElementById("automatic-response-text");
-    if(automaticCta) automaticCta.hidden=automaticAwaitingCustomer===0;
-    if(automaticText) automaticText.textContent=automaticAwaitingCustomer===1
-      ? "1 automatic valuation is live and awaiting the customer's response."
-      : `${automaticAwaitingCustomer} automatic valuations are live and awaiting customer responses.`;
+    if(automaticCta) automaticCta.hidden=automaticReady===0;
+    if(automaticText) automaticText.textContent=automaticReady===1
+      ? "1 automatic valuation is complete and awaiting the customer's response."
+      : `${automaticReady} automatic valuations are complete and awaiting customer responses.`;
 
     const {data:sales,error:se}=await auth.supabase.from("sales").select("id,status,payment_status,archived_at,bank_details_confirmed_at").is("archived_at",null);
     if(se){notice("Could not load purchase pipeline counts.",false);return;}
@@ -61,7 +76,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if(!inbound.has(s.sale_id)) inbound.set(s.sale_id,s);
     });
 
-    setCount("customer-response-count", offers.filter(o=>o.status==="published"&&["automatic","manual"].includes(o.offer_type)).length);
     const terminal=new Set(["paid","completed","cancelled"]);
     const shippingLabelRequired=activeSales.filter(s=>{
       if(terminal.has(String(s.status||""))) return false;
