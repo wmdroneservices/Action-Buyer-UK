@@ -5,10 +5,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const addAlerts = () => {
     box.querySelectorAll("article.valuation-card").forEach(card => {
       if (card.querySelector(".shipping-next-step")) return;
+
       const kicker = card.querySelector(".section-kicker")?.textContent?.trim().toLowerCase() || "";
       if (!kicker.includes("collecting items")) return;
+
       const meta = card.querySelector(".valuation-meta");
       if (!meta) return;
+
+      // Do not show the action-required alert once an inbound
+      // CUSTOMER → US shipment/label has already been created.
+      const shipmentText = meta.textContent || "";
+      if (shipmentText.includes("CUSTOMER → US") && !shipmentText.includes("No shipment created yet.")) return;
 
       const alert = document.createElement("div");
       alert.className = "shipping-next-step";
