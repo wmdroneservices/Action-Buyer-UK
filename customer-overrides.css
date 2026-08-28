@@ -16,3 +16,8 @@
   .home-redesign .brand-lockup,.home-redesign .brand-lockup img{width:210px;min-width:210px}
   .home-redesign .site-header .nav-list{gap:.05rem}
 }
+
+/* Use the same spaced wordmark on every customer-facing page. */
+.customer-page:not(.home-redesign) .logo{width:250px;flex-basis:250px;background-image:url('images/gearcashout-logo-fixed2.svg');background-size:contain;background-position:left center;background-repeat:no-repeat}
+@media(max-width:900px){.customer-page:not(.home-redesign) .logo{width:220px;flex-basis:220px}}
+@media(max-width:600px){.customer-page:not(.home-redesign) .logo{width:200px;flex-basis:200px}}
