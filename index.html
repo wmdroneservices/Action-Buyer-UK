@@ -10,6 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="homepage.css" />
+  <style>
+    /* Homepage refinement: restrained, product-led category selector. */
+    .gco-start-card{padding:2rem;max-width:470px;border-radius:8px;background:#fff;box-shadow:0 24px 60px rgba(5,24,36,.24)}
+    .gco-start-card h2{font-size:1.9rem;margin-bottom:.6rem}
+    .gco-start-card>p:not(.gco-card-kicker){font-size:.9rem;line-height:1.65;margin-bottom:1.5rem}
+    .gco-category-links{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;border:0}
+    .gco-category-links a{display:flex;min-height:108px;flex-direction:column;justify-content:flex-end;gap:.3rem;padding:1rem 1.05rem;border:1px solid #dfe4e2;border-radius:6px;background:#fbfcfb;box-sizing:border-box;transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+    .gco-category-links a:hover,.gco-category-links a:focus{background:#fff;border-color:#c7d0cc;transform:translateY(-2px);box-shadow:0 10px 25px rgba(16,47,79,.08);outline:none}
+    .gco-category-links strong{font-size:.95rem;color:#102f4f}
+    .gco-category-links small{font-size:.74rem;color:#6d777d;line-height:1.4;margin-top:.1rem}
+    .gco-category-icon,.gco-category-links b{display:none}
+    .gco-card-link{margin-top:1.25rem;font-size:.74rem}
+    .gco-hero-points{gap:2rem}
+    .gco-hero-points div{gap:0}
+    .gco-hero-points strong,.gco-proof-number,.gco-product-card span,.gco-step>span{display:none}
+    .gco-proof-grid>div{gap:0}
+    .gco-step{grid-template-columns:1fr;gap:0}
+    @media(max-width:600px){.gco-category-links{grid-template-columns:1fr}.gco-start-card{padding:1.35rem}.gco-category-links a{min-height:88px}.gco-hero-points{display:grid;grid-template-columns:1fr;gap:.65rem}}
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js" defer></script>
   <script src="live-quote-nav.js?v=20260828-3" defer></script>
@@ -45,32 +64,32 @@
           <a href="#how-it-works" class="gco-btn gco-btn-ghost">HOW IT WORKS</a>
         </div>
         <div class="gco-hero-points" aria-label="Key benefits">
-          <div><strong>01</strong><span>Clear valuations</span></div>
-          <div><strong>02</strong><span>UK buying service</span></div>
-          <div><strong>03</strong><span>Straightforward process</span></div>
+          <div><span>Clear valuations</span></div>
+          <div><span>UK buying service</span></div>
+          <div><span>Straightforward process</span></div>
         </div>
       </div>
       <div class="gco-start-card">
-        <p class="gco-card-kicker">START HERE</p>
-        <h2>What are you looking to sell?</h2>
-        <p>Choose a category and we'll take you straight to the valuation process.</p>
+        <p class="gco-card-kicker">START YOUR VALUATION</p>
+        <h2>What are you selling?</h2>
+        <p>Select a category to begin. We'll take you into the valuation process and ask for the details we need.</p>
         <div class="gco-category-links">
-          <a href="valuation.html"><span class="gco-category-icon">DR</span><span><strong>Drones</strong><small>DJI and other brands</small></span><b>→</b></a>
-          <a href="valuation.html"><span class="gco-category-icon">CA</span><span><strong>Cameras</strong><small>Mirrorless, DSLR & compact</small></span><b>→</b></a>
-          <a href="valuation.html"><span class="gco-category-icon">AC</span><span><strong>Action Cameras</strong><small>GoPro, DJI, Insta360</small></span><b>→</b></a>
-          <a href="valuation.html"><span class="gco-category-icon">AV</span><span><strong>Video & Audio</strong><small>Professional equipment</small></span><b>→</b></a>
+          <a href="valuation.html"><strong>Drones</strong><small>DJI and other drone equipment</small></a>
+          <a href="valuation.html"><strong>Cameras</strong><small>Mirrorless, DSLR and compact cameras</small></a>
+          <a href="valuation.html"><strong>Action Cameras</strong><small>GoPro, DJI, Insta360 and more</small></a>
+          <a href="valuation.html"><strong>Video &amp; Audio</strong><small>Professional video and audio equipment</small></a>
         </div>
-        <a href="what-we-buy.html" class="gco-card-link">See everything we buy →</a>
+        <a href="what-we-buy.html" class="gco-card-link">See everything we buy</a>
       </div>
     </div>
   </section>
 
   <section class="gco-proof-strip" aria-label="Why sell to GearCashOut">
     <div class="container gco-proof-grid">
-      <div><span class="gco-proof-number">01</span><div><strong>Specialist buyer</strong><small>We understand equipment, not just electronics.</small></div></div>
-      <div><span class="gco-proof-number">02</span><div><strong>Manual valuation</strong><small>Your submission can receive a manual valuation after the automatic valuation.</small></div></div>
-      <div><span class="gco-proof-number">03</span><div><strong>One clear process</strong><small>No marketplace listings or buyer messages to manage.</small></div></div>
-      <div><span class="gco-proof-number">04</span><div><strong>Built in the UK</strong><small>A straightforward service for UK sellers.</small></div></div>
+      <div><div><strong>Specialist buyer</strong><small>We understand equipment, not just electronics.</small></div></div>
+      <div><div><strong>Automatic valuations</strong><small>Our valuation system can calculate value from the equipment details and condition.</small></div></div>
+      <div><div><strong>Manual valuations when needed</strong><small>Some items may need additional review before an offer is made.</small></div></div>
+      <div><div><strong>One clear process</strong><small>No marketplace listings or buyer messages to manage.</small></div></div>
     </div>
   </section>
 
@@ -81,12 +100,12 @@
         <p>From drones and cameras to specialist video and audio equipment, we're building a focused buying service for people who want a professional alternative to selling privately.</p>
       </div>
       <div class="gco-product-grid">
-        <a href="what-we-buy.html" class="gco-product-card gco-product-featured"><img src="images/category-drones.jpg" alt="Drone equipment" loading="lazy" /><div><span>01</span><h3>Drones</h3><p>DJI and other recognised drone equipment.</p><b>Sell drones →</b></div></a>
-        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-cameras.jpg" alt="Camera equipment" loading="lazy" /><div><span>02</span><h3>Cameras</h3><p>Digital, mirrorless, DSLR and compact systems.</p><b>Sell cameras →</b></div></a>
-        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-action-cameras.jpg" alt="Action camera equipment" loading="lazy" /><div><span>03</span><h3>Action Cameras</h3><p>GoPro, DJI Action, Insta360 and more.</p><b>Sell action cameras →</b></div></a>
-        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-lenses.jpg" alt="Camera lens and accessories" loading="lazy" /><div><span>04</span><h3>Lenses & Accessories</h3><p>Selected lenses, flashes and useful accessories.</p><b>Sell accessories →</b></div></a>
-        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-video-equipment.jpg" alt="Video equipment" loading="lazy" /><div><span>05</span><h3>Video Equipment</h3><p>Gimbals, monitors, lighting and production gear.</p><b>Sell video gear →</b></div></a>
-        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-audio.jpg" alt="Audio equipment" loading="lazy" /><div><span>06</span><h3>Audio Equipment</h3><p>Microphones, recorders and recording equipment.</p><b>Sell audio gear →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card gco-product-featured"><img src="images/category-drones.jpg" alt="Drone equipment" loading="lazy" /><div><h3>Drones</h3><p>DJI and other recognised drone equipment.</p><b>Sell drones →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-cameras.jpg" alt="Camera equipment" loading="lazy" /><div><h3>Cameras</h3><p>Digital, mirrorless, DSLR and compact systems.</p><b>Sell cameras →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-action-cameras.jpg" alt="Action camera equipment" loading="lazy" /><div><h3>Action Cameras</h3><p>GoPro, DJI Action, Insta360 and more.</p><b>Sell action cameras →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-lenses.jpg" alt="Camera lens and accessories" loading="lazy" /><div><h3>Lenses &amp; Accessories</h3><p>Selected lenses, flashes and useful accessories.</p><b>Sell accessories →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-video-equipment.jpg" alt="Video equipment" loading="lazy" /><div><h3>Video Equipment</h3><p>Gimbals, monitors, lighting and production gear.</p><b>Sell video gear →</b></div></a>
+        <a href="what-we-buy.html" class="gco-product-card"><img src="images/category-audio.jpg" alt="Audio equipment" loading="lazy" /><div><h3>Audio Equipment</h3><p>Microphones, recorders and recording equipment.</p><b>Sell audio gear →</b></div></a>
       </div>
       <div class="gco-centre-link"><a href="what-we-buy.html" class="gco-outline-btn">VIEW ALL EQUIPMENT WE BUY →</a></div>
     </div>
@@ -96,19 +115,19 @@
     <div class="container">
       <div class="gco-section-heading gco-dark-heading"><div><p class="gco-kicker">HOW IT WORKS</p><h2>A better way to<br />sell your gear.</h2></div><p>We've designed the process around the things sellers actually want: a clear valuation, clear communication and no wasted time.</p></div>
       <div class="gco-steps">
-        <div class="gco-step"><span>01</span><div><h3>Tell us what you have</h3><p>Start a valuation and give us the details of your equipment.</p></div></div>
-        <div class="gco-step"><span>02</span><div><h3>Automatic valuation</h3><p>Where supported, our valuation system provides an automatic valuation from the details you supply.</p></div></div>
-        <div class="gco-step"><span>03</span><div><h3>Manual valuation</h3><p>Your submission can then receive a manual valuation where required, including a review of the information and photographs supplied.</p></div></div>
-        <div class="gco-step"><span>04</span><div><h3>Review your offer</h3><p>See the valuation and offer in your account and decide whether you want to proceed.</p></div></div>
-        <div class="gco-step"><span>05</span><div><h3>Send your gear and get paid</h3><p>If you accept, we'll guide you through shipping and inspection. Once the final value is confirmed, payment is arranged.</p></div></div>
+        <div class="gco-step"><div><h3>Tell us what you have</h3><p>Start a valuation and give us the details of your equipment.</p></div></div>
+        <div class="gco-step"><div><h3>Get an automatic valuation</h3><p>Where our valuation system supports the item, your model, package and condition are used to calculate an automatic valuation.</p></div></div>
+        <div class="gco-step"><div><h3>Manual valuation where required</h3><p>Some items may need additional review, for example where condition, missing equipment or other details require a manual valuation.</p></div></div>
+        <div class="gco-step"><div><h3>Review your offer</h3><p>See the valuation and offer in your account and decide whether you want to proceed.</p></div></div>
+        <div class="gco-step"><div><h3>Send your gear and get paid</h3><p>If you accept, we'll guide you through shipping and inspection. Once the final value is confirmed, payment is arranged.</p></div></div>
       </div>
-      <div class="gco-dark-action"><a href="how-it-works.html">Read the full selling process →</a><a href="valuation.html" class="gco-btn gco-btn-primary">START MY VALUATION <span>→</span></a></div>
+      <div class="gco-dark-action"><a href="how-it-works.html">Read the full selling process</a><a href="valuation.html" class="gco-btn gco-btn-primary">START MY VALUATION <span>→</span></a></div>
     </div>
   </section>
 
   <section class="gco-trust-section">
     <div class="container gco-trust-layout">
-      <div><p class="gco-kicker">WHY GEARCASHOUT</p><h2>Sell with a service built around the gear.</h2><p>We are creating a specialist route for equipment owners who want to move on their gear without putting it on a public marketplace.</p><a href="how-it-works.html" class="gco-text-link">Why sell to us →</a></div>
+      <div><p class="gco-kicker">WHY GEARCASHOUT</p><h2>Sell with a service built around the gear.</h2><p>We are creating a specialist route for equipment owners who want to move on their gear without putting it on a public marketplace.</p><a href="how-it-works.html" class="gco-text-link">Why sell to us</a></div>
       <div class="gco-trust-cards"><div><strong>NO MARKETPLACE HASSLE</strong><p>No listing, no messages, no arranging meetings with strangers.</p></div><div><strong>REAL EQUIPMENT FOCUS</strong><p>Our buying categories are built around the equipment people actually use.</p></div><div><strong>YOUR ACCOUNT, YOUR PROGRESS</strong><p>Keep track of valuations, offers, shipping and payment from your account.</p></div></div>
     </div>
   </section>
@@ -122,8 +141,8 @@
   <div class="container gco-footer-grid">
     <div class="gco-footer-brand"><img src="images/gearcashout-logo-fixed2.svg" alt="GearCashOut" /><p>We buy drones, cameras, video and audio equipment from sellers across the UK.</p></div>
     <div><strong>SELL YOUR GEAR</strong><a href="valuation.html">Get a Valuation</a><a href="what-we-buy.html">What We Buy</a><a href="how-it-works.html">How It Works</a></div>
-    <div><strong>YOUR ACCOUNT</strong><a href="login.html" data-account-link>My Account</a><a href="login.html">Register / Login</a><a href="faq.html">Help & FAQs</a></div>
-    <div><strong>LEGAL & CONTACT</strong><a href="contact.html">Contact</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms & Conditions</a></div>
+    <div><strong>YOUR ACCOUNT</strong><a href="login.html" data-account-link>My Account</a><a href="login.html">Register / Login</a><a href="faq.html">Help &amp; FAQs</a></div>
+    <div><strong>LEGAL &amp; CONTACT</strong><a href="contact.html">Contact</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div>
   </div>
   <div class="container gco-footer-bottom"><span>© 2026 GearCashOut. All rights reserved.</span><span>UK equipment buying service.</span></div>
 </footer>
