@@ -35,12 +35,20 @@
     } catch (_) { return false; }
   }
   function loadCustomerTheme() {
-    if (document.getElementById("gear-cashout-customer-theme")) return;
-    const link = document.createElement("link");
-    link.id = "gear-cashout-customer-theme";
-    link.rel = "stylesheet";
-    link.href = "customer.css?v=20260828-1";
-    document.head.appendChild(link);
+    if (!document.getElementById("gear-cashout-customer-theme")) {
+      const link = document.createElement("link");
+      link.id = "gear-cashout-customer-theme";
+      link.rel = "stylesheet";
+      link.href = "customer.css?v=20260828-1";
+      document.head.appendChild(link);
+    }
+    if (!document.getElementById("gear-cashout-customer-overrides")) {
+      const link = document.createElement("link");
+      link.id = "gear-cashout-customer-overrides";
+      link.rel = "stylesheet";
+      link.href = "customer-overrides.css?v=20260828-1";
+      document.head.appendChild(link);
+    }
     document.body.classList.add("customer-page");
   }
   function updateNavigation() {
