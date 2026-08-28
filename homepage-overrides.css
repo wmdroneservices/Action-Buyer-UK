@@ -1,0 +1,57 @@
+/* GearCashOut homepage visual refinement — 29 Aug 2026 */
+.home-redesign .site-header{background:rgba(247,243,234,.98)}
+.home-redesign .header-container{min-height:68px;padding:.35rem 1.25rem;gap:1.5rem}
+.home-redesign .brand-lockup{width:285px;flex-basis:285px}
+.home-redesign .site-header .nav-list{gap:.1rem;flex-wrap:nowrap}
+.home-redesign .site-header .nav-list a{font-size:.74rem;padding:.55rem .65rem;white-space:nowrap}
+.home-redesign .site-header .nav-list .header-cta{padding:.68rem 1rem}
+
+/* Hero collage: photographic, layered, but never obscuring the main subject. */
+.gco-hero-visual{min-height:560px}
+.gco-hero-visual .hero-shot{border:1px solid rgba(255,255,255,.22);box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.gco-hero-visual .shot-main{width:68%;height:72%;right:1%;top:8%;border-radius:30px;z-index:1}
+.gco-hero-visual .shot-top{width:39%;height:38%;left:1%;top:2%;border-radius:24px;z-index:3}
+.gco-hero-visual .shot-bottom{width:40%;height:36%;left:4%;bottom:4%;border-radius:24px;z-index:4}
+.gco-hero-visual .shot-extra{width:34%;height:29%;right:2%;bottom:1%;border-radius:22px;z-index:3}
+.gco-hero-visual .hero-tag{right:6%;bottom:7%;z-index:6}
+.gco-hero-visual .hero-shot img{transition:transform .45s ease}
+.gco-hero-visual .hero-shot:hover img{transform:scale(1.04)}
+
+/* Make the category chooser feel photographic rather than like empty UI tiles. */
+.gco-category-links a{min-height:205px}
+.gco-category-icon{background:var(--gco-ink)}
+.gco-category-icon::after{content:'+'}
+
+/* What We Buy: dark ink headline on the light section; lime remains a hero/accent colour. */
+.gco-section .gco-kicker{color:var(--gco-orange)}
+.gco-section-heading h2{color:var(--gco-ink)}
+.gco-product-card{grid-template-rows:250px auto}
+.gco-product-card img{height:250px}
+.gco-product-card:hover img{transform:scale(1.025)}
+.gco-product-card img{transition:transform .4s ease}
+.gco-product-featured img{min-height:320px}
+
+/* Eight-card equipment grid: balanced and consistent. */
+.gco-product-grid{grid-template-columns:repeat(4,1fr);align-items:stretch}
+.gco-product-featured{grid-column:span 2}
+.gco-product-card h3{font-size:1.28rem}
+.gco-product-card>div{padding:1.35rem}
+
+@media(max-width:1100px){
+  .home-redesign .brand-lockup{width:250px;flex-basis:250px}
+  .home-redesign .site-header .nav-list a{font-size:.7rem;padding:.5rem .45rem}
+  .gco-product-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:700px){
+  .home-redesign .header-container{min-height:auto;padding:.65rem 1rem;flex-direction:column;gap:.55rem}
+  .home-redesign .brand-lockup{width:230px;flex-basis:auto}
+  .home-redesign .site-header .nav-list{flex-wrap:wrap;justify-content:center}
+  .home-redesign .site-header .nav-list a{font-size:.68rem;padding:.45rem .4rem}
+  .gco-hero-visual{min-height:390px}
+  .gco-hero-visual .shot-main{width:69%;height:70%;right:0}
+  .gco-hero-visual .shot-top{width:42%;height:38%}
+  .gco-hero-visual .shot-bottom{width:43%;height:34%;left:2%}
+  .gco-hero-visual .shot-extra{width:35%;height:27%;right:0}
+  .gco-product-grid{grid-template-columns:1fr}
+  .gco-product-featured{grid-column:auto;grid-template-columns:1fr}
+}
