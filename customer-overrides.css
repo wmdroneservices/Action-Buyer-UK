@@ -2,3 +2,17 @@
 .customer-page:not(.home-redesign) .nav-list li:last-child a:hover,.customer-page:not(.home-redesign) .nav-list li:last-child a:focus{background:#eef2f0;color:#102f4f}
 .customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]{background:#d88732;color:#fff;padding:.7rem 1rem;margin-left:.2rem}
 .customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]:hover,.customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]:focus{background:#b86f27;color:#fff}
+
+/* Keep the customer homepage logo and navigation separated at all desktop widths. */
+.home-redesign .brand-lockup{flex:0 0 250px;width:250px;min-width:250px}
+.home-redesign .brand-lockup img{display:block;width:250px;max-width:none;height:auto}
+.home-redesign .site-header .nav-list{flex:1 1 auto;min-width:0;justify-content:flex-end;flex-wrap:wrap;gap:.15rem}
+@media(max-width:1100px){
+  .home-redesign .header-container{flex-direction:column;align-items:center;gap:.8rem}
+  .home-redesign .brand-lockup{flex:0 0 auto;width:250px;min-width:250px}
+  .home-redesign .site-header .nav-list{width:100%;justify-content:center;flex-wrap:wrap}
+}
+@media(max-width:600px){
+  .home-redesign .brand-lockup,.home-redesign .brand-lockup img{width:210px;min-width:210px}
+  .home-redesign .site-header .nav-list{gap:.05rem}
+}
