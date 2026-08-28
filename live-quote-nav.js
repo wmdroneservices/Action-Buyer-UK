@@ -46,7 +46,7 @@
       const link = document.createElement("link");
       link.id = "gear-cashout-customer-overrides";
       link.rel = "stylesheet";
-      link.href = "customer-overrides.css?v=20260828-1";
+      link.href = "customer-overrides.css?v=20260828-2";
       document.head.appendChild(link);
     }
     document.body.classList.add("customer-page");
