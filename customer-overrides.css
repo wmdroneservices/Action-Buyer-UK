@@ -1,0 +1,4 @@
+.customer-page:not(.home-redesign) .nav-list li:last-child a{background:transparent;color:#142331;padding:.65rem .65rem}
+.customer-page:not(.home-redesign) .nav-list li:last-child a:hover,.customer-page:not(.home-redesign) .nav-list li:last-child a:focus{background:#eef2f0;color:#102f4f}
+.customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]{background:#d88732;color:#fff;padding:.7rem 1rem;margin-left:.2rem}
+.customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]:hover,.customer-page:not(.home-redesign) .nav-list a[href="valuation.html"]:focus{background:#b86f27;color:#fff}
