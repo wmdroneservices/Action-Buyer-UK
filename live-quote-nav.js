@@ -34,6 +34,15 @@
       return !!data;
     } catch (_) { return false; }
   }
+  function loadCustomerTheme() {
+    if (document.getElementById("gear-cashout-customer-theme")) return;
+    const link = document.createElement("link");
+    link.id = "gear-cashout-customer-theme";
+    link.rel = "stylesheet";
+    link.href = "customer.css?v=20260828-1";
+    document.head.appendChild(link);
+    document.body.classList.add("customer-page");
+  }
   function updateNavigation() {
     const navList = document.querySelector("header .nav-list");
     if (!navList) return;
@@ -64,6 +73,7 @@
   async function init() {
     removeNavigation();
     if (await isStaff()) return;
+    loadCustomerTheme();
     watchSubmission();
     updateNavigation();
     window.addEventListener("storage", updateNavigation);
