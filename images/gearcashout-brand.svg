@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 190" role="img" aria-labelledby="title desc"><title id="title">GearCashOut</title><desc id="desc">GearCashOut adventure camera equipment buying brand mark with compass</desc><defs><linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5A1F"/><stop offset="1" stop-color="#C6FF3D"/></linearGradient></defs><rect x="8" y="8" width="174" height="174" rx="42" fill="#0B0D0F"/><circle cx="95" cy="95" r="68" fill="none" stroke="#F7F3EA" stroke-width="3" opacity=".28"/><path d="M95 24 L113 78 L166 95 L113 112 L95 166 L77 112 L24 95 L77 78 Z" fill="url(#accent)"/><path d="M95 38 L104 86 L152 95 L104 104 L95 152 L86 104 L38 95 L86 86 Z" fill="#0B0D0F"/><path d="M95 43 L102 88 L147 95 L102 102 L95 147 L88 102 L43 95 L88 88 Z" fill="#F7F3EA"/><path d="M95 43 L102 88 L95 95 Z" fill="#FF5A1F"/><path d="M95 147 L88 102 L95 95 Z" fill="#C6FF3D"/><text x="95" y="18" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#F7F3EA">N</text><text x="172" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#F7F3EA">E</text><text x="95" y="184" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#F7F3EA">S</text><text x="18" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#F7F3EA">W</text><text x="215" y="111" font-family="'Barlow Condensed','Arial Narrow',Arial,sans-serif" font-size="88" font-weight="800" letter-spacing="-2" fill="#0B0D0F">Gear</text><text x="405" y="111" font-family="'Barlow Condensed','Arial Narrow',Arial,sans-serif" font-size="88" font-weight="800" letter-spacing="-2" fill="#FF5A1F">Cash</text><text x="590" y="111" font-family="'Barlow Condensed','Arial Narrow',Arial,sans-serif" font-size="88" font-weight="800" letter-spacing="-2" fill="#0B0D0F">Out</text><rect x="218" y="135" width="475" height="7" rx="3.5" fill="url(#accent)"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 210" role="img" aria-labelledby="title desc">
+<title id="title">GearCashOut</title>
+<desc id="desc">GearCashOut compass adventure equipment buying logo</desc>
+<defs>
+ <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a2a"/><stop offset="1" stop-color="#e84a10"/></linearGradient>
+ <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="7" result="noise"/><feComposite in="SourceGraphic" in2="noise" operator="multiply"/></filter>
+</defs>
+<!-- Compass -->
+<g transform="translate(105 105)">
+ <circle r="88" fill="#0b0d0f"/>
+ <circle r="80" fill="#f7f3ea" stroke="#0b0d0f" stroke-width="5"/>
+ <circle r="67" fill="#101416"/>
+ <path d="M0-61 L18-18 L61 0 L18 18 L0 61 L-18 18 L-61 0 L-18-18 Z" fill="url(#orange)" stroke="#0b0d0f" stroke-width="4"/>
+ <path d="M0-49 L9-9 L49 0 L9 9 L0 49 L-9 9 L-49 0 L-9-9 Z" fill="#f7f3ea"/>
+ <path d="M0-49 L9-9 L0 0 Z" fill="#ff5a1f"/>
+ <path d="M0 49 L-9 9 L0 0 Z" fill="#c6ff3d"/>
+ <text x="0" y="-92" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">N</text>
+ <text x="92" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">E</text>
+ <text x="0" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">S</text>
+ <text x="-92" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">W</text>
+</g>
+<!-- Wordmark -->
+<text x="215" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="#0b0d0f">Gear</text>
+<text x="470" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="url(#orange)">Cash</text>
+<text x="690" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="#0b0d0f">Out</text>
+<path d="M217 128 H910" stroke="#ff5a1f" stroke-width="7" stroke-linecap="round"/>
+<text x="218" y="164" font-family="'DM Sans',Arial,sans-serif" font-size="23" font-weight="800" letter-spacing="4" fill="#0b0d0f">WE BUY. YOU GET PAID.</text>
+</svg>
