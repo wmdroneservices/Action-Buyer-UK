@@ -1,58 +1,46 @@
-/* GearCashOut homepage visual refinement — 29 Aug 2026 v3 */
+/* GearCashOut homepage visual refinement — 29 Aug 2026 v4 */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
 .home-redesign .site-header{background:rgba(247,243,234,.98)}
-.home-redesign .header-container{min-height:74px;padding:.35rem 1.25rem;gap:0;justify-content:flex-start}
-.home-redesign .brand-lockup{width:310px;flex:0 0 310px}
-.home-redesign .site-header .nav-list{gap:.1rem;flex-wrap:nowrap;margin-left:2rem}
-.home-redesign .site-header .nav-list a{font-size:.74rem;padding:.55rem .65rem;white-space:nowrap}
+.home-redesign .header-container{min-height:88px;height:88px;padding:.35rem 1.25rem;gap:0;justify-content:flex-start}
+.home-redesign .brand-lockup{width:370px;flex:0 0 370px;height:76px;display:flex;align-items:center;line-height:0;overflow:visible}
+.home-redesign .brand-lockup img{display:block;width:100%;height:76px;max-width:none;object-fit:contain;object-position:left center}
+.home-redesign .site-header nav{flex:1;min-width:0}
+.home-redesign .site-header .nav-list{gap:.1rem;flex-wrap:nowrap;margin-left:1.25rem;justify-content:flex-end}
+.home-redesign .site-header .nav-list a{font-family:'DM Sans',Arial,sans-serif;font-size:.74rem;padding:.55rem .65rem;white-space:nowrap}
 .home-redesign .site-header .nav-list .header-cta{padding:.68rem 1rem}
 
-/* Hero collage: real product photography, with the main drone kept clear. */
-.gco-hero-visual{min-height:560px}
-.gco-hero-visual .hero-shot{border:1px solid rgba(255,255,255,.22);box-shadow:0 30px 70px rgba(0,0,0,.5)}
-.gco-hero-visual .shot-main{width:68%;height:72%;right:1%;top:8%;border-radius:30px;z-index:1}
-.gco-hero-visual .shot-top{width:39%;height:38%;left:1%;top:2%;border-radius:24px;z-index:3}
-.gco-hero-visual .shot-bottom{width:40%;height:36%;left:4%;bottom:4%;border-radius:24px;z-index:4}
-.gco-hero-visual .shot-extra{width:34%;height:29%;right:2%;bottom:1%;border-radius:22px;z-index:3}
-.gco-hero-visual .hero-tag{right:6%;bottom:7%;z-index:6}
-.gco-hero-visual .hero-shot img{transition:transform .45s ease}
-.gco-hero-visual .hero-shot:hover img{transform:scale(1.04)}
+/* Adventure typography: taller, harder-edged display lettering without changing body readability. */
+.home-redesign h1,.home-redesign h2,.home-redesign h3,.home-redesign .gco-category-links strong{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif!important;font-weight:800}
+.gco-hero h1{font-size:clamp(4.4rem,8.4vw,8rem);line-height:.82;letter-spacing:-.025em}
+.gco-section-heading h2,.gco-trust-layout h2,.gco-final-cta h2{font-size:clamp(3.2rem,5.5vw,5.6rem);line-height:.86;letter-spacing:-.02em}
+.gco-start-card h2{font-size:clamp(2.6rem,4.3vw,4rem);line-height:.9;letter-spacing:-.02em}
+.gco-product-card h3{font-size:1.65rem;line-height:.95;letter-spacing:-.01em}
+.gco-step h3{font-size:1.55rem;line-height:.95}
 
-/* Category chooser remains simple and compact. */
-.gco-category-links a{min-height:205px}
-.gco-category-icon{background:var(--gco-ink)}
-.gco-category-icon::after{content:'+'}
+/* Compass-led brand language: clear cardinal points rather than a generic circular icon. */
+.home-redesign .brand-lockup{transform:translateZ(0);will-change:width}
 
-/* What We Buy: dark headline on the light section. */
-.gco-section .gco-kicker{color:var(--gco-orange)}
-.gco-section-heading h2{color:var(--gco-ink)}
-.gco-product-card{grid-template-rows:250px auto}
-.gco-product-card img{height:250px}
-.gco-product-card:hover img{transform:scale(1.025)}
-.gco-product-card img{transition:transform .4s ease}
+/* Eight-card equipment grid: exactly two rows of four, equal treatment. */
+.gco-product-grid{grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}
+.gco-product-featured{grid-column:auto;grid-template-columns:none;grid-template-rows:250px auto}
+.gco-product-card{grid-template-rows:250px auto;height:100%}
+.gco-product-card img{height:250px;min-height:250px}
+.gco-product-featured img{height:250px;min-height:250px}
 
-/* Exactly eight equal cards: two rows of four. No featured/span card. */
-.gco-product-grid{grid-template-columns:repeat(4,1fr);align-items:stretch}
-.gco-product-card,.gco-product-featured{grid-column:auto;grid-template-columns:1fr;grid-template-rows:250px auto}
-.gco-product-card img,.gco-product-featured img{height:250px;min-height:250px;object-fit:cover}
-.gco-product-card h3{font-size:1.28rem}
-.gco-product-card>div{padding:1.35rem}
-
-@media(max-width:1100px){
-  .home-redesign .brand-lockup{width:250px;flex-basis:250px}
-  .home-redesign .site-header .nav-list{margin-left:1rem}
+@media(max-width:1200px){
+  .home-redesign .brand-lockup{width:320px;flex-basis:320px}
+  .home-redesign .brand-lockup img{height:70px}
+  .home-redesign .site-header .nav-list{margin-left:.5rem}
   .home-redesign .site-header .nav-list a{font-size:.7rem;padding:.5rem .45rem}
   .gco-product-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:700px){
-  .home-redesign .header-container{min-height:auto;padding:.65rem 1rem;flex-direction:column;gap:.55rem}
-  .home-redesign .brand-lockup{width:230px;flex-basis:auto}
+  .home-redesign .header-container{height:auto;min-height:auto;padding:.65rem 1rem;flex-direction:column;gap:.55rem}
+  .home-redesign .brand-lockup{width:300px;flex-basis:auto;height:70px}
+  .home-redesign .brand-lockup img{height:70px}
   .home-redesign .site-header .nav-list{flex-wrap:wrap;justify-content:center;margin-left:0}
   .home-redesign .site-header .nav-list a{font-size:.68rem;padding:.45rem .4rem}
   .gco-hero-visual{min-height:390px}
-  .gco-hero-visual .shot-main{width:69%;height:70%;right:0}
-  .gco-hero-visual .shot-top{width:42%;height:38%}
-  .gco-hero-visual .shot-bottom{width:43%;height:34%;left:2%}
-  .gco-hero-visual .shot-extra{width:35%;height:27%;right:0}
   .gco-product-grid{grid-template-columns:1fr}
-  .gco-product-card,.gco-product-featured{grid-column:auto;grid-template-columns:1fr}
 }
