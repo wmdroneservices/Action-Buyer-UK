@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-labelledby="title desc">
+  <title id="title">GearCashOut</title>
+  <desc id="desc">GearCashOut wordmark with a simple mountain mark</desc>
+  <rect width="620" height="150" fill="none"/>
+  <g fill="none" stroke="#102f4f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 49 55 18l28 23 29-30 38 38"/>
+    <path d="M36 72 55 49l16 15 27-31 37 39"/>
+  </g>
+  <text x="178" y="96" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="800" letter-spacing="-2" fill="#102f4f">GEAR</text>
+  <text x="351" y="96" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="800" letter-spacing="-2" fill="#d88732">CASH</text>
+  <text x="497" y="96" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="800" letter-spacing="-2" fill="#102f4f">OUT</text>
+  <path d="M180 115h355" stroke="#d88732" stroke-width="5" stroke-linecap="round"/>
+</svg>
