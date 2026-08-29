@@ -46,7 +46,7 @@
       const link = document.createElement("link");
       link.id = "gear-cashout-customer-overrides";
       link.rel = "stylesheet";
-      link.href = "customer-overrides.css?v=20260828-3";
+      link.href = "customer-overrides.css?v=20260829-4";
       document.head.appendChild(link);
     }
     if (!document.getElementById("gear-cashout-hero-image-overrides")) {
