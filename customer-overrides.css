@@ -14,3 +14,26 @@
 .customer-page:not(.home-redesign) .footer{background:var(--gco-ink);padding:4rem 1rem 1.75rem}.customer-page:not(.home-redesign) .footer-container{max-width:1180px;align-items:flex-start}.customer-page:not(.home-redesign) .footer-nav{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.6rem 1.4rem}.customer-page:not(.home-redesign) .footer-nav a{color:#d5d9d6;text-decoration:none;font-size:.78rem}.customer-page:not(.home-redesign) .footer-nav a:hover{color:#fff}
 @media(max-width:1000px){.customer-page:not(.home-redesign) .header-container{flex-direction:column;gap:.6rem}.customer-page:not(.home-redesign) .nav-list{justify-content:center}.customer-page:not(.home-redesign) .cards-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.customer-page:not(.home-redesign) .logo{width:215px;flex-basis:215px}.customer-page:not(.home-redesign) main.container{padding:4rem 1rem 5rem}.customer-page:not(.home-redesign) main.container>h2{font-size:3rem}.customer-page:not(.home-redesign) .cards-grid{grid-template-columns:1fr}}
+
+/* Shared customer-facing footer: same paper background and GearCashOut logo treatment as the header. */
+.customer-page .footer,
+.customer-page.home .footer{
+  background:#f4efe5 !important;
+  color:#0b0d0f !important;
+  border-top:1px solid rgba(11,13,15,.10) !important;
+  padding:3rem 1rem 1.5rem !important;
+}
+.customer-page .footer-container{max-width:1180px;align-items:flex-start}
+.customer-page .footer-container > div:first-child strong{display:block;width:245px;height:58px;margin:0 0 .7rem;padding:0;font-size:0;line-height:0;background:url('images/gearcashout-brand.svg') left center/contain no-repeat}
+.customer-page .footer-container > div:first-child br{display:none}
+.customer-page .footer-container > div:first-child{color:#6b706f}
+.customer-page .footer-container > div:first-child::after{content:'A specialist route for selling your equipment.';display:block;max-width:330px;font-size:.78rem;line-height:1.55;color:#6b706f}
+.customer-page .footer-nav a{color:#0b0d0f !important;font-weight:700}
+.customer-page .footer-nav a:hover,.customer-page .footer-nav a:focus{color:#ff5a1f !important}
+.customer-page.home .footer-brand img{width:245px;height:58px;object-fit:contain;object-position:left center;margin:0 0 .7rem}
+.customer-page.home .footer p{color:#6b706f !important}
+.customer-page.home .footer strong{color:#0b0d0f !important}
+.customer-page.home .footer a{color:#0b0d0f !important}
+.customer-page.home .footer a:hover,.customer-page.home .footer a:focus{color:#ff5a1f !important}
+.customer-page.home .footer-bottom{border-top-color:rgba(11,13,15,.10) !important;color:#6b706f !important}
+@media(max-width:650px){.customer-page .footer-container > div:first-child strong,.customer-page.home .footer-brand img{width:215px;height:52px}}
