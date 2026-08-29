@@ -9,20 +9,27 @@ function money(v){return v===null||v===undefined||v===''?'—':`£${Number(v).to
 function val(id){return $(id)?.value?.trim()||'';}
 function num(id){const v=val(id);return v===''?null:Number(v);}
 function setVal(id,v){if($(id))$(id).value=v??'';}
+function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
+function checkedLabel(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('en-GB');}
 
 function renderRetailers(){
   const body=$('retailer-prices-body');
   if(!body)return;
-  if(!retailerRows.length){body.innerHTML='<tr><td colspan="7">No retailer comparison data recorded.</td></tr>';return;}
-  body.innerHTML=retailerRows.map((r,i)=>`<tr data-index="${i}">
-    <td><input class="retailer" value="${esc(r.retailer)}"></td>
-    <td><input class="retailer-condition" value="${esc(r.condition)}"></td>
-    <td><input class="retailer-buy" type="number" min="0" step="0.01" value="${r.buy_price??''}"></td>
-    <td><input class="retailer-sell" type="number" min="0" step="0.01" value="${r.sell_price??''}"></td>
-    <td><input class="retailer-method" value="${esc(r.buy_method)}"></td>
-    <td><input class="retailer-source" type="url" value="${esc(r.source_url)}"></td>
+  if(!retailerRows.length){body.innerHTML='<tr><td colspan="9">No competitor comparison data recorded yet. Add CeX, MPB or another relevant buyer/retailer when evidence is available.</td></tr>';return;}
+  body.innerHTML=retailerRows.map((r,i)=>{
+    const url=safeUrl(r.source_url);
+    return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
+    <td><input class="retailer" value="${esc(r.retailer)}" placeholder="CeX / MPB"></td>
+    <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="Good"></td>
+    <td><input class="retailer-buy" type="number" min="0" step="0.01" value="${r.buy_price??''}" placeholder="—"></td>
+    <td><input class="retailer-sell" type="number" min="0" step="0.01" value="${r.sell_price??''}" placeholder="—"></td>
+    <td><input class="retailer-method" value="${esc(r.buy_method)}" placeholder="Cash / voucher / retail"></td>
+    <td><input class="retailer-source source-input" type="url" value="${esc(r.source_url)}" placeholder="https://..."><br>${url?`<a class="retailer-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'<span class="retailer-link disabled">NO SOURCE LINK</span>'}</td>
+    <td><input class="retailer-notes" value="${esc(r.notes)}" placeholder="What was checked / sold evidence"></td>
+    <td class="retailer-checked">${checkedLabel(r.checked_at)}</td>
     <td><button type="button" class="btn btn-secondary remove-retailer">REMOVE</button></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 function readRetailers(){
@@ -33,13 +40,18 @@ function readRetailers(){
     buy_price:tr.querySelector('.retailer-buy')?.value===''?null:Number(tr.querySelector('.retailer-buy')?.value),
     sell_price:tr.querySelector('.retailer-sell')?.value===''?null:Number(tr.querySelector('.retailer-sell')?.value),
     buy_method:tr.querySelector('.retailer-method')?.value.trim()||'',
-    source_url:tr.querySelector('.retailer-source')?.value.trim()||''
+    source_url:tr.querySelector('.retailer-source')?.value.trim()||'',
+    notes:tr.querySelector('.retailer-notes')?.value.trim()||'',
+    checked_at:tr.dataset.checkedAt||null
   }));
 }
 
 function clearForm(){
   $('catalog-form')?.reset();
   setVal('product-id','');
+  setVal('manufacturer-rrp','');
+  setVal('manufacturer-rrp-currency','GBP');
+  setVal('manufacturer-rrp-source','');
   retailerRows=[];
   renderRetailers();
   $('catalog-message').textContent='';
@@ -49,13 +61,14 @@ function clearForm(){
 
 function loadProduct(p){
   setVal('product-id',p.id);setVal('category',p.category);setVal('manufacturer',p.manufacturer);setVal('model',p.model);setVal('package-key',p.package_key);setVal('package-name',p.package_name);
+  setVal('manufacturer-rrp',p.manufacturer_rrp);setVal('manufacturer-rrp-currency',p.manufacturer_rrp_currency||'GBP');setVal('manufacturer-rrp-source',p.manufacturer_rrp_source||'');
   setVal('factory-sealed',p.factory_sealed_price);setVal('opened-unused',p.opened_unused_price);setVal('excellent',p.excellent_price);setVal('good',p.good_price);setVal('fair',p.fair_price);setVal('notes',p.notes||'');
   if($('active'))$('active').checked=!!p.active;
   retailerRows=[];renderRetailers();
-  sb().from('quote_catalog_retailer_prices').select('id,retailer,condition,buy_price,sell_price,buy_method,source_url,notes').eq('catalog_product_id',p.id).order('retailer').order('condition').then(({data,error})=>{
+  sb().from('quote_catalog_retailer_prices').select('id,retailer,condition,buy_price,sell_price,buy_method,source_url,notes,checked_at').eq('catalog_product_id',p.id).order('retailer').order('condition').then(({data,error})=>{
     if(error){showMessage(error.message,true);return;}
     retailerRows=data||[];renderRetailers();
-    Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).forEach((tr,i)=>{if(retailerRows[i]?.id)tr.dataset.id=retailerRows[i].id;});
+    Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).forEach((tr,i)=>{if(retailerRows[i]?.id)tr.dataset.id=retailerRows[i].id;if(retailerRows[i]?.checked_at)tr.dataset.checkedAt=retailerRows[i].checked_at;});
   });
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -89,15 +102,10 @@ function renderList(){
     return textMatch&&manufacturerMatch&&categoryMatch;
   });
   if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>No catalogue products match the selected filters.</p></div>';return;}
-  list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
+  list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${money(p.manufacturer_rrp)} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
 }
 
-function clearFilters(){
-  setVal('search','');
-  setVal('manufacturer-filter','');
-  setVal('category-filter','');
-  renderList();
-}
+function clearFilters(){setVal('search','');setVal('manufacturer-filter','');setVal('category-filter','');renderList();}
 
 async function load(){
   if(!auth||!sb()){showMessage('Authentication system unavailable.',true);return;}
@@ -107,31 +115,15 @@ async function load(){
     const {data:staff,error:staffError}=await sb().from('staff_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
     if(staffError)throw staffError;
     if(!staff){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1><p>This page is restricted to staff accounts.</p></section></div></main>';return;}
-    let allProducts=[];
-let from=0;
-const pageSize=1000;
-
-while(true){
-  const {data,error}=await sb()
-    .from('quote_catalog_products')
-    .select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at')
-    .range(from,from+pageSize-1)
-    .order('manufacturer')
-    .order('model')
-    .order('package_name');
-
-  if(error)throw error;
-
-  allProducts.push(...(data||[]));
-
-  if(!data || data.length < pageSize) break;
-
-  from += pageSize;
-}
-
-products=allProducts;
-    populateFilters();
-    renderList();
+    let allProducts=[];let from=0;const pageSize=1000;
+    while(true){
+      const {data,error}=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source,manufacturer_rrp_verified_at,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').range(from,from+pageSize-1).order('manufacturer').order('model').order('package_name');
+      if(error)throw error;
+      allProducts.push(...(data||[]));
+      if(!data||data.length<pageSize)break;
+      from+=pageSize;
+    }
+    products=allProducts;populateFilters();renderList();
   }catch(e){console.error(e);$('catalog-list').textContent='Unable to load the catalogue.';showMessage(e.message||String(e),true);}
 }
 
@@ -139,7 +131,7 @@ $('catalog-form')?.addEventListener('submit',async e=>{
   e.preventDefault();
   try{
     const session=await auth.getSession();if(!session){location.href='login.html?return=admin-catalog.html';return;}
-    const payload={category:val('category'),manufacturer:val('manufacturer'),model:val('model'),package_key:val('package-key'),package_name:val('package-name'),factory_sealed_price:num('factory-sealed'),opened_unused_price:num('opened-unused'),excellent_price:num('excellent'),good_price:num('good'),fair_price:num('fair'),active:$('active')?.checked!==false,notes:val('notes'),updated_at:new Date().toISOString()};
+    const payload={category:val('category'),manufacturer:val('manufacturer'),model:val('model'),package_key:val('package-key'),package_name:val('package-name'),manufacturer_rrp:num('manufacturer-rrp'),manufacturer_rrp_currency:val('manufacturer-rrp-currency')||'GBP',manufacturer_rrp_source:val('manufacturer-rrp-source'),manufacturer_rrp_verified_at:num('manufacturer-rrp')!==null?new Date().toISOString():null,factory_sealed_price:num('factory-sealed'),opened_unused_price:num('opened-unused'),excellent_price:num('excellent'),good_price:num('good'),fair_price:num('fair'),active:$('active')?.checked!==false,notes:val('notes'),updated_at:new Date().toISOString()};
     if(!payload.category||!payload.manufacturer||!payload.model||!payload.package_key||!payload.package_name){showMessage('Category, manufacturer, model, package key and package name are required for a new product.',true);return;}
     const id=val('product-id');
     let saved;
@@ -149,11 +141,15 @@ $('catalog-form')?.addEventListener('submit',async e=>{
     if(saved?.id){
       const existing=await sb().from('quote_catalog_retailer_prices').select('id').eq('catalog_product_id',saved.id);if(existing.error)throw existing.error;
       const keep=[];
-      for(const r of retailerRows){if(!r.retailer)continue;const row={catalog_product_id:saved.id,retailer:r.retailer,condition:r.condition,buy_price:r.buy_price,sell_price:r.sell_price,buy_method:r.buy_method,source_url:r.source_url,updated_at:new Date().toISOString()};if(r.id){const u=await sb().from('quote_catalog_retailer_prices').update(row).eq('id',r.id);if(u.error)throw u.error;keep.push(r.id);}else{const ins=await sb().from('quote_catalog_retailer_prices').insert(row).select('id').single();if(ins.error)throw ins.error;keep.push(ins.data.id);}}
+      for(const r of retailerRows){
+        if(!r.retailer)continue;
+        const row={catalog_product_id:saved.id,retailer:r.retailer,condition:r.condition,buy_price:r.buy_price,sell_price:r.sell_price,buy_method:r.buy_method,source_url:r.source_url,notes:r.notes,checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+        if(r.id){const u=await sb().from('quote_catalog_retailer_prices').update(row).eq('id',r.id);if(u.error)throw u.error;keep.push(r.id);}else{const ins=await sb().from('quote_catalog_retailer_prices').insert(row).select('id').single();if(ins.error)throw ins.error;keep.push(ins.data.id);}
+      }
       const remove=(existing.data||[]).map(x=>x.id).filter(x=>!keep.includes(x));
       if(remove.length){const d=await sb().from('quote_catalog_retailer_prices').delete().in('id',remove);if(d.error)throw d.error;}
     }
-    showMessage('Product saved.');await load();const fresh=products.find(p=>p.id===saved.id);if(fresh)loadProduct(fresh);
+    showMessage('Product and market intelligence saved.');await load();const fresh=products.find(p=>p.id===saved.id);if(fresh)loadProduct(fresh);
   }catch(e){console.error(e);showMessage(e.message||String(e),true);}
 });
 
@@ -162,7 +158,7 @@ document.addEventListener('click',e=>{
   if(edit){const p=products.find(x=>x.id===edit.dataset.id);if(p)loadProduct(p);}
   if(e.target.closest('#clear-form'))clearForm();
   if(e.target.closest('#clear-filters'))clearFilters();
-  if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',condition:'',buy_price:null,sell_price:null,buy_method:'',source_url:''});renderRetailers();}
+  if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',condition:'',buy_price:null,sell_price:null,buy_method:'',source_url:'',notes:'',checked_at:null});renderRetailers();}
   if(e.target.closest('.remove-retailer')){readRetailers();const tr=e.target.closest('tr');retailerRows.splice(Number(tr.dataset.index),1);renderRetailers();}
 });
 
