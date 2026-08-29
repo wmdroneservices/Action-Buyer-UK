@@ -38,3 +38,10 @@
 .customer-page.home .hero{position:relative;overflow:hidden;background-image:none !important}
 .customer-page.home .hero::before,.customer-page.home .hero::after{display:none !important;content:none !important}
 .customer-page.home .hero-grid{position:relative;z-index:2}
+
+/* Homepage What We Buy: each category uses exactly one image — the primary category image. */
+.home .buy-collage{display:block !important;height:190px !important;padding:7px !important}
+.home .buy-collage figure{display:none !important}
+.home .buy-collage figure:first-child{display:flex !important;width:100% !important;height:100% !important;grid-row:auto !important}
+.home .buy-collage figure:first-child img{width:100% !important;height:100% !important;object-fit:contain !important;padding:10px !important}
+@media(max-width:720px){.home .buy-collage{height:210px !important}}
