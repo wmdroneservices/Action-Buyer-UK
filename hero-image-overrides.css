@@ -1,22 +1,13 @@
-/* Homepage image treatment: keep hero equipment fully visible and use one image per buying category. */
-.home .hero-images .hero-image{background:#111315;border-color:#3b3d3b;position:relative}
-.home .hero-images .hero-image img{width:100%;height:100%;display:block;object-fit:cover;padding:0!important;background:#111315}
-.home .hero-images .hero-image.main img{object-fit:contain!important;object-position:center center;padding:20px!important;background:#111315!important}
-.home .hero-images .hero-image.side:first-of-type img{object-fit:contain!important;object-position:center center;padding:14px!important;background:#111315!important}
-.home .hero-images .hero-image.side:last-of-type img{object-fit:contain!important;object-position:center center;padding:14px!important;background:#111315!important}
-.home .hero-images .hero-image::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.03),rgba(0,0,0,0.16));mix-blend-mode:multiply}
-.home .hero-image-credits{margin-top:9px;text-align:right;font-size:8px;line-height:1.35;color:#858883}
-.home .hero-image-credits a{color:#a9aca7;text-decoration:none;border-bottom:1px dotted #666966}
-.home .hero-image-credits a:hover{color:#fff}
+/* Hero equipment imagery removed. The homepage hero is intentionally text-led until a final custom graphic is supplied. */
+.home .hero-images{display:none!important}
+.home .hero-image-credits{display:none!important}
+.home .hero{background:#111315!important}
+.home .hero::before,.home .hero::after{display:none!important;content:none!important}
+.home .hero-grid{position:relative;z-index:2}
 
-/* Buying categories: one clean category image instead of a mixed three-image collage. */
-.home .buy-collage{display:block!important;height:190px!important;padding:0!important;background:#f7f3eb!important}
-.home .buy-collage figure{display:none!important}
-.home .buy-collage figure:first-child{display:flex!important;width:100%!important;height:100%!important;margin:0!important;background:#f7f3eb!important;border-radius:3px!important}
-.home .buy-collage figure:first-child img{display:block;width:100%!important;height:100%!important;object-fit:contain!important;padding:12px!important;background:#f7f3eb!important}
-@media(max-width:720px){.home .buy-collage{height:210px!important}}
+/* Buying categories remain unchanged. */
 
-/* Hero headline: fixed three-line hierarchy without changing the image grid. */
+/* Hero headline: fixed three-line hierarchy. */
 .home .hero-copy h1{font-size:0!important;line-height:1!important;max-width:none!important;letter-spacing:0!important}
 .home .hero-copy h1::before{content:"WHAT COULD YOUR";display:block;color:#fff;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
 .home .hero-copy h1 .orange{display:block;color:var(--orange);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
