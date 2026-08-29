@@ -12,15 +12,30 @@ function setVal(id,v){if($(id))$(id).value=v??'';}
 function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
 function checkedLabel(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('en-GB');}
 
+function renderUkMarketReference(){
+  const box=$('uk-market-reference-grid');
+  if(!box)return;
+  const rows=retailerRows.filter(r=>r&&r.sell_price!==null&&r.sell_price!==undefined&&r.sell_price!=='');
+  const buyRows=retailerRows.filter(r=>r&&r.buy_price!==null&&r.buy_price!==undefined&&r.buy_price!=='');
+  if(!rows.length&&!buyRows.length){box.innerHTML='<div class="uk-market-stat"><strong>—</strong><span>No UK market evidence recorded yet</span></div>';return;}
+  const groups={};
+  rows.forEach(r=>{const key=String(r.retailer||'Other').trim()||'Other';const n=Number(r.sell_price);if(Number.isFinite(n))groups[key]=groups[key]===undefined? n:Math.max(groups[key],n);});
+  const cards=[];
+  Object.entries(groups).slice(0,6).forEach(([name,price])=>cards.push(`<div class="uk-market-stat"><strong>${esc(name)} ${money(price)}</strong><span>UK selling-price reference</span></div>`));
+  if(buyRows.length){const lowest=Math.min(...buyRows.map(r=>Number(r.buy_price)).filter(Number.isFinite));if(Number.isFinite(lowest))cards.unshift(`<div class="uk-market-stat"><strong>${money(lowest)}</strong><span>Lowest verified competitor buying price</span></div>`);}
+  box.innerHTML=cards.join('');
+}
+
 function renderRetailers(){
   const body=$('retailer-prices-body');
   if(!body)return;
-  if(!retailerRows.length){body.innerHTML='<tr><td colspan="9">No competitor comparison data recorded yet. Add CeX, MPB or another relevant buyer/retailer when evidence is available.</td></tr>';return;}
+  renderUkMarketReference();
+  if(!retailerRows.length){body.innerHTML='<tr><td colspan="9">No competitor comparison data recorded yet. Add CeX, MPB, Amazon UK or another relevant buyer/retailer when evidence is available.</td></tr>';return;}
   body.innerHTML=retailerRows.map((r,i)=>{
     const url=safeUrl(r.source_url);
     return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
-    <td><input class="retailer" value="${esc(r.retailer)}" placeholder="CeX / MPB"></td>
-    <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="Good"></td>
+    <td><input class="retailer" value="${esc(r.retailer)}" placeholder="CeX / MPB / Amazon UK"></td>
+    <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="Good / New"></td>
     <td><input class="retailer-buy" type="number" min="0" step="0.01" value="${r.buy_price??''}" placeholder="—"></td>
     <td><input class="retailer-sell" type="number" min="0" step="0.01" value="${r.sell_price??''}" placeholder="—"></td>
     <td><input class="retailer-method" value="${esc(r.buy_method)}" placeholder="Cash / voucher / retail"></td>
@@ -52,8 +67,7 @@ function clearForm(){
   setVal('manufacturer-rrp','');
   setVal('manufacturer-rrp-currency','GBP');
   setVal('manufacturer-rrp-source','');
-  retailerRows=[];
-  renderRetailers();
+  retailerRows=[];renderRetailers();
   $('catalog-message').textContent='';
   $('catalog-message').className='form-message';
   if($('active'))$('active').checked=true;
@@ -102,7 +116,7 @@ function renderList(){
     return textMatch&&manufacturerMatch&&categoryMatch;
   });
   if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>No catalogue products match the selected filters.</p></div>';return;}
-  list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${money(p.manufacturer_rrp)} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
+  list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${money(p.manufacturer_rrp)} ${esc(p.manufacturer_rrp_currency||'')} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
 }
 
 function clearFilters(){setVal('search','');setVal('manufacturer-filter','');setVal('category-filter','');renderList();}
