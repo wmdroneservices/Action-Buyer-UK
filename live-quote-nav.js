@@ -49,6 +49,13 @@
       link.href = "customer-overrides.css?v=20260828-3";
       document.head.appendChild(link);
     }
+    if (!document.getElementById("gear-cashout-hero-image-overrides")) {
+      const link = document.createElement("link");
+      link.id = "gear-cashout-hero-image-overrides";
+      link.rel = "stylesheet";
+      link.href = "hero-image-overrides.css?v=20260829-1";
+      document.head.appendChild(link);
+    }
     document.body.classList.add("customer-page");
   }
   function updateNavigation() {
@@ -65,16 +72,52 @@
     link.textContent = label;
     link.setAttribute("aria-label", `Resume your saved quote with ${basket.length} ${itemWord}`);
   }
+  function applyHomepageHeroImages() {
+    if (!document.body.classList.contains("home")) return;
+    const images = document.querySelectorAll(".home .hero-images .hero-image img");
+    if (images.length < 3) return;
+
+    const heroAssets = [
+      {
+        src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/DJI_Mavic_4_Pro.jpg",
+        alt: "DJI Mavic 4 Pro drone in a natural outdoor setting",
+        title: "DJI Mavic 4 Pro — Benlisquare, CC BY-SA 4.0"
+      },
+      {
+        src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/GoPro_H%C3%A9ro_13_Black_-_02.jpg",
+        alt: "GoPro HERO13 Black action camera",
+        title: "GoPro HERO13 Black — François de Dijon, CC BY-SA 4.0"
+      },
+      {
+        src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/2024_Dron_DJI_Mini_4_Pro_(14).jpg",
+        alt: "DJI Mini 4 Pro drone",
+        title: "DJI Mini 4 Pro — Jacek Halicki, CC BY-SA 4.0"
+      }
+    ];
+
+    images.forEach((img, index) => {
+      const asset = heroAssets[index];
+      if (!asset) return;
+      if (img.dataset.heroAsset !== asset.src) {
+        img.src = asset.src;
+        img.alt = asset.alt;
+        img.title = asset.title;
+        img.dataset.heroAsset = asset.src;
+      }
+    });
+
+    const heroImages = document.querySelector(".home .hero-images");
+    if (heroImages && !document.getElementById("hero-image-credits")) {
+      const credits = document.createElement("div");
+      credits.id = "hero-image-credits";
+      credits.className = "hero-image-credits";
+      credits.innerHTML = 'Hero images: <a href="https://commons.wikimedia.org/wiki/File:DJI_Mavic_4_Pro.jpg" target="_blank" rel="noopener">Benlisquare</a>, <a href="https://commons.wikimedia.org/wiki/File:GoPro_H%C3%A9ro_13_Black_-_02.jpg" target="_blank" rel="noopener">François de Dijon</a> and <a href="https://commons.wikimedia.org/wiki/File:2024_Dron_DJI_Mini_4_Pro_(14).jpg" target="_blank" rel="noopener">Jacek Halicki</a> — CC BY-SA 4.0.';
+      heroImages.insertAdjacentElement("afterend", credits);
+    }
+  }
   function applyHomepageVisualFixes() {
     if (!document.body.classList.contains("home")) return;
-
-    const camera = document.querySelector(".home .hero-images .hero-image.side:last-child img");
-    if (camera) {
-      camera.src = "https://i1.adis.ws/i/canon/4082C003_EOS-R6_24-105mm_01?bg=white&fmt=webp&qlt=80&w=940";
-      camera.alt = "Canon EOS R6 mirrorless camera with RF 24-105mm lens";
-      camera.style.mixBlendMode = "multiply";
-      camera.style.background = "transparent";
-    }
+    applyHomepageHeroImages();
 
     const footerLogo = document.querySelector(".home .footer-brand img");
     if (footerLogo && !footerLogo.dataset.footerVariant) {
