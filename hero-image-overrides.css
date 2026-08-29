@@ -16,31 +16,33 @@
 @media(max-width:720px){.home .hero-copy h1::before,.home .hero-copy h1 .orange,.home .hero-copy h1::after{font-size:clamp(48px,14vw,72px)}}
 
 /*
-   What We Buy: one image per card.
-   The existing live-quote-nav.js may remove the non-matching figures; these rules
-   deliberately make the remaining figure a single, full-width visual rather than a collage.
+   What We Buy: one real product photograph per category.
+   Images are selected from Wikimedia Commons where the individual file carries
+   a Creative Commons reuse licence. White studio backgrounds are blended into
+   GearCashOut's paper colour so they read as part of the card rather than as
+   pasted rectangles. No people or equipment collages are used.
 */
-.home .buy-collage{display:block!important;position:relative;height:190px!important;padding:0!important;gap:0!important;background:#151817!important;overflow:hidden}
-.home .buy-collage figure{display:none!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;border-radius:0!important;background-color:#151817!important;background-repeat:no-repeat!important;background-position:center!important;background-size:cover!important;overflow:hidden!important}
+.home .buy-collage{display:block!important;position:relative;height:190px!important;padding:0!important;gap:0!important;background:var(--paper)!important;overflow:hidden}
+.home .buy-collage figure{display:none!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;border-radius:0!important;background-color:var(--paper)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;background-blend-mode:multiply!important;overflow:hidden!important}
 .home .buy-card .buy-collage figure:first-child{grid-row:auto!important}
-.home .buy-collage img{display:block!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;object-fit:cover!important;object-position:center!important;mix-blend-mode:normal!important;opacity:0!important}
+.home .buy-collage img{display:block!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;object-fit:contain!important;object-position:center!important;mix-blend-mode:multiply!important;opacity:0!important}
 
-/* Card 1 — Drones */
-.home .buy-card:nth-child(1) .buy-collage figure{display:block!important;background-image:url('images/category-drones.jpg')!important}
-/* Card 2 — Action & Adventure Cameras */
-.home .buy-card:nth-child(2) .buy-collage figure{display:block!important;background-image:url('images/category-action-cameras.jpg')!important}
-/* Card 3 — Cameras */
-.home .buy-card:nth-child(3) .buy-collage figure{display:block!important;background-image:url('images/category-cameras.jpg')!important}
-/* Card 4 — Lenses & Accessories */
+/* Card 1 — Drones: DJI Mini 4 Pro product photograph, CC BY-SA 4.0. */
+.home .buy-card:nth-child(1) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/2024_Dron_DJI_Mini_4_Pro_(01).jpg')!important}
+/* Card 2 — Action & Adventure Cameras: GoPro HERO13 Black, CC BY-SA 4.0. */
+.home .buy-card:nth-child(2) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/GoPro_H%C3%A9ro_13_Black_-_01.jpg')!important}
+/* Card 3 — Cameras: Sony Alpha A33 product photograph, CC BY-SA 3.0. */
+.home .buy-card:nth-child(3) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Sony_Alpha_Mount_Camera.jpg')!important}
+/* Card 4 — Lenses & Accessories: existing dedicated lens photograph. */
 .home .buy-card:nth-child(4) .buy-collage figure{display:block!important;background-image:url('images/category-lenses.jpg')!important}
-/* Card 5 — Video Equipment */
-.home .buy-card:nth-child(5) .buy-collage figure{display:block!important;background-image:url('images/category-video-equipment.jpg')!important}
-/* Card 6 — Audio Equipment */
-.home .buy-card:nth-child(6) .buy-collage figure{display:block!important;background-image:url('images/category-audio.jpg')!important}
-/* Card 7 — 360 Cameras: CC0 Wikimedia Commons image */
-.home .buy-card:nth-child(7) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Insta360.jpg')!important;background-size:contain!important;background-color:#f4efe5!important}
-/* Card 8 — Gimbals & Stabilisation: CC BY-SA 4.0 Wikimedia Commons image */
-.home .buy-card:nth-child(8) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Camera_stabilizer_2.jpg')!important;background-size:cover!important}
+/* Card 5 — Video Equipment: Panasonic HC-V480 camcorder photograph, CC BY-SA licence. */
+.home .buy-card:nth-child(5) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Panasonic---HC-V480MS-K_02.jpg')!important}
+/* Card 6 — Audio Equipment: RØDE VideoMic GO II, CC BY-SA 4.0. */
+.home .buy-card:nth-child(6) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Rode_VMGOII_USB_Video_Mic_GO_II_Lightweight_Directional_Microphone_01.jpg')!important}
+/* Card 7 — 360 Cameras: current-generation Insta360 X5, CC BY 4.0. */
+.home .buy-card:nth-child(7) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Insta360_X5.webp')!important}
+/* Card 8 — Gimbals & Stabilisation: DJI Ronin RSC2, CC BY-SA 4.0. */
+.home .buy-card:nth-child(8) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/DJI_Ronin_RSC2_Pro_1.jpg')!important}
 
 /* Keep the equipment image visually integrated with the cream/black system. */
 .home .buy-card{background:var(--white);border-color:var(--line);transition:border-color .18s ease,transform .18s ease}
