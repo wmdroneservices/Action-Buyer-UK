@@ -9,27 +9,53 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" />
 <link rel="stylesheet" href="style.css" />
-<link rel="stylesheet" href="homepage.css" />
+<link rel="stylesheet" href="homepage.css?v=20260829-3" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="live-quote-nav.js?v=20260829-2" defer></script>
+<script src="live-quote-nav.js?v=20260829-3" defer></script>
+<style>
+/* Final homepage visual pass: two-line hero, complete photography and quieter typography. */
+.home-redesign .gco-hero-inner{grid-template-columns:minmax(430px,.9fr) minmax(560px,1.1fr)!important;gap:56px!important}
+.home-redesign .gco-hero h1{font-size:clamp(4rem,5.7vw,6.4rem)!important;line-height:.88!important;letter-spacing:-.025em!important;max-width:650px!important}
+.home-redesign .gco-hero h1 span{white-space:normal!important}
+.home-redesign .gco-hero-visual{grid-template-columns:1fr 1fr!important;grid-template-rows:1fr!important;height:470px!important;min-height:470px!important;gap:14px!important}
+.home-redesign .gco-hero-visual .shot-main{grid-column:1!important;grid-row:1!important}
+.home-redesign .gco-hero-visual .shot-top{grid-column:2!important;grid-row:1!important}
+.home-redesign .gco-hero-visual .shot-bottom{display:none!important}
+.home-redesign .gco-hero-visual .hero-shot{border-radius:5px!important;background:#ded9cf!important}
+.home-redesign .gco-hero-visual .shot-main img{object-fit:cover!important;object-position:center!important}
+.home-redesign .gco-hero-visual .shot-top img{object-fit:contain!important;object-position:center!important;background:#f4f0e8!important;padding:22px!important}
+.home-redesign .gco-start-card h2{color:#292a28!important;font-weight:700!important}
+.home-redesign .gco-category-links a{background:#f8f4ec!important;color:#30312f!important}
+.home-redesign .gco-category-links strong{color:#30312f!important;font-weight:700!important}
+.home-redesign .gco-category-links small{color:#70716d!important}
+.home-redesign .gco-category-icon{background:#30312f!important;color:var(--gco-lime)!important}
+.home-redesign .gco-product-card h3{color:#30312f!important;font-weight:700!important}
+.home-redesign .gco-product-card p{color:#70716d!important}
+.home-redesign .gco-dark-section{background:#eee8de!important}
+.home-redesign .gco-dark-heading h2{color:#30312f!important;font-weight:700!important}
+.home-redesign .gco-step{background:#f8f4ec!important;border:1px solid #d2c9bb!important;color:#30312f!important;align-items:flex-start!important}
+.home-redesign .gco-step h3{color:#30312f!important;font-weight:700!important;font-size:1.45rem!important;line-height:.98!important;margin:0 0 10px!important}
+.home-redesign .gco-step p{color:#666864!important;font-size:.72rem!important;line-height:1.5!important;margin:0!important}
+@media(max-width:1100px){.home-redesign .gco-hero-inner{grid-template-columns:1fr!important}.home-redesign .gco-hero-copy{max-width:800px!important}.home-redesign .gco-hero-visual{max-width:900px!important;width:100%!important}}
+@media(max-width:700px){.home-redesign .gco-hero h1{font-size:clamp(3.3rem,12vw,5rem)!important}.home-redesign .gco-hero-visual{grid-template-columns:1fr!important;height:auto!important;min-height:0!important}.home-redesign .gco-hero-visual .hero-shot{height:300px!important}.home-redesign .gco-hero-visual .shot-top{display:block!important}.home-redesign .gco-hero-visual .shot-main{display:block!important}.home-redesign .gco-step{min-height:0!important}}
+</style>
 </head>
 <body class="home-redesign">
 <header class="header site-header"><div class="container header-container">
-<a class="brand-lockup" href="index.html" aria-label="GearCashOut home"><img src="images/gearcashout-brand.svg?v=20260829-2" alt="GearCashOut — We Buy. You Get Paid." /></a>
+<a class="brand-lockup" href="index.html" aria-label="GearCashOut home"><img src="images/gearcashout-brand.svg?v=20260829-3" alt="GearCashOut — We Buy. You Get Paid." /></a>
 <nav aria-label="Main navigation"><ul class="nav-list"><li><a href="valuation.html">Sell Your Gear</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="what-we-buy.html">What We Buy</a></li><li><a href="faq.html">Help</a></li><li><a href="login.html" data-account-link>Register / Login</a></li><li><a href="valuation.html" class="header-cta">Start Your Valuation</a></li></ul></nav>
 </div></header>
 <main>
 <section class="gco-hero"><div class="container gco-hero-inner"><div class="gco-hero-copy">
 <p class="gco-eyebrow">FOR PEOPLE WHO CAPTURE THE ACTION</p>
-<h1>WHAT COULD YOUR<br /><span>ACTION GEAR</span><br />BE WORTH?</h1>
+<h1>WHAT COULD YOUR<br /><span>ACTION GEAR</span> BE WORTH?</h1>
 <p class="gco-hero-lead">From DJI drones and GoPro action cameras to mirrorless cameras, lenses and production gear. Tell us what you've got, build your valuation and let GearCashOut handle the rest.</p>
 <div class="gco-hero-actions"><a href="valuation.html" class="gco-btn gco-btn-primary">START YOUR VALUATION</a><a href="what-we-buy.html" class="gco-btn gco-btn-ghost">SEE WHAT WE BUY</a></div>
 <div class="gco-hero-points"><span>Drones</span><span>Action cameras</span><span>Cameras &amp; lenses</span><span>Video &amp; audio</span></div>
 </div><div class="gco-hero-visual" aria-label="Professional action and capture equipment">
-<div class="hero-shot shot-main"><img src="https://droneworksireland.ie/cdn/shop/collections/af06e456c234671d3ac890c4c7c7950f_origin.jpg?v=1747656723" alt="DJI Mavic 3 drone against a mountain landscape" /></div>
-<div class="hero-shot shot-top"><img src="https://images.ctfassets.net/et769tc4wc1v/1Ife9hqVik4IhtASlVdwsQ/a06c24eb0cc334e6b280b0e4e07fc0af/Osmo_Action_5_Pro_Mountain_Cycling_Handlebar_Mount.png?bg=transparent&amp;fm=png&amp;h=1500&amp;q=50&amp;w=1500" alt="DJI Osmo Action 5 Pro mounted for mountain biking" /></div>
-<div class="hero-shot shot-bottom"><img src="https://cdn.lesnumeriques.com/optim/article/18/180461/fd3ec01e-10-indices-qui-montrent-qu-il-est-temps-de-passer-d-un-smartphone-a-un-vrai-appareil-photo__1200_900__8-217-2239-1475.jpeg" alt="Sony mirrorless camera with a professional zoom lens outdoors" /></div>
+<div class="hero-shot shot-main"><img src="https://www.radon-bikes.de/fileadmin/_processed_/csm_DH_Team_Teamcamp_04_6652958a9f.jpg" alt="Mountain biker riding a downhill trail" /></div>
+<div class="hero-shot shot-top"><img src="https://djinyc.com/cdn/shop/files/652205.jpg?v=1773939993&amp;width=1600" alt="DJI Osmo Action camera mounted for mountain biking" /></div>
 </div></div></section>
 
 <section class="gco-start-wrap"><div class="container"><div class="gco-start-card"><p class="gco-card-kicker">START YOUR VALUATION</p><h2>What are you looking to sell?</h2><p>Choose your equipment and we'll take you through the details that matter — model, package, condition and the equipment itself.</p><div class="gco-category-links">
@@ -59,5 +85,5 @@
 
 <section class="gco-final-cta"><div class="container"><p class="gco-kicker">READY TO MOVE YOUR GEAR ON?</p><h2>Find out what<br />it's worth.</h2><p>Start your valuation and see where your equipment could take you next.</p><a href="valuation.html" class="gco-btn gco-btn-primary">START YOUR VALUATION</a></div></section>
 </main>
-<footer class="footer gco-footer"><div class="container gco-footer-grid"><div class="gco-footer-brand"><img src="images/gearcashout-brand.svg?v=20260829-2" alt="GearCashOut" /><p>We buy drones, action cameras, cameras and professional capture equipment from sellers across the UK.</p></div><div><strong>SELL YOUR GEAR</strong><a href="valuation.html">Start Your Valuation</a><a href="what-we-buy.html">What We Buy</a><a href="how-it-works.html">How It Works</a></div><div><strong>YOUR ACCOUNT</strong><a href="login.html" data-account-link>My Account</a><a href="login.html">Register / Login</a><a href="faq.html">Help &amp; FAQs</a></div><div><strong>LEGAL &amp; CONTACT</strong><a href="contact.html">Contact</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container gco-footer-bottom"><span>© 2026 GearCashOut. All rights reserved.</span><span>UK equipment buying service.</span></div></footer>
+<footer class="footer gco-footer"><div class="container gco-footer-grid"><div class="gco-footer-brand"><img src="images/gearcashout-brand.svg?v=20260829-3" alt="GearCashOut" /><p>We buy drones, action cameras, cameras and professional capture equipment from sellers across the UK.</p></div><div><strong>SELL YOUR GEAR</strong><a href="valuation.html">Start Your Valuation</a><a href="what-we-buy.html">What We Buy</a><a href="how-it-works.html">How It Works</a></div><div><strong>YOUR ACCOUNT</strong><a href="login.html" data-account-link>My Account</a><a href="login.html">Register / Login</a><a href="faq.html">Help &amp; FAQs</a></div><div><strong>LEGAL &amp; CONTACT</strong><a href="contact.html">Contact</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms &amp; Conditions</a></div></div><div class="container gco-footer-bottom"><span>© 2026 GearCashOut. All rights reserved.</span><span>UK equipment buying service.</span></div></footer>
 </body></html>
