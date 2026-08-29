@@ -10,35 +10,45 @@
 .catalog-filter label{display:block;font-weight:700;color:#102f4f;margin-bottom:.35rem}
 .catalog-filter input,.catalog-filter select{margin:0;background:#fff;color:#222}
 .catalog-filter-actions{display:flex;gap:.5rem}
+.market-intel{border:1px solid #d8d4ca;border-radius:10px;background:#faf8f2;padding:1rem;margin:1rem 0 1.5rem}
+.market-intel h3{margin:.1rem 0 .35rem}
+.market-intel p{margin:.25rem 0;color:#555}
+.market-intel-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin-top:.9rem}
+.market-stat{background:#fff;border:1px solid #e3dfd5;border-radius:8px;padding:.7rem}
+.market-stat strong{display:block;font-size:1.05rem;color:#102f4f}
+.market-stat span{font-size:.78rem;color:#666}
+.retailer-table th,.retailer-table td{padding:.5rem;border-bottom:1px solid #e5e1d8;text-align:left;vertical-align:middle}
+.retailer-table th{font-size:.78rem;color:#102f4f;background:#f5f2ea}
+.retailer-table input{width:100%;box-sizing:border-box;min-width:90px}
+.retailer-table .source-input{min-width:210px}
+.retailer-link{display:inline-block;margin-top:.25rem;font-size:.72rem;font-weight:700;color:#102f4f;text-decoration:underline;white-space:nowrap}
+.retailer-link.disabled{color:#999;text-decoration:none}
+.retailer-checked{font-size:.7rem;color:#777;white-space:nowrap}
+@media(max-width:900px){.market-intel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.catalog-filters{grid-template-columns:1fr 1fr}.catalog-filter-actions{grid-column:1/-1}}
-@media(max-width:520px){.catalog-filters{grid-template-columns:1fr}}
+@media(max-width:520px){.catalog-filters,.market-intel-grid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="admin-catalog.js?v=20260822-8" defer></script>
+<script src="admin-catalog.js?v=20260829-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-catalog.html" aria-current="page">Quote Catalogue</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></div></header>
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">STAFF</p><h1>Automatic Quote Catalogue</h1><p>Set the prices GearCashOut can use for instant customer valuations, and keep retailer market comparisons alongside each product.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a></div>
-<section class="account-panel"><div class="section-heading"><p class="section-kicker">PRODUCT</p><h2>Add or edit product</h2><p>When you click EDIT, all existing product details are loaded into the form. You can change just the buying price fields and save without re-entering the product details.</p></div>
+<section class="account-panel"><div class="section-heading"><p class="section-kicker">PRODUCT</p><h2>Add or edit product</h2><p>When you click EDIT, all existing product details are loaded into the form. Market intelligence is shown here so you can compare our buying prices with competitor buying and selling prices before setting the automatic offer.</p></div>
 <form id="catalog-form">
 <input type="hidden" id="product-id">
 <div class="form-grid"><label>Category<input id="category" placeholder="Drone"></label><label>Manufacturer<input id="manufacturer" placeholder="DJI"></label><label>Model<input id="model" placeholder="Mini 5 Pro"></label><label>Package key<input id="package-key" value="standard" placeholder="standard"></label><label>Package name<input id="package-name" value="Standard Package" placeholder="Standard Package"></label></div>
-<h3>Automatic buying prices</h3><div class="form-grid"><label>Factory Sealed / Unopened (£)<input id="factory-sealed" type="number" min="0" step="0.01"></label><label>Opened but Unused (£)<input id="opened-unused" type="number" min="0" step="0.01"></label><label>Excellent (£)<input id="excellent" type="number" min="0" step="0.01"></label><label>Good (£)<input id="good" type="number" min="0" step="0.01"></label><label>Fair (£)<input id="fair" type="number" min="0" step="0.01"></label></div>
-<h3>Retailer market comparison</h3><p>Record what other retailers are currently paying and selling this product for. This data does not affect the GearCashOut automatic offer.</p>
-<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th>Retailer</th><th>Condition</th><th>Buying (£)</th><th>Selling (£)</th><th>Buy method</th><th>Source</th><th></th></tr></thead><tbody id="retailer-prices-body"></tbody></table></div>
-<p><button class="btn btn-secondary" id="add-retailer-price" type="button">+ ADD RETAILER PRICE</button></p>
-<label><input id="active" type="checkbox" checked> Active</label><label>Notes<textarea id="notes" rows="3"></textarea></label>
-<p><button class="btn btn-primary" type="submit">SAVE PRODUCT</button> <button class="btn btn-secondary" id="clear-form" type="button">CLEAR</button></p><div id="catalog-message" class="form-message" role="status" aria-live="polite"></div>
+<div class="market-intel"><h3>Manufacturer retail reference</h3><p>Record the manufacturer's recommended retail price (RRP/MSRP), not a temporary sale price. Keep the source and verification date with the product.</p><div class="form-grid"><label>Manufacturer RRP (£)<input id="manufacturer-rrp" type="number" min="0" step="0.01"></label><label>RRP Currency<input id="manufacturer-rrp-currency" type="text" value="GBP"></label><label>RRP Source<input id="manufacturer-rrp-source" type="url" placeholder="https://manufacturer..." style="grid-column:span 2"></label></div></div>
+<h3>Automatic buying prices</h3><p>These are the GearCashOut prices used by the existing automatic quote engine. Change these only after reviewing the market evidence below.</p><div class="form-grid"><label>Factory Sealed / Unopened (£)<input id="factory-sealed" type="number" min="0" step="0.01"></label><label>Opened but Unused (£)<input id="opened-unused" type="number" min="0" step="0.01"></label><label>Excellent (£)<input id="excellent" type="number" min="0" step="0.01"></label><label>Good (£)<input id="good" type="number" min="0" step="0.01"></label><label>Fair (£)<input id="fair" type="number" min="0" step="0.01"></label></div>
+<h3>Retailer market comparison</h3><p>Record what other retailers are currently <strong>buying</strong> and <strong>selling</strong> this product for. Buying prices are the most useful competitor benchmark. This data does not automatically alter the GearCashOut offer.</p>
+<div style="overflow-x:auto"><table class="retailer-table" style="width:100%;border-collapse:collapse;min-width:1250px"><thead><tr><th>Retailer</th><th>Condition</th><th>Buying (£)</th><th>Selling (£)</th><th>Buy method</th><th>Source / direct link</th><th>Notes</th><th>Checked</th><th></th></tr></thead><tbody id="retailer-prices-body"></tbody></table></div>
+<p><button class="btn btn-secondary" id="add-retailer-price" type="button">+ ADD COMPETITOR</button></p>
+<label><input id="active" type="checkbox" checked> Active</label><label>Product notes<textarea id="notes" rows="3"></textarea></label><p><button class="btn btn-primary" type="submit">SAVE PRODUCT</button> <button class="btn btn-secondary" id="clear-form" type="button">CLEAR</button></p><div id="catalog-message" class="form-message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">CATALOGUE</p><h2>Products</h2><p>Filter the catalogue by manufacturer or product type, or search by model/package.</p></div>
-<div class="catalog-filters">
-  <div class="catalog-filter"><label for="search">Search</label><input id="search" type="search" placeholder="Search model or package"></div>
-  <div class="catalog-filter"><label for="manufacturer-filter">Manufacturer</label><select id="manufacturer-filter"><option value="">All manufacturers</option></select></div>
-  <div class="catalog-filter"><label for="category-filter">Type</label><select id="category-filter"><option value="">All types</option></select></div>
-  <div class="catalog-filter-actions"><button class="btn btn-secondary" id="clear-filters" type="button">CLEAR</button></div>
-</div>
+<div class="catalog-filters"><div class="catalog-filter"><label for="search">Search</label><input id="search" type="search" placeholder="Search model or package"></div><div class="catalog-filter"><label for="manufacturer-filter">Manufacturer</label><select id="manufacturer-filter"><option value="">All manufacturers</option></select></div><div class="catalog-filter"><label for="category-filter">Type</label><select id="category-filter"><option value="">All types</option></select></div><div class="catalog-filter-actions"><button class="btn btn-secondary" id="clear-filters" type="button">CLEAR</button></div></div>
 <div id="catalog-list">Loading...</div></section>
 </div></main>
 <footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Automatic quote catalogue.</div></div></footer>
