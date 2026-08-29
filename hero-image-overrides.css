@@ -1,11 +1,11 @@
-/* Hero equipment imagery removed. The homepage hero is intentionally text-led until a final custom graphic is supplied. */
+/* Homepage visual overrides only. No quote, valuation, account or database logic is changed here. */
+
+/* The scattered SVG treatment is permanently removed from the homepage hero. */
+.home .hero{background-image:none!important;background-color:#111315!important}
 .home .hero-images{display:none!important}
 .home .hero-image-credits{display:none!important}
-.home .hero{background:#111315!important}
 .home .hero::before,.home .hero::after{display:none!important;content:none!important}
 .home .hero-grid{position:relative;z-index:2}
-
-/* Buying categories remain unchanged. */
 
 /* Hero headline: fixed three-line hierarchy. */
 .home .hero-copy h1{font-size:0!important;line-height:1!important;max-width:none!important;letter-spacing:0!important}
@@ -14,3 +14,38 @@
 .home .hero-copy h1::after{content:"BE WORTH?";display:block;color:#fff;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
 @media(max-width:1050px){.home .hero-copy h1::before,.home .hero-copy h1 .orange,.home .hero-copy h1::after{font-size:clamp(58px,8vw,82px)}}
 @media(max-width:720px){.home .hero-copy h1::before,.home .hero-copy h1 .orange,.home .hero-copy h1::after{font-size:clamp(48px,14vw,72px)}}
+
+/*
+   What We Buy: one image per card.
+   The existing live-quote-nav.js may remove the non-matching figures; these rules
+   deliberately make the remaining figure a single, full-width visual rather than a collage.
+*/
+.home .buy-collage{display:block!important;position:relative;height:190px!important;padding:0!important;gap:0!important;background:#151817!important;overflow:hidden}
+.home .buy-collage figure{display:none!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;border-radius:0!important;background-color:#151817!important;background-repeat:no-repeat!important;background-position:center!important;background-size:cover!important;overflow:hidden!important}
+.home .buy-card .buy-collage figure:first-child{grid-row:auto!important}
+.home .buy-collage img{display:block!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;object-fit:cover!important;object-position:center!important;mix-blend-mode:normal!important;opacity:0!important}
+
+/* Card 1 — Drones */
+.home .buy-card:nth-child(1) .buy-collage figure{display:block!important;background-image:url('images/category-drones.jpg')!important}
+/* Card 2 — Action & Adventure Cameras */
+.home .buy-card:nth-child(2) .buy-collage figure{display:block!important;background-image:url('images/category-action-cameras.jpg')!important}
+/* Card 3 — Cameras */
+.home .buy-card:nth-child(3) .buy-collage figure{display:block!important;background-image:url('images/category-cameras.jpg')!important}
+/* Card 4 — Lenses & Accessories */
+.home .buy-card:nth-child(4) .buy-collage figure{display:block!important;background-image:url('images/category-lenses.jpg')!important}
+/* Card 5 — Video Equipment */
+.home .buy-card:nth-child(5) .buy-collage figure{display:block!important;background-image:url('images/category-video-equipment.jpg')!important}
+/* Card 6 — Audio Equipment */
+.home .buy-card:nth-child(6) .buy-collage figure{display:block!important;background-image:url('images/category-audio.jpg')!important}
+/* Card 7 — 360 Cameras: CC0 Wikimedia Commons image */
+.home .buy-card:nth-child(7) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Insta360.jpg')!important;background-size:contain!important;background-color:#f4efe5!important}
+/* Card 8 — Gimbals & Stabilisation: CC BY-SA 4.0 Wikimedia Commons image */
+.home .buy-card:nth-child(8) .buy-collage figure{display:block!important;background-image:url('https://commons.wikimedia.org/wiki/Special:Redirect/file/Camera_stabilizer_2.jpg')!important;background-size:cover!important}
+
+/* Keep the equipment image visually integrated with the cream/black system. */
+.home .buy-card{background:var(--white);border-color:var(--line);transition:border-color .18s ease,transform .18s ease}
+.home .buy-card:hover{border-color:var(--orange);transform:translateY(-2px)}
+.home .buy-body{background:var(--white)}
+
+/* Mobile cards get a little more visual height without changing the layout. */
+@media(max-width:720px){.home .buy-collage{height:210px!important}}
