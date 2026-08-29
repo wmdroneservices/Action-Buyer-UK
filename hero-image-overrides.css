@@ -1,0 +1,10 @@
+/* Hero imagery: licensed Wikimedia Commons photographs, displayed as full-bleed editorial images. */
+.home .hero-images .hero-image{background:#111315;border-color:#3b3d3b;position:relative}
+.home .hero-images .hero-image img{width:100%;height:100%;display:block;object-fit:cover;padding:0!important;background:#111315}
+.home .hero-images .hero-image.main img{object-position:center center}
+.home .hero-images .hero-image.side:first-of-type img{object-position:center center}
+.home .hero-images .hero-image.side:last-of-type img{object-position:center center}
+.home .hero-images .hero-image::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.03),rgba(0,0,0,0.16));mix-blend-mode:multiply}
+.home .hero-image-credits{margin-top:9px;text-align:right;font-size:8px;line-height:1.35;color:#858883}
+.home .hero-image-credits a{color:#a9aca7;text-decoration:none;border-bottom:1px dotted #666966}
+.home .hero-image-credits a:hover{color:#fff}
