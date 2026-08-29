@@ -1,0 +1,74 @@
+/* Shared customer-facing footer — matches the GearCashOut header branding. */
+.footer,
+.home .footer{
+  background:#f4efe5 !important;
+  color:#14201f !important;
+  border-top:1px solid rgba(20,32,31,.12) !important;
+  padding:2.5rem 1rem 1.25rem !important;
+}
+.footer .footer-container,
+.home .footer .wrap{
+  max-width:1240px;
+}
+.footer .footer-container{
+  align-items:flex-start;
+}
+.footer .footer-container > div:first-child strong{
+  display:block;
+  width:224px;
+  height:56px;
+  margin:0 0 .75rem;
+  padding:0;
+  font-size:0;
+  line-height:0;
+  background:url('images/gearcashout-brand-pro.svg') left center/contain no-repeat;
+}
+.footer .footer-container > div:first-child br{display:none}
+.footer .footer-container > div:first-child{
+  color:#687572;
+}
+.footer .footer-container > div:first-child::after{
+  content:'A specialist route for selling your equipment.';
+  display:block;
+  max-width:310px;
+  font-size:.78rem;
+  line-height:1.55;
+  color:#687572;
+}
+.footer .footer-nav a,
+.home .footer a{
+  color:#33413f !important;
+}
+.footer .footer-nav a:hover,
+.footer .footer-nav a:focus,
+.home .footer a:hover,
+.home .footer a:focus{
+  color:#2e8c82 !important;
+}
+.footer .footer-nav{
+  gap:.65rem 1rem;
+}
+.footer .footer-nav a{
+  font-size:.76rem;
+  font-weight:700;
+}
+/* Homepage uses a different footer markup, so give it the same logo treatment. */
+.home .footer-brand img{display:none !important}
+.home .footer-brand::before{
+  content:'';
+  display:block;
+  width:224px;
+  height:56px;
+  margin:0 0 .75rem;
+  background:url('images/gearcashout-brand-pro.svg') left center/contain no-repeat;
+}
+.home .footer p,
+.home .footer-bottom{
+  color:#687572 !important;
+}
+.home .footer strong{color:#2e8c82 !important}
+.home .footer-bottom{border-top-color:rgba(20,32,31,.12) !important}
+@media(max-width:720px){
+  .footer .footer-container > div:first-child strong,
+  .home .footer-brand::before{width:210px;height:52px}
+}
