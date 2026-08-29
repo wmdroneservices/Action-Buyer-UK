@@ -1,0 +1,8 @@
+/* What We Buy page: presentation-only image treatment. */
+.cards-grid .card .category-image{display:block;width:100%;height:180px;max-height:none;object-fit:contain;object-position:center;background:#f3f1ec;border:0;border-radius:0;padding:1.15rem;margin:0 0 1rem;box-shadow:none}
+.cards-grid .card{overflow:hidden;background:#fff;border-color:#dfdfdc;box-shadow:0 8px 24px rgba(16,47,79,.06)}
+.cards-grid .card h3,.cards-grid .card p{position:relative;z-index:1}
+.cards-grid .card:nth-child(1) .category-image{mix-blend-mode:multiply}
+.cards-grid .card:nth-child(n+2) .category-image{mix-blend-mode:normal}
+.cards-grid .card:hover{transform:translateY(-3px);border-color:#d88732;box-shadow:0 12px 28px rgba(16,47,79,.09);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+@media(max-width:600px){.cards-grid .card .category-image{height:210px}}
