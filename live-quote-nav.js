@@ -115,9 +115,84 @@
       heroImages.insertAdjacentElement("afterend", credits);
     }
   }
+  function applyHomepageCategoryImages() {
+    if (!document.body.classList.contains("home")) return;
+    document.querySelectorAll(".home .buy-card").forEach(card => {
+      const title = clean(card.querySelector(".buy-body h3")?.textContent);
+      const figures = Array.from(card.querySelectorAll(".buy-collage figure"));
+      if (!figures.length) return;
+
+      const keywords = title.includes("drone") ? ["drone","mavic","mini"] :
+        title.includes("action") ? ["gopro","action","insta360"] :
+        title === "cameras" ? ["camera","canon","sony","nikon"] :
+        title.includes("lens") ? ["lens","objective","zoom"] :
+        title.includes("video") ? ["gimbal","video","camera"] :
+        title.includes("audio") ? ["mic","microphone","audio","dji"] :
+        title.includes("360") ? ["360","insta360"] :
+        title.includes("gimbal") ? ["gimbal","stabil"] : [];
+
+      const score = figure => {
+        const img = figure.querySelector("img");
+        const text = clean(`${img?.alt || ""} ${img?.title || ""} ${img?.src || ""}`);
+        return keywords.reduce((n, word) => n + (text.includes(word) ? 1 : 0), 0);
+      };
+      const chosen = figures.reduce((best, figure) => score(figure) > score(best) ? figure : best, figures[0]);
+      figures.forEach(figure => { if (figure !== chosen) figure.remove(); });
+
+      const collage = card.querySelector(".buy-collage");
+      if (collage) {
+        collage.style.display = "block";
+        collage.style.height = "190px";
+        collage.style.padding = "0";
+        collage.style.background = "transparent";
+      }
+      chosen.style.display = "flex";
+      chosen.style.width = "100%";
+      chosen.style.height = "100%";
+      chosen.style.padding = "0";
+      chosen.style.background = "transparent";
+      chosen.style.borderRadius = "0";
+      const img = chosen.querySelector("img");
+      if (img) {
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.padding = "0";
+        img.style.objectFit = "contain";
+        img.style.objectPosition = "center";
+        img.style.mixBlendMode = "multiply";
+      }
+    });
+  }
+  function applyHomepageVideo() {
+    if (!document.body.classList.contains("home")) return;
+    const hero = document.querySelector(".home .hero");
+    if (!hero || document.getElementById("gco-home-hero-video")) return;
+    hero.style.backgroundImage = "none";
+    hero.style.position = "relative";
+
+    const style = document.createElement("style");
+    style.id = "gco-home-hero-video-style";
+    style.textContent = `
+      .home .hero-video{position:absolute;inset:0 0 0 auto;width:50%;height:100%;overflow:hidden;z-index:0;background:#111315}
+      .home .hero-video::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#111315 0%,rgba(17,19,21,.82) 18%,rgba(17,19,21,.18) 58%,rgba(17,19,21,.08) 100%);z-index:1;pointer-events:none}
+      .home .hero-video video{display:block;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.78}
+      .home .hero-copy{z-index:2}
+      @media(max-width:720px){.home .hero-video{display:none}}
+    `;
+    document.head.appendChild(style);
+
+    const wrap = document.createElement("div");
+    wrap.className = "hero-video";
+    wrap.id = "gco-home-hero-video";
+    wrap.setAttribute("aria-hidden", "true");
+    wrap.innerHTML = '<video autoplay muted loop playsinline preload="metadata"><source src="https://videos.pexels.com/video-files/10820273/10820273-hd_3840_2160_30fps.mp4" type="video/mp4"></video>';
+    hero.insertBefore(wrap, hero.firstChild);
+  }
   function applyHomepageVisualFixes() {
     if (!document.body.classList.contains("home")) return;
     applyHomepageHeroImages();
+    applyHomepageCategoryImages();
+    applyHomepageVideo();
 
     const footerLogo = document.querySelector(".home .footer-brand img");
     if (footerLogo && !footerLogo.dataset.footerVariant) {
