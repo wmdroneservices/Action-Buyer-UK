@@ -1,28 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 210" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 190" role="img" aria-labelledby="title desc">
 <title id="title">GearCashOut</title>
 <desc id="desc">GearCashOut compass adventure equipment buying logo</desc>
 <defs>
- <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a2a"/><stop offset="1" stop-color="#e84a10"/></linearGradient>
- <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="7" result="noise"/><feComposite in="SourceGraphic" in2="noise" operator="multiply"/></filter>
+  <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a2a"/><stop offset="1" stop-color="#e84a10"/></linearGradient>
 </defs>
-<!-- Compass -->
-<g transform="translate(105 105)">
- <circle r="88" fill="#0b0d0f"/>
- <circle r="80" fill="#f7f3ea" stroke="#0b0d0f" stroke-width="5"/>
- <circle r="67" fill="#101416"/>
- <path d="M0-61 L18-18 L61 0 L18 18 L0 61 L-18 18 L-61 0 L-18-18 Z" fill="url(#orange)" stroke="#0b0d0f" stroke-width="4"/>
- <path d="M0-49 L9-9 L49 0 L9 9 L0 49 L-9 9 L-49 0 L-9-9 Z" fill="#f7f3ea"/>
- <path d="M0-49 L9-9 L0 0 Z" fill="#ff5a1f"/>
- <path d="M0 49 L-9 9 L0 0 Z" fill="#c6ff3d"/>
- <text x="0" y="-92" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">N</text>
- <text x="92" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">E</text>
- <text x="0" y="108" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">S</text>
- <text x="-92" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="900" fill="#0b0d0f">W</text>
+<!-- Compact four-point adventure compass -->
+<g transform="translate(92 92)">
+  <circle r="82" fill="#0b0d0f"/>
+  <circle r="70" fill="#f7f3ea" stroke="#0b0d0f" stroke-width="4"/>
+  <path d="M0-62 L14-14 L62 0 L14 14 L0 62 L-14 14 L-62 0 L-14-14 Z" fill="#0b0d0f"/>
+  <path d="M0-58 L11-11 L58 0 L11 11 L0 58 L-11 11 L-58 0 L-11-11 Z" fill="url(#orange)"/>
+  <path d="M0-58 L11-11 L0 0 Z" fill="#f7f3ea"/>
+  <path d="M0 58 L-11 11 L0 0 Z" fill="#c6ff3d"/>
+  <circle r="7" fill="#0b0d0f"/>
+  <text x="0" y="-88" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900">N</text>
+  <text x="88" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900">E</text>
+  <text x="0" y="103" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900">S</text>
+  <text x="-88" y="6" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="900">W</text>
 </g>
-<!-- Wordmark -->
-<text x="215" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="#0b0d0f">Gear</text>
-<text x="470" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="url(#orange)">Cash</text>
-<text x="690" y="106" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="108" font-weight="800" letter-spacing="-3" fill="#0b0d0f">Out</text>
-<path d="M217 128 H910" stroke="#ff5a1f" stroke-width="7" stroke-linecap="round"/>
-<text x="218" y="164" font-family="'DM Sans',Arial,sans-serif" font-size="23" font-weight="800" letter-spacing="4" fill="#0b0d0f">WE BUY. YOU GET PAID.</text>
+<!-- Deliberately separated wordmark: no overlapping glyph boxes -->
+<text x="190" y="92" textLength="195" lengthAdjust="spacingAndGlyphs" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="102" font-weight="800" fill="#0b0d0f">Gear</text>
+<text x="392" y="92" textLength="205" lengthAdjust="spacingAndGlyphs" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="102" font-weight="800" fill="url(#orange)">Cash</text>
+<text x="604" y="92" textLength="175" lengthAdjust="spacingAndGlyphs" font-family="'Barlow Condensed','Arial Narrow',Impact,sans-serif" font-size="102" font-weight="800" fill="#0b0d0f">Out</text>
+<path d="M192 114 H780" stroke="#ff5a1f" stroke-width="6" stroke-linecap="round"/>
+<text x="194" y="150" font-family="'DM Sans',Arial,sans-serif" font-size="20" font-weight="800" letter-spacing="3.2" fill="#0b0d0f">WE BUY. YOU GET PAID.</text>
 </svg>
