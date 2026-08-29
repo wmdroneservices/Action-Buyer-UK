@@ -50,4 +50,18 @@
 .home .buy-card:hover{border-color:var(--orange);transform:translateY(-2px)}
 .home .buy-body{background:var(--white)}
 
-@media(max-width:720px){.home .buy-collage{height:210px!important}}
+/*
+   How It Works: keep all five step headings on the same horizontal line.
+   Each step uses the same heading block height so one- and two-line headings
+   cannot push the following text out of alignment.
+*/
+.home .steps .step{align-items:stretch!important}
+.home .steps .step>div{width:100%;height:100%;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end}
+.home .steps .step h3{width:100%;min-height:42px;margin-bottom:8px!important;display:flex;align-items:flex-end}
+.home .steps .step p{width:100%}
+
+/* Match the How It Works CTA text to the lime used by READY TO MOVE YOUR GEAR ON. */
+.home .how .dark-link{color:var(--lime)!important;border-color:var(--lime)!important}
+.home .how .dark-link:hover{background:var(--lime)!important;color:var(--black)!important}
+
+@media(max-width:720px){.home .buy-collage{height:210px!important}.home .steps .step h3{min-height:0}}
