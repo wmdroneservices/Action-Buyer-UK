@@ -15,3 +15,11 @@
 .home .buy-collage figure:first-child{display:flex!important;width:100%!important;height:100%!important;margin:0!important;background:#f7f3eb!important;border-radius:3px!important}
 .home .buy-collage figure:first-child img{display:block;width:100%!important;height:100%!important;object-fit:contain!important;padding:12px!important;background:#f7f3eb!important}
 @media(max-width:720px){.home .buy-collage{height:210px!important}}
+
+/* Hero headline: fixed three-line hierarchy without changing the image grid. */
+.home .hero-copy h1{font-size:0!important;line-height:1!important;max-width:none!important;letter-spacing:0!important}
+.home .hero-copy h1::before{content:"WHAT COULD YOUR";display:block;color:#fff;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
+.home .hero-copy h1 .orange{display:block;color:var(--orange);font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
+.home .hero-copy h1::after{content:"BE WORTH?";display:block;color:#fff;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:clamp(58px,6.4vw,96px);font-weight:700;line-height:.88;letter-spacing:-.02em;white-space:nowrap}
+@media(max-width:1050px){.home .hero-copy h1::before,.home .hero-copy h1 .orange,.home .hero-copy h1::after{font-size:clamp(58px,8vw,82px)}}
+@media(max-width:720px){.home .hero-copy h1::before,.home .hero-copy h1 .orange,.home .hero-copy h1::after{font-size:clamp(48px,14vw,72px)}}
