@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('customer-footer.css?v=20260829-2');
 
 /* GearCashOut customer-facing brand layer. Application logic, quote flow and staff pages are intentionally untouched. */
 .customer-page:not(.home-redesign){--gco-ink:#0b0d0f;--gco-dark:#101416;--gco-paper:#f7f3ea;--gco-white:#fffdf8;--gco-orange:#ff5a1f;--gco-lime:#c6ff3d;--gco-muted:#6b706f;--gco-line:#ddd9d0;font-family:'DM Sans',Arial,sans-serif;background:var(--gco-paper);color:var(--gco-ink)}
@@ -15,14 +16,9 @@
 @media(max-width:1000px){.customer-page:not(.home-redesign) .header-container{flex-direction:column;gap:.6rem}.customer-page:not(.home-redesign) .nav-list{justify-content:center}.customer-page:not(.home-redesign) .cards-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.customer-page:not(.home-redesign) .logo{width:215px;flex-basis:215px}.customer-page:not(.home-redesign) main.container{padding:4rem 1rem 5rem}.customer-page:not(.home-redesign) main.container>h2{font-size:3rem}.customer-page:not(.home-redesign) .cards-grid{grid-template-columns:1fr}}
 
-/* Shared customer-facing footer: same paper background and GearCashOut logo treatment as the header. */
+/* Shared customer-facing footer: same paper background and GearCashOut logo as the header. */
 .customer-page .footer,
-.customer-page.home .footer{
-  background:#f4efe5 !important;
-  color:#0b0d0f !important;
-  border-top:1px solid rgba(11,13,15,.10) !important;
-  padding:3rem 1rem 1.5rem !important;
-}
+.customer-page.home .footer{background:#f4efe5 !important;color:#0b0d0f !important;border-top:1px solid rgba(11,13,15,.10) !important;padding:3rem 1rem 1.5rem !important}
 .customer-page .footer-container{max-width:1180px;align-items:flex-start}
 .customer-page .footer-container > div:first-child strong{display:block;width:245px;height:58px;margin:0 0 .7rem;padding:0;font-size:0;line-height:0;background:url('images/gearcashout-brand.svg') left center/contain no-repeat}
 .customer-page .footer-container > div:first-child br{display:none}
@@ -30,10 +26,17 @@
 .customer-page .footer-container > div:first-child::after{content:'A specialist route for selling your equipment.';display:block;max-width:330px;font-size:.78rem;line-height:1.55;color:#6b706f}
 .customer-page .footer-nav a{color:#0b0d0f !important;font-weight:700}
 .customer-page .footer-nav a:hover,.customer-page .footer-nav a:focus{color:#ff5a1f !important}
-.customer-page.home .footer-brand img{width:245px;height:58px;object-fit:contain;object-position:left center;margin:0 0 .7rem}
+.customer-page.home .footer-brand img{display:block !important;width:245px;height:58px;object-fit:contain;object-position:left center;margin:0 0 .7rem;content:url('images/gearcashout-brand.svg') !important}
+.customer-page.home .footer-brand::before{display:none !important;content:none !important}
 .customer-page.home .footer p{color:#6b706f !important}
 .customer-page.home .footer strong{color:#0b0d0f !important}
 .customer-page.home .footer a{color:#0b0d0f !important}
 .customer-page.home .footer a:hover,.customer-page.home .footer a:focus{color:#ff5a1f !important}
 .customer-page.home .footer-bottom{border-top-color:rgba(11,13,15,.10) !important;color:#6b706f !important}
-@media(max-width:650px){.customer-page .footer-container > div:first-child strong,.customer-page.home .footer-brand img{width:215px;height:52px}}
+
+/* Reliable homepage hero scatter. The previous SVG relied on an SVG luminance filter that was not rendering in the live page. These direct image layers deliberately turn the white photo backgrounds dark and let the equipment read as a light overlay on the hero. */
+.customer-page.home .hero{position:relative;overflow:hidden;background-image:none !important}
+.customer-page.home .hero::before{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background-image:url('images/category-drones.jpg'),url('images/category-action-cameras.jpg'),url('images/category-cameras.jpg'),url('images/category-lenses.jpg'),url('images/category-video-equipment.jpg'),url('images/category-audio.jpg');background-repeat:no-repeat;background-size:360px 235px,175px 140px,205px 165px,180px 155px,185px 155px,170px 145px;background-position:55% 18%,90% 8%,91% 38%,70% 88%,89% 88%,52% 91%;filter:invert(1) grayscale(1) contrast(1.65);mix-blend-mode:screen;opacity:.72}
+.customer-page.home .hero::after{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,#111315 0%,rgba(17,19,21,.96) 38%,rgba(17,19,21,.48) 66%,rgba(17,19,21,.08) 100%)}
+.customer-page.home .hero-grid{z-index:2}
+@media(max-width:720px){.customer-page.home .hero{background-image:none!important}.customer-page.home .hero::before{background-size:230px 150px,115px 90px,135px 105px,120px 100px,125px 100px,110px 90px;background-position:70% 14%,94% 8%,91% 37%,70% 88%,90% 88%,52% 92%;opacity:.58}}
