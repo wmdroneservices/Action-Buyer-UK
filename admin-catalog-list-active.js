@@ -30,6 +30,8 @@
       if(!cb||!states.has(id))return;
       cb.checked=states.get(id);
       cb.disabled=false;
+      const badge=card.querySelector('.status-badge');
+      if(badge){badge.textContent=states.get(id)?'Active':'Inactive';}
     });
   }
 
@@ -40,31 +42,35 @@
       if(card.querySelector('.list-active-control'))return;
       const id=card.dataset.productId||card.querySelector('.edit-product')?.dataset.id;
       if(!id)return;
-
-      // Keep the catalogue product ID on the card so the control can
-      // synchronise its state from Supabase and update the exact product.
       card.dataset.productId=id;
 
       const label=document.createElement('label');
       label.className='list-active-control';
       label.title='Set whether this catalogue product is active';
       label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}"> <span>Active</span>`;
-
       card.style.position='relative';
-      label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:3;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;cursor:pointer;';
+      label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:10;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;cursor:pointer;';
       card.insertBefore(label,card.firstChild);
     });
     syncStates(list);
   }
 
-  document.addEventListener('change',async e=>{
+  document.addEventListener('click',async e=>{
     const cb=e.target.closest('.list-active-toggle');
     if(!cb)return;
-    const previous=!cb.checked;
+    e.preventDefault();
+    e.stopPropagation();
+    const target=!cb.checked;
+    cb.checked=target;
     cb.disabled=true;
-    const ok=await setActive(cb.dataset.id,cb.checked);
+    const ok=await setActive(cb.dataset.id,target);
     cb.disabled=false;
-    if(!ok)cb.checked=previous;
+    if(!ok){cb.checked=!target;return;}
+    const card=cb.closest('.valuation-card');
+    const badge=card?.querySelector('.status-badge');
+    if(badge){badge.textContent=target?'Active':'Inactive';}
+    const p=(window.__gearCashOutCatalogProducts||[]).find(x=>x.id===cb.dataset.id);
+    if(p)p.active=target;
   });
 
   function observe(){
