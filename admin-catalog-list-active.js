@@ -1,46 +1,63 @@
-/* GearCashOut: list-level Active controls. Does not alter quote/visibility logic. */
+/* GearCashOut: list-level Active controls. Uses the existing quote_catalog_products.active field only. */
 (function(){
   'use strict';
-  const auth=()=>window.actionBuyerAuth;
+
+  const getAuth=()=>window.actionBuyerAuth;
 
   async function setActive(id, active){
-    const sb=auth()?.supabase;
-    if(!sb||!id)return false;
-    const {error}=await sb.from('quote_catalog_products').update({active,updated_at:new Date().toISOString()}).eq('id',id);
-    if(error){
-      const msg=document.getElementById('catalog-message');
-      if(msg){msg.textContent=`Active status update failed: ${error.message}`;msg.className='form-message error';}
-      return false;
-    }
-    return true;
+    const sb=getAuth()?.supabase;
+    if(!sb||!id)return {ok:false,error:'Authentication system unavailable.'};
+
+    const session=await getAuth().getSession();
+    if(!session)return {ok:false,error:'Your staff session has expired. Please sign in again.'};
+
+    const {error}=await sb
+      .from('quote_catalog_products')
+      .update({active:!!active,updated_at:new Date().toISOString()})
+      .eq('id',id);
+
+    if(error)return {ok:false,error:error.message};
+    return {ok:true};
+  }
+
+  function showError(text){
+    const msg=document.getElementById('catalog-message');
+    if(msg){msg.textContent=`Active status update failed: ${text}`;msg.className='form-message error';}
   }
 
   async function syncStates(list){
-    const sb=auth()?.supabase;
+    const sb=getAuth()?.supabase;
     if(!sb)return;
-    const cards=Array.from(list.querySelectorAll('.valuation-card'));
+    const cards=Array.from(list.querySelectorAll('.valuation-card[data-product-id]'));
     const ids=cards.map(card=>card.dataset.productId).filter(Boolean);
     if(!ids.length)return;
-    const {data,error}=await sb.from('quote_catalog_products').select('id,active').in('id',ids);
+
+    const {data,error}=await sb
+      .from('quote_catalog_products')
+      .select('id,active')
+      .in('id',ids);
     if(error)return;
+
     const states=new Map((data||[]).map(p=>[p.id,!!p.active]));
     cards.forEach(card=>{
-      const id=card.dataset.productId;
       const cb=card.querySelector('.list-active-toggle');
+      const id=card.dataset.productId;
       if(!cb||!states.has(id))return;
       cb.checked=states.get(id);
       cb.disabled=false;
       const badge=card.querySelector('.status-badge');
-      if(badge){badge.textContent=states.get(id)?'Active':'Inactive';}
+      if(badge)badge.textContent=states.get(id)?'Active':'Inactive';
     });
   }
 
   function render(){
     const list=document.getElementById('catalog-list');
     if(!list)return;
+
     list.querySelectorAll('.valuation-card').forEach(card=>{
       if(card.querySelector('.list-active-control'))return;
-      const id=card.dataset.productId||card.querySelector('.edit-product')?.dataset.id;
+
+      const id=card.querySelector('.edit-product')?.dataset.id;
       if(!id)return;
       card.dataset.productId=id;
 
@@ -48,30 +65,40 @@
       label.className='list-active-control';
       label.title='Set whether this catalogue product is active';
       label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}"> <span>Active</span>`;
-      card.style.position='relative';
       label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:10;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;cursor:pointer;';
+      card.style.position='relative';
       card.insertBefore(label,card.firstChild);
     });
+
     syncStates(list);
   }
 
-  document.addEventListener('click',async e=>{
-    const cb=e.target.closest('.list-active-toggle');
+  /* Use the checkbox's native change event. Do not cancel the click event:
+     the browser must be allowed to toggle the checkbox normally. */
+  document.addEventListener('change',async e=>{
+    const cb=e.target.closest?.('.list-active-toggle');
     if(!cb)return;
-    e.preventDefault();
-    e.stopPropagation();
-    const target=!cb.checked;
-    cb.checked=target;
+
+    const id=cb.dataset.id;
+    const desired=cb.checked;
     cb.disabled=true;
-    const ok=await setActive(cb.dataset.id,target);
+
+    const result=await setActive(id,desired);
+    if(!result.ok){
+      cb.checked=!desired;
+      cb.disabled=false;
+      showError(result.error);
+      return;
+    }
+
     cb.disabled=false;
-    if(!ok){cb.checked=!target;return;}
     const card=cb.closest('.valuation-card');
     const badge=card?.querySelector('.status-badge');
-    if(badge){badge.textContent=target?'Active':'Inactive';}
-    const p=(window.__gearCashOutCatalogProducts||[]).find(x=>x.id===cb.dataset.id);
-    if(p)p.active=target;
-  });
+    if(badge)badge.textContent=desired?'Active':'Inactive';
+
+    const msg=document.getElementById('catalog-message');
+    if(msg){msg.textContent=`Product ${desired?'activated':'deactivated'}.`;msg.className='form-message success';}
+  },true);
 
   function observe(){
     render();
@@ -82,5 +109,6 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded',observe);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});
+  else observe();
 })();
