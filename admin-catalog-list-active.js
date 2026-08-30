@@ -2,7 +2,6 @@
 (function(){
   'use strict';
   const auth=()=>window.actionBuyerAuth;
-  let timer=null;
 
   async function setActive(id, active){
     const sb=auth()?.supabase;
@@ -20,17 +19,25 @@
     const list=document.getElementById('catalog-list');
     if(!list)return;
     list.querySelectorAll('.valuation-card').forEach(card=>{
+      if(card.querySelector('.list-active-control'))return;
       const edit=card.querySelector('.edit-product');
-      if(!edit||card.querySelector('.list-active-control'))return;
+      if(!edit)return;
       const id=edit.dataset.id;
       const status=card.querySelector('.status-badge');
-      const meta=card.querySelector('.valuation-meta');
-      if(!meta)return;
+      const title=card.querySelector('h3');
+      if(!title)return;
+
       const label=document.createElement('label');
       label.className='list-active-control';
-      label.style.cssText='display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin-right:.5rem;';
-      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}" ${status?.textContent?.trim().toLowerCase()==='active'?'checked':''}> Active`;
-      meta.insertBefore(label,meta.firstChild);
+      label.title='Set whether this catalogue product is active';
+      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}" ${status?.textContent?.trim().toLowerCase()==='active'?'checked':''}> <span>Active</span>`;
+
+      const titleRow=document.createElement('div');
+      titleRow.className='list-product-title-row';
+      titleRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;';
+      title.parentNode.insertBefore(titleRow,title);
+      titleRow.appendChild(title);
+      titleRow.appendChild(label);
     });
   }
 
@@ -55,5 +62,6 @@
       new MutationObserver(()=>render()).observe(list,{childList:true,subtree:true});
     }
   }
-  document.addEventListener('DOMContentLoaded',()=>{observe();timer=setInterval(observe,1000);});
+
+  document.addEventListener('DOMContentLoaded',observe);
 })();
