@@ -13,47 +13,43 @@ function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:']
 function checkedLabel(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('en-GB');}
 
 function renderUkMarketReference(){
-  const box=$('uk-market-reference-grid');
-  if(!box)return;
+  const box=$('uk-market-reference-grid');if(!box)return;
   const rows=retailerRows.filter(r=>r&&r.sell_price!==null&&r.sell_price!==undefined&&r.sell_price!=='');
   const buyRows=retailerRows.filter(r=>r&&r.buy_price!==null&&r.buy_price!==undefined&&r.buy_price!=='');
   if(!rows.length&&!buyRows.length){box.innerHTML='<div class="uk-market-stat"><strong>—</strong><span>No UK market evidence recorded yet</span></div>';return;}
-  const groups={};
-  rows.forEach(r=>{const key=String(r.retailer||'Other').trim()||'Other';const n=Number(r.sell_price);if(Number.isFinite(n))groups[key]=groups[key]===undefined? n:Math.max(groups[key],n);});
-  const cards=[];
-  Object.entries(groups).slice(0,6).forEach(([name,price])=>cards.push(`<div class="uk-market-stat"><strong>${esc(name)} ${money(price)}</strong><span>UK selling-price reference</span></div>`));
+  const groups={};rows.forEach(r=>{const key=String(r.retailer||'Other').trim()||'Other';const n=Number(r.sell_price);if(Number.isFinite(n))groups[key]=groups[key]===undefined?n:Math.max(groups[key],n);});
+  const cards=[];Object.entries(groups).slice(0,6).forEach(([name,price])=>cards.push(`<div class="uk-market-stat"><strong>${esc(name)} ${money(price)}</strong><span>UK selling-price reference</span></div>`));
   if(buyRows.length){const lowest=Math.min(...buyRows.map(r=>Number(r.buy_price)).filter(Number.isFinite));if(Number.isFinite(lowest))cards.unshift(`<div class="uk-market-stat"><strong>${money(lowest)}</strong><span>Lowest verified competitor buying price</span></div>`);}
   box.innerHTML=cards.join('');
 }
 
 function renderRetailers(){
-  const body=$('retailer-prices-body');
-  if(!body)return;
-  renderUkMarketReference();
-  if(!retailerRows.length){body.innerHTML='<tr><td colspan="9">No competitor comparison data recorded yet. Add CeX, MPB, Amazon UK or another relevant buyer/retailer when evidence is available.</td></tr>';return;}
-  body.innerHTML=retailerRows.map((r,i)=>{
-    const url=safeUrl(r.source_url);
-    return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
-    <td><input class="retailer" value="${esc(r.retailer)}" placeholder="CeX / MPB / Amazon UK"></td>
-    <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="Good / New"></td>
+  const body=$('retailer-prices-body');if(!body)return;renderUkMarketReference();
+  if(!retailerRows.length){body.innerHTML='<tr><td colspan="11">No market evidence recorded yet. Add every relevant UK price found, including sale prices, regular prices, used prices, buying prices and out-of-stock prices.</td></tr>';return;}
+  body.innerHTML=retailerRows.map((r,i)=>{const url=safeUrl(r.source_url);return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
+    <td><input class="retailer" value="${esc(r.retailer)}" placeholder="DJI / Amazon UK / MPB / CeX"></td>
+    <td><select class="retailer-type"><option value="manufacturer_rrp" ${r.price_type==='manufacturer_rrp'?'selected':''}>Manufacturer RRP</option><option value="new" ${r.price_type==='new'?'selected':''}>New</option><option value="new_sale" ${r.price_type==='new_sale'?'selected':''}>New — Sale / Offer</option><option value="refurbished" ${r.price_type==='refurbished'?'selected':''}>Refurbished</option><option value="used" ${r.price_type==='used'?'selected':''}>Used</option><option value="competitor_buying" ${r.price_type==='competitor_buying'?'selected':''}>Competitor Buying</option><option value="completed_sale" ${r.price_type==='completed_sale'?'selected':''}>Completed Sale</option><option value="market" ${r.price_type==='market'?'selected':''}>Market Reference</option></select></td>
+    <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="New / Opened / Excellent / Good / Fair"></td>
     <td><input class="retailer-buy" type="number" min="0" step="0.01" value="${r.buy_price??''}" placeholder="—"></td>
     <td><input class="retailer-sell" type="number" min="0" step="0.01" value="${r.sell_price??''}" placeholder="—"></td>
-    <td><input class="retailer-method" value="${esc(r.buy_method)}" placeholder="Cash / voucher / retail"></td>
+    <td><select class="retailer-stock"><option value="in_stock" ${r.availability_status==='in_stock'?'selected':''}>In stock</option><option value="out_of_stock" ${r.availability_status==='out_of_stock'?'selected':''}>Out of stock</option><option value="unknown" ${r.availability_status==='unknown'?'selected':''}>Unknown</option></select></td>
+    <td><input class="retailer-method" value="${esc(r.buy_method)}" placeholder="Cash / voucher / buying offer"></td>
     <td><input class="retailer-source source-input" type="url" value="${esc(r.source_url)}" placeholder="https://..."><br>${url?`<a class="retailer-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'<span class="retailer-link disabled">NO SOURCE LINK</span>'}</td>
-    <td><input class="retailer-notes" value="${esc(r.notes)}" placeholder="What was checked / sold evidence"></td>
+    <td><input class="retailer-notes" value="${esc(r.notes)}" placeholder="Sale/offer, was £X, OOS, package, evidence"></td>
     <td class="retailer-checked">${checkedLabel(r.checked_at)}</td>
     <td><button type="button" class="btn btn-secondary remove-retailer">REMOVE</button></td>
-  </tr>`;
-  }).join('');
+  </tr>`;}).join('');
 }
 
 function readRetailers(){
   retailerRows=Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).map(tr=>({
     id:tr.dataset.id||null,
     retailer:tr.querySelector('.retailer')?.value.trim()||'',
+    price_type:tr.querySelector('.retailer-type')?.value||'market',
     condition:tr.querySelector('.retailer-condition')?.value.trim()||'',
     buy_price:tr.querySelector('.retailer-buy')?.value===''?null:Number(tr.querySelector('.retailer-buy')?.value),
     sell_price:tr.querySelector('.retailer-sell')?.value===''?null:Number(tr.querySelector('.retailer-sell')?.value),
+    availability_status:tr.querySelector('.retailer-stock')?.value||'unknown',
     buy_method:tr.querySelector('.retailer-method')?.value.trim()||'',
     source_url:tr.querySelector('.retailer-source')?.value.trim()||'',
     notes:tr.querySelector('.retailer-notes')?.value.trim()||'',
@@ -62,121 +58,24 @@ function readRetailers(){
 }
 
 function clearForm(){
-  $('catalog-form')?.reset();
-  setVal('product-id','');
-  setVal('manufacturer-rrp','');
-  setVal('manufacturer-rrp-currency','GBP');
-  setVal('manufacturer-rrp-source','');
-  retailerRows=[];renderRetailers();
-  $('catalog-message').textContent='';
-  $('catalog-message').className='form-message';
-  if($('active'))$('active').checked=true;
+  $('catalog-form')?.reset();setVal('product-id','');setVal('manufacturer-rrp','');setVal('manufacturer-rrp-currency','GBP');setVal('manufacturer-rrp-source','');retailerRows=[];renderRetailers();$('catalog-message').textContent='';$('catalog-message').className='form-message';if($('active'))$('active').checked=true;
 }
 
 function loadProduct(p){
-  setVal('product-id',p.id);setVal('category',p.category);setVal('manufacturer',p.manufacturer);setVal('model',p.model);setVal('package-key',p.package_key);setVal('package-name',p.package_name);
-  setVal('manufacturer-rrp',p.manufacturer_rrp);setVal('manufacturer-rrp-currency',p.manufacturer_rrp_currency||'GBP');setVal('manufacturer-rrp-source',p.manufacturer_rrp_source||'');
-  setVal('factory-sealed',p.factory_sealed_price);setVal('opened-unused',p.opened_unused_price);setVal('excellent',p.excellent_price);setVal('good',p.good_price);setVal('fair',p.fair_price);setVal('notes',p.notes||'');
-  if($('active'))$('active').checked=!!p.active;
+  setVal('product-id',p.id);setVal('category',p.category);setVal('manufacturer',p.manufacturer);setVal('model',p.model);setVal('package-key',p.package_key);setVal('package-name',p.package_name);setVal('manufacturer-rrp',p.manufacturer_rrp);setVal('manufacturer-rrp-currency',p.manufacturer_rrp_currency||'GBP');setVal('manufacturer-rrp-source',p.manufacturer_rrp_source||'');setVal('factory-sealed',p.factory_sealed_price);setVal('opened-unused',p.opened_unused_price);setVal('excellent',p.excellent_price);setVal('good',p.good_price);setVal('fair',p.fair_price);setVal('notes',p.notes||'');if($('active'))$('active').checked=!!p.active;
   retailerRows=[];renderRetailers();
-  sb().from('quote_catalog_retailer_prices').select('id,retailer,condition,buy_price,sell_price,buy_method,source_url,notes,checked_at').eq('catalog_product_id',p.id).order('retailer').order('condition').then(({data,error})=>{
-    if(error){showMessage(error.message,true);return;}
-    retailerRows=data||[];renderRetailers();
-    Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).forEach((tr,i)=>{if(retailerRows[i]?.id)tr.dataset.id=retailerRows[i].id;if(retailerRows[i]?.checked_at)tr.dataset.checkedAt=retailerRows[i].checked_at;});
-  });
+  sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at').eq('catalog_product_id',p.id).order('retailer').order('price_type').order('condition').order('sell_price').then(({data,error})=>{if(error){showMessage(error.message,true);return;}retailerRows=data||[];renderRetailers();Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).forEach((tr,i)=>{if(retailerRows[i]?.id)tr.dataset.id=retailerRows[i].id;if(retailerRows[i]?.checked_at)tr.dataset.checkedAt=retailerRows[i].checked_at;});});
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function showMessage(text,error=false){const el=$('catalog-message');if(!el)return;el.textContent=text;el.className=`form-message ${error?'error':'success'}`;}
-
-function populateFilters(){
-  const manufacturer=$('manufacturer-filter');
-  const category=$('category-filter');
-  if(!manufacturer||!category)return;
-  const currentManufacturer=manufacturer.value;
-  const currentCategory=category.value;
-  const manufacturers=[...new Set(products.map(p=>String(p.manufacturer||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  manufacturer.innerHTML='<option value="">All manufacturers</option>'+manufacturers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-  category.innerHTML='<option value="">All types</option>'+categories.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-  if(manufacturers.includes(currentManufacturer))manufacturer.value=currentManufacturer;
-  if(categories.includes(currentCategory))category.value=currentCategory;
-}
-
-function renderList(){
-  populateFilters();
-  const list=$('catalog-list');
-  const q=val('search').toLowerCase();
-  const manufacturer=val('manufacturer-filter').toLowerCase();
-  const category=val('category-filter').toLowerCase();
-  const rows=products.filter(p=>{
-    const textMatch=!q||[p.category,p.manufacturer,p.model,p.package_key,p.package_name].some(v=>String(v||'').toLowerCase().includes(q));
-    const manufacturerMatch=!manufacturer||String(p.manufacturer||'').toLowerCase()===manufacturer;
-    const categoryMatch=!category||String(p.category||'').toLowerCase()===category;
-    return textMatch&&manufacturerMatch&&categoryMatch;
-  });
-  if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>No catalogue products match the selected filters.</p></div>';return;}
-  list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${money(p.manufacturer_rrp)} ${esc(p.manufacturer_rrp_currency||'')} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;
-}
-
+function populateFilters(){const manufacturer=$('manufacturer-filter'),category=$('category-filter');if(!manufacturer||!category)return;const currentManufacturer=manufacturer.value,currentCategory=category.value;const manufacturers=[...new Set(products.map(p=>String(p.manufacturer||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));manufacturer.innerHTML='<option value="">All manufacturers</option>'+manufacturers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');category.innerHTML='<option value="">All types</option>'+categories.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');if(manufacturers.includes(currentManufacturer))manufacturer.value=currentManufacturer;if(categories.includes(currentCategory))category.value=currentCategory;}
+function renderList(){populateFilters();const list=$('catalog-list'),q=val('search').toLowerCase(),manufacturer=val('manufacturer-filter').toLowerCase(),category=val('category-filter').toLowerCase();const rows=products.filter(p=>{const textMatch=!q||[p.category,p.manufacturer,p.model,p.package_key,p.package_name].some(v=>String(v||'').toLowerCase().includes(q));return textMatch&&(!manufacturer||String(p.manufacturer||'').toLowerCase()===manufacturer)&&(!category||String(p.category||'').toLowerCase()===category);});if(!rows.length){list.innerHTML='<div class="empty-account"><h3>No products found</h3><p>No catalogue products match the selected filters.</p></div>';return;}list.innerHTML=`<div class="valuation-list">${rows.map(p=>`<div class="valuation-card"><div><div class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</div><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${money(p.manufacturer_rrp)} ${esc(p.manufacturer_rrp_currency||'')} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></div><div class="valuation-meta"><span class="status-badge">${p.active?'Active':'Inactive'}</span><button type="button" class="btn btn-secondary edit-product" data-id="${p.id}">EDIT</button></div></div>`).join('')}</div>`;}
 function clearFilters(){setVal('search','');setVal('manufacturer-filter','');setVal('category-filter','');renderList();}
 
-async function load(){
-  if(!auth||!sb()){showMessage('Authentication system unavailable.',true);return;}
-  try{
-    const session=await auth.getSession();
-    if(!session){location.href='login.html?return=admin-catalog.html';return;}
-    const {data:staff,error:staffError}=await sb().from('staff_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
-    if(staffError)throw staffError;
-    if(!staff){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1><p>This page is restricted to staff accounts.</p></section></div></main>';return;}
-    let allProducts=[];let from=0;const pageSize=1000;
-    while(true){
-      const {data,error}=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source,manufacturer_rrp_verified_at,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').range(from,from+pageSize-1).order('manufacturer').order('model').order('package_name');
-      if(error)throw error;
-      allProducts.push(...(data||[]));
-      if(!data||data.length<pageSize)break;
-      from+=pageSize;
-    }
-    products=allProducts;populateFilters();renderList();
-  }catch(e){console.error(e);$('catalog-list').textContent='Unable to load the catalogue.';showMessage(e.message||String(e),true);}
-}
+async function load(){if(!auth||!sb()){showMessage('Authentication system unavailable.',true);return;}try{const session=await auth.getSession();if(!session){location.href='login.html?return=admin-catalog.html';return;}const {data:staff,error:staffError}=await sb().from('staff_users').select('user_id').eq('user_id',session.user.id).maybeSingle();if(staffError)throw staffError;if(!staff){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1><p>This page is restricted to staff accounts.</p></section></div></main>';return;}let allProducts=[],from=0;const pageSize=1000;while(true){const {data,error}=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source,manufacturer_rrp_verified_at,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').range(from,from+pageSize-1).order('manufacturer').order('model').order('package_name');if(error)throw error;allProducts.push(...(data||[]));if(!data||data.length<pageSize)break;from+=pageSize;}products=allProducts;populateFilters();renderList();}catch(e){console.error(e);$('catalog-list').textContent='Unable to load the catalogue.';showMessage(e.message||String(e),true);}}
 
-$('catalog-form')?.addEventListener('submit',async e=>{
-  e.preventDefault();
-  try{
-    const session=await auth.getSession();if(!session){location.href='login.html?return=admin-catalog.html';return;}
-    const payload={category:val('category'),manufacturer:val('manufacturer'),model:val('model'),package_key:val('package-key'),package_name:val('package-name'),manufacturer_rrp:num('manufacturer-rrp'),manufacturer_rrp_currency:val('manufacturer-rrp-currency')||'GBP',manufacturer_rrp_source:val('manufacturer-rrp-source'),manufacturer_rrp_verified_at:num('manufacturer-rrp')!==null?new Date().toISOString():null,factory_sealed_price:num('factory-sealed'),opened_unused_price:num('opened-unused'),excellent_price:num('excellent'),good_price:num('good'),fair_price:num('fair'),active:$('active')?.checked!==false,notes:val('notes'),updated_at:new Date().toISOString()};
-    if(!payload.category||!payload.manufacturer||!payload.model||!payload.package_key||!payload.package_name){showMessage('Category, manufacturer, model, package key and package name are required for a new product.',true);return;}
-    const id=val('product-id');
-    let saved;
-    if(id){const r=await sb().from('quote_catalog_products').update(payload).eq('id',id).select().single();if(r.error)throw r.error;saved=r.data;}
-    else{const r=await sb().from('quote_catalog_products').insert(payload).select().single();if(r.error)throw r.error;saved=r.data;}
-    readRetailers();
-    if(saved?.id){
-      const existing=await sb().from('quote_catalog_retailer_prices').select('id').eq('catalog_product_id',saved.id);if(existing.error)throw existing.error;
-      const keep=[];
-      for(const r of retailerRows){
-        if(!r.retailer)continue;
-        const row={catalog_product_id:saved.id,retailer:r.retailer,condition:r.condition,buy_price:r.buy_price,sell_price:r.sell_price,buy_method:r.buy_method,source_url:r.source_url,notes:r.notes,checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-        if(r.id){const u=await sb().from('quote_catalog_retailer_prices').update(row).eq('id',r.id);if(u.error)throw u.error;keep.push(r.id);}else{const ins=await sb().from('quote_catalog_retailer_prices').insert(row).select('id').single();if(ins.error)throw ins.error;keep.push(ins.data.id);}
-      }
-      const remove=(existing.data||[]).map(x=>x.id).filter(x=>!keep.includes(x));
-      if(remove.length){const d=await sb().from('quote_catalog_retailer_prices').delete().in('id',remove);if(d.error)throw d.error;}
-    }
-    showMessage('Product and market intelligence saved.');await load();const fresh=products.find(p=>p.id===saved.id);if(fresh)loadProduct(fresh);
-  }catch(e){console.error(e);showMessage(e.message||String(e),true);}
-});
+$('catalog-form')?.addEventListener('submit',async e=>{e.preventDefault();try{const session=await auth.getSession();if(!session){location.href='login.html?return=admin-catalog.html';return;}const payload={category:val('category'),manufacturer:val('manufacturer'),model:val('model'),package_key:val('package-key'),package_name:val('package-name'),manufacturer_rrp:num('manufacturer-rrp'),manufacturer_rrp_currency:val('manufacturer-rrp-currency')||'GBP',manufacturer_rrp_source:val('manufacturer-rrp-source'),manufacturer_rrp_verified_at:num('manufacturer-rrp')!==null?new Date().toISOString():null,factory_sealed_price:num('factory-sealed'),opened_unused_price:num('opened-unused'),excellent_price:num('excellent'),good_price:num('good'),fair_price:num('fair'),active:$('active')?.checked!==false,notes:val('notes'),updated_at:new Date().toISOString()};if(!payload.category||!payload.manufacturer||!payload.model||!payload.package_key||!payload.package_name){showMessage('Category, manufacturer, model, package key and package name are required for a new product.',true);return;}const id=val('product-id');let saved;if(id){const r=await sb().from('quote_catalog_products').update(payload).eq('id',id).select().single();if(r.error)throw r.error;saved=r.data;}else{const r=await sb().from('quote_catalog_products').insert(payload).select().single();if(r.error)throw r.error;saved=r.data;}readRetailers();if(saved?.id){const existing=await sb().from('quote_catalog_retailer_prices').select('id').eq('catalog_product_id',saved.id);if(existing.error)throw existing.error;const keep=[];for(const r of retailerRows){if(!r.retailer)continue;const row={catalog_product_id:saved.id,retailer:r.retailer,price_type:r.price_type||'market',condition:r.condition,buy_price:r.buy_price,sell_price:r.sell_price,availability_status:r.availability_status||'unknown',buy_method:r.buy_method,source_url:r.source_url,notes:r.notes,checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};if(r.id){const u=await sb().from('quote_catalog_retailer_prices').update(row).eq('id',r.id);if(u.error)throw u.error;keep.push(r.id);}else{const ins=await sb().from('quote_catalog_retailer_prices').insert(row).select('id').single();if(ins.error)throw ins.error;keep.push(ins.data.id);}}const remove=(existing.data||[]).map(x=>x.id).filter(x=>!keep.includes(x));if(remove.length){const d=await sb().from('quote_catalog_retailer_prices').delete().in('id',remove);if(d.error)throw d.error;}}showMessage('Product and market intelligence saved.');await load();const fresh=products.find(p=>p.id===saved.id);if(fresh)loadProduct(fresh);}catch(e){console.error(e);showMessage(e.message||String(e),true);}});
 
-document.addEventListener('click',e=>{
-  const edit=e.target.closest('.edit-product');
-  if(edit){const p=products.find(x=>x.id===edit.dataset.id);if(p)loadProduct(p);}
-  if(e.target.closest('#clear-form'))clearForm();
-  if(e.target.closest('#clear-filters'))clearFilters();
-  if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',condition:'',buy_price:null,sell_price:null,buy_method:'',source_url:'',notes:'',checked_at:null});renderRetailers();}
-  if(e.target.closest('.remove-retailer')){readRetailers();const tr=e.target.closest('tr');retailerRows.splice(Number(tr.dataset.index),1);renderRetailers();}
-});
-
-$('search')?.addEventListener('input',renderList);
-$('manufacturer-filter')?.addEventListener('change',renderList);
-$('category-filter')?.addEventListener('change',renderList);
-document.addEventListener('DOMContentLoaded',load);
+document.addEventListener('click',e=>{const edit=e.target.closest('.edit-product');if(edit){const p=products.find(x=>x.id===edit.dataset.id);if(p)loadProduct(p);}if(e.target.closest('#clear-form'))clearForm();if(e.target.closest('#clear-filters'))clearFilters();if(e.target.closest('#add-retailer-price')){readRetailers();retailerRows.push({retailer:'',price_type:'market',condition:'',buy_price:null,sell_price:null,availability_status:'in_stock',buy_method:'',source_url:'',notes:'',checked_at:null});renderRetailers();}if(e.target.closest('.remove-retailer')){readRetailers();const tr=e.target.closest('tr');retailerRows.splice(Number(tr.dataset.index),1);renderRetailers();}});
+$('search')?.addEventListener('input',renderList);$('manufacturer-filter')?.addEventListener('change',renderList);$('category-filter')?.addEventListener('change',renderList);document.addEventListener('DOMContentLoaded',load);
