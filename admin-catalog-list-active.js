@@ -1,9 +1,9 @@
-/* GearCashOut: list-level Active controls. Uses the existing quote_catalog_products.active field only. */
+/* GearCashOut: product-level Active control beside EDIT PRODUCT. Uses the existing quote_catalog_products.active field only. */
 (function(){
   'use strict';
   const getAuth=()=>window.actionBuyerAuth;
 
-  async function setActive(id, active){
+  async function setActive(id,active){
     const sb=getAuth()?.supabase;
     if(!sb||!id)return {ok:false,error:'Authentication system unavailable.'};
     const session=await getAuth().getSession();
@@ -19,67 +19,52 @@
   }
 
   async function syncStates(list){
-    const sb=getAuth()?.supabase;
-    if(!sb)return;
+    const sb=getAuth()?.supabase;if(!sb)return;
     const cards=Array.from(list.querySelectorAll('.valuation-card[data-product-id]'));
-    const ids=cards.map(card=>card.dataset.productId).filter(Boolean);
-    if(!ids.length)return;
-    const {data,error}=await sb.from('quote_catalog_products').select('id,active').in('id',ids);
-    if(error)return;
+    const ids=cards.map(card=>card.dataset.productId).filter(Boolean);if(!ids.length)return;
+    const {data,error}=await sb.from('quote_catalog_products').select('id,active').in('id',ids);if(error)return;
     const states=new Map((data||[]).map(p=>[p.id,!!p.active]));
     cards.forEach(card=>{
-      const cb=card.querySelector('.list-active-toggle'),id=card.dataset.productId;
-      if(!cb||!states.has(id))return;
-      cb.checked=states.get(id);cb.disabled=false;
-      const badge=card.querySelector('.status-badge');
-      if(badge)badge.textContent=states.get(id)?'Active':'Inactive';
+      const control=card.querySelector('.list-active-control'),id=card.dataset.productId;if(!control||!states.has(id))return;
+      const active=states.get(id);control.dataset.active=active?'true':'false';control.textContent=active?'ACTIVE':'INACTIVE';control.classList.toggle('active',active);control.classList.toggle('inactive',!active);
+      const badge=card.querySelector('.status-badge');if(badge)badge.textContent=active?'Active':'Inactive';
     });
   }
 
   function render(){
-    const list=document.getElementById('catalog-list');
-    if(!list)return;
+    const list=document.getElementById('catalog-list');if(!list)return;
     list.querySelectorAll('.valuation-card').forEach(card=>{
-      if(card.querySelector('.list-active-control'))return;
-      const id=card.querySelector('.edit-product')?.dataset.id;
-      if(!id)return;
+      const edit=card.querySelector('.edit-product'),id=edit?.dataset.id;if(!id)return;
       card.dataset.productId=id;
-      const label=document.createElement('label');
-      label.className='list-active-control';
-      label.title='Set whether this catalogue product is active';
-      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}"> <span>Active</span>`;
-      /* Normal document flow: the checkbox gets its own line above the
-         manufacturer/category text and can never cover the product name. */
-      label.style.cssText='position:static;display:flex;align-items:center;gap:.35rem;width:max-content;font-weight:700;margin:0 0 .45rem 0;padding:0;cursor:pointer;';
-      const content=card.firstElementChild;
-      if(content)content.insertBefore(label,content.firstChild);
-      else card.insertBefore(label,card.firstChild);
+      card.querySelectorAll('.list-active-checkbox-control,.list-active-toggle').forEach(el=>{const wrapper=el.closest('.list-active-checkbox-control');(wrapper||el).remove();});
+      if(card.querySelector('.list-active-control'))return;
+      const control=document.createElement('button');control.type='button';control.className='list-active-control';control.dataset.id=id;control.title='Click to change this catalogue product between active and inactive';control.textContent='ACTIVE';
+      control.style.cssText='display:inline-flex;align-items:center;justify-content:center;margin-left:.5rem;padding:.55rem .8rem;border:0;border-radius:6px;font:inherit;font-size:.78rem;font-weight:800;letter-spacing:.02em;cursor:pointer;vertical-align:middle;';
+      edit.insertAdjacentElement('afterend',control);
     });
     syncStates(list);
   }
 
-  document.addEventListener('change',async e=>{
-    const cb=e.target.closest?.('.list-active-toggle');
-    if(!cb)return;
-    const id=cb.dataset.id,desired=cb.checked;
-    cb.disabled=true;
+  document.addEventListener('click',async e=>{
+    const control=e.target.closest?.('.list-active-control');if(!control)return;
+    e.preventDefault();e.stopPropagation();
+    const id=control.dataset.id,currentlyActive=control.dataset.active==='true',desired=!currentlyActive;
+    control.disabled=true;control.textContent='SAVING…';
     const result=await setActive(id,desired);
-    if(!result.ok){cb.checked=!desired;cb.disabled=false;showError(result.error);return;}
-    cb.disabled=false;
-    const card=cb.closest('.valuation-card'),badge=card?.querySelector('.status-badge');
-    if(badge)badge.textContent=desired?'Active':'Inactive';
-    const msg=document.getElementById('catalog-message');
-    if(msg){msg.textContent=`Product ${desired?'activated':'deactivated'}.`;msg.className='form-message success';}
+    if(!result.ok){control.disabled=false;control.textContent=currentlyActive?'ACTIVE':'INACTIVE';showError(result.error);return;}
+    control.dataset.active=desired?'true':'false';control.textContent=desired?'ACTIVE':'INACTIVE';control.disabled=false;control.classList.toggle('active',desired);control.classList.toggle('inactive',!desired);
+    const card=control.closest('.valuation-card'),badge=card?.querySelector('.status-badge');if(badge)badge.textContent=desired?'Active':'Inactive';
+    const msg=document.getElementById('catalog-message');if(msg){msg.textContent=`Product ${desired?'activated':'deactivated'}.`;msg.className='form-message success';}
   },true);
 
-  function observe(){
-    render();
-    const list=document.getElementById('catalog-list');
-    if(list&&!list.dataset.activeObserver){
-      list.dataset.activeObserver='1';
-      new MutationObserver(()=>render()).observe(list,{childList:true,subtree:true});
-    }
+  function addStyles(){
+    if(document.getElementById('list-active-control-style'))return;
+    const style=document.createElement('style');style.id='list-active-control-style';style.textContent='.list-active-control{background:#dff3e4;color:#18733b}.list-active-control.inactive{background:#f8dddd;color:#a32323}.list-active-control:disabled{opacity:.65;cursor:wait}.list-active-control:focus-visible{outline:3px solid #102f4f;outline-offset:2px}';document.head.appendChild(style);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});
-  else observe();
+
+  function observe(){
+    addStyles();render();const list=document.getElementById('catalog-list');
+    if(list&&!list.dataset.activeObserver){list.dataset.activeObserver='1';new MutationObserver(()=>render()).observe(list,{childList:true,subtree:true});}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});else observe();
 })();
