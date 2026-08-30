@@ -1,4 +1,4 @@
-/* GearCashOut: list-level Active controls only. Does not alter quote/visibility logic. */
+/* GearCashOut: list-level Active controls. Does not alter quote/visibility logic. */
 (function(){
   'use strict';
   const auth=()=>window.actionBuyerAuth;
@@ -15,43 +15,52 @@
     return true;
   }
 
+  async function syncStates(list){
+    const sb=auth()?.supabase;
+    if(!sb)return;
+    const cards=Array.from(list.querySelectorAll('.valuation-card'));
+    const ids=cards.map(card=>card.dataset.productId).filter(Boolean);
+    if(!ids.length)return;
+    const {data,error}=await sb.from('quote_catalog_products').select('id,active').in('id',ids);
+    if(error)return;
+    const states=new Map((data||[]).map(p=>[p.id,!!p.active]));
+    cards.forEach(card=>{
+      const id=card.dataset.productId;
+      const cb=card.querySelector('.list-active-toggle');
+      if(!cb||!states.has(id))return;
+      cb.checked=states.get(id);
+      cb.disabled=false;
+    });
+  }
+
   function render(){
     const list=document.getElementById('catalog-list');
     if(!list)return;
     list.querySelectorAll('.valuation-card').forEach(card=>{
       if(card.querySelector('.list-active-control'))return;
-      const edit=card.querySelector('.edit-product');
-      if(!edit)return;
-      const id=edit.dataset.id;
-      const status=card.querySelector('.status-badge');
-      const title=card.querySelector('h3');
-      if(!title)return;
+      const id=card.dataset.productId||card.querySelector('.edit-product')?.dataset.id;
+      if(!id)return;
 
       const label=document.createElement('label');
       label.className='list-active-control';
       label.title='Set whether this catalogue product is active';
-      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}" ${status?.textContent?.trim().toLowerCase()==='active'?'checked':''}> <span>Active</span>`;
+      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}" disabled> <span>Active</span>`;
 
-      const titleRow=document.createElement('div');
-      titleRow.className='list-product-title-row';
-      titleRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;';
-      title.parentNode.insertBefore(titleRow,title);
-      titleRow.appendChild(title);
-      titleRow.appendChild(label);
+      card.style.position='relative';
+      label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:3;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;';
+      card.insertBefore(label,card.firstChild);
     });
+    syncStates(list);
   }
 
   document.addEventListener('change',async e=>{
     const cb=e.target.closest('.list-active-toggle');
     if(!cb)return;
+    const previous=!cb.checked;
     cb.disabled=true;
     const ok=await setActive(cb.dataset.id,cb.checked);
     cb.disabled=false;
-    if(ok){
-      const card=cb.closest('.valuation-card');
-      const status=card?.querySelector('.status-badge');
-      if(status)status.textContent=cb.checked?'Active':'Inactive';
-    }else cb.checked=!cb.checked;
+    if(!ok)cb.checked=previous;
   });
 
   function observe(){
