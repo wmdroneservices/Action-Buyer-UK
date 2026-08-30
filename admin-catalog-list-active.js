@@ -41,13 +41,17 @@
       const id=card.dataset.productId||card.querySelector('.edit-product')?.dataset.id;
       if(!id)return;
 
+      // Keep the catalogue product ID on the card so the control can
+      // synchronise its state from Supabase and update the exact product.
+      card.dataset.productId=id;
+
       const label=document.createElement('label');
       label.className='list-active-control';
       label.title='Set whether this catalogue product is active';
-      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}" disabled> <span>Active</span>`;
+      label.innerHTML=`<input type="checkbox" class="list-active-toggle" data-id="${id}"> <span>Active</span>`;
 
       card.style.position='relative';
-      label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:3;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;';
+      label.style.cssText='position:absolute;left:1rem;top:1rem;z-index:3;display:inline-flex;align-items:center;gap:.35rem;font-weight:700;margin:0;padding:.15rem .35rem;background:#fffdf8;border-radius:4px;cursor:pointer;';
       card.insertBefore(label,card.firstChild);
     });
     syncStates(list);
