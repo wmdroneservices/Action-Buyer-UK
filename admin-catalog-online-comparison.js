@@ -21,7 +21,6 @@
     const s=document.createElement('style');s.id='catalog-online-comparison-style';s.textContent=`
       .catalog-online-comparison{display:inline-flex;align-items:center;gap:.3rem;background:#102f4f!important;color:#fff!important;text-decoration:none!important;border:0!important}
       .catalog-online-comparison:hover{filter:brightness(1.08)}
-      .catalog-comparison-note{font-size:.74rem;color:#666;margin-left:.25rem}
     `;document.head.appendChild(s);
   }
 
@@ -36,25 +35,20 @@
   }
 
   function bestUrl(p){
-    const first=(rowsByProduct.get(p.id)||[]).map(x=>safeUrl(x.source_url)).find(Boolean);
+    const manufacturer=String(p.manufacturer||'').trim().toLowerCase();
+    const rows=rowsByProduct.get(p.id)||[];
+    if(manufacturer==='akaso'){
+      // Prefer the specific PriceSpy comparison page when one has been
+      // recorded; otherwise use the verified AKASO PriceSpy manufacturer page.
+      const priceSpy=rows.map(x=>safeUrl(x.source_url)).find(u=>/pricespy\.co\.uk/i.test(u));
+      if(priceSpy)return priceSpy;
+      return 'https://pricespy.co.uk/brand.php?t=51042';
+    }
+    const first=rows.map(x=>safeUrl(x.source_url)).find(Boolean);
     if(first)return first;
     const rrp=safeUrl(p.manufacturer_rrp_source);
     if(rrp)return rrp;
-    // AKASO has a verified PriceSpy UK manufacturer page and this is the
-    // correct fallback when a particular bundle has no product-specific row.
-    if(String(p.manufacturer||'').trim().toLowerCase()==='akaso')return 'https://pricespy.co.uk/brand.php?t=51042';
-    // Every catalogue product still gets an actionable comparison destination.
     return 'https://pricespy.co.uk/';
-  }
-
-  function fixRrp(card,p){
-    const title=card.querySelector('.catalog-accordion-title p');
-    if(!title||!p)return;
-    const text=`RRP ${money(p.manufacturer_rrp,p.manufacturer_rrp_currency||'GBP')} · Sealed ${money(card.dataset.sealed)} · Unused ${money(card.dataset.unused)} · Excellent ${money(card.dataset.excellent)} · Good ${money(card.dataset.good)} · Fair ${money(card.dataset.fair)}`;
-    // Preserve the existing condition prices, which are always GearCashOut GBP values.
-    const existing=title.textContent||'';
-    const parts=existing.split(' · ').slice(1);
-    title.textContent=`RRP ${money(p.manufacturer_rrp,p.manufacturer_rrp_currency||'GBP')}${parts.length?' · '+parts.join(' · '):''}`;
   }
 
   function addComparison(card,p){
@@ -76,8 +70,6 @@
       const p=productsById.get(card.dataset.productId);
       if(!p)return;
       addComparison(card,p);
-      // Correct the RRP currency in the closed card header without touching
-      // the GearCashOut GBP buying prices.
       const title=card.querySelector('.catalog-accordion-title p');
       if(title){
         const existing=title.textContent||'';
