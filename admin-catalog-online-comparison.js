@@ -1,4 +1,4 @@
-/* GearCashOut: render the actual direct-retailer Online Comparison value in each catalogue product bar. */
+/* GearCashOut: render direct-retailer Online Comparison values and manufacturer comparison links in each catalogue product bar. */
 (function(){
   'use strict';
 
@@ -7,6 +7,7 @@
   const excludedRetailer=/amazon\s+marketplace|marketplace|reseller|comparison|pricespy|supersales|onbuy|pricerunner|research\s+audit/i;
   const qualifyingTypes=new Set(['new','new_sale','market']);
   const cache=new Map();
+  const manufacturerLinks=new Map();
   let wired=false;
 
   function isDirectRetail(row){
@@ -36,10 +37,34 @@
   }
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
   function getTitle(card){return card.querySelector('.catalog-accordion-title')||card.querySelector('.valuation-card > div:first-child');}
+  function getProductId(card){return card?.dataset?.productId||card?.querySelector('.edit-product')?.dataset?.id;}
+
+  function setManufacturerLink(card){
+    const id=getProductId(card);
+    const title=getTitle(card);
+    if(!id||!title)return;
+    let link=title.querySelector('.catalog-manufacturer-link');
+    const url=safeUrl(manufacturerLinks.get(id));
+    if(!url){
+      if(link)link.remove();
+      return;
+    }
+    if(!link){
+      link=document.createElement('a');
+      link.className='catalog-manufacturer-link';
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent='COMPARE ON BETAFPV ↗';
+      link.style.cssText='display:inline-block;margin-top:.3rem;font-size:.72rem;font-weight:700;color:#102f4f;text-decoration:underline;';
+      title.appendChild(link);
+    }
+    if(link.href!==url)link.href=url;
+  }
 
   function setPrice(card){
-    const id=card?.dataset?.productId||card?.querySelector('.edit-product')?.dataset?.id;
+    const id=getProductId(card);
     if(!id)return;
     const title=getTitle(card); if(!title)return;
     const p=title.querySelector('p'); if(!p)return;
@@ -57,12 +82,29 @@
     const unique=[...new Set(prices)].sort((a,b)=>a-b);
     const label=!unique.length?'Online comparison —':unique.length===1?`Online comparison ${money(unique[0])}`:`Online comparison ${money(unique[0])}–${money(unique[unique.length-1])}`;
     const desired=`${label} · ${conditions}`;
-    if(p.dataset.onlineComparisonRendered===desired)return;
-    p.innerHTML=`<span class="catalog-online-comparison-text">${esc(label)}</span> · ${esc(conditions)}`;
-    p.dataset.onlineComparisonRendered=desired;
+    if(p.dataset.onlineComparisonRendered!==desired){
+      p.innerHTML=`<span class="catalog-online-comparison-text">${esc(label)}</span> · ${esc(conditions)}`;
+      p.dataset.onlineComparisonRendered=desired;
+    }
+    setManufacturerLink(card);
   }
 
   function renderAll(){document.querySelectorAll('#catalog-list .valuation-card').forEach(setPrice);}
+
+  async function fetchManufacturerLinks(){
+    const api=window.actionBuyerAuth?.supabase;
+    if(!api)return;
+    const {data,error}=await api.from('quote_catalog_products')
+      .select('id,manufacturer,manufacturer_rrp_source')
+      .ilike('manufacturer','betafpv');
+    if(error){console.error('Manufacturer comparison link lookup failed',error);return;}
+    manufacturerLinks.clear();
+    (data||[]).forEach(row=>{
+      const url=safeUrl(row.manufacturer_rrp_source);
+      if(url)manufacturerLinks.set(row.id,url);
+    });
+    renderAll();
+  }
 
   async function fetchPrices(){
     const api=window.actionBuyerAuth?.supabase;
@@ -97,6 +139,7 @@
     const observer=new MutationObserver(()=>renderAll());
     observer.observe(list,{childList:true,subtree:true});
     renderAll();
+    fetchManufacturerLinks();
     fetchPrices();
   }
 
