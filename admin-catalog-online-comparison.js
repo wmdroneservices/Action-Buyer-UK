@@ -6,6 +6,7 @@
   const excludedRetailer=/amazon\s+marketplace|marketplace|reseller|comparison|pricespy|supersales|onbuy|pricerunner|research\s+audit/i;
   const qualifyingTypes=new Set(['new','new_sale','market']);
   const cache=new Map();
+  const officialLinks=new Map();
   let wired=false;
   function isDirectRetail(row){
     if(!row||row.sell_price==null)return false;
@@ -21,14 +22,29 @@
     const availability=String(row.availability_status||'').toLowerCase();
     if(availability==='out_of_stock'){
       if(/\bdiscontinued\b/i.test(notes))return false;
-      // Out-of-stock is still valid comparison evidence. Only exclude it when
-      // the evidence explicitly says the product is discontinued.
     } else if(!['in_stock','unknown'].includes(availability))return false;
     return true;
   }
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function getTitle(card){return card.querySelector('.catalog-accordion-title')||card.querySelector('.valuation-card > div:first-child');}
   function getProductId(card){return card?.dataset?.productId||card?.querySelector('.edit-product')?.dataset?.id;}
+  function ensureOfficialLink(card,id){
+    if(!id)return;
+    const title=getTitle(card);if(!title)return;
+    if(!/^DJI\b/i.test((title.textContent||'').trim()))return;
+    const url=officialLinks.get(id);if(!url)return;
+    let link=title.querySelector('.catalog-official-manufacturer-link');
+    if(!link){
+      link=document.createElement('a');
+      link.className='catalog-official-manufacturer-link';
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent='OPEN DJI OFFICIAL PRODUCT PAGE ↗';
+      link.style.cssText='display:inline-block;margin-top:.25rem;font-size:.72rem;font-weight:700;color:#102f4f;text-decoration:underline;';
+      title.appendChild(link);
+    }
+    if(link.href!==url)link.href=url;
+  }
   function setPrice(card){
     const id=getProductId(card); if(!id)return;
     const title=getTitle(card); if(!title)return;
@@ -47,6 +63,7 @@
       p.innerHTML=`<span class="catalog-online-comparison-text">${esc(label)}</span> · ${esc(conditions)}`;
       p.dataset.onlineComparisonRendered=desired;
     }
+    ensureOfficialLink(card,id);
   }
   function renderAll(){document.querySelectorAll('#catalog-list .valuation-card').forEach(setPrice);}
   async function fetchPrices(){
@@ -66,14 +83,29 @@
     }
     cache.clear();next.forEach((v,k)=>cache.set(k,v)); renderAll();
   }
+  async function fetchOfficialLinks(){
+    const api=window.actionBuyerAuth?.supabase;if(!api)return;
+    const next=new Map();let from=0;const pageSize=1000;
+    while(true){
+      const {data,error}=await api.from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,source_url').range(from,from+pageSize-1);
+      if(error){console.error('Official DJI link lookup failed',error);return;}
+      (data||[]).forEach(row=>{
+        const url=String(row.source_url||'');
+        if(!/^https?:\/\/(?:store\.)?dji\.com\//i.test(url))return;
+        if(!row.catalog_product_id)return;
+        const current=next.get(row.catalog_product_id)||'';
+        const score=u=>/store\.dji\.com\/uk\/product\//i.test(u)?3:/www\.dji\.com\/uk\//i.test(u)?2:/store\.dji\.com\/uk\//i.test(u)?1:0;
+        if(!current||score(url)>score(current))next.set(row.catalog_product_id,url);
+      });
+      if(!data||data.length<pageSize)break;from+=pageSize;
+    }
+    officialLinks.clear();next.forEach((v,k)=>officialLinks.set(k,v));renderAll();
+  }
   function wire(){
     const list=document.getElementById('catalog-list'); if(!list||wired)return;
     wired=true;
-    // Observe only direct list changes. Observing the whole subtree caused a
-    // render/accordion MutationObserver feedback loop and could leave the page
-    // apparently stuck on Loading when large catalogues were rendered.
     const observer=new MutationObserver(()=>renderAll()); observer.observe(list,{childList:true});
-    renderAll(); fetchPrices();
+    renderAll(); fetchPrices(); fetchOfficialLinks();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true}); else wire();
 })();
