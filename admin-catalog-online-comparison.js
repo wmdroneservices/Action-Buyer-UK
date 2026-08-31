@@ -24,22 +24,32 @@
     `;document.head.appendChild(s);
   }
 
+  async function fetchAll(table,select){
+    const out=[];let from=0;const pageSize=1000;
+    while(true){
+      const r=await S().from(table).select(select).range(from,from+pageSize-1);
+      if(r.error)throw r.error;
+      out.push(...(r.data||[]));
+      if(!r.data||r.data.length<pageSize)break;
+      from+=pageSize;
+    }
+    return out;
+  }
+
   async function loadData(){
     if(!S())return;
-    const [p,r]=await Promise.all([
-      S().from('quote_catalog_products').select('id,manufacturer,model,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source'),
-      S().from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,source_url,checked_at').not('source_url','is',null)
+    const [products,retailerRows]=await Promise.all([
+      fetchAll('quote_catalog_products','id,manufacturer,model,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source'),
+      fetchAll('quote_catalog_retailer_prices','catalog_product_id,retailer,source_url,checked_at')
     ]);
-    if(!p.error)(p.data||[]).forEach(x=>productsById.set(x.id,x));
-    if(!r.error)(r.data||[]).forEach(x=>{const u=safeUrl(x.source_url);if(!u)return;if(!rowsByProduct.has(x.catalog_product_id))rowsByProduct.set(x.catalog_product_id,[]);rowsByProduct.get(x.catalog_product_id).push(x);});
+    products.forEach(x=>productsById.set(x.id,x));
+    retailerRows.forEach(x=>{const u=safeUrl(x.source_url);if(!u)return;if(!rowsByProduct.has(x.catalog_product_id))rowsByProduct.set(x.catalog_product_id,[]);rowsByProduct.get(x.catalog_product_id).push(x);});
   }
 
   function bestUrl(p){
     const manufacturer=String(p.manufacturer||'').trim().toLowerCase();
     const rows=rowsByProduct.get(p.id)||[];
     if(manufacturer==='akaso'){
-      // Prefer the specific PriceSpy comparison page when one has been
-      // recorded; otherwise use the verified AKASO PriceSpy manufacturer page.
       const priceSpy=rows.map(x=>safeUrl(x.source_url)).find(u=>/pricespy\.co\.uk/i.test(u));
       if(priceSpy)return priceSpy;
       return 'https://pricespy.co.uk/brand.php?t=51042';
