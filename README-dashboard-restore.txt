@@ -1,0 +1,1 @@
+Dashboard catalogue counters are read-only and use quote_catalog_products only.
