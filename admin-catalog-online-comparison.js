@@ -1,4 +1,4 @@
-/* GearCashOut: render direct-retailer Online Comparison values and manufacturer comparison links in each catalogue product bar. */
+/* GearCashOut: render direct-retailer Online Comparison values in each catalogue product bar. */
 (function(){
   'use strict';
 
@@ -7,7 +7,6 @@
   const excludedRetailer=/amazon\s+marketplace|marketplace|reseller|comparison|pricespy|supersales|onbuy|pricerunner|research\s+audit/i;
   const qualifyingTypes=new Set(['new','new_sale','market']);
   const cache=new Map();
-  const manufacturerLinks=new Map();
   let wired=false;
 
   function isDirectRetail(row){
@@ -37,31 +36,9 @@
   }
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
+
   function getTitle(card){return card.querySelector('.catalog-accordion-title')||card.querySelector('.valuation-card > div:first-child');}
   function getProductId(card){return card?.dataset?.productId||card?.querySelector('.edit-product')?.dataset?.id;}
-
-  function setManufacturerLink(card){
-    const id=getProductId(card);
-    const title=getTitle(card);
-    if(!id||!title)return;
-    let link=title.querySelector('.catalog-manufacturer-link');
-    const url=safeUrl(manufacturerLinks.get(id));
-    if(!url){
-      if(link)link.remove();
-      return;
-    }
-    if(!link){
-      link=document.createElement('a');
-      link.className='catalog-manufacturer-link';
-      link.target='_blank';
-      link.rel='noopener noreferrer';
-      link.textContent='COMPARE ON BETAFPV ↗';
-      link.style.cssText='display:inline-block;margin-top:.3rem;font-size:.72rem;font-weight:700;color:#102f4f;text-decoration:underline;';
-      title.appendChild(link);
-    }
-    if(link.href!==url)link.href=url;
-  }
 
   function setPrice(card){
     const id=getProductId(card);
@@ -86,25 +63,9 @@
       p.innerHTML=`<span class="catalog-online-comparison-text">${esc(label)}</span> · ${esc(conditions)}`;
       p.dataset.onlineComparisonRendered=desired;
     }
-    setManufacturerLink(card);
   }
 
   function renderAll(){document.querySelectorAll('#catalog-list .valuation-card').forEach(setPrice);}
-
-  async function fetchManufacturerLinks(){
-    const api=window.actionBuyerAuth?.supabase;
-    if(!api)return;
-    const {data,error}=await api.from('quote_catalog_products')
-      .select('id,manufacturer,manufacturer_rrp_source')
-      .ilike('manufacturer','betafpv');
-    if(error){console.error('Manufacturer comparison link lookup failed',error);return;}
-    manufacturerLinks.clear();
-    (data||[]).forEach(row=>{
-      const url=safeUrl(row.manufacturer_rrp_source);
-      if(url)manufacturerLinks.set(row.id,url);
-    });
-    renderAll();
-  }
 
   async function fetchPrices(){
     const api=window.actionBuyerAuth?.supabase;
@@ -139,7 +100,6 @@
     const observer=new MutationObserver(()=>renderAll());
     observer.observe(list,{childList:true,subtree:true});
     renderAll();
-    fetchManufacturerLinks();
     fetchPrices();
   }
 
@@ -147,9 +107,10 @@
   else wire();
 })();
 
-/* Website / Competitor dropdown. This is intentionally separate from the
-   Direct source link: the dropdown chooses the competitor, while the link
-   opens its website (or the recorded product/source URL when one exists). */
+/* Website / Competitor dropdown.
+   The dropdown chooses the competitor and its OPEN WEBSITE link stays
+   directly beneath that dropdown. The Direct source link remains separate
+   and is reserved for the exact page used as price evidence. */
 (function(){
   'use strict';
 
@@ -162,6 +123,9 @@
     ['iFlight','https://www.iflight.com/'],
     ['GEPRC','https://geprc.com/'],
     ['Rotor Riot','https://rotorriot.com/'],
+    ['SkyFleetDrones','https://skyfleetdrones.com/collections/all'],
+    ['RadioMaster','https://www.radiomasterrc.com/'],
+    ['EMAX','https://emaxmodel.com/'],
     ['Amazon UK','https://www.amazon.co.uk/'],
     ['eBay UK','https://www.ebay.co.uk/'],
     ['MPB','https://www.mpb.com/en-uk/'],
@@ -215,12 +179,15 @@
 
     function updateLink(){
       const canonical=urlMap.get(select.value.toLowerCase())||'';
+      // For named competitors, always open the competitor website here.
+      // The exact evidence URL remains in Direct source link.
       const source=safeUrl(sourceInput?.value?.trim());
-      const url=source||canonical;
+      const isCustom=!canonical && select.value.toLowerCase()==='custom / other';
+      const url=canonical || (isCustom?source:'');
       if(url){
         link.href=url;
         link.classList.remove('disabled');
-        link.title=source?'Open the recorded source page':'Open the competitor website';
+        link.title=canonical?'Open the competitor website':'Open the recorded source page';
       }else{
         link.removeAttribute('href');
         link.classList.add('disabled');
@@ -228,14 +195,7 @@
       }
     }
 
-    select.addEventListener('change',()=>{
-      const canonical=urlMap.get(select.value.toLowerCase())||'';
-      if(sourceInput && !sourceInput.value.trim() && canonical){
-        sourceInput.value=canonical;
-        sourceInput.dispatchEvent(new Event('input',{bubbles:true}));
-      }
-      updateLink();
-    });
+    select.addEventListener('change',updateLink);
     sourceInput?.addEventListener('input',updateLink);
     updateLink();
     tr.dataset.competitorEnhanced='1';
