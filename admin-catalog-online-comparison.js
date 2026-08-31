@@ -3,22 +3,27 @@
   'use strict';
 
   const money=v=>`£${Number(v).toFixed(2)}`;
-  const excluded=/eBay|Vinted|Facebook\s*Marketplace|Gumtree|Etsy|Depop|Shpock|auction|marketplace|person[-\s]?to[-\s]?person|reseller|classified/i;
-  const qualifyingTypes=new Set(['new','new_sale']);
+  const excludedSource=/eBay\.|Vinted\.|Facebook\.|Gumtree\.|Etsy\.|Depop\.|Shpock\.|auction|marketplace|reseller|classified|pricespy\.|idealo\.|supersales\.|onbuy\.|pricerunner\.|kelkoo\.|shopzilla\.|shopping\.google\./i;
+  const excludedRetailer=/amazon\s+marketplace|marketplace|reseller|comparison|pricespy|supersales|onbuy|pricerunner|research\s+audit/i;
+  const qualifyingTypes=new Set(['new','new_sale','market']);
   const cache=new Map();
   let wired=false;
 
   function isDirectRetail(row){
     if(!row||row.sell_price==null)return false;
     if(!qualifyingTypes.has(String(row.price_type||'').toLowerCase()))return false;
-    if(excluded.test(`${row.retailer||''} ${row.source_url||''}`))return false;
+    if(excludedSource.test(`${row.retailer||''} ${row.source_url||''}`))return false;
+    if(excludedRetailer.test(String(row.retailer||'')))return false;
     const notes=String(row.notes||'');
     if(/\bex\.?\s*vat\b|excluding\s+vat|plus\s+vat|vat\s+excluded/i.test(notes))return false;
+    if(!/^https?:\/\//i.test(String(row.source_url||'')))return false;
+    const condition=String(row.condition||'').trim();
+    if(String(row.price_type||'').toLowerCase()==='market' && !/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
+    if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return false;
     return true;
   }
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
   function getTitle(card){return card.querySelector('.catalog-accordion-title')||card.querySelector('.valuation-card > div:first-child');}
 
   function setPrice(card){
@@ -55,8 +60,8 @@
     const pageSize=1000;
     while(true){
       const {data,error}=await api.from('quote_catalog_retailer_prices')
-        .select('catalog_product_id,retailer,price_type,sell_price,source_url,notes')
-        .in('price_type',['new','new_sale'])
+        .select('catalog_product_id,retailer,price_type,condition,sell_price,availability_status,source_url,notes')
+        .in('price_type',['new','new_sale','market'])
         .range(from,from+pageSize-1);
       if(error){console.error('Online comparison price lookup failed',error);return;}
       (data||[]).forEach(row=>{
