@@ -27,12 +27,12 @@
     if(!/amazon\./i.test(`${row?.retailer||''} ${original}`))return original;
     // Preserve an exact Amazon product URL when one is already recorded.
     if(/amazon\.[^/]+\/[^/]*(?:\/dp\/|\/gp\/product\/|\/product\/)/i.test(original))return original;
-    // Generic Amazon home/search links are not useful for research. Build a
-    // direct Amazon UK product search for this exact catalogue model/package.
-    const parts=[product?.manufacturer,product?.model,product?.package_name||product?.package_key]
-      .map(v=>String(v||'').trim()).filter(Boolean);
-    if(!parts.length)return original;
-    return `https://www.amazon.co.uk/s?k=${encodeURIComponent(parts.join(' '))}`;
+    // A generic Amazon home/search URL is not useful for research. Replace it
+    // with an Amazon UK search built from the complete catalogue title so the
+    // user lands on the relevant product search rather than Amazon's homepage.
+    const query=String(product?.query||'').trim();
+    if(!query)return original;
+    return `https://www.amazon.co.uk/s?k=${encodeURIComponent(query)}`;
   }
 
   function transform(){
@@ -65,7 +65,7 @@
   async function panel(card){
     const id=card.dataset.productId,panel=card.querySelector('.catalog-accordion-panel');let rows=cache.get(id);
     if(!rows){const r=await sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at').eq('catalog_product_id',id).order('retailer').order('price_type').order('condition').order('sell_price');if(r.error){panel.innerHTML=`<div class="catalog-accordion-empty">Unable to load market research: ${esc(r.error.message)}</div>`;return;}rows=r.data||[];cache.set(id,rows);}
-    const product={manufacturer:card.querySelector('.catalog-accordion-title .valuation-ref')?.textContent?.split(' · ')[0]||'',model:card.querySelector('.catalog-accordion-title h3')?.textContent?.split(' — ')[0]?.replace(/^\S+\s+/,'')||'',package_name:card.querySelector('.catalog-accordion-title h3')?.textContent?.split(' — ')[1]||''};
+    const product={query:card.querySelector('.catalog-accordion-title h3')?.textContent?.replace(/\s+(ACTIVE|INACTIVE)\s*$/i,'').trim()||''};
     const prices=rows.flatMap(r=>[r.buy_price,r.sell_price]).map(Number).filter(Number.isFinite),low=prices.length?Math.min(...prices):null,high=prices.length?Math.max(...prices):null;
     panel.innerHTML=`<div class="catalog-accordion-summary"><div class="catalog-accordion-stat"><strong>${rows.length}</strong><span>Market evidence records</span></div><div class="catalog-accordion-stat"><strong>${money(low)}</strong><span>Lowest recorded price</span></div><div class="catalog-accordion-stat"><strong>${money(high)}</strong><span>Highest recorded price</span></div></div><div class="catalog-accordion-actions"><button type="button" class="btn btn-secondary catalog-inline-edit" data-id="${esc(id)}">EDIT PRODUCT</button></div>${rows.length?`<div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${rows.map(r=>{const source=amazonProductUrl(r,product);return `<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td>${r.buy_price==null?'—':money(r.buy_price)}</td><td>${r.sell_price==null?'—':money(r.sell_price)}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${source?`<a href="${esc(source)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="catalog-accordion-empty">No market research recorded for this product yet.</div>'}`;
   }
