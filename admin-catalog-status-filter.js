@@ -38,17 +38,18 @@
   };
 
   let comparisonTimer=null;
-  let lastProductIds='';
+  let lastListFirstCard=null;
 
   async function updateOnlineComparisons(){
     const list=document.getElementById('catalog-list');
     const supabase=window.actionBuyerAuth?.supabase;
     if(!list || !supabase) return;
     const cards=Array.from(list.querySelectorAll('.catalog-accordion-card'));
-    const ids=cards.map(card=>card.dataset.productId).filter(Boolean);
-    if(!ids.length || ids.join(',')===lastProductIds) return;
-    lastProductIds=ids.join(',');
+    const firstCard=cards[0]||null;
+    if(!cards.length || firstCard===lastListFirstCard) return;
+    lastListFirstCard=firstCard;
 
+    const ids=cards.map(card=>card.dataset.productId).filter(Boolean);
     const productMeta=new Map();
     cards.forEach(card=>{
       const id=card.dataset.productId;
@@ -92,7 +93,7 @@
 
   function scheduleComparisonUpdate(){
     clearTimeout(comparisonTimer);
-    comparisonTimer=setTimeout(updateOnlineComparisons,120);
+    comparisonTimer=setTimeout(updateOnlineComparisons,150);
   }
 
   document.addEventListener('DOMContentLoaded',function(){
