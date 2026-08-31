@@ -3,7 +3,7 @@
   'use strict';
 
   const money=v=>`£${Number(v).toFixed(2)}`;
-  const excludedSource=/eBay\.|Vinted\.|Facebook\.|Gumtree\.|Etsy\.|Depop\.|Shpock\.|auction|marketplace|reseller|classified|pricespy\.|idealo\.|supersales\.|onbuy\.|pricerunner\.|kelkoo\.|shopzilla\.|shopping\.google\./i;
+  const excludedSource=/eBay\.|Vinted\.|Facebook\.|Gumtree\.|Etsy\.|Depop\.|Shpock\.|auction|marketplace|reseller|classified|pricespy\.|idealo\.|supersales\.|onbuy\.|pricerunner\.|kelkoo\.|shopzilla\.|shopping\.google\.|shop\.autelrobotics\.com/i;
   const excludedRetailer=/amazon\s+marketplace|marketplace|reseller|comparison|pricespy|supersales|onbuy|pricerunner|research\s+audit/i;
   const qualifyingTypes=new Set(['new','new_sale','market']);
   const cache=new Map();
@@ -16,6 +16,8 @@
     if(excludedRetailer.test(String(row.retailer||'')))return false;
     const notes=String(row.notes||'');
     if(/\bex\.?\s*vat\b|excluding\s+vat|plus\s+vat|vat\s+excluded/i.test(notes))return false;
+    // Never allow a foreign-currency price to become a UK comparison value.
+    if(/\$|\bUSD\b|\bEUR\b|€|\bUS\b|\bEU\b/i.test(notes))return false;
     if(!/^https?:\/\//i.test(String(row.source_url||'')))return false;
     const condition=String(row.condition||'').trim();
     if(String(row.price_type||'').toLowerCase()==='market' && !/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
