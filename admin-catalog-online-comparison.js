@@ -21,7 +21,8 @@
     const availability=String(row.availability_status||'').toLowerCase();
     if(availability==='out_of_stock'){
       if(/\bdiscontinued\b/i.test(notes))return false;
-      if(!/\bpre[- ]?order\b|awaiting\s+eta|back\s*order|available\s+to\s+order/i.test(notes))return false;
+      // Out-of-stock is still valid comparison evidence. Only exclude it when
+      // the evidence explicitly says the product is discontinued.
     } else if(!['in_stock','unknown'].includes(availability))return false;
     return true;
   }
@@ -67,7 +68,12 @@
   }
   function wire(){
     const list=document.getElementById('catalog-list'); if(!list||wired)return;
-    wired=true; const observer=new MutationObserver(()=>renderAll()); observer.observe(list,{childList:true,subtree:true}); renderAll(); fetchPrices();
+    wired=true;
+    // Observe only direct list changes. Observing the whole subtree caused a
+    // render/accordion MutationObserver feedback loop and could leave the page
+    // apparently stuck on Loading when large catalogues were rendered.
+    const observer=new MutationObserver(()=>renderAll()); observer.observe(list,{childList:true});
+    renderAll(); fetchPrices();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true}); else wire();
 })();
@@ -76,50 +82,22 @@
 (function(){
   'use strict';
   const websites=[
-    ['Bright Tangerine','https://brighttangerine.com/'],
-    ['BetaFPV','https://betafpv.com/'],
-    ['DJI','https://www.dji.com/'],
-    ['Autel Robotics','https://www.autelrobotics.com/'],
-    ['HobbyKing','https://hobbyking.com/'],
-    ['GetFPV','https://www.getfpv.com/'],
-    ['iFlight','https://www.iflight.com/'],
-    ['GEPRC','https://geprc.com/'],
-    ['Rotor Riot','https://rotorriot.com/'],
-    ['SkyFleetDrones','https://skyfleetdrones.com/collections/all'],
-    ['RadioMaster','https://www.radiomasterrc.com/'],
-    ['EMAX','https://emaxmodel.com/'],
-    ['Amazon UK','https://www.amazon.co.uk/'],
-    ['eBay UK','https://www.ebay.co.uk/'],
-    ['MPB','https://www.mpb.com/en-uk/'],
-    ['CeX','https://uk.webuy.com/'],
-    ['Gumtree','https://www.gumtree.com/'],
-    ['Vinted','https://www.vinted.co.uk/'],
-    ['Facebook Marketplace','https://www.facebook.com/marketplace/'],
-    ['Custom / Other','']
+    ['Bright Tangerine','https://brighttangerine.com/'],['BetaFPV','https://betafpv.com/'],['DJI','https://www.dji.com/'],['Autel Robotics','https://www.autelrobotics.com/'],['HobbyKing','https://hobbyking.com/'],['GetFPV','https://www.getfpv.com/'],['iFlight','https://www.iflight.com/'],['GEPRC','https://geprc.com/'],['Rotor Riot','https://rotorriot.com/'],['SkyFleetDrones','https://skyfleetdrones.com/collections/all'],['RadioMaster','https://www.radiomasterrc.com/'],['EMAX','https://emaxmodel.com/'],['Amazon UK','https://www.amazon.co.uk/'],['eBay UK','https://www.ebay.co.uk/'],['MPB','https://www.mpb.com/en-uk/'],['CeX','https://uk.webuy.com/'],['Gumtree','https://www.gumtree.com/'],['Vinted','https://www.vinted.co.uk/'],['Facebook Marketplace','https://www.facebook.com/marketplace/'],['Custom / Other','']
   ];
-  const urlMap=new Map(websites.map(([name,url])=>[name.toLowerCase(),url]));
-  let observer=null;
+  const urlMap=new Map(websites.map(([name,url])=>[name.toLowerCase(),url])); let observer=null;
   function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
   function enhanceRow(tr){
-    if(!tr||tr.dataset.competitorEnhanced==='1')return;
-    const input=tr.querySelector('.retailer'); if(!input)return;
-    const current=(input.value||'').trim();
-    const select=document.createElement('select');
-    select.className='retailer competitor-select'; select.setAttribute('aria-label','Website / Competitor');
-    const known=websites.map(([name])=>name);
-    if(current && !known.some(name=>name.toLowerCase()===current.toLowerCase())){const existing=document.createElement('option'); existing.value=current; existing.textContent=current; select.appendChild(existing);}
-    websites.forEach(([name])=>{const option=document.createElement('option'); option.value=name; option.textContent=name; select.appendChild(option);});
-    const match=known.find(name=>name.toLowerCase()===current.toLowerCase()); select.value=match||current||'Custom / Other'; input.replaceWith(select);
-    const link=document.createElement('a'); link.className='retailer-link competitor-website-link'; link.target='_blank'; link.rel='noopener noreferrer'; link.textContent='OPEN WEBSITE ↗'; select.closest('td').appendChild(link);
+    if(!tr||tr.dataset.competitorEnhanced==='1')return; const input=tr.querySelector('.retailer');if(!input)return;
+    const current=(input.value||'').trim(); const select=document.createElement('select');select.className='retailer competitor-select';select.setAttribute('aria-label','Website / Competitor');
+    const known=websites.map(([name])=>name);if(current&&!known.some(name=>name.toLowerCase()===current.toLowerCase())){const existing=document.createElement('option');existing.value=current;existing.textContent=current;select.appendChild(existing);}
+    websites.forEach(([name])=>{const option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);});
+    const match=known.find(name=>name.toLowerCase()===current.toLowerCase());select.value=match||current||'Custom / Other';input.replaceWith(select);
+    const link=document.createElement('a');link.className='retailer-link competitor-website-link';link.target='_blank';link.rel='noopener noreferrer';link.textContent='OPEN WEBSITE ↗';select.closest('td').appendChild(link);
     const sourceInput=tr.querySelector('.retailer-source');
-    function updateLink(){
-      const canonical=urlMap.get(select.value.toLowerCase())||''; const source=safeUrl(sourceInput?.value?.trim()); const isCustom=!canonical && select.value.toLowerCase()==='custom / other'; const url=canonical || (isCustom?source:'');
-      if(url){link.href=url;link.classList.remove('disabled');link.title=canonical?'Open the competitor website':'Open the recorded source page';}
-      else{link.removeAttribute('href');link.classList.add('disabled');link.title='Enter a source URL for this competitor';}
-    }
-    select.addEventListener('change',updateLink); sourceInput?.addEventListener('input',updateLink); updateLink(); tr.dataset.competitorEnhanced='1';
+    function updateLink(){const canonical=urlMap.get(select.value.toLowerCase())||'';const source=safeUrl(sourceInput?.value?.trim());const isCustom=!canonical&&select.value.toLowerCase()==='custom / other';const url=canonical||(isCustom?source:'');if(url){link.href=url;link.classList.remove('disabled');link.title=canonical?'Open the competitor website':'Open the recorded source page';}else{link.removeAttribute('href');link.classList.add('disabled');link.title='Enter a source URL for this competitor';}}
+    select.addEventListener('change',updateLink);sourceInput?.addEventListener('input',updateLink);updateLink();tr.dataset.competitorEnhanced='1';
   }
   function enhanceRows(){document.querySelectorAll('#retailer-prices-body tr[data-index]').forEach(enhanceRow);}
-  function wire(){const body=document.getElementById('retailer-prices-body'); if(!body||observer)return; observer=new MutationObserver(enhanceRows); observer.observe(body,{childList:true,subtree:true}); enhanceRows();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true}); else wire();
+  function wire(){const body=document.getElementById('retailer-prices-body');if(!body||observer)return;observer=new MutationObserver(enhanceRows);observer.observe(body,{childList:true,subtree:true});enhanceRows();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();
 })();
