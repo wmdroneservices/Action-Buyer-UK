@@ -14,6 +14,37 @@
     return !(/\bex\.?\s*vat\b|excluding\s+vat|plus\s+vat|vat\s+excluded/i.test(notes));
   };
 
+  // Online comparison is deliberately limited to direct retail websites.
+  // Marketplace, auction and person-to-person selling platforms remain in the
+  // market-research table but must never set the headline comparison price.
+  const marketplaceAuctionPatterns=[
+    /(^|\.)ebay\./i,
+    /(^|\.)vinted\./i,
+    /(^|\.)facebook\.com$/i,
+    /(^|\.)facebook\.com\//i,
+    /(^|\.)gumtree\./i,
+    /(^|\.)etsy\./i,
+    /(^|\.)depop\./i,
+    /(^|\.)shpock\./i,
+    /(^|\.)preloved\./i,
+    /(^|\.)gumtree\./i,
+    /(^|\.)catawiki\./i,
+    /(^|\.)bidspotter\./i,
+    /(^|\.)thesaleroom\./i,
+    /(^|\.)liveauctioneers\./i,
+    /(^|\.)invaluable\./i,
+    /(^|\.)barnebys\./i,
+    /(^|\.)auctionzip\./i,
+    /(^|\.)copart\./i
+  ];
+
+  function isDirectRetailer(row){
+    const retailer=String(row?.retailer||'').trim().toLowerCase();
+    const source=String(row?.source_url||'').trim().toLowerCase();
+    const haystack=`${retailer} ${source}`;
+    return !marketplaceAuctionPatterns.some(pattern=>pattern.test(haystack));
+  }
+
   function applyStatusFilter(){
     const filter=document.getElementById('status-filter');
     const list=document.getElementById('catalog-list');
@@ -53,7 +84,7 @@
     while(true){
       const {data,error}=await supabase
         .from('quote_catalog_retailer_prices')
-        .select('catalog_product_id,sell_price,availability_status,notes,price_type')
+        .select('catalog_product_id,retailer,sell_price,availability_status,notes,price_type,source_url')
         .in('price_type',['new','new_sale'])
         .range(from,from+pageSize-1);
 
@@ -63,6 +94,9 @@
       }
 
       (data||[]).forEach(row=>{
+        // Keep every research row in the database, but only direct retailers
+        // can contribute to the headline Online comparison figure.
+        if(!isDirectRetailer(row))return;
         if(row.sell_price==null||!isConsumerPrice(row))return;
         if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return;
         const price=Number(row.sell_price);
