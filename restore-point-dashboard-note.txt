@@ -1,0 +1,1 @@
+Restore point for dashboard catalogue counts is the GitHub commit immediately before this file was added: 8ce6eb3159db919d7a6549623f189e4f86bcee19. This file is only a marker and is not used by the application.
