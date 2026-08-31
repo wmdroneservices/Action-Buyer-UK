@@ -19,7 +19,17 @@
     if(!/^https?:\/\//i.test(String(row.source_url||'')))return false;
     const condition=String(row.condition||'').trim();
     if(String(row.price_type||'').toLowerCase()==='market' && !/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
-    if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return false;
+
+    // A current direct-retailer price may be shown as in stock, unknown,
+    // or temporarily unavailable/pre-order. Do not let an explicitly
+    // discontinued retailer record enter the headline comparison.
+    const availability=String(row.availability_status||'').toLowerCase();
+    if(availability==='out_of_stock'){
+      if(/\bdiscontinued\b/i.test(notes))return false;
+      if(!/\bpre[- ]?order\b|awaiting\s+eta|back\s*order|available\s+to\s+order/i.test(notes))return false;
+    } else if(!['in_stock','unknown'].includes(availability)){
+      return false;
+    }
     return true;
   }
 
