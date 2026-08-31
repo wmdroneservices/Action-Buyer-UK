@@ -22,6 +22,19 @@
     `;document.head.appendChild(s);
   }
 
+  function amazonProductUrl(row,product){
+    const original=String(row?.source_url||'').trim();
+    if(!/amazon\./i.test(`${row?.retailer||''} ${original}`))return original;
+    // Preserve an exact Amazon product URL when one is already recorded.
+    if(/amazon\.[^/]+\/[^/]*(?:\/dp\/|\/gp\/product\/|\/product\/)/i.test(original))return original;
+    // Generic Amazon home/search links are not useful for research. Build a
+    // direct Amazon UK product search for this exact catalogue model/package.
+    const parts=[product?.manufacturer,product?.model,product?.package_name||product?.package_key]
+      .map(v=>String(v||'').trim()).filter(Boolean);
+    if(!parts.length)return original;
+    return `https://www.amazon.co.uk/s?k=${encodeURIComponent(parts.join(' '))}`;
+  }
+
   function transform(){
     styles();const list=document.getElementById('catalog-list');if(!list)return;
     list.querySelectorAll('.valuation-card:not(.catalog-accordion-card)').forEach(card=>{
@@ -52,8 +65,9 @@
   async function panel(card){
     const id=card.dataset.productId,panel=card.querySelector('.catalog-accordion-panel');let rows=cache.get(id);
     if(!rows){const r=await sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at').eq('catalog_product_id',id).order('retailer').order('price_type').order('condition').order('sell_price');if(r.error){panel.innerHTML=`<div class="catalog-accordion-empty">Unable to load market research: ${esc(r.error.message)}</div>`;return;}rows=r.data||[];cache.set(id,rows);}
+    const product={manufacturer:card.querySelector('.catalog-accordion-title .valuation-ref')?.textContent?.split(' · ')[0]||'',model:card.querySelector('.catalog-accordion-title h3')?.textContent?.split(' — ')[0]?.replace(/^\S+\s+/,'')||'',package_name:card.querySelector('.catalog-accordion-title h3')?.textContent?.split(' — ')[1]||''};
     const prices=rows.flatMap(r=>[r.buy_price,r.sell_price]).map(Number).filter(Number.isFinite),low=prices.length?Math.min(...prices):null,high=prices.length?Math.max(...prices):null;
-    panel.innerHTML=`<div class="catalog-accordion-summary"><div class="catalog-accordion-stat"><strong>${rows.length}</strong><span>Market evidence records</span></div><div class="catalog-accordion-stat"><strong>${money(low)}</strong><span>Lowest recorded price</span></div><div class="catalog-accordion-stat"><strong>${money(high)}</strong><span>Highest recorded price</span></div></div><div class="catalog-accordion-actions"><button type="button" class="btn btn-secondary catalog-inline-edit" data-id="${esc(id)}">EDIT PRODUCT</button></div>${rows.length?`<div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td>${r.buy_price==null?'—':money(r.buy_price)}</td><td>${r.sell_price==null?'—':money(r.sell_price)}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${r.source_url?`<a href="${esc(r.source_url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="catalog-accordion-empty">No market research recorded for this product yet.</div>'}`;
+    panel.innerHTML=`<div class="catalog-accordion-summary"><div class="catalog-accordion-stat"><strong>${rows.length}</strong><span>Market evidence records</span></div><div class="catalog-accordion-stat"><strong>${money(low)}</strong><span>Lowest recorded price</span></div><div class="catalog-accordion-stat"><strong>${money(high)}</strong><span>Highest recorded price</span></div></div><div class="catalog-accordion-actions"><button type="button" class="btn btn-secondary catalog-inline-edit" data-id="${esc(id)}">EDIT PRODUCT</button></div>${rows.length?`<div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${rows.map(r=>{const source=amazonProductUrl(r,product);return `<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td>${r.buy_price==null?'—':money(r.buy_price)}</td><td>${r.sell_price==null?'—':money(r.sell_price)}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${source?`<a href="${esc(source)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="catalog-accordion-empty">No market research recorded for this product yet.</div>'}`;
   }
 
   async function edit(id){const r=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source,manufacturer_rrp_verified_at,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').eq('id',id).single();if(r.error){alert(r.error.message);return;}if(typeof window.loadProduct==='function')window.loadProduct(r.data);}
