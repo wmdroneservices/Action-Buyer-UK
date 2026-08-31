@@ -1,17 +1,8 @@
-/* GearCashOut: catalogue comparison links + currency-correct RRP display. */
+/* GearCashOut: online market comparison links for catalogue products. */
 (function(){
   'use strict';
   const A=()=>window.actionBuyerAuth;
   const S=()=>A()?.supabase;
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money=(v,currency='GBP')=>{
-    if(v===null||v===undefined||v==='')return '—';
-    const code=String(currency||'GBP').toUpperCase();
-    const symbols={GBP:'£',USD:'$',EUR:'€',CAD:'CA$',AUD:'A$',JPY:'¥'};
-    const symbol=symbols[code]||'';
-    const n=Number(v);
-    return Number.isFinite(n)?`${symbol}${n.toFixed(2)}${symbol?'':' '+code}`:`${esc(v)} ${code}`;
-  };
   const safeUrl=v=>{try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}};
   const rowsByProduct=new Map();
   const productsById=new Map();
@@ -40,7 +31,7 @@
   async function loadData(){
     if(!S())return;
     const [products,retailerRows]=await Promise.all([
-      fetchAll('quote_catalog_products','id,manufacturer,model,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source'),
+      fetchAll('quote_catalog_products','id,manufacturer,model,package_name'),
       fetchAll('quote_catalog_retailer_prices','catalog_product_id,retailer,source_url,checked_at')
     ]);
     products.forEach(x=>productsById.set(x.id,x));
@@ -57,8 +48,6 @@
     }
     const first=rows.map(x=>safeUrl(x.source_url)).find(Boolean);
     if(first)return first;
-    const rrp=safeUrl(p.manufacturer_rrp_source);
-    if(rrp)return rrp;
     return 'https://pricespy.co.uk/';
   }
 
@@ -86,19 +75,22 @@
     actions.appendChild(a);
   }
 
+  function removeRrpFromHeader(card){
+    const title=card.querySelector('.catalog-accordion-title p');
+    if(!title)return;
+    const text=title.textContent||'';
+    const cleaned=text.replace(/^RRP\s+[^·]+\s*·\s*/,'');
+    if(cleaned!==text)title.textContent=cleaned;
+  }
+
   function patch(){
     styles();
     document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(card=>{
       const p=productsById.get(card.dataset.productId);
       if(!p)return;
+      removeRrpFromHeader(card);
       addHeaderComparison(card,p);
       addComparison(card,p);
-      const title=card.querySelector('.catalog-accordion-title p');
-      if(title){
-        const existing=title.textContent||'';
-        const rest=existing.replace(/^RRP\s+[^·]+\s*·\s*/,'');
-        title.textContent=`RRP ${money(p.manufacturer_rrp,p.manufacturer_rrp_currency||'GBP')}${rest?' · '+rest:''}`;
-      }
     });
   }
 
