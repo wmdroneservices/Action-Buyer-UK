@@ -34,6 +34,8 @@
   const money=value=>Number(value).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
   const isConsumerPrice=row=>{
     const notes=String(row?.notes||'').toLowerCase();
+    const explicitlyIncludesVat=/(\binc\.?\s*vat\b|including\s+vat|vat\s+included)/i.test(notes);
+    if(explicitlyIncludesVat)return true;
     return !/(\bex\.?\s*vat\b|excluding\s+vat|plus\s+vat|vat\s+excluded)/i.test(notes);
   };
 
