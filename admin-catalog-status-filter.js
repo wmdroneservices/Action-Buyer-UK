@@ -20,14 +20,12 @@
   const marketplaceAuctionPatterns=[
     /(^|\.)ebay\./i,
     /(^|\.)vinted\./i,
-    /(^|\.)facebook\.com$/i,
-    /(^|\.)facebook\.com\//i,
+    /(^|\.)facebook\.com/i,
     /(^|\.)gumtree\./i,
     /(^|\.)etsy\./i,
     /(^|\.)depop\./i,
     /(^|\.)shpock\./i,
     /(^|\.)preloved\./i,
-    /(^|\.)gumtree\./i,
     /(^|\.)catawiki\./i,
     /(^|\.)bidspotter\./i,
     /(^|\.)thesaleroom\./i,
@@ -94,8 +92,6 @@
       }
 
       (data||[]).forEach(row=>{
-        // Keep every research row in the database, but only direct retailers
-        // can contribute to the headline Online comparison figure.
         if(!isDirectRetailer(row))return;
         if(row.sell_price==null||!isConsumerPrice(row))return;
         if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return;
