@@ -1,4 +1,4 @@
-/* GearCashOut catalogue status filter + online comparison fallback.
+/* GearCashOut catalogue status filter + automatic online comparison fallback.
    UI-only filtering and market-reference display: this module never writes to
    quote_catalog_products or changes GearCashOut buying prices. */
 (function(){
@@ -6,8 +6,7 @@
 
   const money=value=>Number(value).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
   const comparisonCache=new Map();
-  let comparisonTimer=null;
-  let observer=null;
+  let timer=null;
 
   const isConsumerPrice=row=>{
     const notes=String(row?.notes||'');
@@ -36,17 +35,24 @@
     }else if(empty)empty.style.display='none';
   }
 
-  async function loadComparisonsForCards(cards){
-    const supabase=window.actionBuyerAuth?.supabase;
-    if(!supabase||!cards.length)return;
+  function productId(card){
+    return card?.dataset?.productId ||
+      card?.querySelector('.edit-product')?.dataset?.id ||
+      card?.querySelector('.catalog-title-status')?.dataset?.id ||
+      card?.querySelector('.catalog-inline-edit')?.dataset?.id || '';
+  }
 
-    const ids=[...new Set(cards.map(card=>card.dataset.productId).filter(id=>id&&!comparisonCache.has(id)))];
-    if(!ids.length)return;
+  async function loadComparisons(cards){
+    const supabase=window.actionBuyerAuth?.supabase;
+    if(!supabase)return;
+    const ids=[...new Set(cards.map(productId).filter(Boolean))];
+    const missing=ids.filter(id=>!comparisonCache.has(id));
+    if(!missing.length)return;
 
     const {data,error}=await supabase
       .from('quote_catalog_retailer_prices')
       .select('catalog_product_id,sell_price,availability_status,notes,price_type')
-      .in('catalog_product_id',ids)
+      .in('catalog_product_id',missing)
       .in('price_type',['new','new_sale']);
 
     if(error){
@@ -64,27 +70,33 @@
       byProduct.get(row.catalog_product_id).push(price);
     });
 
-    ids.forEach(id=>{
-      const prices=(byProduct.get(id)||[]).sort((a,b)=>a-b);
-      const comparison=prices.length===1
-        ?money(prices[0])
-        :prices.length>1
-          ?`${money(prices[0])}–${money(prices[prices.length-1])}`
-          :null;
-      /* Cache null as well so products with no qualifying evidence do not
-         cause a database request every time the catalogue mutates. */
-      comparisonCache.set(id,comparison);
+    missing.forEach(id=>{
+      const prices=[...(byProduct.get(id)||[])].sort((a,b)=>a-b);
+      comparisonCache.set(id,
+        prices.length===1?money(prices[0]):
+        prices.length>1?`${money(prices[0])}–${money(prices[prices.length-1])}`:null
+      );
     });
   }
 
   function renderComparison(card){
-    const id=card?.dataset?.productId;
+    const id=productId(card);
     const comparison=id?comparisonCache.get(id):null;
     if(!id||!comparison)return;
+    card.dataset.onlineComparison=comparison;
 
-    /* Always show the market-reference value in the expanded summary. */
-    const panel=card.querySelector('.catalog-accordion-panel');
-    const summary=panel?.querySelector('.catalog-accordion-summary');
+    /* Works before or after the accordion transformer has run. */
+    const title=card.querySelector('.catalog-accordion-title p') ||
+      card.querySelector('.valuation-card > div:first-child p');
+    if(title&&/^RRP\s+—/i.test(title.textContent.trim())){
+      const text=title.textContent;
+      const marker=' · Sealed ';
+      const suffix=text.includes(marker)?text.slice(text.indexOf(marker)):'';
+      title.textContent=`Online comparison ${comparison}${suffix}`;
+    }
+
+    /* If the accordion is open, show the same reference in its summary. */
+    const summary=card.querySelector('.catalog-accordion-summary');
     if(summary){
       let stat=summary.querySelector('.online-comparison-stat');
       if(!stat){
@@ -94,56 +106,36 @@
       }
       stat.innerHTML=`<strong>${comparison}</strong><span>Online comparison</span>`;
     }
-
-    /* If there is no manufacturer RRP, replace the visible RRP placeholder
-       with the online comparison. A real manufacturer RRP is never changed. */
-    const title=card.querySelector('.catalog-accordion-title p');
-    if(title&&/^RRP\s+—/i.test(title.textContent.trim())){
-      const text=title.textContent;
-      const marker=' · Sealed ';
-      const suffix=text.includes(marker)?text.slice(text.indexOf(marker)):'';
-      title.textContent=`Online comparison ${comparison}${suffix}`;
-    }
   }
 
   async function processCatalogue(){
     const list=document.getElementById('catalog-list');
     if(!list)return;
-
-    const cards=Array.from(list.querySelectorAll('.catalog-accordion-card'));
+    const cards=Array.from(list.querySelectorAll('.valuation-card'));
     if(!cards.length)return;
-
-    await loadComparisonsForCards(cards);
-
-    /* Render every card that already has its accordion panel, without the
-       user having to click it. Newly rendered/opened panels are handled by
-       the MutationObserver below. */
+    await loadComparisons(cards);
     cards.forEach(renderComparison);
   }
 
-  function scheduleProcess(){
-    clearTimeout(comparisonTimer);
-    comparisonTimer=setTimeout(processCatalogue,250);
+  function schedule(){
+    clearTimeout(timer);
+    timer=setTimeout(processCatalogue,300);
   }
 
   function wire(){
     const filter=document.getElementById('status-filter');
     const list=document.getElementById('catalog-list');
-    if(!filter||!list||list.dataset.statusFilterWired==='1')return;
-    list.dataset.statusFilterWired='1';
-
-    filter.addEventListener('change',applyStatusFilter);
+    if(!filter||!list)return;
+    if(list.dataset.statusFilterWired!=='1'){
+      list.dataset.statusFilterWired='1';
+      filter.addEventListener('change',applyStatusFilter);
+      const observer=new MutationObserver(()=>{applyStatusFilter();schedule();});
+      observer.observe(list,{childList:true,subtree:true});
+    }
     applyStatusFilter();
-    scheduleProcess();
-
-    /* The catalogue is rendered/re-rendered dynamically. Watch the whole
-       catalogue so every newly inserted product is automatically processed,
-       and so an accordion opening gets its online comparison immediately. */
-    observer=new MutationObserver(()=>{
-      applyStatusFilter();
-      scheduleProcess();
-    });
-    observer.observe(list,{childList:true,subtree:true});
+    schedule();
+    setTimeout(schedule,1000);
+    setTimeout(schedule,2500);
   }
 
   document.addEventListener('DOMContentLoaded',wire);
