@@ -146,3 +146,113 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});
   else wire();
 })();
+
+/* Website / Competitor dropdown. This is intentionally separate from the
+   Direct source link: the dropdown chooses the competitor, while the link
+   opens its website (or the recorded product/source URL when one exists). */
+(function(){
+  'use strict';
+
+  const websites=[
+    ['BetaFPV','https://betafpv.com/'],
+    ['DJI','https://www.dji.com/'],
+    ['Autel Robotics','https://www.autelrobotics.com/'],
+    ['HobbyKing','https://hobbyking.com/'],
+    ['GetFPV','https://www.getfpv.com/'],
+    ['iFlight','https://www.iflight.com/'],
+    ['GEPRC','https://geprc.com/'],
+    ['Rotor Riot','https://rotorriot.com/'],
+    ['Amazon UK','https://www.amazon.co.uk/'],
+    ['eBay UK','https://www.ebay.co.uk/'],
+    ['MPB','https://www.mpb.com/en-uk/'],
+    ['CeX','https://uk.webuy.com/'],
+    ['Gumtree','https://www.gumtree.com/'],
+    ['Vinted','https://www.vinted.co.uk/'],
+    ['Facebook Marketplace','https://www.facebook.com/marketplace/'],
+    ['Custom / Other','']
+  ];
+  const urlMap=new Map(websites.map(([name,url])=>[name.toLowerCase(),url]));
+  let observer=null;
+
+  function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
+
+  function enhanceRow(tr){
+    if(!tr||tr.dataset.competitorEnhanced==='1')return;
+    const input=tr.querySelector('.retailer');
+    if(!input)return;
+
+    const current=(input.value||'').trim();
+    const select=document.createElement('select');
+    select.className='retailer competitor-select';
+    select.setAttribute('aria-label','Website / Competitor');
+
+    const known=websites.map(([name])=>name);
+    if(current && !known.some(name=>name.toLowerCase()===current.toLowerCase())){
+      const existing=document.createElement('option');
+      existing.value=current;
+      existing.textContent=current;
+      select.appendChild(existing);
+    }
+    websites.forEach(([name])=>{
+      const option=document.createElement('option');
+      option.value=name;
+      option.textContent=name;
+      select.appendChild(option);
+    });
+
+    const match=known.find(name=>name.toLowerCase()===current.toLowerCase());
+    select.value=match||current||'Custom / Other';
+    input.replaceWith(select);
+
+    const link=document.createElement('a');
+    link.className='retailer-link competitor-website-link';
+    link.target='_blank';
+    link.rel='noopener noreferrer';
+    link.textContent='OPEN WEBSITE ↗';
+    select.closest('td').appendChild(link);
+
+    const sourceInput=tr.querySelector('.retailer-source');
+
+    function updateLink(){
+      const canonical=urlMap.get(select.value.toLowerCase())||'';
+      const source=safeUrl(sourceInput?.value?.trim());
+      const url=source||canonical;
+      if(url){
+        link.href=url;
+        link.classList.remove('disabled');
+        link.title=source?'Open the recorded source page':'Open the competitor website';
+      }else{
+        link.removeAttribute('href');
+        link.classList.add('disabled');
+        link.title='Enter a source URL for this competitor';
+      }
+    }
+
+    select.addEventListener('change',()=>{
+      const canonical=urlMap.get(select.value.toLowerCase())||'';
+      if(sourceInput && !sourceInput.value.trim() && canonical){
+        sourceInput.value=canonical;
+        sourceInput.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+      updateLink();
+    });
+    sourceInput?.addEventListener('input',updateLink);
+    updateLink();
+    tr.dataset.competitorEnhanced='1';
+  }
+
+  function enhanceRows(){
+    document.querySelectorAll('#retailer-prices-body tr[data-index]').forEach(enhanceRow);
+  }
+
+  function wire(){
+    const body=document.getElementById('retailer-prices-body');
+    if(!body||observer)return;
+    observer=new MutationObserver(enhanceRows);
+    observer.observe(body,{childList:true,subtree:true});
+    enhanceRows();
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});
+  else wire();
+})();
