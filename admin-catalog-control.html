@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalogue Control | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.control-intro{border:1px solid #d8d4ca;border-radius:10px;background:#fffdf8;padding:1rem;margin:1rem 0 1.5rem}.control-intro strong{color:#102f4f}
+.control-toolbar{display:flex;gap:.75rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem}.control-toolbar label{font-weight:700;color:#102f4f}.control-toolbar input{display:block;margin-top:.35rem;min-width:280px}
+.control-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0 1.5rem}.control-stat{background:#f7f4ec;border:1px solid #e3dfd5;border-radius:8px;padding:.8rem}.control-stat strong{display:block;font-size:1.5rem;color:#102f4f}.control-stat span{font-size:.75rem;color:#666}
+.control-group{border:1px solid #d8d4ca;border-radius:10px;background:#fffdf8;margin-bottom:1rem;overflow:hidden}.control-group-header{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:1rem;background:#f5f2ea;border-bottom:1px solid #e3dfd5}.control-group-header h3{margin:0;color:#102f4f}.control-group-meta{font-size:.78rem;color:#666;margin-top:.2rem}.control-actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}.control-branch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center;padding:.75rem 1rem;border-bottom:1px solid #e5e1d8}.control-branch:last-child{border-bottom:0}.control-branch-name{font-weight:700;color:#102f4f}.control-branch-meta{font-size:.75rem;color:#666;margin-top:.15rem}.visibility-pill{display:inline-block;padding:.18rem .45rem;border-radius:999px;font-size:.68rem;font-weight:800;margin-left:.35rem}.visibility-pill.visible{background:#dff3e4;color:#18733b}.visibility-pill.hidden{background:#f8dddd;color:#a32323}
+.btn-control-hide{background:#9b2727!important;color:#fff!important}.btn-control-show{background:#18733b!important;color:#fff!important}.control-message{margin:0 0 1rem;padding:.75rem;border-radius:6px;display:none}.control-message.show{display:block}.control-message.success{background:#e7f5eb;color:#176b36}.control-message.error{background:#fbe8e8;color:#9b2727}
+@media(max-width:850px){.control-summary{grid-template-columns:1fr 1fr}.control-group-header{align-items:flex-start;flex-direction:column}.control-actions{justify-content:flex-start}.control-branch{grid-template-columns:1fr}}
+@media(max-width:520px){.control-summary{grid-template-columns:1fr}.control-toolbar input{min-width:0;width:100%}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-catalog-control.js?v=20260831-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-catalog.html">Quote Catalogue</a></li><li><a href="admin-catalog-control.html" aria-current="page">Catalogue Control</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>Catalogue Control</h1><p>Control what customers can see without changing the quote prices, product active status or market research.</p></div><a class="btn btn-secondary" href="admin-catalog.html">BACK TO QUOTE CATALOGUE</a></div>
+<section class="account-panel">
+<div class="control-intro"><strong>Customer visibility only.</strong> Hiding or restoring a manufacturer or product branch changes the <code>customer_visible</code> setting only. It does <strong>not</strong> change the product's Active/Inactive status, buying prices, selling prices, RRP or market research. This keeps the existing quote system isolated from catalogue presentation controls.</div>
+<div id="control-message" class="control-message" role="status" aria-live="polite"></div>
+<div class="control-toolbar"><label for="control-search">Find manufacturer or branch<input id="control-search" type="search" placeholder="Search manufacturer or product type"></label><button class="btn btn-secondary" id="control-refresh" type="button">REFRESH</button></div>
+<div id="control-summary" class="control-summary"></div>
+<div id="control-list">Loading catalogue controls...</div>
+</section>
+</div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Customer catalogue visibility control.</div></div></footer>
+</body></html>
