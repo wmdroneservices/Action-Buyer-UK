@@ -12,6 +12,7 @@
       .catalog-accordion-trigger{width:100%;border:0;background:transparent;text-align:left;padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;cursor:pointer;font:inherit;color:inherit}
       .catalog-accordion-trigger:hover{background:#f8f6f0}.catalog-accordion-trigger:focus-visible{outline:3px solid #102f4f;outline-offset:-3px}
       .catalog-accordion-title{min-width:0;flex:1}.catalog-accordion-title h3{margin:.15rem 0}.catalog-accordion-title p{margin:.25rem 0}.catalog-accordion-chevron{font-size:1.2rem;transition:transform .18s ease}.catalog-accordion-card.is-open .catalog-accordion-chevron{transform:rotate(180deg)}
+      .catalog-list-status{display:inline-block;margin-left:.45rem;padding:.18rem .45rem;border-radius:999px;font-size:.68rem;font-weight:800;line-height:1.2;white-space:nowrap;vertical-align:middle}.catalog-list-status.active{background:#dff3e4;color:#18733b}.catalog-list-status.inactive{background:#f8dddd;color:#a32323}
       .catalog-accordion-panel{display:none;border-top:1px solid #e3dfd5;padding:1rem;background:#fffdf8}.catalog-accordion-card.is-open .catalog-accordion-panel{display:block}
       .catalog-accordion-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin-bottom:1rem}.catalog-accordion-stat{border:1px solid #e3dfd5;border-radius:8px;background:#fff;padding:.7rem}.catalog-accordion-stat strong{display:block;color:#102f4f}.catalog-accordion-stat span{font-size:.76rem;color:#666}
       .catalog-accordion-actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}.catalog-accordion-market{overflow-x:auto}.catalog-accordion-market table{width:100%;border-collapse:collapse;min-width:850px}.catalog-accordion-market th,.catalog-accordion-market td{padding:.5rem;border-bottom:1px solid #e5e1d8;text-align:left;vertical-align:top}.catalog-accordion-market th{font-size:.76rem;color:#102f4f;background:#f5f2ea}
@@ -25,12 +26,14 @@
     styles();const list=document.getElementById('catalog-list');if(!list)return;
     list.querySelectorAll('.valuation-card:not(.catalog-accordion-card)').forEach(card=>{
       const edit=card.querySelector('.edit-product');const id=edit?.dataset.id;if(!id)return;
-      const ref=card.querySelector('.valuation-ref')?.outerHTML||'';const h3=card.querySelector('h3')?.outerHTML||'';const p=card.querySelector('.valuation-card > div:first-child p')?.outerHTML||'';
+      const ref=card.querySelector('.valuation-ref')?.outerHTML||'';
+      const h3=card.querySelector('h3')?.outerHTML||'';
+      const p=card.querySelector('.valuation-card > div:first-child p')?.outerHTML||'';
       const active=String(card.querySelector('.status-badge')?.textContent||'').trim().toLowerCase()==='active';
       card.classList.add('catalog-accordion-card');
       card.dataset.productId=id;
       card.dataset.active=active?'true':'false';
-      card.innerHTML=`<button type="button" class="catalog-accordion-trigger" aria-expanded="false"><span class="catalog-accordion-title">${ref}${h3}<span class="catalog-list-status ${active?'active':'inactive'}">${active?'ACTIVE':'INACTIVE'}</span>${p}</span><span class="catalog-accordion-chevron" aria-hidden="true">⌄</span></button><div class="catalog-accordion-panel" aria-hidden="true"><div class="catalog-accordion-empty">Loading market research…</div></div>`;
+      card.innerHTML=`<button type="button" class="catalog-accordion-trigger" aria-expanded="false"><span class="catalog-accordion-title">${ref}<div class="catalog-title-line">${h3}<span class="catalog-list-status ${active?'active':'inactive'}">${active?'ACTIVE':'INACTIVE'}</span></div>${p}</span><span class="catalog-accordion-chevron" aria-hidden="true">⌄</span></button><div class="catalog-accordion-panel" aria-hidden="true"><div class="catalog-accordion-empty">Loading market research…</div></div>`;
     });
   }
 
