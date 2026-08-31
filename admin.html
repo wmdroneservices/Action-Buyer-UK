@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-dashboard.js?v=20260825-4" defer></script>
+<style>
+.catalog-counts-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem}.catalog-count-card{background:#f7f4ec;border:1px solid #e3dfd5;border-radius:8px;padding:1rem}.catalog-count-card span{display:block;color:#666;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.catalog-count-card strong{display:block;margin-top:.25rem;color:#102f4f;font-size:2rem;line-height:1.1}.catalog-count-total{background:#fffdf8}.catalog-counts-columns{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}.catalog-count-panel{border:1px solid #d8d4ca;border-radius:10px;background:#fffdf8;padding:1rem}.catalog-count-panel h3{margin:.1rem 0 .75rem;color:#102f4f}.catalog-count-list{max-height:360px;overflow:auto;border-top:1px solid #e5e1d8}.catalog-count-list div{display:flex;justify-content:space-between;gap:1rem;padding:.45rem .15rem;border-bottom:1px solid #e5e1d8}.catalog-count-list span{min-width:0}.catalog-count-list strong{color:#102f4f}.catalog-count-manufacturers{max-height:360px}@media(max-width:700px){.catalog-counts-grid,.catalog-counts-columns{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-dashboard.js?v=20260825-4" defer></script><script src="admin-dashboard-catalog-counts.js?v=20260831-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list"><li><a href="admin-purchasing.html">PURCHASING</a></li><li><a href="admin-sales-dashboard.html">SALES</a></li><li><a href="admin-customers.html">CUSTOMERS</a></li><li><a href="inventory-finance.html">PROFIT &amp; LOSS</a></li></ul></div></header>
@@ -17,6 +20,9 @@
 <a href="admin-customers.html" class="dashboard-link-card" style="text-decoration:none"><div><strong class="dashboard-count" style="font-size:1.6rem;color:#102f4f">CUSTOMERS</strong></div><span class="btn btn-primary">MANAGE CUSTOMERS</span></a>
 <a href="inventory-finance.html" class="dashboard-link-card" style="text-decoration:none"><div><strong class="dashboard-count" style="font-size:1.6rem;color:#102f4f">PROFIT &amp; LOSS</strong></div><span class="btn btn-primary">OPEN PROFIT &amp; LOSS</span></a>
 </div></section>
+<section class="account-panel" style="margin-bottom:1rem"><div class="section-heading"><p class="section-kicker">CATALOGUE</p><h2>Catalogue Overview</h2><p>Live read-only counts from the quote catalogue. These figures do not change pricing, valuations or catalogue records.</p></div>
+<div id="catalog-counts" aria-live="polite"><p>Loading catalogue counts...</p></div>
+</section>
 <section class="account-panel" style="margin-bottom:1rem"><div class="section-heading"><h2>STAFF TOOLS</h2></div>
 <div class="dashboard-link-card"><h3>TEST DATA RESET</h3><p>This removes test workflow data only. Use only during development and testing.</p><a href="admin-reset.html?v=20260825-1" class="btn" style="display:inline-block;background:#b42318;color:#fff;text-decoration:none;padding:.9rem 1.5rem;border-radius:3px;font-weight:800;font-size:.9rem;letter-spacing:.045em">OPEN TEST DATA RESET</a></div>
 </section>
