@@ -5,6 +5,10 @@
   'use strict';
 
   const money=value=>Number(value).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
+  const comparisonCache=new Map();
+  let comparisonTimer=null;
+  let observer=null;
+
   const isConsumerPrice=row=>{
     const notes=String(row?.notes||'');
     if(/\binc\.?\s*vat\b|including\s+vat|vat\s+included/i.test(notes))return true;
@@ -32,35 +36,67 @@
     }else if(empty)empty.style.display='none';
   }
 
-  async function getComparison(id){
+  async function loadComparisonsForCards(cards){
     const supabase=window.actionBuyerAuth?.supabase;
-    if(!supabase||!id)return null;
+    if(!supabase||!cards.length)return;
+
+    const ids=[...new Set(cards.map(card=>card.dataset.productId).filter(id=>id&&!comparisonCache.has(id)))];
+    if(!ids.length)return;
+
     const {data,error}=await supabase
       .from('quote_catalog_retailer_prices')
-      .select('sell_price,availability_status,notes')
-      .eq('catalog_product_id',id)
+      .select('catalog_product_id,sell_price,availability_status,notes,price_type')
+      .in('catalog_product_id',ids)
       .in('price_type',['new','new_sale']);
-    if(error){console.error('Online comparison price lookup failed',error);return null;}
-    const prices=(data||[])
-      .filter(r=>r.sell_price!=null&&isConsumerPrice(r)&&['in_stock','unknown'].includes(String(r.availability_status||'').toLowerCase()))
-      .map(r=>Number(r.sell_price)).filter(Number.isFinite).sort((a,b)=>a-b);
-    if(!prices.length)return null;
-    return prices.length===1?money(prices[0]):`${money(prices[0])}–${money(prices[prices.length-1])}`;
+
+    if(error){
+      console.error('Online comparison price lookup failed',error);
+      return;
+    }
+
+    const byProduct=new Map();
+    (data||[]).forEach(row=>{
+      if(row.sell_price==null||!isConsumerPrice(row))return;
+      if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return;
+      const price=Number(row.sell_price);
+      if(!Number.isFinite(price))return;
+      if(!byProduct.has(row.catalog_product_id))byProduct.set(row.catalog_product_id,[]);
+      byProduct.get(row.catalog_product_id).push(price);
+    });
+
+    ids.forEach(id=>{
+      const prices=(byProduct.get(id)||[]).sort((a,b)=>a-b);
+      const comparison=prices.length===1
+        ?money(prices[0])
+        :prices.length>1
+          ?`${money(prices[0])}–${money(prices[prices.length-1])}`
+          :null;
+      /* Cache null as well so products with no qualifying evidence do not
+         cause a database request every time the catalogue mutates. */
+      comparisonCache.set(id,comparison);
+    });
   }
 
-  function renderComparison(card,comparison){
-    if(!comparison)return false;
+  function renderComparison(card){
+    const id=card?.dataset?.productId;
+    const comparison=id?comparisonCache.get(id):null;
+    if(!id||!comparison)return;
+
+    /* Always show the market-reference value in the expanded summary. */
     const panel=card.querySelector('.catalog-accordion-panel');
     const summary=panel?.querySelector('.catalog-accordion-summary');
-    if(!summary)return false;
-    let stat=summary.querySelector('.online-comparison-stat');
-    if(!stat){
-      stat=document.createElement('div');
-      stat.className='catalog-accordion-stat online-comparison-stat';
-      summary.appendChild(stat);
+    if(summary){
+      let stat=summary.querySelector('.online-comparison-stat');
+      if(!stat){
+        stat=document.createElement('div');
+        stat.className='catalog-accordion-stat online-comparison-stat';
+        summary.appendChild(stat);
+      }
+      stat.innerHTML=`<strong>${comparison}</strong><span>Online comparison</span>`;
     }
-    stat.innerHTML=`<strong>${comparison}</strong><span>Online comparison</span>`;
 
+    /* If there is no manufacturer RRP, replace the visible RRP placeholder
+       with the online comparison. A real manufacturer RRP is never changed. */
     const title=card.querySelector('.catalog-accordion-title p');
     if(title&&/^RRP\s+—/i.test(title.textContent.trim())){
       const text=title.textContent;
@@ -68,25 +104,26 @@
       const suffix=text.includes(marker)?text.slice(text.indexOf(marker)):'';
       title.textContent=`Online comparison ${comparison}${suffix}`;
     }
-    return true;
   }
 
-  async function updateCardOnlineComparison(card){
-    if(!card?.classList.contains('is-open'))return;
-    const id=card.dataset.productId;
-    const comparison=await getComparison(id);
-    if(!comparison)return;
+  async function processCatalogue(){
+    const list=document.getElementById('catalog-list');
+    if(!list)return;
 
-    /* The accordion loads its own market table asynchronously. Retry briefly
-       until its summary row exists, then add the comparison to that row. */
-    let attempts=0;
-    const tryRender=()=>{
-      if(!card.classList.contains('is-open'))return;
-      if(renderComparison(card,comparison)||attempts>=12)return;
-      attempts++;
-      setTimeout(tryRender,150);
-    };
-    tryRender();
+    const cards=Array.from(list.querySelectorAll('.catalog-accordion-card'));
+    if(!cards.length)return;
+
+    await loadComparisonsForCards(cards);
+
+    /* Render every card that already has its accordion panel, without the
+       user having to click it. Newly rendered/opened panels are handled by
+       the MutationObserver below. */
+    cards.forEach(renderComparison);
+  }
+
+  function scheduleProcess(){
+    clearTimeout(comparisonTimer);
+    comparisonTimer=setTimeout(processCatalogue,250);
   }
 
   function wire(){
@@ -94,14 +131,19 @@
     const list=document.getElementById('catalog-list');
     if(!filter||!list||list.dataset.statusFilterWired==='1')return;
     list.dataset.statusFilterWired='1';
+
     filter.addEventListener('change',applyStatusFilter);
-    list.addEventListener('click',e=>{
-      const trigger=e.target.closest('.catalog-accordion-trigger');
-      if(!trigger)return;
-      const card=trigger.closest('.catalog-accordion-card');
-      if(card)setTimeout(()=>updateCardOnlineComparison(card),100);
-    });
     applyStatusFilter();
+    scheduleProcess();
+
+    /* The catalogue is rendered/re-rendered dynamically. Watch the whole
+       catalogue so every newly inserted product is automatically processed,
+       and so an accordion opening gets its online comparison immediately. */
+    observer=new MutationObserver(()=>{
+      applyStatusFilter();
+      scheduleProcess();
+    });
+    observer.observe(list,{childList:true,subtree:true});
   }
 
   document.addEventListener('DOMContentLoaded',wire);
