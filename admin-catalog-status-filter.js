@@ -32,32 +32,27 @@
     }else if(empty)empty.style.display='none';
   }
 
-  async function updateCardOnlineComparison(card){
+  async function getComparison(id){
     const supabase=window.actionBuyerAuth?.supabase;
-    const id=card?.dataset?.productId;
-    const panel=card?.querySelector('.catalog-accordion-panel');
-    if(!supabase||!id||!panel)return;
-
-    let rows;
+    if(!supabase||!id)return null;
     const {data,error}=await supabase
       .from('quote_catalog_retailer_prices')
-      .select('retailer,price_type,sell_price,availability_status,notes')
+      .select('sell_price,availability_status,notes')
       .eq('catalog_product_id',id)
       .in('price_type',['new','new_sale']);
-    if(error){console.error('Online comparison price lookup failed',error);return;}
-    rows=data||[];
-
-    const prices=rows
+    if(error){console.error('Online comparison price lookup failed',error);return null;}
+    const prices=(data||[])
       .filter(r=>r.sell_price!=null&&isConsumerPrice(r)&&['in_stock','unknown'].includes(String(r.availability_status||'').toLowerCase()))
-      .map(r=>Number(r.sell_price))
-      .filter(Number.isFinite)
-      .sort((a,b)=>a-b);
-    if(!prices.length)return;
+      .map(r=>Number(r.sell_price)).filter(Number.isFinite).sort((a,b)=>a-b);
+    if(!prices.length)return null;
+    return prices.length===1?money(prices[0]):`${money(prices[0])}–${money(prices[prices.length-1])}`;
+  }
 
-    const comparison=prices.length===1?money(prices[0]):`${money(prices[0])}–${money(prices[prices.length-1])}`;
-    const summary=panel.querySelector('.catalog-accordion-summary');
-    if(!summary)return;
-
+  function renderComparison(card,comparison){
+    if(!comparison)return false;
+    const panel=card.querySelector('.catalog-accordion-panel');
+    const summary=panel?.querySelector('.catalog-accordion-summary');
+    if(!summary)return false;
     let stat=summary.querySelector('.online-comparison-stat');
     if(!stat){
       stat=document.createElement('div');
@@ -66,8 +61,6 @@
     }
     stat.innerHTML=`<strong>${comparison}</strong><span>Online comparison</span>`;
 
-    /* If there is no manufacturer RRP, use this as the visible reference in
-       the product row as well. The database RRP itself is not changed. */
     const title=card.querySelector('.catalog-accordion-title p');
     if(title&&/^RRP\s+—/i.test(title.textContent.trim())){
       const text=title.textContent;
@@ -75,6 +68,25 @@
       const suffix=text.includes(marker)?text.slice(text.indexOf(marker)):'';
       title.textContent=`Online comparison ${comparison}${suffix}`;
     }
+    return true;
+  }
+
+  async function updateCardOnlineComparison(card){
+    if(!card?.classList.contains('is-open'))return;
+    const id=card.dataset.productId;
+    const comparison=await getComparison(id);
+    if(!comparison)return;
+
+    /* The accordion loads its own market table asynchronously. Retry briefly
+       until its summary row exists, then add the comparison to that row. */
+    let attempts=0;
+    const tryRender=()=>{
+      if(!card.classList.contains('is-open'))return;
+      if(renderComparison(card,comparison)||attempts>=12)return;
+      attempts++;
+      setTimeout(tryRender,150);
+    };
+    tryRender();
   }
 
   function wire(){
@@ -87,10 +99,7 @@
       const trigger=e.target.closest('.catalog-accordion-trigger');
       if(!trigger)return;
       const card=trigger.closest('.catalog-accordion-card');
-      if(!card)return;
-      setTimeout(()=>{
-        if(card.classList.contains('is-open'))updateCardOnlineComparison(card);
-      },250);
+      if(card)setTimeout(()=>updateCardOnlineComparison(card),100);
     });
     applyStatusFilter();
   }
