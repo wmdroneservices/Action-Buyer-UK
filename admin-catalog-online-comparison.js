@@ -21,6 +21,7 @@
     const s=document.createElement('style');s.id='catalog-online-comparison-style';s.textContent=`
       .catalog-online-comparison{display:inline-flex;align-items:center;gap:.3rem;background:#102f4f!important;color:#fff!important;text-decoration:none!important;border:0!important}
       .catalog-online-comparison:hover{filter:brightness(1.08)}
+      .catalog-online-comparison-header{display:inline-flex;align-items:center;margin-top:.35rem;font-size:.72rem;font-weight:800;letter-spacing:.02em;color:#102f4f;text-decoration:underline}
     `;document.head.appendChild(s);
   }
 
@@ -61,6 +62,17 @@
     return 'https://pricespy.co.uk/';
   }
 
+  function addHeaderComparison(card,p){
+    const title=card.querySelector('.catalog-accordion-title');
+    if(!title||title.querySelector('.catalog-online-comparison-header'))return;
+    const a=document.createElement('a');
+    a.className='catalog-online-comparison-header';
+    a.href=bestUrl(p);a.target='_blank';a.rel='noopener noreferrer';
+    a.textContent='ONLINE COMPARISON ↗';
+    a.addEventListener('click',e=>e.stopPropagation());
+    title.appendChild(a);
+  }
+
   function addComparison(card,p){
     if(!p)return;
     const panel=card.querySelector('.catalog-accordion-panel');
@@ -79,6 +91,7 @@
     document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(card=>{
       const p=productsById.get(card.dataset.productId);
       if(!p)return;
+      addHeaderComparison(card,p);
       addComparison(card,p);
       const title=card.querySelector('.catalog-accordion-title p');
       if(title){
