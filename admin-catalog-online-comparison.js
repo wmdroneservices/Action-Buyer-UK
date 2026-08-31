@@ -22,17 +22,16 @@
     const p=title?.querySelector('p');
     if(!p)return;
 
-    // Keep the existing Sealed / Unused / Excellent / Good / Fair line intact,
-    // while replacing any previous comparison prefix with the current value.
-    const conditions=(p.dataset.catalogConditions||p.textContent||'')
+    const original=p.dataset.catalogConditions;
+    const conditions=(original||p.textContent||'')
       .replace(/^\s*Online comparison\s+(?:£[\d,]+(?:\.\d{2})?(?:–£[\d,]+(?:\.\d{2})?)?|—)\s*·\s*/i,'')
       .replace(/^\s*RRP\s+[^·]+\s*·\s*/i,'')
       .trim();
-    p.dataset.catalogConditions=conditions;
+    if(p.dataset.catalogConditions!==conditions)p.dataset.catalogConditions=conditions;
 
     const prices=rows.filter(isDirectRetail)
       .map(r=>Number(r.sell_price))
-      .filter(Number.isFinite);
+      .filter(n=>Number.isFinite(n)&&n>0);
     const unique=[...new Set(prices)].sort((a,b)=>a-b);
     const label=!unique.length
       ? 'Online comparison —'
@@ -40,32 +39,50 @@
         ? `Online comparison ${money(unique[0])}`
         : `Online comparison ${money(unique[0])}–${money(unique[unique.length-1])}`;
 
+    const desired=`${label} · ${conditions}`;
+    if(p.textContent.trim()===desired)return;
     p.innerHTML=`<span class="catalog-online-comparison-text">${escapeHtml(label)}</span> · ${escapeHtml(conditions)}`;
   }
 
-  async function load(){
-    const api=sb();if(!api)return;
-    const {data,error}=await api.from('quote_catalog_retailer_prices')
-      .select('catalog_product_id,retailer,price_type,sell_price,source_url');
-    if(error){console.error('Online comparison price load failed',error);return;}
+  async function fetchAll(){
+    const api=sb();
+    if(!api)throw new Error('Supabase client unavailable');
+    const out=[];
+    let from=0;
+    const pageSize=1000;
+    while(true){
+      const {data,error}=await api.from('quote_catalog_retailer_prices')
+        .select('catalog_product_id,retailer,price_type,sell_price,source_url')
+        .range(from,from+pageSize-1);
+      if(error)throw error;
+      out.push(...(data||[]));
+      if(!data||data.length<pageSize)break;
+      from+=pageSize;
+    }
+    return out;
+  }
 
+  async function load(){
+    const data=await fetchAll();
     const byProduct=new Map();
-    (data||[]).forEach(row=>{
+    data.forEach(row=>{
       if(!byProduct.has(row.catalog_product_id))byProduct.set(row.catalog_product_id,[]);
       byProduct.get(row.catalog_product_id).push(row);
     });
 
-    function patch(){
+    const patch=()=>{
       document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(card=>{
         const id=card.dataset.productId;
         if(id)setPrice(card,byProduct.get(id)||[]);
       });
-    }
+    };
 
     patch();
     const list=document.getElementById('catalog-list');
     if(list&&!list.dataset.onlineComparisonWired){
       list.dataset.onlineComparisonWired='1';
+      // Watch only for catalogue rows being added/replaced. setPrice() is
+      // idempotent, so it cannot recursively trigger an endless mutation loop.
       new MutationObserver(patch).observe(list,{childList:true,subtree:true});
     }
   }
