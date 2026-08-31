@@ -42,41 +42,45 @@
       card?.querySelector('.catalog-inline-edit')?.dataset?.id || '';
   }
 
-  async function loadComparisons(cards){
+  async function loadAllComparisons(){
     const supabase=window.actionBuyerAuth?.supabase;
     if(!supabase)return;
-    const ids=[...new Set(cards.map(productId).filter(Boolean))];
-    const missing=ids.filter(id=>!comparisonCache.has(id));
-    if(!missing.length)return;
-
-    const {data,error}=await supabase
-      .from('quote_catalog_retailer_prices')
-      .select('catalog_product_id,sell_price,availability_status,notes,price_type')
-      .in('catalog_product_id',missing)
-      .in('price_type',['new','new_sale']);
-
-    if(error){
-      console.error('Online comparison price lookup failed',error);
-      return;
-    }
 
     const byProduct=new Map();
-    (data||[]).forEach(row=>{
-      if(row.sell_price==null||!isConsumerPrice(row))return;
-      if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return;
-      const price=Number(row.sell_price);
-      if(!Number.isFinite(price))return;
-      if(!byProduct.has(row.catalog_product_id))byProduct.set(row.catalog_product_id,[]);
-      byProduct.get(row.catalog_product_id).push(price);
+    let from=0;
+    const pageSize=1000;
+
+    while(true){
+      const {data,error}=await supabase
+        .from('quote_catalog_retailer_prices')
+        .select('catalog_product_id,sell_price,availability_status,notes,price_type')
+        .in('price_type',['new','new_sale'])
+        .range(from,from+pageSize-1);
+
+      if(error){
+        console.error('Online comparison price lookup failed',error);
+        return;
+      }
+
+      (data||[]).forEach(row=>{
+        if(row.sell_price==null||!isConsumerPrice(row))return;
+        if(!['in_stock','unknown'].includes(String(row.availability_status||'').toLowerCase()))return;
+        const price=Number(row.sell_price);
+        if(!Number.isFinite(price)||!row.catalog_product_id)return;
+        if(!byProduct.has(row.catalog_product_id))byProduct.set(row.catalog_product_id,[]);
+        byProduct.get(row.catalog_product_id).push(price);
+      });
+
+      if(!data||data.length<pageSize)break;
+      from+=pageSize;
+    }
+
+    byProduct.forEach((prices,id)=>{
+      const sorted=[...new Set(prices)].sort((a,b)=>a-b);
+      comparisonCache.set(id,sorted.length===1?money(sorted[0]):`${money(sorted[0])}–${money(sorted[sorted.length-1])}`);
     });
 
-    missing.forEach(id=>{
-      const prices=[...(byProduct.get(id)||[])].sort((a,b)=>a-b);
-      comparisonCache.set(id,
-        prices.length===1?money(prices[0]):
-        prices.length>1?`${money(prices[0])}–${money(prices[prices.length-1])}`:null
-      );
-    });
+    processCatalogue();
   }
 
   function renderComparison(card){
@@ -85,17 +89,16 @@
     if(!id||!comparison)return;
     card.dataset.onlineComparison=comparison;
 
-    /* Works before or after the accordion transformer has run. */
     const title=card.querySelector('.catalog-accordion-title p') ||
       card.querySelector('.valuation-card > div:first-child p');
     if(title&&/^RRP\s+—/i.test(title.textContent.trim())){
       const text=title.textContent;
       const marker=' · Sealed ';
       const suffix=text.includes(marker)?text.slice(text.indexOf(marker)):'';
-      title.textContent=`Online comparison ${comparison}${suffix}`;
+      const next=`Online comparison ${comparison}${suffix}`;
+      if(title.textContent!==next)title.textContent=next;
     }
 
-    /* If the accordion is open, show the same reference in its summary. */
     const summary=card.querySelector('.catalog-accordion-summary');
     if(summary){
       let stat=summary.querySelector('.online-comparison-stat');
@@ -108,13 +111,10 @@
     }
   }
 
-  async function processCatalogue(){
+  function processCatalogue(){
     const list=document.getElementById('catalog-list');
     if(!list)return;
-    const cards=Array.from(list.querySelectorAll('.valuation-card'));
-    if(!cards.length)return;
-    await loadComparisons(cards);
-    cards.forEach(renderComparison);
+    list.querySelectorAll('.valuation-card').forEach(renderComparison);
   }
 
   function schedule(){
@@ -129,13 +129,17 @@
     if(list.dataset.statusFilterWired!=='1'){
       list.dataset.statusFilterWired='1';
       filter.addEventListener('change',applyStatusFilter);
-      const observer=new MutationObserver(()=>{applyStatusFilter();schedule();});
+      const observer=new MutationObserver(mutations=>{
+        const structural=mutations.some(m=>Array.from(m.addedNodes).some(node=>node.nodeType===1 && !node.classList.contains('online-comparison-stat')));
+        if(structural){applyStatusFilter();schedule();}
+      });
       observer.observe(list,{childList:true,subtree:true});
     }
     applyStatusFilter();
     schedule();
     setTimeout(schedule,1000);
     setTimeout(schedule,2500);
+    loadAllComparisons();
   }
 
   document.addEventListener('DOMContentLoaded',wire);
