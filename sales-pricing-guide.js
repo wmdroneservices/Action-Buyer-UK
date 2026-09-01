@@ -22,54 +22,82 @@ function productLabel(p){
   return [p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ')||'Unnamed product';
 }
 
-function populateFilters(){
+function resetDetail(){
+  $('pricing-detail-panel').hidden=true;
+  $('pricing-evidence-body').innerHTML='';
+  $('pricing-no-evidence').hidden=true;
+}
+
+function populateManufacturers(){
   const mf=$('pricing-manufacturer');
-  const cf=$('pricing-category');
-  const currentManufacturer=mf.value;
-  const currentCategory=cf.value;
+  const manufacturers=[...new Set(products.map(p=>String(p.manufacturer||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
 
-  const manufacturers=[...new Set(products.map(p=>p.manufacturer).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
-  const categories=[...new Set(products.map(p=>p.category).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
-
-  mf.innerHTML='<option value="">All manufacturers</option>'+manufacturers.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
-  cf.innerHTML='<option value="">All types</option>'+categories.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
-
-  if(manufacturers.includes(currentManufacturer))mf.value=currentManufacturer;
-  if(categories.includes(currentCategory))cf.value=currentCategory;
+  mf.innerHTML='<option value="">-- Select manufacturer --</option>'+
+    manufacturers.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
 }
 
-function filteredProducts(){
-  const q=$('pricing-search').value.trim().toLowerCase();
-  const m=$('pricing-manufacturer').value;
-  const c=$('pricing-category').value;
+function populateTypes(){
+  const manufacturer=$('pricing-manufacturer').value;
+  const type=$('pricing-category');
 
-  return products.filter(p=>{
-    const searchable=[p.manufacturer,p.model,p.package_name,p.package_key,p.category].join(' ').toLowerCase();
-    return (!q||searchable.includes(q))&&(!m||p.manufacturer===m)&&(!c||p.category===c);
-  });
-}
+  type.value='';
+  type.disabled=!manufacturer;
 
-function renderProductDropdown(){
-  const select=$('pricing-product');
-  const help=$('pricing-product-help');
-  const previous=select.value;
-  const rows=filteredProducts();
-
-  if(!rows.length){
-    select.disabled=true;
-    select.innerHTML='<option value="">No matching products found</option>';
-    help.textContent='Change the search or filters to find another product.';
-    $('pricing-detail-panel').hidden=true;
+  if(!manufacturer){
+    type.innerHTML='<option value="">-- Select manufacturer first --</option>';
     return;
   }
 
-  select.disabled=false;
-  select.innerHTML='<option value="">-- Select a product --</option>'+rows.map(p=>
-    '<option value="'+esc(p.id)+'">'+esc(productLabel(p))+(p.category?' — '+esc(p.category):'')+'</option>'
-  ).join('');
+  const categories=[...new Set(
+    products
+      .filter(p=>String(p.manufacturer||'')===manufacturer)
+      .map(p=>String(p.category||'').trim())
+      .filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b));
 
-  if(rows.some(p=>String(p.id)===String(previous)))select.value=previous;
-  help.textContent=rows.length+' matching product'+(rows.length===1?'':'s')+' available. Select one to open its pricing evidence.';
+  type.innerHTML='<option value="">-- Select type --</option>'+
+    categories.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+}
+
+function populateProducts(){
+  const manufacturer=$('pricing-manufacturer').value;
+  const category=$('pricing-category').value;
+  const select=$('pricing-product');
+  const help=$('pricing-product-help');
+
+  select.value='';
+  resetDetail();
+
+  if(!manufacturer){
+    select.disabled=true;
+    select.innerHTML='<option value="">-- Select manufacturer first --</option>';
+    help.textContent='Select a manufacturer first.';
+    return;
+  }
+
+  if(!category){
+    select.disabled=true;
+    select.innerHTML='<option value="">-- Select type first --</option>';
+    help.textContent='Select a type for '+manufacturer+'.';
+    return;
+  }
+
+  const rows=products.filter(p=>
+    String(p.manufacturer||'')===manufacturer &&
+    String(p.category||'')===category
+  );
+
+  select.disabled=!rows.length;
+  select.innerHTML=rows.length
+    ? '<option value="">-- Select product --</option>'+rows.map(p=>
+        '<option value="'+esc(p.id)+'">'+esc(productLabel(p))+'</option>'
+      ).join('')
+    : '<option value="">No products found</option>';
+
+  help.textContent=rows.length
+    ? rows.length+' product'+(rows.length===1?'':'s')+' available for '+manufacturer+' · '+category+'.'
+    : 'No products are available for this manufacturer and type.';
 }
 
 async function openProduct(id){
@@ -129,10 +157,6 @@ async function openProduct(id){
   }).join('');
 }
 
-function refreshDropdown(){
-  renderProductDropdown();
-}
-
 async function init(){
   if(!sb())return setTimeout(init,100);
 
@@ -141,7 +165,9 @@ async function init(){
     .select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active')
     .eq('active',true)
     .order('manufacturer')
-    .order('model');
+    .order('category')
+    .order('model')
+    .order('package_name');
 
   if(error){
     $('pricing-product').innerHTML='<option value="">Unable to load products</option>';
@@ -150,12 +176,16 @@ async function init(){
   }
 
   products=data||[];
-  populateFilters();
-  renderProductDropdown();
+  populateManufacturers();
+  populateTypes();
+  populateProducts();
 
-  $('pricing-search').addEventListener('input',refreshDropdown);
-  $('pricing-manufacturer').addEventListener('change',refreshDropdown);
-  $('pricing-category').addEventListener('change',refreshDropdown);
+  $('pricing-manufacturer').addEventListener('change',()=>{
+    populateTypes();
+    populateProducts();
+  });
+
+  $('pricing-category').addEventListener('change',populateProducts);
   $('pricing-product').addEventListener('change',e=>openProduct(e.target.value));
 }
 
