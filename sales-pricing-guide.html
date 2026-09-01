@@ -9,27 +9,29 @@
 .pricing-product-picker{margin-top:1rem}
 .pricing-product-picker select{margin-bottom:0}
 .pricing-product-help{margin:.45rem 0 0;color:#666;font-size:.9rem}
+.pricing-cascade{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;align-items:end}
+.pricing-cascade .pricing-product-picker{grid-column:1/-1}
+@media(max-width:700px){.pricing-cascade{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
 <script src="staff-navigation.js?v=20260902-4" defer></script>
-<script src="sales-pricing-guide.js?v=20260902-2" defer></script>
+<script src="sales-pricing-guide.js?v=20260902-3" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin-sales-dashboard.html">GEARCASHOUT</a><nav aria-label="Sales navigation"></nav></div></header>
 <main class="account-page"><div class="container">
-<div class="account-header"><div><p class="section-kicker">SALES · READ ONLY</p><h1>Sales Pricing Guide</h1><p>Search current catalogue products and use the same live online comparison evidence maintained by Purchasing.</p></div><a class="btn btn-secondary" href="admin-sales-dashboard.html">SALES DASHBOARD</a></div>
+<div class="account-header"><div><p class="section-kicker">SALES · READ ONLY</p><h1>Sales Pricing Guide</h1><p>Use the live Purchasing catalogue to check current online comparison evidence before setting a selling price.</p></div><a class="btn btn-secondary" href="admin-sales-dashboard.html">SALES DASHBOARD</a></div>
 <section class="account-panel">
-<div class="section-heading"><p class="section-kicker">SEARCH</p><h2>Find a product</h2><p>Use the filters if needed, then choose the exact product from the drop-down list. Read-only data updates automatically when Purchasing updates the catalogue.</p></div>
-<div class="catalog-filters">
-<div class="catalog-filter"><label for="pricing-search">Search product</label><input id="pricing-search" type="search" placeholder="Manufacturer, model or package"></div>
-<div class="catalog-filter"><label for="pricing-manufacturer">Manufacturer</label><select id="pricing-manufacturer"><option value="">All manufacturers</option></select></div>
-<div class="catalog-filter"><label for="pricing-category">Type</label><select id="pricing-category"><option value="">All types</option></select></div>
-</div>
+<div class="section-heading"><p class="section-kicker">PRODUCT LOOKUP</p><h2>Select a product</h2><p>Choose the manufacturer first. The Type list then shows only types available for that manufacturer. The Product list then shows only products matching both selections.</p></div>
+<div class="pricing-cascade">
+<div class="catalog-filter"><label for="pricing-manufacturer">Manufacturer</label><select id="pricing-manufacturer"><option value="">-- Select manufacturer --</option></select></div>
+<div class="catalog-filter"><label for="pricing-category">Type</label><select id="pricing-category" disabled><option value="">-- Select type --</option></select></div>
 <div class="pricing-product-picker">
 <label for="pricing-product">Product</label>
-<select id="pricing-product" disabled><option value="">Loading products...</option></select>
-<p id="pricing-product-help" class="pricing-product-help">Choose a product to view its live pricing evidence.</p>
+<select id="pricing-product" disabled><option value="">-- Select manufacturer and type first --</option></select>
+<p id="pricing-product-help" class="pricing-product-help">Select a manufacturer, then a type, then the exact product.</p>
+</div>
 </div>
 </section>
 <section id="pricing-detail-panel" class="account-panel" hidden>
