@@ -1,12 +1,12 @@
-/* Defensive bootstrap for the staff catalogue. If the primary catalogue script did not start, retry it after auth/DOM are ready. */
+/* Defensive bootstrap for the staff catalogue. The UK GBP guard is loaded after the catalogue scripts so no stale comparison routine can reintroduce foreign prices. */
 (function(){
   'use strict';
-  function loadFreshComparison(){
-    if(document.querySelector('script[data-gco-uk-comparison-v18]'))return;
+  function loadUkGuard(){
+    if(document.querySelector('script[data-gco-uk-comparison-guard]'))return;
     const s=document.createElement('script');
-    s.src='admin-catalog-online-comparison.js?v=20260901-18';
+    s.src='admin-catalog-online-comparison-guard.js?v=20260901-1';
     s.defer=true;
-    s.dataset.gcoUkComparisonV18='1';
+    s.dataset.gcoUkComparisonGuard='1';
     document.head.appendChild(s);
   }
   function retry(){
@@ -18,7 +18,7 @@
     }
   }
   function init(){
-    loadFreshComparison();
+    loadUkGuard();
     setTimeout(retry,500);
     setTimeout(retry,1500);
     setTimeout(retry,3000);
