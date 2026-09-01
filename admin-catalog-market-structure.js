@@ -33,7 +33,12 @@
       <section class="gco-market-section gco-used"><h4>UK — USED / OTHER EVIDENCE <span class="gco-market-badge">REFERENCE ONLY</span></h4><p>Used, refurbished, completed-sale and other non-new UK evidence is retained for research only. It does not alter Online comparison.</p>${table(used,false)}</section>
       <section class="gco-market-section gco-overseas"><h4>Overseas Comparison (Non-GBP) <span class="gco-market-badge">REFERENCE ONLY — ORIGINAL CURRENCY — NO CONVERSION</span></h4><p>Non-UK and/or non-GBP evidence is shown exactly as recorded, with its original currency and region. It is completely separate from UK pricing and <strong>never affects Online comparison</strong>.</p>${table(overseas,true)}</section>`;}
   async function updateCard(card){const id=card.dataset.productId||card.querySelector('.edit-product')?.dataset.id;if(!id)return;const rows=await rowsFor(id);setHeadline(card,rows);renderPanel(card,rows);}
-  function updateAll(){document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(updateCard);}
-  function wire(){styles();fixEvidenceHeader();const list=document.getElementById('catalog-list');if(!list)return;if(list.dataset.gcoMarketStructure==='1')return;list.dataset.gcoMarketStructure='1';const observer=new MutationObserver(()=>{fixEvidenceHeader();document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(card=>{if(card.dataset.gcoMarketQueued==='1')return;card.dataset.gcoMarketQueued='1';updateCard(card).finally(()=>{delete card.dataset.gcoMarketQueued;});});});observer.observe(list,{childList:true,subtree:true});list.addEventListener('click',e=>{const trigger=e.target.closest('.catalog-accordion-trigger');if(trigger){setTimeout(()=>{const card=trigger.closest('.catalog-accordion-card');if(card)updateCard(card);},0);}});updateAll();}
+  function updateAll(){document.querySelectorAll('#catalog-list .catalog-accordion-card').forEach(card=>{if(card.dataset.gcoMarketQueued==='1')return;card.dataset.gcoMarketQueued='1';updateCard(card).finally(()=>{delete card.dataset.gcoMarketQueued;});});}
+  function wire(){styles();fixEvidenceHeader();const list=document.getElementById('catalog-list');if(!list)return;if(list.dataset.gcoMarketStructure==='1')return;list.dataset.gcoMarketStructure='1';const observer=new MutationObserver(()=>{fixEvidenceHeader();updateAll();});
+    /* Observe only direct catalogue-list child replacement. Do NOT observe subtree: renderPanel() changes cards internally and would create an endless MutationObserver loop. */
+    observer.observe(list,{childList:true,subtree:false});
+    list.addEventListener('click',e=>{const trigger=e.target.closest('.catalog-accordion-trigger');if(trigger){setTimeout(()=>{const card=trigger.closest('.catalog-accordion-card');if(card)updateCard(card);},0);}});
+    updateAll();
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();
 })();
