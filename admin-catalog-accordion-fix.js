@@ -1,9 +1,11 @@
-/* Converts the existing catalogue cards into inline expandable rows. */
+/* Catalogue accordion: keep UK pricing separate from international evidence and never convert currencies. */
 (function(){
   const sb=()=>window.actionBuyerAuth?.supabase;
   const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
-  const money=v=>v==null||v===''?'—':`£${Number(v).toFixed(2)}`;
   const cache=new Map();
+  const symbol={GBP:'£',USD:'$',EUR:'€',CAD:'C$',AUD:'A$',NZD:'NZ$',JPY:'¥',CNY:'¥',CHF:'CHF ',SEK:'kr ',NOK:'kr ',DKK:'kr ',PLN:'zł ',CZK:'Kč ',INR:'₹'};
+  const money=(v,c='GBP')=>v==null||v===''?'—':`${symbol[String(c||'').toUpperCase()]||`${String(c||'').toUpperCase()} `}${Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const isUK=r=>String(r?.price_currency||'').toUpperCase()==='GBP'&&String(r?.evidence_region||'').toUpperCase()==='UK';
 
   function styles(){
     if(document.getElementById('inline-catalog-style'))return;
@@ -17,6 +19,7 @@
       .catalog-accordion-panel{display:none;border-top:1px solid #e3dfd5;padding:1rem;background:#fffdf8}.catalog-accordion-card.is-open .catalog-accordion-panel{display:block}
       .catalog-accordion-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin-bottom:1rem}.catalog-accordion-stat{border:1px solid #e3dfd5;border-radius:8px;background:#fff;padding:.7rem}.catalog-accordion-stat strong{display:block;color:#102f4f}.catalog-accordion-stat span{font-size:.76rem;color:#666}
       .catalog-accordion-actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}.catalog-accordion-market{overflow-x:auto}.catalog-accordion-market table{width:100%;border-collapse:collapse;min-width:850px}.catalog-accordion-market th,.catalog-accordion-market td{padding:.5rem;border-bottom:1px solid #e5e1d8;text-align:left;vertical-align:top}.catalog-accordion-market th{font-size:.76rem;color:#102f4f;background:#f5f2ea}
+      .catalog-international-section{margin-top:1.25rem;padding-top:1rem;border-top:2px solid #d88732}.catalog-international-section h3{margin:.1rem 0 .35rem;color:#102f4f}.catalog-international-section p{margin:0 0 .75rem;color:#666;font-size:.88rem}.catalog-international-section table{min-width:1050px}.catalog-international-badge{display:inline-block;margin-left:.4rem;padding:.15rem .45rem;border-radius:999px;background:#f3eee5;color:#102f4f;font-size:.68rem;font-weight:800}
       .catalog-accordion-empty{color:#666;padding:.5rem 0}
       @media(max-width:700px){.catalog-accordion-summary{grid-template-columns:1fr 1fr}}@media(max-width:480px){.catalog-accordion-summary{grid-template-columns:1fr}}
     `;document.head.appendChild(s);
@@ -25,11 +28,7 @@
   function amazonProductUrl(row,product){
     const original=String(row?.source_url||'').trim();
     if(!/amazon\./i.test(`${row?.retailer||''} ${original}`))return original;
-    // Preserve an exact Amazon product URL when one is already recorded.
     if(/amazon\.[^/]+\/[^/]*(?:\/dp\/|\/gp\/product\/|\/product\/)/i.test(original))return original;
-    // A generic Amazon home/search URL is not useful for research. Replace it
-    // with an Amazon UK search built from the complete catalogue title so the
-    // user lands on the relevant product search rather than Amazon's homepage.
     const query=String(product?.query||'').trim();
     if(!query)return original;
     return `https://www.amazon.co.uk/s?k=${encodeURIComponent(query)}`;
@@ -62,35 +61,38 @@
 
   function showError(text){const msg=document.getElementById('catalog-message');if(msg){msg.textContent=`Active status update failed: ${text}`;msg.className='form-message error';}}
 
+  function renderUk(rows){
+    const uk=rows.filter(isUK);
+    const prices=uk.flatMap(r=>[r.buy_price,r.sell_price]).map(Number).filter(Number.isFinite);
+    const low=prices.length?Math.min(...prices):null,high=prices.length?Math.max(...prices):null;
+    const grid=document.getElementById('uk-market-reference-grid');
+    if(grid)grid.innerHTML=uk.length?`<div class="uk-market-stat"><strong>${uk.length}</strong><span>UK GBP evidence records</span></div><div class="uk-market-stat"><strong>${money(low,'GBP')}</strong><span>Lowest verified UK price</span></div><div class="uk-market-stat"><strong>${money(high,'GBP')}</strong><span>Highest verified UK price</span></div>`:'<div class="uk-market-stat"><strong>—</strong><span>No UK GBP market evidence recorded</span></div>';
+    return uk;
+  }
+
+  function foreignTable(rows,product){
+    const foreign=rows.filter(r=>!isUK(r));
+    if(!foreign.length)return '';
+    return `<section class="catalog-international-section"><h3>International Evidence (Non-UK) <span class="catalog-international-badge">ORIGINAL CURRENCY — NO CONVERSION</span></h3><p>All evidence that is not UK GBP pricing is retained here in the currency and region in which it was found. These values do not feed UK Online comparison and are never converted to pounds.</p><div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Currency</th><th>Region</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${foreign.map(r=>{const c=String(r.price_currency||'').toUpperCase()||'UNKNOWN';const region=String(r.evidence_region||'').trim()||String(r.price_region||'').trim()||'International';const source=amazonProductUrl(r,product);return `<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td><strong>${esc(c)}</strong></td><td>${esc(region)}${r.price_region?`<br><small>${esc(r.price_region)}</small>`:''}</td><td>${r.buy_price==null?'—':money(r.buy_price,c)}</td><td>${r.sell_price==null?'—':money(r.sell_price,c)}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${source?`<a href="${esc(source)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`;}).join('')}</tbody></table></div></section>`;
+  }
+
   async function panel(card){
     const id=card.dataset.productId,panel=card.querySelector('.catalog-accordion-panel');let rows=cache.get(id);
-    if(!rows){const r=await sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at').eq('catalog_product_id',id).order('retailer').order('price_type').order('condition').order('sell_price');if(r.error){panel.innerHTML=`<div class="catalog-accordion-empty">Unable to load market research: ${esc(r.error.message)}</div>`;return;}rows=r.data||[];cache.set(id,rows);}
+    if(!rows){const r=await sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at,price_currency,price_region,evidence_region').eq('catalog_product_id',id).order('retailer').order('price_type').order('condition').order('sell_price');if(r.error){panel.innerHTML=`<div class="catalog-accordion-empty">Unable to load market research: ${esc(r.error.message)}</div>`;return;}rows=r.data||[];cache.set(id,rows);}
     const product={query:card.querySelector('.catalog-accordion-title h3')?.textContent?.replace(/\s+(ACTIVE|INACTIVE)\s*$/i,'').trim()||''};
-    const prices=rows.flatMap(r=>[r.buy_price,r.sell_price]).map(Number).filter(Number.isFinite),low=prices.length?Math.min(...prices):null,high=prices.length?Math.max(...prices):null;
-    panel.innerHTML=`<div class="catalog-accordion-summary"><div class="catalog-accordion-stat"><strong>${rows.length}</strong><span>Market evidence records</span></div><div class="catalog-accordion-stat"><strong>${money(low)}</strong><span>Lowest recorded price</span></div><div class="catalog-accordion-stat"><strong>${money(high)}</strong><span>Highest recorded price</span></div></div><div class="catalog-accordion-actions"><button type="button" class="btn btn-secondary catalog-inline-edit" data-id="${esc(id)}">EDIT PRODUCT</button></div>${rows.length?`<div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${rows.map(r=>{const source=amazonProductUrl(r,product);return `<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td>${r.buy_price==null?'—':money(r.buy_price)}</td><td>${r.sell_price==null?'—':money(r.sell_price)}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${source?`<a href="${esc(source)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="catalog-accordion-empty">No market research recorded for this product yet.</div>'}`;
+    const uk=renderUk(rows);
+    const prices=uk.flatMap(r=>[r.buy_price,r.sell_price]).map(Number).filter(Number.isFinite),low=prices.length?Math.min(...prices):null,high=prices.length?Math.max(...prices):null;
+    panel.innerHTML=`<div class="catalog-accordion-summary"><div class="catalog-accordion-stat"><strong>${uk.length}</strong><span>UK GBP evidence records</span></div><div class="catalog-accordion-stat"><strong>${money(low,'GBP')}</strong><span>Lowest UK recorded price</span></div><div class="catalog-accordion-stat"><strong>${money(high,'GBP')}</strong><span>Highest UK recorded price</span></div></div><div class="catalog-accordion-actions"><button type="button" class="btn btn-secondary catalog-inline-edit" data-id="${esc(id)}">EDIT PRODUCT</button></div>${uk.length?`<div class="catalog-accordion-market"><table><thead><tr><th>Website / Competitor</th><th>Price type</th><th>Condition</th><th>Buying</th><th>Selling</th><th>Availability</th><th>Source</th><th>Notes</th></tr></thead><tbody>${uk.map(r=>{const source=amazonProductUrl(r,product);return `<tr><td>${esc(r.retailer)}</td><td>${esc(String(r.price_type||'').replaceAll('_',' '))}</td><td>${esc(r.condition)}</td><td>${r.buy_price==null?'—':money(r.buy_price,'GBP')}</td><td>${r.sell_price==null?'—':money(r.sell_price,'GBP')}</td><td>${esc(String(r.availability_status||'').replaceAll('_',' '))}</td><td>${source?`<a href="${esc(source)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ↗</a>`:'—'}</td><td>${esc(r.notes)}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="catalog-accordion-empty">No UK GBP market evidence recorded for this product.</div>'}${foreignTable(rows,product)}`;
   }
 
   async function edit(id){const r=await sb().from('quote_catalog_products').select('id,category,manufacturer,model,package_key,package_name,manufacturer_rrp,manufacturer_rrp_currency,manufacturer_rrp_source,manufacturer_rrp_verified_at,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active,notes,updated_at').eq('id',id).single();if(r.error){alert(r.error.message);return;}if(typeof window.loadProduct==='function')window.loadProduct(r.data);}
 
-  function activateStatus(status){
-    const card=status.closest('.catalog-accordion-card');
-    if(card&&!status.classList.contains('saving'))setActive(card,status);
-  }
+  function activateStatus(status){const card=status.closest('.catalog-accordion-card');if(card&&!status.classList.contains('saving'))setActive(card,status);}
 
   function wire(){
     const list=document.getElementById('catalog-list');if(!list||list.dataset.inlineAccordion==='1')return;list.dataset.inlineAccordion='1';
-    list.addEventListener('click',e=>{
-      const status=e.target.closest('.catalog-title-status');if(status){e.preventDefault();e.stopPropagation();activateStatus(status);return;}
-      const editBtn=e.target.closest('.catalog-inline-edit');if(editBtn){e.preventDefault();e.stopPropagation();edit(editBtn.dataset.id);return;}
-      const trigger=e.target.closest('.catalog-accordion-trigger');if(!trigger)return;e.preventDefault();e.stopPropagation();const card=trigger.closest('.catalog-accordion-card');const open=card.classList.toggle('is-open');trigger.setAttribute('aria-expanded',String(open));card.querySelector('.catalog-accordion-panel').setAttribute('aria-hidden',String(!open));if(open)panel(card);
-    });
-    list.addEventListener('keydown',e=>{
-      const status=e.target.closest('.catalog-title-status');
-      if(status&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();activateStatus(status);}
-      else if(status)e.stopPropagation();
-      const trigger=e.target.closest('.catalog-accordion-trigger');
-      if(trigger&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();const card=trigger.closest('.catalog-accordion-card');const open=card.classList.toggle('is-open');trigger.setAttribute('aria-expanded',String(open));card.querySelector('.catalog-accordion-panel').setAttribute('aria-hidden',String(!open));if(open)panel(card);}
-    });
+    list.addEventListener('click',e=>{const status=e.target.closest('.catalog-title-status');if(status){e.preventDefault();e.stopPropagation();activateStatus(status);return;}const editBtn=e.target.closest('.catalog-inline-edit');if(editBtn){e.preventDefault();e.stopPropagation();edit(editBtn.dataset.id);return;}const trigger=e.target.closest('.catalog-accordion-trigger');if(!trigger)return;e.preventDefault();e.stopPropagation();const card=trigger.closest('.catalog-accordion-card');const open=card.classList.toggle('is-open');trigger.setAttribute('aria-expanded',String(open));card.querySelector('.catalog-accordion-panel').setAttribute('aria-hidden',String(!open));if(open)panel(card);});
+    list.addEventListener('keydown',e=>{const status=e.target.closest('.catalog-title-status');if(status&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();activateStatus(status);}else if(status)e.stopPropagation();const trigger=e.target.closest('.catalog-accordion-trigger');if(trigger&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();const card=trigger.closest('.catalog-accordion-card');const open=card.classList.toggle('is-open');trigger.setAttribute('aria-expanded',String(open));card.querySelector('.catalog-accordion-panel').setAttribute('aria-hidden',String(!open));if(open)panel(card);}});
     transform();new MutationObserver(()=>transform()).observe(list,{childList:true});
   }
   document.addEventListener('DOMContentLoaded',wire);
