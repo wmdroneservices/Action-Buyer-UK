@@ -1,5 +1,5 @@
 /* Shared staff navigation.
-   The purchasing and sales areas intentionally have different top-bar menus. */
+   Purchasing and sales have workflow-specific menus, with a clear bridge between dashboards. */
 (function () {
   'use strict';
 
@@ -32,7 +32,8 @@
     ['inventory.html', 'INVENTORY'],
     ['admin-catalog.html', 'QUOTE CATALOGUE'],
     ['admin-catalog-control.html', 'CATALOGUE CONTROL'],
-    ['admin-customers.html', 'CUSTOMERS']
+    ['admin-customers.html', 'CUSTOMERS'],
+    ['admin-sales-dashboard.html', 'SALES DASHBOARD']
   ];
 
   const salesLinks = [
@@ -43,10 +44,23 @@
     ['sold-items.html', 'SOLD ITEMS'],
     ['returns.html', 'RETURNS'],
     ['return-database.html', 'RETURN DATABASE'],
+    ['inventory-finance.html', 'PROFIT & LOSS'],
+    ['admin-purchasing.html', 'PURCHASING DASHBOARD']
+  ];
+
+  const inventoryLinks = [
+    ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
+    ['inventory.html', 'INVENTORY'],
+    ['admin-sales-dashboard.html', 'SALES DASHBOARD'],
+    ['inventory-sales.html', 'PRE-SALE / CHANNELS'],
+    ['active-sales-listings.html', 'ACTIVE LISTINGS'],
+    ['sold-items.html', 'SOLD ITEMS'],
+    ['returns.html', 'RETURNS'],
     ['inventory-finance.html', 'PROFIT & LOSS']
   ];
 
   function getMode(current) {
+    if (current === 'inventory.html') return 'inventory';
     if (current === 'admin-purchasing.html') return 'purchasing';
     if (current === 'admin-sales-dashboard.html') return 'sales';
     if (purchasingPages.has(current)) return 'purchasing';
@@ -71,11 +85,18 @@
       container.appendChild(nav);
     }
 
-    nav.setAttribute('aria-label', mode === 'purchasing'
-      ? 'Purchasing navigation'
-      : 'Sales navigation');
+    const links = mode === 'purchasing'
+      ? purchasingLinks
+      : mode === 'sales'
+        ? salesLinks
+        : inventoryLinks;
 
-    const links = mode === 'purchasing' ? purchasingLinks : salesLinks;
+    nav.setAttribute('aria-label',
+      mode === 'purchasing' ? 'Purchasing navigation' :
+      mode === 'sales' ? 'Sales navigation' :
+      'Inventory navigation'
+    );
+
     const list = document.createElement('ul');
     list.className = 'nav-list staff-workflow-nav';
 
@@ -90,18 +111,26 @@
     });
 
     nav.replaceChildren(list);
-    container.classList.add('staff-dashboard-header', mode === 'purchasing'
-      ? 'staff-purchasing-header'
-      : 'staff-sales-header');
+    container.classList.add('staff-dashboard-header',
+      mode === 'purchasing' ? 'staff-purchasing-header' :
+      mode === 'sales' ? 'staff-sales-header' :
+      'staff-inventory-header'
+    );
 
     const logo = container.querySelector('.logo');
     if (logo) {
       logo.href = mode === 'purchasing'
         ? 'admin-purchasing.html'
-        : 'admin-sales-dashboard.html';
-      logo.setAttribute('aria-label', mode === 'purchasing'
-        ? 'GearCashOut Purchasing Dashboard'
-        : 'GearCashOut Sales Dashboard');
+        : mode === 'sales'
+          ? 'admin-sales-dashboard.html'
+          : 'inventory.html';
+      logo.setAttribute('aria-label',
+        mode === 'purchasing'
+          ? 'GearCashOut Purchasing Dashboard'
+          : mode === 'sales'
+            ? 'GearCashOut Sales Dashboard'
+            : 'GearCashOut Inventory'
+      );
     }
   }
 
