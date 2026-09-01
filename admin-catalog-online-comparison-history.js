@@ -1,4 +1,4 @@
-/* GearCashOut: include retained new/sale market evidence in Online Comparison, including out-of-stock historical prices. Discontinued products are overridden by the discontinued label script. */
+/* GearCashOut: historical UK Online Comparison values. Foreign currencies/regions are never eligible. */
 (function(){
   'use strict';
   const excludedSource=/eBay\.|Vinted\.|Facebook\.|Gumtree\.|Etsy\.|Depop\.|Shpock\.|auction|marketplace|reseller|classified|pricespy\.|idealo\.|supersales\.|onbuy\.|pricerunner\.|kelkoo\.|shopzilla\.|shopping\.google\./i;
@@ -9,12 +9,17 @@
   const money=v=>`£${Number(v).toFixed(2)}`;
   function valid(row){
     if(!row||row.sell_price==null||!types.has(String(row.price_type||'').toLowerCase()))return false;
+    const currency=String(row.price_currency||'').trim().toUpperCase();
+    const region=String(row.evidence_region||'').trim().toUpperCase();
+    if(currency!=='GBP'||region!=='UK')return false;
     if(excludedSource.test(`${row.retailer||''} ${row.source_url||''}`)||excludedRetailer.test(String(row.retailer||'')))return false;
     if(!/^https?:\/\//i.test(String(row.source_url||'')))return false;
     if(/\bex\.?\s*vat\b|excluding\s+vat|plus\s+vat|vat\s+excluded/i.test(String(row.notes||'')))return false;
     if(/\$|\bUSD\b|\bEUR\b|€|\bUS\b|\bEU\b/i.test(String(row.notes||'')))return false;
     const condition=String(row.condition||'').trim();
     if(String(row.price_type||'').toLowerCase()==='market'&&!/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
+    const availability=String(row.availability_status||'').toLowerCase();
+    if(availability==='out_of_stock'){if(/\bdiscontinued\b/i.test(String(row.notes||'')))return false;}else if(!['in_stock','unknown'].includes(availability))return false;
     return true;
   }
   function id(card){return card?.dataset?.productId||card?.querySelector('.edit-product')?.dataset?.id;}
@@ -33,7 +38,7 @@
     const api=window.actionBuyerAuth?.supabase;if(!api)return;
     const next=new Map();let from=0;const pageSize=1000;
     while(true){
-      const {data,error}=await api.from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,price_type,condition,sell_price,availability_status,source_url,notes').in('price_type',['new','new_sale','market']).range(from,from+pageSize-1);
+      const {data,error}=await api.from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,price_type,condition,sell_price,availability_status,source_url,notes,price_currency,evidence_region').in('price_type',['new','new_sale','market']).range(from,from+pageSize-1);
       if(error){console.error('Historical online comparison lookup failed',error);return;}
       (data||[]).forEach(row=>{if(!valid(row))return;const price=Number(row.sell_price);if(!Number.isFinite(price)||price<=0||!row.catalog_product_id)return;if(!next.has(row.catalog_product_id))next.set(row.catalog_product_id,[]);next.get(row.catalog_product_id).push(price);});
       if(!data||data.length<pageSize)break;from+=pageSize;
