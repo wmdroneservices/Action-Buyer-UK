@@ -20,6 +20,8 @@
     const condition=String(row.condition||'').trim();
     if(String(row.price_type||'').toLowerCase()==='market' && !/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
     const availability=String(row.availability_status||'').toLowerCase();
+    // A valid current/recent UK price remains a comparison even when temporarily out of stock.
+    // Only an explicitly discontinued source is excluded.
     if(availability==='out_of_stock'){
       if(/\bdiscontinued\b/i.test(notes))return false;
     } else if(!['in_stock','unknown'].includes(availability))return false;
@@ -114,7 +116,7 @@
 (function(){
   'use strict';
   const websites=[
-    ['Bright Tangerine','https://brighttangerine.com/'],['BetaFPV','https://betafpv.com/'],['DJI','https://www.dji.com/'],['Autel Robotics','https://www.autelrobotics.com/'],['HobbyKing','https://hobbyking.com/'],['GetFPV','https://www.getfpv.com/'],['iFlight','https://www.iflight.com/'],['GEPRC','https://geprc.com/'],['Rotor Riot','https://rotorriot.com/'],['SkyFleetDrones','https://skyfleetdrones.com/collections/all'],['RadioMaster','https://www.radiomasterrc.com/'],['EMAX','https://emaxmodel.com/'],['Amazon UK','https://www.amazon.co.uk/'],['eBay UK','https://www.ebay.co.uk/'],['MPB','https://www.mpb.com/en-uk/'],['CeX','https://uk.webuy.com/'],['Gumtree','https://www.gumtree.com/'],['Vinted','https://www.vinted.co.uk/'],['Facebook Marketplace','https://www.facebook.com/marketplace/'],['Custom / Other','']
+    ['Bright Tangerine','https://brighttangerine.com/'],['BetaFPV','https://betafpv.com/'],['DJI','https://www.dji.com/'],['Autel Robotics','https://www.autelrobotics.com/'],['HobbyKing','https://hobbyking.com/'],['GetFPV','https://www.getfpv.com/'],['iFlight','https://www.iflight.com/'],['GEPRC','https://geprc.com/'],['Rotor Riot','https://rotorriot.com/'],['SkyFleetDrones','https://skyfleetdrones.com/collections/all'],['RadioMaster','https://www.radiomasterrc.com/'],['EMAX','https://emaxmodel.com/'],['YouDrone','https://youdrone.co.uk/'],['IT Drone UK','https://shop.itdroneservices.co.uk/collections/fimi-store'],['Amazon UK','https://www.amazon.co.uk/'],['eBay UK','https://www.ebay.co.uk/'],['MPB','https://www.mpb.com/en-uk/'],['CeX','https://uk.webuy.com/'],['Gumtree','https://www.gumtree.com/'],['Vinted','https://www.vinted.co.uk/'],['Facebook Marketplace','https://www.facebook.com/marketplace/'],['Custom / Other','']
   ];
   const urlMap=new Map(websites.map(([name,url])=>[name.toLowerCase(),url])); let observer=null;
   function safeUrl(v){try{const u=new URL(String(v||''));return ['http:','https:'].includes(u.protocol)?u.href:'';}catch{return '';}}
