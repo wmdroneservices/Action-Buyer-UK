@@ -1,12 +1,12 @@
-/* Defensive bootstrap for the staff catalogue. The UK GBP guard is loaded after the catalogue scripts so no stale comparison routine can reintroduce foreign prices. */
+/* Catalogue bootstrap: load the single authoritative market-structure renderer after auth/DOM are ready. */
 (function(){
   'use strict';
-  function loadUkGuard(){
-    if(document.querySelector('script[data-gco-uk-comparison-guard]'))return;
+  function loadMarketStructure(){
+    if(document.querySelector('script[data-gco-market-structure="1"]'))return;
     const s=document.createElement('script');
-    s.src='admin-catalog-online-comparison-guard.js?v=20260901-1';
+    s.src='admin-catalog-market-structure.js?v=20260901-1';
     s.defer=true;
-    s.dataset.gcoUkComparisonGuard='1';
+    s.dataset.gcoMarketStructure='1';
     document.head.appendChild(s);
   }
   function retry(){
@@ -18,7 +18,7 @@
     }
   }
   function init(){
-    loadUkGuard();
+    loadMarketStructure();
     setTimeout(retry,500);
     setTimeout(retry,1500);
     setTimeout(retry,3000);
