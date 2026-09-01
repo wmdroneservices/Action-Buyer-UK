@@ -22,7 +22,8 @@
     'return-database.html',
     'inventory-finance.html',
     'listing-readiness.html',
-    'sales-workbench.html'
+    'sales-workbench.html',
+    'sales-pricing-guide.html'
   ]);
 
   const purchasingLinks = [
@@ -45,6 +46,7 @@
     ['returns.html', 'RETURNS'],
     ['return-database.html', 'RETURN DATABASE'],
     ['inventory-finance.html', 'PROFIT & LOSS'],
+    ['sales-pricing-guide.html', 'PRICING GUIDE'],
     ['admin-purchasing.html', 'PURCHASING DASHBOARD']
   ];
 
