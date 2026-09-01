@@ -11,10 +11,10 @@
   function isDirectRetail(row){
     if(!row||row.sell_price==null)return false;
     if(!qualifyingTypes.has(String(row.price_type||'').toLowerCase()))return false;
-    // Online Comparison is strictly UK GBP evidence. International prices must remain
-    // in the separate international evidence section and can never populate this value.
-    const currency=String(row.price_currency||'GBP').toUpperCase();
-    const region=String(row.evidence_region||'UK').toUpperCase();
+    // A price is eligible for the UK Online Comparison only when its currency and
+    // evidence region are explicitly recorded as GBP + UK. Never assume GBP.
+    const currency=String(row.price_currency||'').trim().toUpperCase();
+    const region=String(row.evidence_region||'').trim().toUpperCase();
     if(currency!=='GBP'||region!=='UK')return false;
     if(excludedSource.test(`${row.retailer||''} ${row.source_url||''}`))return false;
     if(excludedRetailer.test(String(row.retailer||'')))return false;
@@ -25,8 +25,6 @@
     const condition=String(row.condition||'').trim();
     if(String(row.price_type||'').toLowerCase()==='market' && !/^(new|new\s*[-–]?\s*sale|new\s*\/\s*never\s*used)$/i.test(condition))return false;
     const availability=String(row.availability_status||'').toLowerCase();
-    // A valid current/recent UK price remains a comparison even when temporarily out of stock.
-    // Only an explicitly discontinued source is excluded.
     if(availability==='out_of_stock'){
       if(/\bdiscontinued\b/i.test(notes))return false;
     } else if(!['in_stock','unknown'].includes(availability))return false;
