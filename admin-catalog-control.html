@@ -13,12 +13,12 @@
 @media(max-width:850px){.control-summary{grid-template-columns:1fr 1fr}.control-group-header{align-items:flex-start;flex-direction:column}.control-actions{justify-content:flex-start}.control-branch{grid-template-columns:1fr}}
 @media(max-width:520px){.control-summary{grid-template-columns:1fr}.control-toolbar input{min-width:0;width:100%}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-catalog-control.js?v=20260831-1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js?v=20260902-1" defer></script><script src="admin-catalog-control.js?v=20260831-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-catalog.html">Quote Catalogue</a></li><li><a href="admin-catalog-control.html" aria-current="page">Catalogue Control</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></div></header>
 <main class="account-page"><div class="container">
-<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>Catalogue Control</h1><p>Control what customers can see without changing the quote prices, product active status or market research.</p></div><a class="btn btn-secondary" href="admin-catalog.html">BACK TO QUOTE CATALOGUE</a></div>
+<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>Catalogue Control</h1><p>Control what customers can see without changing the quote prices, product active status or market research.</p></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="admin-purchasing.html">PURCHASING DASHBOARD</a><a class="btn btn-secondary" href="admin-catalog.html">BACK TO QUOTE CATALOGUE</a></div></div>
 <section class="account-panel">
 <div class="control-intro"><strong>Customer visibility only.</strong> Hiding or restoring a manufacturer or product branch changes the <code>customer_visible</code> setting only. It does <strong>not</strong> change the product's Active/Inactive status, buying prices, selling prices, RRP or market research. This keeps the existing quote system isolated from catalogue presentation controls.</div>
 <div id="control-message" class="control-message" role="status" aria-live="polite"></div>
