@@ -8,7 +8,6 @@
 'use strict';
 const sb=()=>window.actionBuyerAuth?.supabase;
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
-const sym={GBP:'£',USD:'$',EUR:'€',CAD:'C$',AUD:'A$',NZD:'NZ$',JPY:'¥',CNY:'¥',CHF:'CHF ',SEK:'kr ',NOK:'kr ',DKK:'kr ',PLN:'zł ',CZK:'Kč ',INR:'₹'};
 function ageInfo(ts){
   if(!ts)return {label:'Evidence date: not recorded',cls:'evidence-age-stale'};
   const d=new Date(ts); if(Number.isNaN(d.getTime()))return {label:'Evidence date: invalid',cls:'evidence-age-stale'};
@@ -29,25 +28,53 @@ function form(kind){
 }
 async function evidenceRows(id){const a=sb();if(!a)return[];const q=await a.from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,sell_price,source_url,checked_at').eq('catalog_product_id',id);return q.error?[]:(q.data||[])}
 function annotate(card,rows){
-  const all=[...rows];card.querySelectorAll('.gco-table tbody tr').forEach(tr=>{
+  card.querySelectorAll('.gco-table tbody tr').forEach(tr=>{
     if(tr.querySelector('.gco-evidence-age'))return;
     const cells=tr.querySelectorAll('td');if(!cells.length)return;
     const sourceCell=[...cells].find(c=>c.querySelector('a[href]'));
     const source=sourceCell?.querySelector('a[href]')?.getAttribute('href')||'';
     const retailer=cells[0]?.textContent.trim()||'';
     const type=cells[1]?.textContent.trim().toLowerCase().replaceAll(' ','_')||'';
-    let r=all.find(x=>source&&String(x.source_url||'')===source)||all.find(x=>String(x.retailer||'').trim()===retailer&&String(x.price_type||'').trim()===type);
-    if(!r)return;const info=ageInfo(r.checked_at);const note=cells[cells.length-1];const el=document.createElement('span');el.className=`gco-evidence-age ${info.cls}`;el.textContent=info.label;note.appendChild(el);
+    const r=rows.find(x=>source&&String(x.source_url||'')===source)||rows.find(x=>String(x.retailer||'').trim()===retailer&&String(x.price_type||'').trim()===type);
+    if(!r)return;
+    const info=ageInfo(r.checked_at),note=cells[cells.length-1],el=document.createElement('span');
+    el.className=`gco-evidence-age ${info.cls}`;el.textContent=info.label;note.appendChild(el);
   });
 }
-async function add(e){e.preventDefault();const f=e.currentTarget,a=sb(),card=f.closest('.gco-card'),id=card?.dataset.productId,kind=f.closest('.gco-manual-evidence')?.dataset.manualKind,status=f.querySelector('.gco-manual-status');if(!a||!id)return;status.textContent='Saving…';status.className='gco-manual-status';const fd=new FormData(f);const overseas=kind==='overseas',payload={catalog_product_id:id,retailer:String(fd.get('retailer')||'').trim(),price_type:String(fd.get('price_type')||'market'),condition:String(fd.get('condition')||'').trim(),buy_price:fd.get('buy_price')?Number(fd.get('buy_price')):null,sell_price:fd.get('sell_price')?Number(fd.get('sell_price')):null,buy_method:'',source_url:String(fd.get('source_url')||'').trim(),notes:String(fd.get('notes')||'').trim(),checked_at:new Date().toISOString(),price_currency:overseas?String(fd.get('price_currency')||'').trim().toUpperCase():'GBP',evidence_region:overseas?String(fd.get('evidence_region')||'').trim().toUpperCase():'UK',price_region:overseas?String(fd.get('evidence_region')||'').trim().toUpperCase():'UK',availability_status:overseas?'unknown':String(fd.get('availability_status')||'unknown')};
+async function add(e){
+  e.preventDefault();
+  const f=e.currentTarget,a=sb(),card=f.closest('.gco-card'),id=card?.dataset.productId,kind=f.closest('.gco-manual-evidence')?.dataset.manualKind,status=f.querySelector('.gco-manual-status');
+  if(!a||!id)return;
+  status.textContent='Saving…';status.className='gco-manual-status';
+  const fd=new FormData(f),overseas=kind==='overseas';
+  const payload={catalog_product_id:id,retailer:String(fd.get('retailer')||'').trim(),price_type:String(fd.get('price_type')||'market'),condition:String(fd.get('condition')||'').trim(),buy_price:fd.get('buy_price')?Number(fd.get('buy_price')):null,sell_price:fd.get('sell_price')?Number(fd.get('sell_price')):null,buy_method:'',source_url:String(fd.get('source_url')||'').trim(),notes:String(fd.get('notes')||'').trim(),checked_at:new Date().toISOString(),price_currency:overseas?String(fd.get('price_currency')||'').trim().toUpperCase():'GBP',evidence_region:overseas?String(fd.get('evidence_region')||'').trim().toUpperCase():'UK',price_region:overseas?String(fd.get('evidence_region')||'').trim().toUpperCase():'UK',availability_status:overseas?'unknown':String(fd.get('availability_status')||'unknown')};
   if(!payload.retailer||!payload.source_url||payload.sell_price==null){status.textContent='Website, source URL and selling price are required.';status.className='gco-manual-status err';return}
   if(!overseas&&payload.price_currency!=='GBP'){status.textContent='UK evidence must use GBP.';status.className='gco-manual-status err';return}
   if(overseas&&payload.price_currency==='GBP'){status.textContent='Overseas evidence must remain non-GBP and unconverted.';status.className='gco-manual-status err';return}
-  const q=await a.from('quote_catalog_retailer_prices').insert(payload);if(q.error){status.textContent=q.error.message;status.className='gco-manual-status err';return}status.textContent='Evidence added with fresh timestamp.';status.className='gco-manual-status ok';f.reset();if(overseas)f.querySelector('[name="price_currency"]').value='USD';setTimeout(()=>location.reload(),350);
+  const q=await a.from('quote_catalog_retailer_prices').insert(payload);
+  if(q.error){status.textContent=q.error.message;status.className='gco-manual-status err';return}
+  status.textContent='Evidence added with fresh timestamp.';status.className='gco-manual-status ok';f.reset();if(overseas)f.querySelector('[name="price_currency"]').value='USD';
+  const panel=card?.querySelector('.gco-panel');if(panel){panel.dataset.gcoNeedsRefresh='1';setTimeout(()=>location.reload(),350)}else{location.reload()}
 }
-async function enhance(card){if(card.dataset.gcoEvidenceTools==='1')return;const id=card.dataset.productId;if(!id)return;card.dataset.gcoEvidenceTools='1';const rows=await evidenceRows(id);annotate(card,rows);const sections=[...card.querySelectorAll('.gco-section')];const newSec=sections.find(s=>s.classList.contains('gco-new')),usedSec=sections.find(s=>s.classList.contains('gco-used')),overSec=sections.find(s=>s.classList.contains('gco-overseas'));if(newSec&&!newSec.querySelector('[data-manual-kind]'))newSec.insertAdjacentHTML('beforeend',form('new'));if(usedSec&&!usedSec.querySelector('[data-manual-kind]'))usedSec.insertAdjacentHTML('beforeend',form('used'));if(overSec&&!overSec.querySelector('[data-manual-kind]'))overSec.insertAdjacentHTML('beforeend',form('overseas'));card.querySelectorAll('.gco-manual-form').forEach(f=>{if(f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',add)});
+async function enhance(card){
+  const id=card.dataset.productId;if(!id)return;
+  const panel=card.querySelector('.gco-panel');
+  if(!panel||!panel.querySelector('.gco-section'))return false;
+  const rows=await evidenceRows(id);annotate(card,rows);
+  const sections=[...card.querySelectorAll('.gco-section')],newSec=sections.find(s=>s.classList.contains('gco-new')),usedSec=sections.find(s=>s.classList.contains('gco-used')),overSec=sections.find(s=>s.classList.contains('gco-overseas'));
+  if(newSec&&!newSec.querySelector('[data-manual-kind]'))newSec.insertAdjacentHTML('beforeend',form('new'));
+  if(usedSec&&!usedSec.querySelector('[data-manual-kind]'))usedSec.insertAdjacentHTML('beforeend',form('used'));
+  if(overSec&&!overSec.querySelector('[data-manual-kind]'))overSec.insertAdjacentHTML('beforeend',form('overseas'));
+  card.querySelectorAll('.gco-manual-form').forEach(f=>{if(f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',add)});
+  card.dataset.gcoEvidenceTools='1';
+  return true;
 }
-function wire(){css();const list=document.getElementById('catalog-list');if(!list)return;const run=()=>list.querySelectorAll('.gco-card').forEach(enhance);new MutationObserver(run).observe(list,{childList:true,subtree:true});run();}
+function wire(){
+  css();
+  const list=document.getElementById('catalog-list');if(!list)return;
+  const run=()=>list.querySelectorAll('.gco-card').forEach(card=>{if(card.dataset.gcoEvidenceTools!=='1')enhance(card)});
+  new MutationObserver(run).observe(list,{childList:true,subtree:true});
+  run();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();
 })();
