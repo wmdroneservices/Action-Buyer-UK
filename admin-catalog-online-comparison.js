@@ -11,6 +11,11 @@
   function isDirectRetail(row){
     if(!row||row.sell_price==null)return false;
     if(!qualifyingTypes.has(String(row.price_type||'').toLowerCase()))return false;
+    // Online Comparison is strictly UK GBP evidence. International prices must remain
+    // in the separate international evidence section and can never populate this value.
+    const currency=String(row.price_currency||'GBP').toUpperCase();
+    const region=String(row.evidence_region||'UK').toUpperCase();
+    if(currency!=='GBP'||region!=='UK')return false;
     if(excludedSource.test(`${row.retailer||''} ${row.source_url||''}`))return false;
     if(excludedRetailer.test(String(row.retailer||'')))return false;
     const notes=String(row.notes||'');
@@ -72,7 +77,7 @@
     const api=window.actionBuyerAuth?.supabase; if(!api)return;
     const next=new Map(); let from=0; const pageSize=1000;
     while(true){
-      const {data,error}=await api.from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,price_type,condition,sell_price,availability_status,source_url,notes').in('price_type',['new','new_sale','market']).range(from,from+pageSize-1);
+      const {data,error}=await api.from('quote_catalog_retailer_prices').select('catalog_product_id,retailer,price_type,condition,sell_price,availability_status,source_url,notes,price_currency,evidence_region').in('price_type',['new','new_sale','market']).range(from,from+pageSize-1);
       if(error){console.error('Online comparison price lookup failed',error);return;}
       (data||[]).forEach(row=>{
         if(!isDirectRetail(row))return;
