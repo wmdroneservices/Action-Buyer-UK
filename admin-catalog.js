@@ -74,10 +74,12 @@ function clearForm(){
 }
 
 function loadProduct(p){
+  const editor=$('product-editor');if(editor)editor.open=true;
   setVal('product-id',p.id);setVal('category',p.category);setVal('manufacturer',p.manufacturer);setVal('model',p.model);setVal('package-key',p.package_key);setVal('package-name',p.package_name);setVal('factory-sealed',p.factory_sealed_price);setVal('opened-unused',p.opened_unused_price);setVal('excellent',p.excellent_price);setVal('good',p.good_price);setVal('fair',p.fair_price);setVal('notes',p.notes||'');if($('active'))$('active').checked=!!p.active;
   retailerRows=[];renderRetailers();
   sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at,price_currency,price_region,evidence_region').eq('catalog_product_id',p.id).order('retailer').order('price_type').order('condition').order('sell_price').then(({data,error})=>{if(error){showMessage(error.message,true);return;}retailerRows=dedupeEvidenceRows(data||[]);renderRetailers();Array.from(document.querySelectorAll('#retailer-prices-body tr[data-index]')).forEach((tr,i)=>{if(retailerRows[i]?.id)tr.dataset.id=retailerRows[i].id;if(retailerRows[i]?.checked_at)tr.dataset.checkedAt=retailerRows[i].checked_at;});});
-  window.scrollTo({top:0,behavior:'smooth'});
+  const editor=$('product-editor');
+  if(editor)editor.scrollIntoView({block:'start',behavior:'smooth'});else window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function showMessage(text,error=false){const el=$('catalog-message');if(!el)return;el.textContent=text;el.className=`form-message ${error?'error':'success'}`;}
