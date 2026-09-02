@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (checked("legalRight") !== "yes") { alert("You must confirm that you have the legal right to sell this equipment."); return false; }
       const category = clean(item.mainCategory || item.category).toLowerCase();
       const manufacturer = clean(item.manufacturer).toLowerCase();
-      if (manufacturer === "dji" && (category === "drone" || category === "controller") && !clean(el("drone-serial-number")?.value)) {
+      if (manufacturer === "dji" && (category === "drone" || category === "drones" || category === "drone accessories" || category === "controller") && !clean(el("drone-serial-number")?.value)) {
         alert("Please enter the DJI serial number before continuing."); return false;
       }
     }
