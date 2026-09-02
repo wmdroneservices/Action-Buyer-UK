@@ -15,11 +15,9 @@ const reg=r=>String(r?.evidence_region||'').trim().toUpperCase();
 const typ=r=>String(r?.price_type||'').trim().toLowerCase();
 const uk=r=>cur(r)==='GBP'&&reg(r)==='UK';
 const isMarketplace=r=>marketplace.test(`${r?.retailer||''} ${r?.source_url||''}`);
-const ukNew=r=>uk(r)&&!isMarketplace(r)&&['new','new_sale','manufacturer_rrp'].includes(typ(r))&&r.sell_price!=null;
+const ukNew=r=>uk(r)&&!isMarketplace(r)&&['new','new_sale'].includes(typ(r))&&r.sell_price!=null;
 const ukReference=r=>uk(r)&&!ukNew(r);
-// Raw research can legitimately contain the same exact live price twice (for example
-// once as NEW and once as manufacturer RRP). Keep the raw evidence in Supabase, but
-// never render that same exact source/price again in UK USED / OTHER.
+// Keep duplicate raw evidence from rendering repeatedly in UK USED / OTHER.
 const normUrl=r=>String(r?.source_url||'').trim().toLowerCase().split(/[?#]/)[0].replace(/\/+$/,'');
 const evidenceKey=r=>[String(r?.retailer||'').trim().toLowerCase(),normUrl(r),cur(r),String(r?.sell_price??''),String(r?.buy_price??'')].join('|');
 const money=(v,c='GBP')=>v==null||v===''?'—':`${sym[String(c).toUpperCase()]||String(c).toUpperCase()+' '}${Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
