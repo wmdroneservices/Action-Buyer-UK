@@ -86,6 +86,7 @@ async function loadRules(){
   savedRules=data||[];
   renderSavedRules();
   refreshAutomaticRuleFilter();
+  renderAutomaticProducts();
 }
 
 function renderSavedRules(){
