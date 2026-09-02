@@ -1,5 +1,5 @@
 /* GearCashOut catalogue market structure renderer.
-   UK NEW = direct UK retailer + GBP + New/New Sale selling price only.
+   UK NEW = direct UK retailer/manufacturer + GBP + New/New Sale/manufacturer RRP selling price only.
    UK USED/OTHER = every other UK GBP evidence record, including used retailer,
    marketplace, auction and classified evidence. Reference only.
    OVERSEAS = non-UK or non-GBP evidence, original currency, reference only.
@@ -15,7 +15,7 @@ const reg=r=>String(r?.evidence_region||'').trim().toUpperCase();
 const typ=r=>String(r?.price_type||'').trim().toLowerCase();
 const uk=r=>cur(r)==='GBP'&&reg(r)==='UK';
 const isMarketplace=r=>marketplace.test(`${r?.retailer||''} ${r?.source_url||''}`);
-const ukNew=r=>uk(r)&&!isMarketplace(r)&&['new','new_sale'].includes(typ(r))&&r.sell_price!=null;
+const ukNew=r=>uk(r)&&!isMarketplace(r)&&['new','new_sale','manufacturer_rrp'].includes(typ(r))&&r.sell_price!=null;
 const ukReference=r=>uk(r)&&!ukNew(r);
 // Raw research can legitimately contain the same exact live price twice (for example
 // once as NEW and once as manufacturer RRP). Keep the raw evidence in Supabase, but
