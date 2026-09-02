@@ -78,20 +78,37 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
     select.disabled = !(options && options.length);
   }
-  function categories() {
-    return [...new Set(catalog.map(p => clean(p.category)).filter(Boolean))].sort().map(value => ({value,label:value.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase())}));
+  function mainCategories() {
+    return [...new Set(catalog.map(p => clean(p.main_category || p.category)).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+  }
+  function productTypes() {
+    return [...new Set(catalog
+      .filter(p => clean(p.main_category || p.category) === clean(item.mainCategory))
+      .map(p => clean(p.product_type || p.category)).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+  }
+  function scopedProducts() {
+    return catalog.filter(p =>
+      clean(p.main_category || p.category) === clean(item.mainCategory) &&
+      clean(p.product_type || p.category) === clean(item.productType)
+    );
   }
   function manufacturers() {
-    return [...new Set(catalog.filter(p => clean(p.category) === clean(item.category)).map(p => clean(p.manufacturer)).filter(Boolean))].sort().map(value => ({value,label:value}));
+    return [...new Set(scopedProducts().map(p => clean(p.manufacturer)).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
   }
   function models() {
-    return [...new Set(catalog.filter(p => clean(p.category) === clean(item.category) && clean(p.manufacturer) === clean(item.manufacturer)).map(p => clean(p.model)).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+    return [...new Set(scopedProducts().filter(p => clean(p.manufacturer) === clean(item.manufacturer))
+      .map(p => clean(p.model)).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
   }
   function packages() {
-    return catalog.filter(p => clean(p.category) === clean(item.category) && clean(p.manufacturer) === clean(item.manufacturer) && clean(p.model) === clean(item.model)).map(p => ({value:clean(p.package_key) || "standard",label:clean(p.package_name) || "Standard Package"}));
+    return scopedProducts().filter(p => clean(p.manufacturer) === clean(item.manufacturer) && clean(p.model) === clean(item.model))
+      .map(p => ({value:clean(p.package_key) || "standard",label:clean(p.package_name) || "Standard Package"}));
   }
   function validateStep(step) {
-    if (step === 1 && !clean(item.category)) { alert("Please select a category."); return false; }
+    if (step === 1 && (!clean(item.mainCategory) || !clean(item.productType))) { alert("Please select a category and product type."); return false; }
     if (step === 2 && !clean(item.manufacturer)) { alert("Please select a manufacturer."); return false; }
     if (step === 3 && !clean(item.model)) { alert("Please select a model."); return false; }
     if (step === 4 && !clean(item.package)) { alert("Please select a package."); return false; }
@@ -100,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (step === 7) {
       if (!currentItemFiles.length) { alert("Please upload at least one photograph."); return false; }
       if (checked("legalRight") !== "yes") { alert("You must confirm that you have the legal right to sell this equipment."); return false; }
-      const category = clean(item.category).toLowerCase();
+      const category = clean(item.mainCategory || item.category).toLowerCase();
       const manufacturer = clean(item.manufacturer).toLowerCase();
       if (manufacturer === "dji" && (category === "drone" || category === "controller") && !clean(el("drone-serial-number")?.value)) {
         alert("Please enter the DJI serial number before continuing."); return false;
@@ -110,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
   function findProduct() {
     const packageKey = clean(item.package) || "standard";
-    return catalog.find(p => clean(p.category).toLowerCase() === clean(item.category).toLowerCase() && clean(p.manufacturer).toLowerCase() === clean(item.manufacturer).toLowerCase() && clean(p.model).toLowerCase() === clean(item.model).toLowerCase() && (clean(p.package_key) || "standard").toLowerCase() === packageKey.toLowerCase()) || null;
+    return catalog.find(p => clean(p.main_category || p.category).toLowerCase() === clean(item.mainCategory || item.category).toLowerCase() && clean(p.product_type || p.category).toLowerCase() === clean(item.productType || item.category).toLowerCase() && clean(p.manufacturer).toLowerCase() === clean(item.manufacturer).toLowerCase() && clean(p.model).toLowerCase() === clean(item.model).toLowerCase() && (clean(p.package_key) || "standard").toLowerCase() === packageKey.toLowerCase()) || null;
   }
   function valuation() {
     const product = findProduct();
@@ -132,7 +149,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   async function addCurrentItem() {
     const result = valuation();
     const entry = {
-      category:item.category, categoryName:item.categoryName,
+      category:item.category, categoryName:item.categoryName, mainCategory:item.mainCategory, mainCategoryName:item.mainCategoryName, productType:item.productType, productTypeName:item.productTypeName,
       manufacturer:item.manufacturer, manufacturerName:item.manufacturerName,
       model:item.model, modelName:item.modelName,
       package:item.package || "standard", packageName:item.packageName || "Standard Package",
@@ -152,7 +169,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
   function resetItem() {
     item = {}; packageOptions = []; currentItemFiles = [];
-    ["gear-category","gear-manufacturer","dji-model","package-select"].forEach(id => { const node=el(id); if(node) node.value=""; });
+    ["gear-category","gear-product-type","gear-manufacturer","dji-model","package-select"].forEach(id => { const node=el(id); if(node) node.value=""; });
+    setSelect(el("gear-product-type"),[],"-- Select product type --");
     setSelect(el("gear-manufacturer"),[],"-- Select manufacturer --");
     setSelect(el("dji-model"),[],"-- Select model --");
     setSelect(el("package-select"),[],"-- Select package --");
@@ -166,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   try {
     let all = [], from = 0, pageSize = 1000;
     while (true) {
-      const {data,error} = await auth.supabase.from("quote_catalog_products").select("id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price").eq("active",true).range(from,from+pageSize-1).order("manufacturer").order("model");
+      const {data,error} = await auth.supabase.from("quote_catalog_products").select("id,category,main_category,product_type,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price").eq("active",true).range(from,from+pageSize-1).order("manufacturer").order("model");
       if (error) throw error;
       all.push(...(data || []));
       if (!data || data.length < pageSize) break;
@@ -179,16 +197,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  setSelect(el("gear-category"),categories(),"-- Select category --");
+  setSelect(el("gear-category"),mainCategories(),"-- Select category --");
+  setSelect(el("gear-product-type"),[],"-- Select product type --");
   renderBasket(); renderPhotoList(); progressLabels();
 
   el("gear-category")?.addEventListener("change", function(){
-    item = {category:this.value, categoryName:this.options[this.selectedIndex]?.textContent || ""};
+    item = {mainCategory:this.value, mainCategoryName:this.options[this.selectedIndex]?.textContent || "", category:this.value, categoryName:this.options[this.selectedIndex]?.textContent || ""};
     packageOptions = [];
-    setSelect(el("gear-manufacturer"),manufacturers(),"-- Select manufacturer --");
+    setSelect(el("gear-product-type"),productTypes(),"-- Select product type --");
+    setSelect(el("gear-manufacturer"),[],"-- Select manufacturer --");
     setSelect(el("dji-model"),[],"-- Select model --");
     setSelect(el("package-select"),[],"-- Select package --");
     el("package-help").textContent = "";
+  });
+  el("gear-product-type")?.addEventListener("change", function(){
+    item.productType=this.value; item.productTypeName=this.options[this.selectedIndex]?.textContent || this.value;
+    item.category=this.value; item.categoryName=item.productTypeName;
+    packageOptions=[];
+    setSelect(el("gear-manufacturer"),manufacturers(),"-- Select manufacturer --");
+    setSelect(el("dji-model"),[],"-- Select model --");
+    setSelect(el("package-select"),[],"-- Select package --");
   });
   el("gear-manufacturer")?.addEventListener("change", function(){
     item.manufacturer=this.value; item.manufacturerName=this.options[this.selectedIndex]?.textContent || this.value;
