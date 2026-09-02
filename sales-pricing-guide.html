@@ -23,10 +23,11 @@
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">SALES · READ ONLY</p><h1>Sales Pricing Guide</h1><p>Use the live Purchasing catalogue to check current online comparison evidence before setting a selling price.</p></div><a class="btn btn-secondary" href="admin-sales-dashboard.html">SALES DASHBOARD</a></div>
 <section class="account-panel">
-<div class="section-heading"><p class="section-kicker">PRODUCT LOOKUP</p><h2>Select a product</h2><p>Choose the manufacturer first. The Type list then shows only types available for that manufacturer. The Product list then shows only products matching both selections.</p></div>
+<div class="section-heading"><p class="section-kicker">PRODUCT LOOKUP</p><h2>Select a product</h2><p>Choose the main category first, then the product type, then the manufacturer. Each list only shows options relevant to the previous selection.</p></div>
 <div class="pricing-cascade">
-<div class="catalog-filter"><label for="pricing-manufacturer">Manufacturer</label><select id="pricing-manufacturer"><option value="">-- Select manufacturer --</option></select></div>
-<div class="catalog-filter"><label for="pricing-category">Type</label><select id="pricing-category" disabled><option value="">-- Select type --</option></select></div>
+<div class="catalog-filter"><label for="pricing-main-category">Category</label><select id="pricing-main-category"><option value="">-- Select category --</option></select></div>
+<div class="catalog-filter"><label for="pricing-category">Type</label><select id="pricing-category" disabled><option value="">-- Select category first --</option></select></div>
+<div class="catalog-filter"><label for="pricing-manufacturer">Manufacturer</label><select id="pricing-manufacturer" disabled><option value="">-- Select type first --</option></select></div>
 <div class="pricing-product-picker">
 <label for="pricing-product">Product</label>
 <select id="pricing-product" disabled><option value="">-- Select manufacturer and type first --</option></select>
