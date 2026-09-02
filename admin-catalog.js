@@ -19,8 +19,8 @@ function checkedLabel(v){if(!v)return '—';const d=new Date(v);return Number.is
 function renderUkMarketReference(){
   const box=$('uk-market-reference-grid');if(!box)return;
   const uk=retailerRows.filter(r=>String(r.price_currency||'').toUpperCase()==='GBP'&&String(r.evidence_region||'').toUpperCase()==='UK');
-  const newRows=uk.filter(r=>['new','new_sale','manufacturer_rrp'].includes(String(r.price_type||'').toLowerCase()));
-  const usedRows=uk.filter(r=>!['new','new_sale','manufacturer_rrp'].includes(String(r.price_type||'').toLowerCase()));
+  const newRows=uk.filter(r=>['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
+  const usedRows=uk.filter(r=>!['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
   const prices=newRows.map(r=>Number(r.sell_price)).filter(Number.isFinite);
   const cards=[];
   cards.push(`<div class="uk-market-stat"><strong>${newRows.length}</strong><span>UK NEW pricing evidence records</span></div>`);
@@ -35,7 +35,7 @@ function renderRetailers(){
   if(!retailerRows.length){body.innerHTML='<tr><td colspan="13">No online comparison evidence recorded yet. Add UK and overseas evidence where it is genuinely useful. Keep direct source links and timestamps.</td></tr>';return;}
   body.innerHTML=retailerRows.map((r,i)=>{const url=safeUrl(r.source_url);return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
     <td><input class="retailer" value="${esc(r.retailer)}" placeholder="DJI / Amazon UK / MPB / CeX"></td>
-    <td><select class="retailer-type"><option value="new" ${r.price_type==='new'?'selected':''}>New</option><option value="new_sale" ${r.price_type==='new_sale'?'selected':''}>New — Sale / Offer</option><option value="manufacturer_rrp" ${r.price_type==='manufacturer_rrp'?'selected':''}>Manufacturer RRP</option><option value="refurbished" ${r.price_type==='refurbished'?'selected':''}>Refurbished</option><option value="used" ${r.price_type==='used'?'selected':''}>Used</option><option value="competitor_buying" ${r.price_type==='competitor_buying'?'selected':''}>Competitor Buying</option><option value="completed_sale" ${r.price_type==='completed_sale'?'selected':''}>Completed Sale</option><option value="market" ${r.price_type==='market'?'selected':''}>Market Reference</option></select></td>
+    <td><select class="retailer-type"><option value="new" ${r.price_type==='new'?'selected':''}>New</option><option value="new_sale" ${r.price_type==='new_sale'?'selected':''}>New — Sale / Offer</option><option value="refurbished" ${r.price_type==='refurbished'?'selected':''}>Refurbished</option><option value="used" ${r.price_type==='used'?'selected':''}>Used</option><option value="competitor_buying" ${r.price_type==='competitor_buying'?'selected':''}>Competitor Buying</option><option value="completed_sale" ${r.price_type==='completed_sale'?'selected':''}>Completed Sale</option><option value="market" ${r.price_type==='market'?'selected':''}>Market Reference</option></select></td>
     <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="New / Opened / Excellent / Good / Fair"></td>
     <td><input class="retailer-currency" value="${esc(r.price_currency||'')}" placeholder="GBP / USD / EUR" maxlength="3"></td>
     <td><input class="retailer-region" value="${esc(r.evidence_region||'')}" placeholder="UK / USA / Germany"></td>
