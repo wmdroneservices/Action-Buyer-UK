@@ -20,7 +20,7 @@ function renderUkMarketReference(){
   const box=$('uk-market-reference-grid');if(!box)return;
   const uk=retailerRows.filter(r=>String(r.price_currency||'').toUpperCase()==='GBP'&&String(r.evidence_region||'').toUpperCase()==='UK');
   const newRows=uk.filter(r=>['new','new_sale','manufacturer_rrp'].includes(String(r.price_type||'').toLowerCase()));
-  const usedRows=uk.filter(r=>!['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
+  const usedRows=uk.filter(r=>!['new','new_sale','manufacturer_rrp'].includes(String(r.price_type||'').toLowerCase()));
   const prices=newRows.map(r=>Number(r.sell_price)).filter(Number.isFinite);
   const cards=[];
   cards.push(`<div class="uk-market-stat"><strong>${newRows.length}</strong><span>UK NEW pricing evidence records</span></div>`);
