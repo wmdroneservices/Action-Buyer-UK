@@ -18,6 +18,20 @@ function safe(v){
   }catch{return'';}
 }
 
+function evidenceKey(r){
+  return [
+    String(r.retailer||'').trim().toLowerCase(),
+    String(r.price_type||'').trim().toLowerCase(),
+    String(r.condition||'').trim().toLowerCase(),
+    r.buy_price??'',r.sell_price??'',
+    safe(r.source_url||'').replace(/\/$/,'').toLowerCase()
+  ].join('|');
+}
+function dedupeEvidenceRows(rows){
+  const seen=new Set();
+  return (rows||[]).filter(r=>{const key=evidenceKey(r);if(seen.has(key))return false;seen.add(key);return true;});
+}
+
 function productLabel(p){
   return [p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ')||'Unnamed product';
 }
@@ -113,7 +127,7 @@ async function openProduct(id){
     return;
   }
 
-  const e=data||[];
+  const e=dedupeEvidenceRows(data||[]);
   $('pricing-no-evidence').hidden=!!e.length;
 
   $('pricing-condition-guide').innerHTML=
