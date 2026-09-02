@@ -1,105 +1,442 @@
 /* GearCashOut automatic catalogue block pricing. */
 (function(){
 'use strict';
-const A=()=>window.actionBuyerAuth,S=()=>A()?.supabase,$=id=>document.getElementById(id);
-let products=[],previewRows=[],savedRuleId=null,savedRules=[];
-const money=v=>v==null?'—':Number(v).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
+
+const auth=()=>window.actionBuyerAuth;
+const sb=()=>auth()?.supabase;
+const $=id=>document.getElementById(id);
+
+let products=[];
+let previewRows=[];
+let savedRules=[];
+let savedRuleId=null;
+
+const money=v=>v==null||v===''?'—':Number(v).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function msg(t,bad=false){const e=$('pricing-message');e.textContent=t;e.className='pricing-message show '+(bad?'error':'success');}
-function val(id){return $(id).value.trim();}
-function num(id){const n=Number($(id).value);return Number.isFinite(n)?n:0;}
-async function staff(){const s=await A().getSession();if(!s){location.href='login.html?return=admin-automatic-pricing.html';return false;}const r=await S().from('staff_users').select('user_id').eq('user_id',s.user.id).maybeSingle();if(r.error)throw r.error;if(!r.data){document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1></section></div></main>';return false;}return true;}
-function scope(){return products.filter(p=>(!val('rule-manufacturer')||p.manufacturer===val('rule-manufacturer'))&&(!val('rule-main-category')||p.main_category===val('rule-main-category'))&&(!val('rule-product-type')||p.product_type===val('rule-product-type'))&&(!val('rule-category')||p.category===val('rule-category')));}
-function fill(id,values,placeholder){const current=val(id),e=$(id);e.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');if([...e.options].some(o=>o.value===current))e.value=current;}
-function refreshFilters(){const base=val('rule-manufacturer')?products.filter(p=>p.manufacturer===val('rule-manufacturer')):products;fill('rule-main-category',base.map(p=>p.main_category),'All main categories');const b1=base.filter(p=>!val('rule-main-category')||p.main_category===val('rule-main-category'));fill('rule-product-type',b1.map(p=>p.product_type),'All product types');const b2=b1.filter(p=>!val('rule-product-type')||p.product_type===val('rule-product-type'));fill('rule-category',b2.map(p=>p.category),'All branches');}
-function ruleLabel(r){const scope=[r.main_category,r.product_type,r.category].filter(Boolean).join(' › ')||'All products';return r.manufacturer+' — '+scope+' ('+Number(r.sealed_percent)+'% sealed)';}
-async function loadRules(){const r=await S().from('quote_catalog_pricing_rules').select('id,manufacturer,main_category,product_type,category,sealed_percent,opened_unused_discount_percent,excellent_discount_percent,good_discount_percent,fair_discount_percent,active,created_at,updated_at').order('updated_at',{ascending:false});if(r.error)throw r.error;savedRules=r.data||[];const e=$('saved-rule');e.innerHTML='<option value="">Select a saved block</option>'+savedRules.map(x=>'<option value="'+x.id+'">'+esc(ruleLabel(x))+'</option>').join('');}
-function resetBlock(){savedRuleId=null;previewRows=[];$('saved-rule').value='';$('rule-manufacturer').value='';refreshFilters();$('rule-main-category').value='';$('rule-product-type').value='';$('rule-category').value='';$('sealed-percent').value='80';$('opened-discount').value='5';$('excellent-discount').value='15';$('good-discount').value='25';$('fair-discount').value='40';$('apply-rule').disabled=true;renderPreview();$('preview-text').textContent='Create a new block, select its scope, then preview the products.';msg('New pricing block ready.');}
-function loadSelectedRule(){const id=$('saved-rule').value;const r=savedRules.find(x=>x.id===id);if(!r){msg('Select a saved pricing block first.',true);return;}savedRuleId=r.id;$('rule-manufacturer').value=r.manufacturer||'';refreshFilters();$('rule-main-category').value=r.main_category||'';refreshFilters();$('rule-product-type').value=r.product_type||'';refreshFilters();$('rule-category').value=r.category||'';$('sealed-percent').value=r.sealed_percent??'';$('opened-discount').value=r.opened_unused_discount_percent??'';$('excellent-discount').value=r.excellent_discount_percent??'';$('good-discount').value=r.good_discount_percent??'';$('fair-discount').value=r.fair_discount_percent??'';previewRows=[];$('apply-rule').disabled=true;renderPreview();$('preview-text').textContent='Block loaded. Preview the current scope, edit if required, then save your changes.';msg('Saved pricing block loaded for editing.');}
-function calculate(price){const sealed=price*num('sealed-percent')/100;const off=x=>sealed*(1-num(x)/100);return {sealed,opened:off('opened-discount'),excellent:off('excellent-discount'),good:off('good-discount'),fair:off('fair-discount')};}
+const val=id=>$(id)?.value?.trim()||'';
+const num=id=>{const n=Number($(id)?.value);return Number.isFinite(n)?n:0;};
+const nullable=id=>val(id)||null;
+
+function msg(text,error=false){
+  const el=$('pricing-message');
+  if(!el)return;
+  el.textContent=text;
+  el.className='pricing-message show '+(error?'error':'success');
+}
+
+async function requireStaff(){
+  const session=await auth().getSession();
+  if(!session){location.href='login.html?return=admin-automatic-pricing.html';return false;}
+  const {data,error}=await sb().from('staff_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
+  if(error)throw error;
+  if(!data){
+    document.body.innerHTML='<main class="account-page"><div class="container"><section class="account-panel"><h1>Staff access required</h1></section></div></main>';
+    return false;
+  }
+  return true;
+}
+
+function fill(id,values,placeholder){
+  const el=$(id);
+  if(!el)return;
+  const current=el.value;
+  const unique=[...new Set((values||[]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
+  el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+unique.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(unique.includes(current))el.value=current;
+}
+
+function refreshScopeFilters(){
+  const manufacturer=val('rule-manufacturer');
+  const base=manufacturer?products.filter(p=>p.manufacturer===manufacturer):products;
+  fill('rule-main-category',base.map(p=>p.main_category),'All main categories');
+
+  const main=val('rule-main-category');
+  const mainRows=main?base.filter(p=>p.main_category===main):base;
+  fill('rule-product-type',mainRows.map(p=>p.product_type),'All product types');
+
+  const type=val('rule-product-type');
+  const typeRows=type?mainRows.filter(p=>p.product_type===type):mainRows;
+  fill('rule-category',typeRows.map(p=>p.category),'All branches');
+}
+
+function scopeProducts(){
+  const manufacturer=val('rule-manufacturer');
+  const main=val('rule-main-category');
+  const type=val('rule-product-type');
+  const category=val('rule-category');
+  return products.filter(p=>
+    (!manufacturer||p.manufacturer===manufacturer)&&
+    (!main||p.main_category===main)&&
+    (!type||p.product_type===type)&&
+    (!category||p.category===category)
+  );
+}
+
+function ruleLabel(rule){
+  const scope=[rule.manufacturer,rule.main_category,rule.product_type,rule.category].filter(Boolean).join(' · ');
+  return scope||'Unnamed pricing block';
+}
+
 async function loadRules(){
-  const r=await S().from('quote_catalog_pricing_rules').select('id,manufacturer,main_category,product_type,category,sealed_percent,opened_unused_discount_percent,excellent_discount_percent,good_discount_percent,fair_discount_percent,active,created_at,updated_at').order('updated_at',{ascending:false}).order('created_at',{ascending:false});
-  if(r.error)throw r.error;
-  savedRules=r.data||[];
+  const {data,error}=await sb().from('quote_catalog_pricing_rules')
+    .select('id,manufacturer,main_category,product_type,category,sealed_percent,opened_unused_discount_percent,excellent_discount_percent,good_discount_percent,fair_discount_percent,active,created_at,updated_at')
+    .order('updated_at',{ascending:false})
+    .order('created_at',{ascending:false});
+  if(error)throw error;
+  savedRules=data||[];
   renderSavedRules();
+  refreshAutomaticRuleFilter();
 }
-function ruleLabel(r){
-  return [r.manufacturer,r.main_category,r.product_type,r.category].filter(Boolean).join(' · ')||'Unnamed block';
-}
+
 function renderSavedRules(){
-  const e=$('saved-rule');
-  const current=savedRuleId||e.value;
-  e.innerHTML='<option value="">Select a saved pricing block</option>'+savedRules.map(r=>'<option value="'+esc(r.id)+'">'+esc(ruleLabel(r))+'</option>').join('');
-  if(current&&savedRules.some(r=>r.id===current))e.value=current;
-  $('load-rule').disabled=!e.value;
-  $('delete-rule').disabled=!e.value;
-  updateSavedRuleDetails();
+  const el=$('saved-rule');
+  const selected=savedRuleId||el?.value||'';
+  if(!el)return;
+  el.innerHTML='<option value="">Select a saved pricing block</option>'+savedRules.map(r=>'<option value="'+esc(r.id)+'">'+esc(ruleLabel(r))+'</option>').join('');
+  if(selected&&savedRules.some(r=>r.id===selected))el.value=selected;
+  updateSavedRuleControls();
 }
-function updateSavedRuleDetails(){
-  const r=savedRules.find(x=>x.id===$('saved-rule').value);
-  $('saved-rule-details').textContent=r?'Sealed '+r.sealed_percent+'% · Opened/unused '+r.opened_unused_discount_percent+'% off · Excellent '+r.excellent_discount_percent+'% off · Good '+r.good_discount_percent+'% off · Fair '+r.fair_discount_percent+'% off':'No saved block selected.';
+
+function updateSavedRuleControls(){
+  const id=val('saved-rule');
+  const rule=savedRules.find(r=>r.id===id);
+  $('load-rule').disabled=!rule;
+  $('delete-rule').disabled=!rule;
+  $('saved-rule-details').textContent=rule
+    ?'Sealed '+rule.sealed_percent+'% · Opened/unused '+rule.opened_unused_discount_percent+'% off · Excellent '+rule.excellent_discount_percent+'% off · Good '+rule.good_discount_percent+'% off · Fair '+rule.fair_discount_percent+'% off'
+    :'No saved block selected.';
 }
+
 function loadSelectedRule(){
-  const r=savedRules.find(x=>x.id===$('saved-rule').value);
-  if(!r){msg('Select a saved pricing block first.',true);return;}
-  savedRuleId=r.id;
-  $('rule-manufacturer').value=r.manufacturer||'';
-  refreshFilters();
-  $('rule-main-category').value=r.main_category||'';
-  refreshFilters();
-  $('rule-product-type').value=r.product_type||'';
-  refreshFilters();
-  $('rule-category').value=r.category||'';
-  $('sealed-percent').value=r.sealed_percent??80;
-  $('opened-discount').value=r.opened_unused_discount_percent??5;
-  $('excellent-discount').value=r.excellent_discount_percent??15;
-  $('good-discount').value=r.good_discount_percent??25;
-  $('fair-discount').value=r.fair_discount_percent??40;
-  previewRows=[];$('apply-rule').disabled=true;
-  $('preview-text').textContent='Block loaded. Preview products to review the current scope before applying changes.';
+  const rule=savedRules.find(r=>r.id===val('saved-rule'));
+  if(!rule){msg('Select a saved pricing block first.',true);return;}
+
+  savedRuleId=rule.id;
+  $('rule-manufacturer').value=rule.manufacturer||'';
+  refreshScopeFilters();
+  $('rule-main-category').value=rule.main_category||'';
+  refreshScopeFilters();
+  $('rule-product-type').value=rule.product_type||'';
+  refreshScopeFilters();
+  $('rule-category').value=rule.category||'';
+
+  $('sealed-percent').value=rule.sealed_percent??80;
+  $('opened-discount').value=rule.opened_unused_discount_percent??5;
+  $('excellent-discount').value=rule.excellent_discount_percent??15;
+  $('good-discount').value=rule.good_discount_percent??25;
+  $('fair-discount').value=rule.fair_discount_percent??40;
+
+  previewRows=[];
+  $('apply-rule').disabled=true;
   $('preview-body').innerHTML='<tr><td colspan="7">Block loaded. Click Preview Products to recalculate the affected products.</td></tr>';
-  msg('Saved pricing block loaded. You can now edit it and Save / Update Rule.');
+  $('preview-text').textContent='Saved block loaded. Preview products before applying any changes.';
+  msg('Saved pricing block loaded for editing.');
 }
+
 function newRule(){
   savedRuleId=null;
   $('saved-rule').value='';
-  $('rule-manufacturer').value='';refreshFilters();
-  $('sealed-percent').value=80;$('opened-discount').value=5;$('excellent-discount').value=15;$('good-discount').value=25;$('fair-discount').value=40;
-  previewRows=[];$('apply-rule').disabled=true;
-  $('preview-text').textContent='Create a new manufacturer and branch pricing block.';
+  updateSavedRuleControls();
+
+  $('rule-manufacturer').value='';
+  refreshScopeFilters();
+  $('rule-main-category').value='';
+  $('rule-product-type').value='';
+  $('rule-category').value='';
+
+  $('sealed-percent').value=80;
+  $('opened-discount').value=5;
+  $('excellent-discount').value=15;
+  $('good-discount').value=25;
+  $('fair-discount').value=40;
+
+  previewRows=[];
+  $('apply-rule').disabled=true;
   $('preview-body').innerHTML='<tr><td colspan="7">No preview loaded.</td></tr>';
-  updateSavedRuleDetails();msg('New pricing block ready.');
+  $('preview-text').textContent='Create a new manufacturer and branch pricing block.';
+  $('pricing-summary').innerHTML='';
+  msg('New pricing block ready.');
 }
+
 async function deleteSelectedRule(){
-  const id=$('saved-rule').value;
-  if(!id)throw new Error('Select a saved rule first.');
-  if(!confirm('Delete this saved pricing rule? Existing product prices will not be changed.'))return;
-  const r=await S().from('quote_catalog_pricing_rules').delete().eq('id',id);
-  if(r.error)throw r.error;
+  const id=val('saved-rule');
+  if(!id)throw new Error('Select a saved pricing block first.');
+  if(!confirm('Delete this saved pricing block? Existing product prices will not be changed.'))return;
+
+  const {error}=await sb().from('quote_catalog_pricing_rules').delete().eq('id',id);
+  if(error)throw error;
+
   if(savedRuleId===id)savedRuleId=null;
-  await loadRules();msg('Saved pricing rule deleted. Existing product prices were not changed.');
+  await loadRules();
+  newRule();
+  msg('Saved pricing block deleted. Existing product prices were not changed.');
 }
-async function loadProducts(){let all=[],from=0;while(true){const r=await S().from('quote_catalog_products').select('id,manufacturer,main_category,product_type,category,model,package_name').range(from,from+999).order('manufacturer').order('model');if(r.error)throw r.error;all.push(...(r.data||[]));if(!r.data||r.data.length<1000)break;from+=1000;}products=all;fill('rule-manufacturer',products.map(p=>p.manufacturer),'Select manufacturer');refreshFilters();}
-async function getComparisons(ids){const out=new Map();for(let i=0;i<ids.length;i+=500){const r=await S().from('quote_catalog_retailer_prices').select('catalog_product_id,sell_price,checked_at').in('catalog_product_id',ids.slice(i,i+500)).eq('evidence_region','UK').eq('price_currency','GBP').in('price_type',['new','new_sale']).not('sell_price','is',null).order('checked_at',{ascending:false});if(r.error)throw r.error;(r.data||[]).forEach(x=>{if(!out.has(x.catalog_product_id))out.set(x.catalog_product_id,Number(x.sell_price));});}return out;}
-async function preview(){try{const selected=scope();if(!val('rule-manufacturer'))throw new Error('Select a manufacturer first.');if(!selected.length)throw new Error('No products match the selected branch.');const comparisons=await getComparisons(selected.map(p=>p.id));previewRows=selected.filter(p=>comparisons.has(p.id)).map(p=>({product:p,comparison:comparisons.get(p.id),...calculate(comparisons.get(p.id))}));renderPreview();savedRuleId=null;$('apply-rule').disabled=true;msg(previewRows.length+' products have qualifying UK New online comparison prices and can be priced.');}catch(e){msg(e.message||String(e),true);}}
-function renderPreview(){const body=$('preview-body');body.innerHTML=previewRows.length?previewRows.map(r=>'<tr><td><strong>'+esc(r.product.manufacturer)+' '+esc(r.product.model)+'</strong><br><small>'+esc(r.product.package_name||'')+'</small></td><td>'+money(r.comparison)+'</td><td>'+money(r.sealed)+'</td><td>'+money(r.opened)+'</td><td>'+money(r.excellent)+'</td><td>'+money(r.good)+'</td><td>'+money(r.fair)+'</td></tr>').join(''):'<tr><td colspan="7">No qualifying UK New online comparison prices found for this selection.</td></tr>';$('preview-text').textContent=previewRows.length?previewRows.length+' products will be affected if the rule is applied.':'No qualifying products found.';$('pricing-summary').innerHTML=[['Products in scope',scope().length],['With UK New comparison',previewRows.length],['Excluded — no comparison',scope().length-previewRows.length],['Manufacturer',val('rule-manufacturer')||'—']].map(x=>'<div class="pricing-stat"><strong>'+esc(x[1])+'</strong><span>'+esc(x[0])+'</span></div>').join('');}
-function nullable(id){const x=val(id);return x||null;}
-async function saveRule(){try{if(!val('rule-manufacturer'))throw new Error('Select a manufacturer first.');if(!previewRows.length)await preview();const row={manufacturer:val('rule-manufacturer'),main_category:nullable('rule-main-category'),product_type:nullable('rule-product-type'),category:nullable('rule-category'),sealed_percent:num('sealed-percent'),opened_unused_discount_percent:num('opened-discount'),excellent_discount_percent:num('excellent-discount'),good_discount_percent:num('good-discount'),fair_discount_percent:num('fair-discount'),active:true,updated_at:new Date().toISOString()};let r;
-if(savedRuleId){
-  r=await S().from('quote_catalog_pricing_rules').update(row).eq('id',savedRuleId).select('id').single();
-}else{
-  r=await S().from('quote_catalog_pricing_rules').insert(row).select('id').single();
+
+async function loadProducts(){
+  const all=[];
+  let from=0;
+  const pageSize=1000;
+
+  while(true){
+    const {data,error}=await sb().from('quote_catalog_products')
+      .select('id,manufacturer,main_category,product_type,category,model,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,pricing_source,automatic_pricing_rule_id')
+      .range(from,from+pageSize-1)
+      .order('manufacturer')
+      .order('model');
+    if(error)throw error;
+    all.push(...(data||[]));
+    if(!data||data.length<pageSize)break;
+    from+=pageSize;
+  }
+
+  products.splice(0,products.length,...all);
+  fill('rule-manufacturer',products.map(p=>p.manufacturer),'Select manufacturer');
+  refreshScopeFilters();
+  renderAutomaticProducts();
 }
-if(r.error)throw r.error;
-savedRuleId=r.data.id;
-await loadRules();
-$('saved-rule').value=savedRuleId;
-renderSavedRules();
-$('apply-rule').disabled=false;
-msg('Pricing rule '+(savedRuleId?'saved':'saved')+'. Review the preview, then apply when ready.');}catch(e){msg(e.message||String(e),true);}}
-async function apply(){try{if(!savedRuleId)throw new Error('Save the pricing rule first.');if(!confirm('Apply this pricing rule to '+previewRows.length+' products? This updates the automatic buying-price fields for the selected products.'))return;$('apply-rule').disabled=true;const r=await S().rpc('apply_quote_catalog_pricing_rule',{p_rule_id:savedRuleId});if(r.error)throw r.error;const count=Array.isArray(r.data)?r.data[0]?.updated_products:r.data;msg('Automatic pricing applied to '+(count??previewRows.length)+' products.');}catch(e){msg('Pricing update failed: '+(e.message||String(e)),true);$ ('apply-rule').disabled=false;}}
-document.addEventListener('DOMContentLoaded',async()=>{try{if(!await staff())return;await Promise.all([loadProducts(),loadRules()]);['rule-manufacturer','rule-main-category','rule-product-type'].forEach(id=>$(id).addEventListener('change',()=>{refreshFilters();savedRuleId=null;$('apply-rule').disabled=true;}));$('rule-category').addEventListener('change',()=>{$('apply-rule').disabled=true;});
-$('saved-rule').addEventListener('change',()=>{const has=!!$('saved-rule').value;$('load-rule').disabled=!has;$('delete-rule').disabled=!has;updateSavedRuleDetails();});
-$('load-rule').addEventListener('click',loadSelectedRule);
-$('new-rule').addEventListener('click',newRule);
-$('delete-rule').addEventListener('click',async()=>{try{await deleteSelectedRule();}catch(e){msg(e.message||String(e),true);}});$('load-rule').addEventListener('click',loadSelectedRule);$('new-rule').addEventListener('click',resetBlock);$('preview-rule').addEventListener('click',preview);$('save-rule').addEventListener('click',saveRule);$('apply-rule').addEventListener('click',apply);}catch(e){console.error(e);msg(e.message||String(e),true);}});})();
+
+async function getComparisons(ids){
+  const comparisons=new Map();
+  for(let i=0;i<ids.length;i+=500){
+    const batch=ids.slice(i,i+500);
+    const {data,error}=await sb().from('quote_catalog_retailer_prices')
+      .select('catalog_product_id,sell_price,checked_at')
+      .in('catalog_product_id',batch)
+      .eq('evidence_region','UK')
+      .eq('price_currency','GBP')
+      .in('price_type',['new','new_sale'])
+      .not('sell_price','is',null)
+      .order('checked_at',{ascending:false});
+    if(error)throw error;
+    (data||[]).forEach(row=>{
+      if(!comparisons.has(row.catalog_product_id))comparisons.set(row.catalog_product_id,Number(row.sell_price));
+    });
+  }
+  return comparisons;
+}
+
+function calculate(comparison){
+  const sealed=comparison*num('sealed-percent')/100;
+  const discount=id=>sealed*(1-num(id)/100);
+  return {
+    sealed,
+    opened:discount('opened-discount'),
+    excellent:discount('excellent-discount'),
+    good:discount('good-discount'),
+    fair:discount('fair-discount')
+  };
+}
+
+async function preview(){
+  try{
+    if(!val('rule-manufacturer'))throw new Error('Select a manufacturer first.');
+    const selected=scopeProducts();
+    if(!selected.length)throw new Error('No products match the selected scope.');
+
+    const comparisons=await getComparisons(selected.map(p=>p.id));
+    previewRows=selected
+      .filter(p=>comparisons.has(p.id))
+      .map(p=>({product:p,comparison:comparisons.get(p.id),...calculate(comparisons.get(p.id))}));
+
+    renderPreview();
+    $('apply-rule').disabled=!(savedRuleId&&previewRows.length);
+    msg(previewRows.length+' products have qualifying UK New online comparison prices and can be priced.');
+  }catch(error){
+    msg(error.message||String(error),true);
+  }
+}
+
+function renderPreview(){
+  const body=$('preview-body');
+  body.innerHTML=previewRows.length
+    ?previewRows.map(row=>'<tr><td><strong>'+esc(row.product.manufacturer)+' '+esc(row.product.model)+'</strong><br><small>'+esc(row.product.package_name||'')+'</small></td><td>'+money(row.comparison)+'</td><td>'+money(row.sealed)+'</td><td>'+money(row.opened)+'</td><td>'+money(row.excellent)+'</td><td>'+money(row.good)+'</td><td>'+money(row.fair)+'</td></tr>').join('')
+    :'<tr><td colspan="7">No qualifying UK New online comparison prices found for this selection.</td></tr>';
+
+  const inScope=scopeProducts().length;
+  $('preview-text').textContent=previewRows.length
+    ?previewRows.length+' products will be affected if the rule is applied.'
+    :'No qualifying products found.';
+
+  $('pricing-summary').innerHTML=[
+    ['Products in scope',inScope],
+    ['With UK New comparison',previewRows.length],
+    ['Excluded — no comparison',inScope-previewRows.length],
+    ['Manufacturer',val('rule-manufacturer')||'—']
+  ].map(([label,value])=>'<div class="pricing-stat"><strong>'+esc(value)+'</strong><span>'+esc(label)+'</span></div>').join('');
+}
+
+async function saveRule(){
+  try{
+    if(!val('rule-manufacturer'))throw new Error('Select a manufacturer first.');
+    if(!previewRows.length)await preview();
+    if(!previewRows.length)throw new Error('There are no qualifying products to save for this rule.');
+
+    const row={
+      manufacturer:val('rule-manufacturer'),
+      main_category:nullable('rule-main-category'),
+      product_type:nullable('rule-product-type'),
+      category:nullable('rule-category'),
+      sealed_percent:num('sealed-percent'),
+      opened_unused_discount_percent:num('opened-discount'),
+      excellent_discount_percent:num('excellent-discount'),
+      good_discount_percent:num('good-discount'),
+      fair_discount_percent:num('fair-discount'),
+      active:true,
+      updated_at:new Date().toISOString()
+    };
+
+    let result;
+    if(savedRuleId){
+      result=await sb().from('quote_catalog_pricing_rules').update(row).eq('id',savedRuleId).select('id').single();
+    }else{
+      result=await sb().from('quote_catalog_pricing_rules').insert(row).select('id').single();
+    }
+    if(result.error)throw result.error;
+
+    savedRuleId=result.data.id;
+    await loadRules();
+    $('saved-rule').value=savedRuleId;
+    updateSavedRuleControls();
+    $('apply-rule').disabled=!previewRows.length;
+    msg('Pricing block saved. Review the preview, then apply it when ready.');
+  }catch(error){
+    msg(error.message||String(error),true);
+  }
+}
+
+async function applyRule(){
+  try{
+    if(!savedRuleId)throw new Error('Save the pricing block first.');
+    if(!previewRows.length)throw new Error('Preview the products first.');
+    if(!confirm('Apply this pricing block to '+previewRows.length+' products? This updates only the automatic pricing fields and does not modify evidence.'))return;
+
+    $('apply-rule').disabled=true;
+    const {data,error}=await sb().rpc('apply_quote_catalog_pricing_rule',{p_rule_id:savedRuleId});
+    if(error)throw error;
+
+    const count=Array.isArray(data)?data[0]?.updated_products:data;
+    msg('Automatic pricing applied to '+(count??previewRows.length)+' products.');
+
+    await loadProducts();
+    await loadRules();
+  }catch(error){
+    msg('Pricing update failed: '+(error.message||String(error)),true);
+    $('apply-rule').disabled=false;
+  }
+}
+
+/* Quick access: products already priced by an Automatic Pricing Rule. */
+function automaticProducts(){
+  return products.filter(p=>String(p.pricing_source||'').toLowerCase()==='automatic'||!!p.automatic_pricing_rule_id);
+}
+
+function refreshAutomaticManufacturerFilter(){
+  const automatic=automaticProducts();
+  fill('automatic-product-manufacturer',automatic.map(p=>p.manufacturer),'All manufacturers');
+}
+
+function refreshAutomaticRuleFilter(){
+  const automatic=automaticProducts();
+  const usedRuleIds=[...new Set(automatic.map(p=>p.automatic_pricing_rule_id).filter(Boolean))];
+  const el=$('automatic-product-rule');
+  if(!el)return;
+  const current=el.value;
+  el.innerHTML='<option value="">All pricing blocks</option>'+usedRuleIds.map(id=>{
+    const rule=savedRules.find(r=>r.id===id);
+    return '<option value="'+esc(id)+'">'+esc(rule?ruleLabel(rule):'Automatic rule '+id)+'</option>';
+  }).join('');
+  if(usedRuleIds.includes(current))el.value=current;
+}
+
+function filteredAutomaticProducts(){
+  const query=val('automatic-product-search').toLowerCase();
+  const manufacturer=val('automatic-product-manufacturer');
+  const ruleId=val('automatic-product-rule');
+
+  return automaticProducts().filter(p=>{
+    const text=[p.manufacturer,p.model,p.package_name,p.main_category,p.product_type,p.category].join(' ').toLowerCase();
+    return (!query||text.includes(query))&&
+      (!manufacturer||p.manufacturer===manufacturer)&&
+      (!ruleId||p.automatic_pricing_rule_id===ruleId);
+  });
+}
+
+function renderAutomaticProducts(){
+  refreshAutomaticManufacturerFilter();
+  refreshAutomaticRuleFilter();
+
+  const all=automaticProducts();
+  const rows=filteredAutomaticProducts();
+  const list=$('automatic-products-list');
+  const ruleCount=new Set(all.map(p=>p.automatic_pricing_rule_id).filter(Boolean)).size;
+  const manufacturerCount=new Set(all.map(p=>p.manufacturer).filter(Boolean)).size;
+
+  $('automatic-products-summary').innerHTML=[
+    ['Automatically priced',all.length],
+    ['Showing',rows.length],
+    ['Manufacturers',manufacturerCount],
+    ['Pricing blocks',ruleCount]
+  ].map(([label,value])=>'<div class="pricing-stat"><strong>'+esc(value)+'</strong><span>'+esc(label)+'</span></div>').join('');
+
+  if(!rows.length){
+    list.innerHTML='<div class="empty-account"><h3>No automatically priced products found</h3><p>Products appear here after automatic pricing has been applied.</p></div>';
+    return;
+  }
+
+  list.innerHTML=rows.map(p=>{
+    const rule=savedRules.find(r=>r.id===p.automatic_pricing_rule_id);
+    const prices=[
+      'Sealed '+money(p.factory_sealed_price),
+      'Unused '+money(p.opened_unused_price),
+      'Excellent '+money(p.excellent_price),
+      'Good '+money(p.good_price),
+      'Fair '+money(p.fair_price)
+    ].join(' · ');
+
+    return '<article class="automatic-product-card">'+
+      '<div class="section-kicker">'+esc(p.manufacturer||'')+' · AUTOMATIC</div>'+
+      '<h3>'+esc(p.manufacturer||'')+' '+esc(p.model||'')+'</h3>'+
+      '<p>'+esc(p.package_name||'')+'</p>'+
+      '<p class="automatic-product-prices">'+esc(prices)+'</p>'+
+      '<div class="automatic-list-actions"><small>'+esc(rule?ruleLabel(rule):'Automatic Pricing Rule')+'</small>'+
+      '<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(p.id)+'">EDIT PRODUCT</a></div>'+
+    '</article>';
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  try{
+    if(!await requireStaff())return;
+
+    await Promise.all([loadProducts(),loadRules()]);
+
+    ['rule-manufacturer','rule-main-category','rule-product-type'].forEach(id=>{
+      $(id).addEventListener('change',()=>{
+        refreshScopeFilters();
+        if(savedRuleId){savedRuleId=null;$('saved-rule').value='';updateSavedRuleControls();}
+        $('apply-rule').disabled=true;
+      });
+    });
+
+    $('rule-category').addEventListener('change',()=>{
+      if(savedRuleId){savedRuleId=null;$('saved-rule').value='';updateSavedRuleControls();}
+      $('apply-rule').disabled=true;
+    });
+
+    $('saved-rule').addEventListener('change',updateSavedRuleControls);
+    $('load-rule').addEventListener('click',loadSelectedRule);
+    $('new-rule').addEventListener('click',newRule);
+    $('delete-rule').addEventListener('click',async()=>{try{await deleteSelectedRule();}catch(error){msg(error.message||String(error),true);}});
+    $('preview-rule').addEventListener('click',preview);
+    $('save-rule').addEventListener('click',saveRule);
+    $('apply-rule').addEventListener('click',applyRule);
+
+    $('automatic-product-search').addEventListener('input',renderAutomaticProducts);
+    $('automatic-product-manufacturer').addEventListener('change',renderAutomaticProducts);
+    $('automatic-product-rule').addEventListener('change',renderAutomaticProducts);
+  }catch(error){
+    console.error(error);
+    msg(error.message||String(error),true);
+  }
+});
+})();
