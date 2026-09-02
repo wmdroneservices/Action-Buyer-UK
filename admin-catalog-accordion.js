@@ -11,6 +11,17 @@
     String(r.price_type||'').trim().toLowerCase(),
     String(r.condition||'').trim().toLowerCase(),
     r.buy_price??'',r.sell_price??'',
+    String(r.source_url||'').trim().replace(/\/$/,'').toLowerCase()
+  ].join('|');
+  const dedupeEvidenceRows=rows=>{
+    const seen=new Set();
+    return (rows||[]).filter(r=>{const key=evidenceKey(r);if(seen.has(key))return false;seen.add(key);return true;});
+  };
+  const evidenceKey=r=>[
+    String(r.retailer||'').trim().toLowerCase(),
+    String(r.price_type||'').trim().toLowerCase(),
+    String(r.condition||'').trim().toLowerCase(),
+    r.buy_price??'',r.sell_price??'',
     String(r.source_url||'').trim().replace(/\\/$/,'').toLowerCase()
   ].join('|');
   const dedupeEvidenceRows=rows=>{
