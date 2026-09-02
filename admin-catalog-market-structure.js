@@ -13,7 +13,7 @@ const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const cur=r=>String(r?.price_currency||'').trim().toUpperCase();
 const reg=r=>String(r?.evidence_region||'').trim().toUpperCase();
 const typ=r=>String(r?.price_type||'').trim().toLowerCase();
-const uk=r=>cur(r)==='GBP'&&reg(r)==='UK'&&String(r?.price_region||'').trim().toUpperCase()==='UK';
+const uk=r=>cur(r)==='GBP'&&reg(r)==='UK';
 const isMarketplace=r=>marketplace.test(`${r?.retailer||''} ${r?.source_url||''}`);
 const ukNew=r=>uk(r)&&!isMarketplace(r)&&['new','new_sale'].includes(typ(r))&&r.sell_price!=null;
 const ukReference=r=>uk(r)&&!ukNew(r);
