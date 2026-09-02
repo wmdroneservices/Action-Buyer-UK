@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Automatic Block Pricing | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem}.pricing-grid label{font-weight:700;color:#102f4f}.pricing-grid input,.pricing-grid select{display:block;width:100%;box-sizing:border-box;margin-top:.35rem}.rule-card{border:1px solid #d8d4ca;border-radius:10px;background:#fffdf8;padding:1rem;margin-bottom:1rem}.rule-note{background:#f7f4ec;border-left:4px solid #d88732;padding:.85rem 1rem;margin:.8rem 0}.pricing-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0}.pricing-stat{border:1px solid #e3dfd5;background:#f7f4ec;border-radius:8px;padding:.8rem}.pricing-stat strong{display:block;font-size:1.35rem;color:#102f4f}.pricing-stat span{font-size:.76rem;color:#666}.preview-table{width:100%;border-collapse:collapse}.preview-table th,.preview-table td{padding:.6rem;border-bottom:1px solid #e5e1d8;text-align:left}.preview-table th{background:#f5f2ea;color:#102f4f;font-size:.78rem}.pricing-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.condition-card{border:1px solid #e3dfd5;border-radius:8px;padding:.8rem;background:#fff}.condition-card small{display:block;color:#666;margin-top:.25rem}.pricing-message{margin-top:.75rem;padding:.75rem;border-radius:6px;display:none}.pricing-message.show{display:block}.pricing-message.success{background:#e7f5eb;color:#176b36}.pricing-message.error{background:#fbe8e8;color:#9b2727}@media(max-width:800px){.pricing-grid{grid-template-columns:1fr 1fr}.pricing-summary{grid-template-columns:1fr 1fr}}@media(max-width:520px){.pricing-grid,.pricing-summary{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script><script src="staff-navigation.js?v=20260903-1" defer></script>
+<script src="admin-automatic-pricing.js?v=20260903-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Staff navigation"><ul class="nav-list"><li><a href="admin.html">Dashboard</a></li><li><a href="admin-valuations.html">Valuations</a></li><li><a href="admin-catalog.html">Quote Catalogue</a></li><li><a href="admin-automatic-pricing.html" aria-current="page">Automatic Pricing</a></li><li><a href="admin-catalog-control.html">Catalogue Control</a></li><li><a href="admin-sales.html">Sales &amp; Shipping</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">STAFF · AUTOMATION</p><h1>Automatic Block Pricing</h1><p>Set one percentage pricing rule for a manufacturer and product branch, preview the affected products, then apply it to products with a qualifying UK New online comparison price.</p></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="admin-purchasing.html">PURCHASING DASHBOARD</a><a class="btn btn-secondary" href="admin-catalog.html">QUOTE CATALOGUE</a></div></div>
+<section class="account-panel">
+<div class="rule-note"><strong>Protected evidence workflow:</strong> this tool reads only Category 1 UK New / Online Comparison evidence as its base. It does not use Used/Other evidence, Overseas evidence or manufacturer RRP, and it does not modify any evidence records.</div>
+<div id="pricing-message" class="pricing-message" role="status" aria-live="polite"></div>
+<div class="pricing-grid">
+<label>Manufacturer<select id="rule-manufacturer"><option value="">Select manufacturer</option></select></label>
+<label>Main category<select id="rule-main-category"><option value="">All main categories</option></select></label>
+<label>Product type<select id="rule-product-type"><option value="">All product types</option></select></label>
+<label>Branch / category<select id="rule-category"><option value="">All branches</option></select></label>
+</div>
+<h3 style="margin-top:1.5rem">Pricing percentages</h3>
+<div class="pricing-grid">
+<div class="condition-card"><label>Sealed — % of online comparison<input id="sealed-percent" type="number" min="0" max="100" step="0.01" value="80"></label><small>Example: 80 means £800 from a £1,000 online comparison.</small></div>
+<div class="condition-card"><label>Opened / unused — % off sealed<input id="opened-discount" type="number" min="0" max="100" step="0.01" value="5"></label><small>Discount applied to the sealed price.</small></div>
+<div class="condition-card"><label>Excellent — % off sealed<input id="excellent-discount" type="number" min="0" max="100" step="0.01" value="15"></label><small>Discount applied to the sealed price.</small></div>
+<div class="condition-card"><label>Good — % off sealed<input id="good-discount" type="number" min="0" max="100" step="0.01" value="25"></label><small>Discount applied to the sealed price.</small></div>
+<div class="condition-card"><label>Fair — % off sealed<input id="fair-discount" type="number" min="0" max="100" step="0.01" value="40"></label><small>Discount applied to the sealed price.</small></div>
+</div>
+<div class="pricing-actions"><button id="preview-rule" class="btn btn-secondary" type="button">PREVIEW PRODUCTS</button><button id="save-rule" class="btn btn-secondary" type="button">SAVE RULE</button><button id="apply-rule" class="btn btn-primary" type="button" disabled>APPLY PRICING TO PRODUCTS</button></div>
+</section>
+<section class="account-panel">
+<div class="section-heading"><p class="section-kicker">PREVIEW</p><h2>Products affected</h2><p id="preview-text">Select a manufacturer and branch, then preview the pricing rule.</p></div>
+<div id="pricing-summary" class="pricing-summary"></div>
+<div style="overflow-x:auto"><table class="preview-table"><thead><tr><th>Product</th><th>Online comparison</th><th>Sealed</th><th>Opened / unused</th><th>Excellent</th><th>Good</th><th>Fair</th></tr></thead><tbody id="preview-body"><tr><td colspan="7">No preview loaded.</td></tr></tbody></table></div>
+</section>
+</div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Automatic block pricing.</div></div></footer>
+</body></html>
