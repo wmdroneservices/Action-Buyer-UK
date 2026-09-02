@@ -6,6 +6,17 @@
   const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>v===null||v===undefined||v===''?'—':`£${Number(v).toFixed(2)}`;
   const cache=new Map();
+  const evidenceKey=r=>[
+    String(r.retailer||'').trim().toLowerCase(),
+    String(r.price_type||'').trim().toLowerCase(),
+    String(r.condition||'').trim().toLowerCase(),
+    r.buy_price??'',r.sell_price??'',
+    String(r.source_url||'').trim().replace(/\\/$/,'').toLowerCase()
+  ].join('|');
+  const dedupeEvidenceRows=rows=>{
+    const seen=new Set();
+    return (rows||[]).filter(r=>{const key=evidenceKey(r);if(seen.has(key))return false;seen.add(key);return true;});
+  };
 
   function addStyles(){
     if(document.getElementById('catalog-accordion-styles'))return;
@@ -45,7 +56,7 @@
     if(!rows){
       const {data,error}=await sb().from('quote_catalog_retailer_prices').select('id,retailer,price_type,condition,buy_price,sell_price,availability_status,buy_method,source_url,notes,checked_at').eq('catalog_product_id',p.id).order('retailer').order('price_type').order('condition').order('sell_price');
       if(error){panel.innerHTML=`<div class="catalog-accordion-empty">Unable to load market research: ${esc(error.message)}</div>`;return;}
-      rows=data||[];cache.set(p.id,rows);
+      rows=dedupeEvidenceRows(data||[]);cache.set(p.id,rows);
     }
     const selling=rows.filter(r=>r.sell_price!==null&&r.sell_price!==undefined);const buying=rows.filter(r=>r.buy_price!==null&&r.buy_price!==undefined);
     const allPrices=[...selling.map(r=>Number(r.sell_price)),...buying.map(r=>Number(r.buy_price))].filter(Number.isFinite);
