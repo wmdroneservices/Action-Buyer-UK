@@ -18,6 +18,14 @@
 <section class="account-panel">
 <div class="rule-note"><strong>Protected evidence workflow:</strong> this tool reads only Category 1 UK New / Online Comparison evidence as its base. It does not use Used/Other evidence, Overseas evidence or manufacturer RRP, and it does not modify any evidence records.</div>
 <div id="pricing-message" class="pricing-message" role="status" aria-live="polite"></div>
+<div class="rule-card">
+  <div class="section-heading"><p class="section-kicker">SAVED BLOCKS</p><h2>Load or edit a pricing block</h2><p>Select a saved automatic pricing block to bring all of its manufacturer, branch and percentage settings back into the editor.</p></div>
+  <div class="pricing-grid">
+    <label style="grid-column:span 2">Saved pricing block<select id="saved-rule"><option value="">Select a saved pricing block</option></select></label>
+    <div class="pricing-actions" style="align-items:end;margin-top:1.55rem"><button id="load-rule" class="btn btn-secondary" type="button" disabled>LOAD BLOCK</button><button id="new-rule" class="btn btn-secondary" type="button">NEW BLOCK</button><button id="delete-rule" class="btn btn-secondary" type="button" disabled>DELETE RULE</button></div>
+  </div>
+  <p id="saved-rule-details" style="margin:.75rem 0 0;color:#666">No saved block selected.</p>
+</div>
 <div class="pricing-grid">
 <label>Manufacturer<select id="rule-manufacturer"><option value="">Select manufacturer</option></select></label>
 <label>Main category<select id="rule-main-category"><option value="">All main categories</option></select></label>
@@ -32,7 +40,7 @@
 <div class="condition-card"><label>Good — % off sealed<input id="good-discount" type="number" min="0" max="100" step="0.01" value="25"></label><small>Discount applied to the sealed price.</small></div>
 <div class="condition-card"><label>Fair — % off sealed<input id="fair-discount" type="number" min="0" max="100" step="0.01" value="40"></label><small>Discount applied to the sealed price.</small></div>
 </div>
-<div class="pricing-actions"><button id="preview-rule" class="btn btn-secondary" type="button">PREVIEW PRODUCTS</button><button id="save-rule" class="btn btn-secondary" type="button">SAVE RULE</button><button id="apply-rule" class="btn btn-primary" type="button" disabled>APPLY PRICING TO PRODUCTS</button></div>
+<div class="pricing-actions"><button id="preview-rule" class="btn btn-secondary" type="button">PREVIEW PRODUCTS</button><button id="save-rule" class="btn btn-secondary" type="button">SAVE / UPDATE RULE</button><button id="apply-rule" class="btn btn-primary" type="button" disabled>APPLY PRICING TO PRODUCTS</button></div>
 </section>
 <section class="account-panel">
 <div class="section-heading"><p class="section-kicker">PREVIEW</p><h2>Products affected</h2><p id="preview-text">Select a manufacturer and branch, then preview the pricing rule.</p></div>
