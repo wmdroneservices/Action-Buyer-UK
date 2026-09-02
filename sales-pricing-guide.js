@@ -28,39 +28,35 @@ function resetDetail(){
   $('pricing-no-evidence').hidden=true;
 }
 
-function populateManufacturers(){
-  const mf=$('pricing-manufacturer');
-  const manufacturers=[...new Set(products.map(p=>String(p.manufacturer||'').trim()).filter(Boolean))]
+function populateMainCategories(){
+  const select=$('pricing-main-category');
+  const values=[...new Set(products.map(p=>String(p.main_category||p.category||'').trim()).filter(Boolean))]
     .sort((a,b)=>a.localeCompare(b));
-
-  mf.innerHTML='<option value="">-- Select manufacturer --</option>'+
-    manufacturers.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+  select.innerHTML='<option value="">-- Select category --</option>'+values.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
 }
-
 function populateTypes(){
-  const manufacturer=$('pricing-manufacturer').value;
+  const main=$('pricing-main-category').value;
   const type=$('pricing-category');
-
   type.value='';
-  type.disabled=!manufacturer;
-
-  if(!manufacturer){
-    type.innerHTML='<option value="">-- Select manufacturer first --</option>';
-    return;
-  }
-
-  const categories=[...new Set(
-    products
-      .filter(p=>String(p.manufacturer||'')===manufacturer)
-      .map(p=>String(p.category||'').trim())
-      .filter(Boolean)
-  )].sort((a,b)=>a.localeCompare(b));
-
-  type.innerHTML='<option value="">-- Select type --</option>'+
-    categories.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+  if(!main){ type.disabled=true; type.innerHTML='<option value="">-- Select category first --</option>'; return; }
+  const values=[...new Set(products.filter(p=>String(p.main_category||p.category||'')===main).map(p=>String(p.product_type||p.category||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
+  type.disabled=!values.length;
+  type.innerHTML='<option value="">-- Select type --</option>'+values.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+}
+function populateManufacturers(){
+  const main=$('pricing-main-category').value;
+  const type=$('pricing-category').value;
+  const mf=$('pricing-manufacturer');
+  if(!main||!type){ mf.disabled=true; mf.innerHTML='<option value="">-- Select type first --</option>'; return; }
+  const values=[...new Set(products.filter(p=>String(p.main_category||p.category||'')===main && String(p.product_type||p.category||'')===type).map(p=>String(p.manufacturer||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
+  mf.disabled=!values.length;
+  mf.innerHTML='<option value="">-- Select manufacturer --</option>'+values.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
 }
 
 function populateProducts(){
+  const mainCategory=$('pricing-main-category').value;
   const manufacturer=$('pricing-manufacturer').value;
   const category=$('pricing-category').value;
   const select=$('pricing-product');
@@ -69,23 +65,17 @@ function populateProducts(){
   select.value='';
   resetDetail();
 
-  if(!manufacturer){
+  if(!mainCategory||!category||!manufacturer){
     select.disabled=true;
-    select.innerHTML='<option value="">-- Select manufacturer first --</option>';
-    help.textContent='Select a manufacturer first.';
-    return;
-  }
-
-  if(!category){
-    select.disabled=true;
-    select.innerHTML='<option value="">-- Select type first --</option>';
-    help.textContent='Select a type for '+manufacturer+'.';
+    select.innerHTML='<option value="">-- Complete the filters first --</option>';
+    help.textContent='Select category, type and manufacturer.';
     return;
   }
 
   const rows=products.filter(p=>
-    String(p.manufacturer||'')===manufacturer &&
-    String(p.category||'')===category
+    String(p.main_category||p.category||'')===mainCategory &&
+    String(p.product_type||p.category||'')===category &&
+    String(p.manufacturer||'')===manufacturer
   );
 
   select.disabled=!rows.length;
@@ -162,7 +152,7 @@ async function init(){
 
   const {data,error}=await sb()
     .from('quote_catalog_products')
-    .select('id,category,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active')
+    .select('id,category,main_category,product_type,manufacturer,model,package_key,package_name,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,active')
     .eq('active',true)
     .order('manufacturer')
     .order('category')
@@ -176,16 +166,18 @@ async function init(){
   }
 
   products=data||[];
-  populateManufacturers();
+  populateMainCategories();
   populateTypes();
+  populateManufacturers();
   populateProducts();
 
-  $('pricing-manufacturer').addEventListener('change',()=>{
-    populateTypes();
-    populateProducts();
+  $('pricing-main-category').addEventListener('change',()=>{
+    populateTypes(); populateManufacturers(); populateProducts();
   });
-
-  $('pricing-category').addEventListener('change',populateProducts);
+  $('pricing-category').addEventListener('change',()=>{
+    populateManufacturers(); populateProducts();
+  });
+  $('pricing-manufacturer').addEventListener('change',populateProducts);
   $('pricing-product').addEventListener('change',e=>openProduct(e.target.value));
 }
 
