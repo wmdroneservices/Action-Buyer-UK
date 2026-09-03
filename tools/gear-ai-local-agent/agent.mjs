@@ -118,7 +118,7 @@ function extractSearchLinks(html, baseUrl){
       const raw=decodeDdgUrl(m[1])||(()=>{try{return new URL(m[1],baseUrl).href}catch{return null}})();
       if(!raw||!/^https?:\/\//i.test(raw))continue;
       const host=hostOf(raw);
-      if(!host||/(duckduckgo|bing|google|yahoo)\.com$/i.test(host))continue;
+      if(!host||isSearchHost(host))continue;
       const key=raw.split('#')[0];
       if(seen.has(key))continue;
       seen.add(key);
@@ -176,7 +176,7 @@ async function searchBing(query){
     let m;
     while((m=re.exec(html))){
       const href=m[1],host=hostOf(href);
-      if(!host||host==='bing.com'||host.endsWith('.bing.com')||seen.has(href))continue;
+      if(!host||isSearchHost(host)||seen.has(href))continue;
       seen.add(href);
       out.push({url:href,title:stripHtml(m[2]||''),snippet:''});
       if(out.length>=20)break;
@@ -235,6 +235,12 @@ async function probeKnownSource(source,name,terms){
     root+'/?s='+q,
     root+'/search?keyword='+q
   ];
+  if(domain.includes('ebay.')){
+    attempts.unshift(root+'/sch/i.html?_nkw='+q);
+  }
+  if(domain.includes('vinted.')){
+    attempts.unshift(root+'/catalog?search_text='+q);
+  }
   const out=[],seen=new Set();
   for(const url of attempts){
     try{
@@ -263,6 +269,9 @@ async function discoverFromKnownSources(product,sources){
 }
 
 function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'').toLowerCase()}catch{return ''}}
+function isSearchHost(host){
+  return ['duckduckgo.com','bing.com','google.com','google.co.uk','yahoo.com','search.yahoo.com','mojeek.com'].some(d=>host===d||host.endsWith('.'+d));
+}
 
 async function collectEvidence(product,sources){
   const name=productName(product);
