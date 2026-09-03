@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260903-cta-uniform-2">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-live-catalogue-4" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-dashboard-todo-1" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
@@ -50,25 +50,14 @@
       <span style="font-size:.78rem;color:#5f6b78">Products currently marked inactive</span>
     </div>
   </div>
-  <div style="border-top:1px solid #d8dde3;padding-top:1rem">
-    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;flex-wrap:wrap">
-      <div>
-        <p class="section-kicker" style="margin-bottom:.25rem">CATEGORY BREAKDOWN</p>
-        <strong style="color:#102f4f">Products by catalogue category</strong>
-      </div>
-      <span id="catalogue-category-total" style="font-size:.8rem;color:#5f6b78"></span>
-    </div>
-    <div id="catalogue-category-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.6rem 1rem;margin-top:1rem"></div>
-  </div>
   <div style="border-top:1px solid #d8dde3;padding-top:1.25rem;margin-top:1.25rem">
-    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;flex-wrap:wrap">
-      <div>
-        <p class="section-kicker" style="margin-bottom:.25rem">MANUFACTURER BREAKDOWN</p>
-        <strong style="color:#102f4f">Products by manufacturer</strong>
-      </div>
-      <span id="catalogue-manufacturer-total" style="font-size:.8rem;color:#5f6b78"></span>
+    <div class="section-heading" style="margin-bottom:1rem">
+      <p class="section-kicker">LIVE WORK QUEUE</p>
+      <h2 style="margin-bottom:.35rem">To Do List</h2>
+      <p>Only actions currently requiring attention are shown here. The list updates automatically as work moves through the system.</p>
     </div>
-    <div id="catalogue-manufacturer-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.6rem 1rem;margin-top:1rem"></div>
+    <div id="dashboard-todo-list" style="display:grid;gap:.75rem"></div>
+    <div id="dashboard-todo-message" class="form-message" role="status" aria-live="polite"></div>
   </div>
   <div id="catalogue-summary-message" class="form-message" role="status" aria-live="polite"></div>
 </section>
