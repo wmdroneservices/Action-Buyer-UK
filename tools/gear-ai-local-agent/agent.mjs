@@ -1,7 +1,7 @@
+import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 function loadEnv(){
-  const fs=require('node:fs');
   const path=new URL('./.env',import.meta.url);
   try{
     const text=fs.readFileSync(path,'utf8');
@@ -342,10 +342,13 @@ async function processOne(){
     });
     if(doneError)throw doneError;
 
+    const {data:runRow}=await sb.from('quote_catalog_ai_research_runs').select('candidates_found,flagged_for_review').eq('id',item.run_id).single();
     await sb.from('quote_catalog_ai_research_runs')
-      .update({candidates_found:submitted,flagged_for_review:submitted})
-      .eq('id',item.run_id)
-      .select();
+      .update({
+        candidates_found:Number(runRow?.candidates_found||0)+submitted,
+        flagged_for_review:Number(runRow?.flagged_for_review||0)+submitted
+      })
+      .eq('id',item.run_id);
 
     await finishRunIfComplete(item.run_id);
     log('Completed product:',submitted,'findings');
