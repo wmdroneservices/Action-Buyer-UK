@@ -184,8 +184,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Customer Response</h2>
         <div id="response-step-notice" class="workflow-notice">Checking customer responses...</div>
       </div>
-      <p><a class="btn btn-primary" href="#customer-response-queue">OPEN CUSTOMER RESPONSES</a></p>
-      <div id="customer-response-queue"><p>Loading customer responses...</p></div>
+      <p><a class="btn btn-primary" href="#customer-response-work">OPEN CUSTOMER RESPONSES</a></p>
     </section>
 
     <section class="account-panel">
@@ -194,15 +193,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Shipping &amp; Receipt</h2>
         <div id="shipping-step-notice" class="workflow-notice">Checking shipping...</div>
       </div>
-      <p><a class="btn btn-primary" href="#shipping-settings">OPEN SHIPPING &amp; RECEIPT</a></p>
-      <div id="shipping-settings" class="shipment-form">
-        <label>Customer → GearCashOut label URL <input id="setting-inbound-label" type="url" placeholder="https://..."></label>
-        <label>Customer → GearCashOut QR code URL <input id="setting-inbound-qr" type="url" placeholder="https://..."></label>
-        <label>GearCashOut → Customer return label URL <input id="setting-return-label" type="url" placeholder="https://..."></label>
-        <label>GearCashOut → Customer return QR code URL <input id="setting-return-qr" type="url" placeholder="https://..."></label>
-        <button id="save-shipping-settings" class="btn btn-primary" type="button">SAVE SHIPPING SETTINGS</button>
-        <div id="shipping-settings-message" class="form-message" role="status" aria-live="polite"></div>
-      </div>
+      <p><a class="btn btn-primary" href="#shipping-work">OPEN SHIPPING &amp; RECEIPT</a></p>
     </section>
 
     <section class="account-panel">
@@ -221,6 +212,29 @@ document.addEventListener('DOMContentLoaded',()=>{
         <div id="payment-step-notice" class="workflow-notice">Checking payment actions...</div>
       </div>
       <p><a class="btn btn-primary" href="#sales-list">OPEN PAYMENT &amp; COMPLETION</a></p>
+    </section>
+
+    <section id="customer-response-work" class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">CUSTOMER RESPONSE WORK</p>
+        <h2>Customer Responses</h2>
+      </div>
+      <div id="customer-response-queue"><p>Loading customer responses...</p></div>
+    </section>
+
+    <section id="shipping-work" class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">SHIPPING WORK</p>
+        <h2>Shipping &amp; Receipt Settings</h2>
+      </div>
+      <div id="shipping-settings" class="shipment-form">
+        <label>Customer → GearCashOut label URL <input id="setting-inbound-label" type="url" placeholder="https://..."></label>
+        <label>Customer → GearCashOut QR code URL <input id="setting-inbound-qr" type="url" placeholder="https://..."></label>
+        <label>GearCashOut → Customer return label URL <input id="setting-return-label" type="url" placeholder="https://..."></label>
+        <label>GearCashOut → Customer return QR code URL <input id="setting-return-qr" type="url" placeholder="https://..."></label>
+        <button id="save-shipping-settings" class="btn btn-primary" type="button">SAVE SHIPPING SETTINGS</button>
+        <div id="shipping-settings-message" class="form-message" role="status" aria-live="polite"></div>
+      </div>
     </section>
 
     <div id="sales-view-nav" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0;">
