@@ -36,6 +36,55 @@ function productLabel(p){
   return [p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ')||'Unnamed product';
 }
 
+function searchHaystack(p){
+  return [p.manufacturer,p.model,p.package_name,p.package_key,p.main_category,p.product_type,p.category]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function productMatchesSearch(p,query){
+  const q=String(query||'').trim().toLowerCase();
+  if(!q)return false;
+  const hay=searchHaystack(p);
+  const tokens=q.split(/\s+/).filter(Boolean);
+  return tokens.every(token=>hay.includes(token));
+}
+function syncFiltersToProduct(p){
+  const main=String(p.main_category||p.category||'');
+  const type=String(p.product_type||p.category||'');
+  const manufacturer=String(p.manufacturer||'');
+  $('pricing-main-category').value=main;
+  populateTypes();
+  $('pricing-category').value=type;
+  populateManufacturers();
+  $('pricing-manufacturer').value=manufacturer;
+  populateProducts();
+  $('pricing-product').value=String(p.id);
+}
+function runProductSearch(){
+  const query=$('pricing-search').value.trim();
+  const resultsBox=$('pricing-search-results');
+  const select=$('pricing-search-select');
+  const help=$('pricing-search-help');
+  resetDetail();
+  if(!query){
+    resultsBox.hidden=true;
+    select.innerHTML='';
+    help.textContent='Search the live catalogue directly, or use the filters below.';
+    return;
+  }
+  const rows=products.filter(p=>productMatchesSearch(p,query)).sort((a,b)=>productLabel(a).localeCompare(productLabel(b)));
+  resultsBox.hidden=false;
+  if(!rows.length){
+    select.innerHTML='<option value="">No relevant products found</option>';
+    select.disabled=true;
+    help.textContent='No active catalogue products matched “'+query+'”. Try fewer words or search by manufacturer, model or package.';
+    return;
+  }
+  select.disabled=false;
+  select.innerHTML='<option value="">-- Select a relevant product --</option>'+rows.map(p=>
+    '<option value="'+esc(p.id)+'">'+esc(productLabel(p))+'</option>'
+  ).join('');
+  help.textContent=rows.length+' relevant product'+(rows.length===1?'':'s')+' found. Select one to open its market evidence.';
+}
 function resetDetail(){
   $('pricing-detail-panel').hidden=true;
   $('pricing-evidence-body').innerHTML='';
@@ -193,6 +242,17 @@ async function init(){
   });
   $('pricing-manufacturer').addEventListener('change',populateProducts);
   $('pricing-product').addEventListener('change',e=>openProduct(e.target.value));
+
+  $('pricing-search-button').addEventListener('click',runProductSearch);
+  $('pricing-search').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();runProductSearch();}
+  });
+  $('pricing-search-select').addEventListener('change',e=>{
+    const p=products.find(x=>String(x.id)===String(e.target.value));
+    if(!p)return;
+    syncFiltersToProduct(p);
+    openProduct(p.id);
+  });
 }
 
 document.addEventListener('DOMContentLoaded',init);
