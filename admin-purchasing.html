@@ -20,6 +20,7 @@
 <script src="admin-sales-label-fix.js?v=20260903-purchasing-sales-layout-1" defer></script>
 <script src="admin-sales-accepted-shipping-alert.js?v=20260903-purchasing-sales-layout-1" defer></script>
 <script src="admin-sales-action-alerts.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="purchase-return-dashboard.js?v=20260903-1" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const nav=document.getElementById('sales-view-nav');
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const paymentDue=countText('payment-due-count');
     const processing=countText('payment-processing-count');
     const completed=countText('paid-count');
+    const purchaseReturns=countText('purchase-return-count');
     setNotice('valuation-step-notice', valuations==='0'?'NO VALUATIONS CURRENTLY AWAITING REVIEW':valuations+' VALUATION'+(valuations==='1'?'':'S')+' AWAITING REVIEW', valuations==='0'?'success':'action');
     setNotice('response-step-notice', responses==='0'?'NO CUSTOMER RESPONSES CURRENTLY REQUIRED':responses+' CUSTOMER RESPONSE'+(responses==='1'?'':'S')+' AWAITING ACTION', responses==='0'?'success':'action');
     const shippingParts=[];
@@ -76,13 +78,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(processing!=='0')paymentParts.push(processing+' PAYMENT'+(processing==='1'?'':'S')+' PROCESSING');
     if(completed!=='0')paymentParts.push(completed+' COMPLETED');
     setNotice('payment-step-notice',paymentParts.length?paymentParts.join(' · '):'NO PAYMENT ACTIONS CURRENTLY REQUIRED',paymentParts.length?'action':'success');
+    setNotice('purchase-return-step-notice',purchaseReturns==='0'?'NO PURCHASE RETURNS CURRENTLY REQUIRED':purchaseReturns+' ITEM'+(purchaseReturns==='1'?'':'S')+' REQUIRING RETURN REVIEW',purchaseReturns==='0'?'success':'warning');
   };
   refreshNotices();
 
   // Refresh only when pipeline counts are updated. A whole-document MutationObserver
   // here caused refreshNotices() to react to its own DOM writes and repeatedly
   // trigger itself, freezing the purchasing page.
-  const countIds=['valuation-count','customer-response-count','shipping-label-count','delivery-count','inspection-count','final-offer-count','payment-due-count','payment-processing-count','paid-count'];
+  const countIds=['valuation-count','customer-response-count','shipping-label-count','delivery-count','inspection-count','final-offer-count','payment-due-count','payment-processing-count','paid-count','purchase-return-count'];
   const countObserver=new MutationObserver(refreshNotices);
   countIds.forEach(id=>{
     const el=document.getElementById(id);
@@ -162,6 +165,10 @@ document.addEventListener('DOMContentLoaded',()=>{
           <div class="pipeline-number"><strong id="paid-count">—</strong></div>
           <div><span class="pipeline-step">COMPLETE</span><strong class="pipeline-count-label">Checking completion</strong><small>Ready for Inventory</small></div>
         </article>
+        <article class="pipeline-stage" data-count-for="purchase-return-count" data-singular="purchase return" data-plural="purchase returns">
+          <div class="pipeline-number"><strong id="purchase-return-count">—</strong></div>
+          <div><span class="pipeline-step">RETURNS</span><strong class="pipeline-count-label">Checking returns</strong><small>Refused valuation items</small></div>
+        </article>
       </div>
     </section>
 
@@ -219,6 +226,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       <p><a class="btn btn-primary" href="#sales-list">OPEN PAYMENT &amp; COMPLETION</a></p>
     </section>
 
+    <section class="account-panel purchase-step-card">
+      <div class="section-heading">
+        <p class="section-kicker">PURCHASE RETURNS</p>
+        <h2>Refused Valuations &amp; Returns</h2>
+        <div id="purchase-return-step-notice" class="workflow-notice">Checking purchase returns...</div>
+      </div>
+      <p><a class="btn btn-primary" href="purchase-returns.html">OPEN PURCHASE RETURNS</a></p>
+    </section>
+
     <section id="customer-response-work" class="account-panel">
       <div class="section-heading">
         <p class="section-kicker">CUSTOMER RESPONSE WORK</p>
@@ -265,6 +281,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   </div>
 </main>
 
-<footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer Response → Shipping → Receipt → Inspection → Payment → Inventory.</div></footer>
+<footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer Response → Shipping → Receipt → Inspection → Payment → Purchase Returns → Inventory.</div></footer>
 </body>
 </html>
