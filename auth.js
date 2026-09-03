@@ -66,3 +66,85 @@ supabaseClient.auth.onAuthStateChange((_e,s)=>{setAuthMarker(s);actionBuyerAuth.
   window.addEventListener("focus",enforce);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)enforce();});
 })();
+
+
+/* Staff activity auditing: page access, UI actions and form submissions.
+   Operational database changes are additionally captured by database triggers. */
+(function(){
+  const isStaffPage=/\/admin(?:[-_][^/]+)?\.html$/i.test(location.pathname)||/\/admin\//i.test(location.pathname);
+  if(!isStaffPage)return;
+  let activeStaff=false;
+  let lastActionKey="";
+  let lastActionAt=0;
+
+  async function initialise(){
+    try{
+      const {data:{session}}=await supabaseClient.auth.getSession();
+      if(!session?.user?.id)return;
+      const {data:staff}=await supabaseClient.from("staff_users").select("user_id,active").eq("user_id",session.user.id).maybeSingle();
+      activeStaff=!!staff?.active;
+      if(activeStaff){
+        await log("page_view","navigation",null,null,{title:document.title},location.pathname.split("/").pop()||"admin.html");
+      }
+    }catch(_){}
+  }
+
+  async function log(action,category,entityTable,entityId,details,page){
+    if(!activeStaff)return;
+    try{
+      await supabaseClient.rpc("log_staff_activity",{
+        p_action_type:String(action||"activity").slice(0,120),
+        p_action_category:String(category||"activity").slice(0,80),
+        p_entity_table:entityTable||null,
+        p_entity_id:entityId||null,
+        p_details:details||{},
+        p_page:page||location.pathname.split("/").pop()||""
+      });
+    }catch(_){}
+  }
+
+  function textLabel(el){
+    return String(
+      el.getAttribute("aria-label")||
+      el.getAttribute("title")||
+      el.textContent||
+      el.value||
+      el.id||
+      el.tagName
+    ).replace(/\s+/g," ").trim().slice(0,120);
+  }
+
+  document.addEventListener("click",e=>{
+    const el=e.target?.closest?.("button,a");
+    if(!el||!activeStaff)return;
+    const key=el.tagName+"|"+(el.href||el.id||textLabel(el));
+    const now=Date.now();
+    if(key===lastActionKey&&now-lastActionAt<800)return;
+    lastActionKey=key;lastActionAt=now;
+    log(
+      "ui_click",
+      "interface",
+      null,
+      null,
+      {element:el.tagName.toLowerCase(),label:textLabel(el),target:el.getAttribute("href")||null},
+      location.pathname.split("/").pop()||""
+    );
+  },true);
+
+  document.addEventListener("submit",e=>{
+    if(!activeStaff)return;
+    const form=e.target;
+    if(!(form instanceof HTMLFormElement))return;
+    log(
+      "form_submit",
+      "interface",
+      null,
+      null,
+      {form_id:form.id||null,form_name:form.getAttribute("name")||null},
+      location.pathname.split("/").pop()||""
+    );
+  },true);
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialise,{once:true});
+  else initialise();
+})();
