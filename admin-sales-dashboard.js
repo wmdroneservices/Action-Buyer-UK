@@ -30,12 +30,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     const reserved=count("Reserved");
     const sold=count("Sold");
     const returned=count("Returned");
-    document.getElementById("inventory-count").textContent=inventoryCount;
-    document.getElementById("sent-count").textContent=sent;
-    document.getElementById("listed-count").textContent=listed;
-    document.getElementById("reserved-count").textContent=reserved;
-    document.getElementById("sold-count").textContent=sold;
-    document.getElementById("returned-count").textContent=returned;
+    // Use the same pipeline state styling as Purchasing: green when clear,
+    // orange when a stage has work waiting.
+    const setPipelineCount=(id,value)=>{
+      const n=Number(value)||0;
+      const el=document.getElementById(id);
+      if(el) el.textContent=n;
+      const card=document.querySelector('[data-count-for="'+id+'"]');
+      if(card){
+        card.classList.toggle("has-action",n>0);
+        card.classList.toggle("is-clear",n===0);
+      }
+    };
+    setPipelineCount("inventory-count",inventoryCount);
+    setPipelineCount("sent-count",sent);
+    setPipelineCount("listed-count",listed);
+    setPipelineCount("reserved-count",reserved);
+    setPipelineCount("sold-count",sold);
+    setPipelineCount("returned-count",returned);
 
     const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,asset_id,status,sales_channel,listing_url");
     if(le){notice("Could not load sales listing counts.",false);return;}
