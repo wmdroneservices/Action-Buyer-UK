@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-dashboard.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="admin-dashboard.js" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
@@ -23,5 +23,19 @@
 <a data-permission="customers" href="admin-customers.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">CUSTOMER DASHBOARD</strong><span class="btn btn-primary" style="width:100%;min-height:42px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">OPEN CUSTOMERS</span></a>
 <a data-permission="manage_staff" href="admin-staff-management.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">STAFF MANAGEMENT</strong><span class="btn btn-primary" style="width:100%;min-height:42px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">MANAGE STAFF</span></a>
 </div></section>
+
+<section id="management-danger-zone" class="account-panel management-danger-zone" data-permission="manage_staff" hidden>
+  <div class="section-heading">
+    <p class="section-kicker">MANAGEMENT ONLY · DANGER ZONE</p>
+    <h2>Clear Test Data</h2>
+    <p>Permanently remove development and test quote workflow data. This does not delete customer accounts, staff accounts, catalogue products, pricing or retailer data.</p>
+  </div>
+  <div class="management-danger-warning">
+    <strong>WARNING: THIS ACTION CANNOT BE UNDONE.</strong>
+    <span>Use only when deliberately clearing test and development workflow data.</span>
+  </div>
+  <button id="test-reset-button" class="btn btn-danger management-reset-button" type="button">CLEAR ALL TEST DATA</button>
+  <div id="test-reset-message" class="form-message" role="status" aria-live="polite"></div>
+</section>
 </div></main><footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Research &amp; Pricing · Purchasing · Sales · Customers.</div></div></footer>
 </body></html>
