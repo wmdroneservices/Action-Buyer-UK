@@ -58,3 +58,29 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 .pipeline-count-label{font-size:1rem;color:#102f4f;letter-spacing:0;margin:0 0 .2rem}
 .pipeline-stage small{font-size:.78rem;color:#667085}
 @media(max-width:600px){.purchase-pipeline{grid-template-columns:1fr}.pipeline-stage{min-height:96px}}
+
+
+/* Purchasing workflow cards: deliberately mirror the Sales Dashboard step-card layout. */
+.purchase-step-card{
+  background:#fff;
+  border:1px solid #dfdfdc;
+  padding:2rem;
+  margin:0;
+}
+.purchase-step-card .section-heading{
+  max-width:720px;
+  margin:0 0 1.5rem;
+}
+.purchase-step-card .section-kicker{margin:0 0 .8rem}
+.purchase-step-card h2{
+  font-size:clamp(2rem,4vw,3rem);
+  line-height:1.08;
+  color:#102f4f;
+  margin:0 0 1rem;
+  letter-spacing:-.02em;
+}
+.purchase-step-card>p:last-child{margin:0}
+.purchase-step-card+.purchase-step-card{border-top:0}
+@media(max-width:600px){
+  .purchase-step-card{padding:1.25rem}
+}
