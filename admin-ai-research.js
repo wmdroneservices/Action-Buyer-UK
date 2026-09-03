@@ -14,6 +14,15 @@ function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const cu
 function populateResearchFilters(){fillSelect('research-manufacturer',products.map(p=>p.manufacturer),'Any manufacturer');fillSelect('research-category',products.map(p=>p.category),'Any category');fillSelect('research-product-type',products.map(p=>p.product_type),'Any product type')}
 async function load(){const [c,p,m]=await Promise.all([sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100)]);if(c.error)throw c.error;if(p.error)throw p.error;if(m.error)throw m.error;candidates=c.data||[];products=p.data||[];populateResearchFilters();render();renderMemory(m.data||[])}
 async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources()}
+async function loadAgentStatus(){
+ const el=$('local-ai-status');if(!el)return;
+ const data=await api({action:'agent_status'});const a=(data.agents||[])[0];
+ if(!a){el.textContent='LOCAL AI WORKER OFFLINE — queued research will wait until the research PC agent is running.';el.className='form-message error';return}
+ const age=a.last_heartbeat_at?Date.now()-new Date(a.last_heartbeat_at).getTime():Infinity;
+ const online=age<90000&&['online','working','starting'].includes(a.status);
+ el.textContent=(online?'LOCAL AI WORKER ONLINE':'LOCAL AI WORKER OFFLINE')+' · '+(a.model||'Ollama model not reported')+(a.status==='working'?' · currently researching':'')+(a.last_error?' · last error: '+a.last_error:'');
+ el.className='form-message '+(online?'success':'error');
+}
 async function runResearch(){
  const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='RESEARCHING…'}
  const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||'')};
@@ -27,20 +36,17 @@ async function runResearch(){
    }
    if(data?.error)throw Error(data.error);
    const r=data||{};
-   const findings=(r.results||[]).reduce((n,x)=>n+(x.submitted||0),0);
-   const failures=(r.results||[]).filter(x=>x.error);
-   if(r.error||failures.length){
-     const detail=r.error||failures[0]?.error||'AI research encountered an error.';
-     msg('AI research did not produce findings: '+detail,true);
+   if(r.status==='queued_for_local_agent'){
+     msg(r.message||((r.products_queued||0)+' product(s) queued for the local Ollama worker. Refresh the review queue after processing.'),false);
    }else{
-     msg(r.message||('AI research complete: '+(r.processed||0)+' products processed. '+findings+' findings sent for review.'),findings===0);
+     msg(r.message||'Research request queued.',false);
    }
-   await Promise.all([load(),loadSources()]);
+   await Promise.all([load(),loadSources(),loadAgentStatus()]);
  }finally{if(b){b.disabled=false;b.textContent='RUN SELECTED AI RESEARCH'}}
 }
 async function edit(id){const c=candidates.find(x=>x.id===id);if(!c)return;const title=prompt('Listing title',c.edited_title??c.discovered_title??'');if(title===null)return;const price=prompt('Price',String(c.edited_price??c.price??''));if(price===null)return;const condition=prompt('Condition',c.edited_condition??c.condition??'');if(condition===null)return;const url=prompt('Source URL',c.edited_source_url??c.source_url??'');if(url===null)return;const n=clean(price)===''?null:Number(price);if(n!==null&&!Number.isFinite(n))throw Error('Price must be a valid number.');const {error}=await sb.from('quote_catalog_ai_candidates').update({edited_title:clean(title)||null,edited_price:n,edited_condition:clean(condition)||null,edited_source_url:clean(url)||null,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)throw error;msg('Evidence entry updated.');await load()}
 async function decide(decision){const ids=checked();if(!ids.length)throw Error('Select at least one evidence entry first.');const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).in('id',ids);if(error)throw error;msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+'.');await load()}
 async function apply(){const ids=checked();if(!ids.length)throw Error('Select accepted evidence first.');let done=0;for(const id of ids){const c=candidates.find(x=>x.id===id);if(c?.decision!=='accepted'||c.applied_at)continue;const {error}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});if(error)throw error;done++}msg(done?done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to live evidence.':'Only newly accepted entries can be applied.',!done);await load()}
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
-async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b)edit(b.dataset.id).catch(x=>msg(x.message,true));const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});await Promise.all([load(),loadSources()]);msg('Review queue loaded.')}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b)edit(b.dataset.id).catch(x=>msg(x.message,true));const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});await Promise.all([load(),loadSources(),loadAgentStatus()]);msg('Review queue loaded.');setInterval(()=>loadAgentStatus().catch(()=>{}),30000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
