@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en-GB"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Sign In | GearCashOut</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script><script src="staff-login.js" defer></script>
+</head><body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a></div></header>
+<main class="auth-page"><div class="auth-card">
+<p class="section-kicker">STAFF ACCESS</p><h1>Staff sign in</h1>
+<p class="auth-intro">Use your staff User ID and password.</p>
+<form id="staff-login-form" class="auth-form">
+<label for="staff-user-id">User ID</label>
+<input id="staff-user-id" type="text" autocomplete="username" required maxlength="40" />
+<label for="staff-password">Password</label>
+<input id="staff-password" type="password" autocomplete="current-password" required />
+<button class="btn btn-primary" type="submit">SIGN IN</button>
+<p id="staff-login-message" class="form-message" role="status" aria-live="polite"></p>
+</form>
+</div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong></div></div></footer>
+</body></html>
