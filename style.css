@@ -84,3 +84,40 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 @media(max-width:600px){
   .purchase-step-card{padding:1.25rem}
 }
+
+
+/* Management-only test data reset */
+.management-danger-zone{
+  margin-top:2rem;
+  border:2px solid #b42318;
+  background:#fff7f6;
+}
+.management-danger-zone .section-heading h2{color:#8f1d16;}
+.management-danger-warning{
+  border:1px solid #d92d20;
+  background:#fee4e2;
+  color:#7a271a;
+  padding:1rem 1.1rem;
+  margin:1rem 0 1.25rem;
+  display:flex;
+  flex-direction:column;
+  gap:.35rem;
+}
+.btn.btn-danger{
+  background:#b42318;
+  border-color:#b42318;
+  color:#fff;
+}
+.btn.btn-danger:hover,
+.btn.btn-danger:focus{
+  background:#8f1d16;
+  border-color:#8f1d16;
+  color:#fff;
+}
+.management-reset-button{
+  width:100%;
+  min-height:58px;
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:.04em;
+}
