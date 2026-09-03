@@ -60,7 +60,7 @@
     purchasing: [
       ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
       ['admin-valuations.html', 'VALUATIONS'],
-      ['admin-sales.html', 'PURCHASE PIPELINE']
+      ['sales-pricing-guide.html?from=purchasing', 'QUOTE CATALOGUE / MARKET CHECK']
     ],
     sales: [
       ['admin-sales-dashboard.html', 'SALES DASHBOARD'],
@@ -90,6 +90,7 @@
   }
 
   function mode(page) {
+    if (page === 'sales-pricing-guide.html' && new URLSearchParams(location.search).get('from') === 'purchasing') return 'purchasing';
     for (const [name, pages] of Object.entries(groups)) {
       if (pages.has(page)) return name;
     }
