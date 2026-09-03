@@ -38,13 +38,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   const countText=id=>document.getElementById(id)?.textContent?.trim()||'0';
+  // Use the exact same notice structure and sizing as the Sales Dashboard.
+  const toneStyle=tone=>({
+    action:'border:2px solid #b06b00;background:#fff8e8',
+    warning:'border:2px solid #b42318;background:#fff5f5',
+    success:'border:2px solid #18794e;background:#f1fbf5',
+    info:'border:1px solid #b8c4d1;background:#f7f9fb'
+  }[tone]||'border:1px solid #b8c4d1;background:#f7f9fb');
   const setNotice=(id,text,tone='success')=>{
     const el=document.getElementById(id);
     if(!el)return;
     el.className='workflow-notice';
-    el.textContent=text;
-    el.style.borderColor=tone==='warning'?'#b42318':tone==='action'?'#d88732':'#18794e';
-    el.style.background=tone==='warning'?'#fff5f5':tone==='action'?'#fff8e8':'#f1fbf5';
+    el.innerHTML='<div style="margin-top:.75rem;padding:.9rem 1rem;'+toneStyle(tone)+'"><strong>'+text+'</strong></div>';
   };
   const refreshNotices=()=>{
     const valuations=countText('valuation-count');
