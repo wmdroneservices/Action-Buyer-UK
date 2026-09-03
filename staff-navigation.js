@@ -30,6 +30,9 @@
       'admin-sales-dashboard.html',
       'inventory.html',
       'inventory-add.html',
+      'inventory-detail.html',
+      'inventory-ready.html',
+      'inventory-testing.html',
       'inventory-sales.html',
       'active-sales-listings.html',
       'sold-items.html',
@@ -41,7 +44,8 @@
       'sales-pricing-guide.html'
     ]),
     customers: new Set([
-      'admin-customers.html'
+      'admin-customers.html',
+      'admin-customer-details.html'
     ])
   };
 
