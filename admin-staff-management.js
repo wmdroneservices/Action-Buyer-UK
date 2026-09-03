@@ -22,11 +22,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
    try{
      const data=await call({action:"list"}),rows=data.staff||[];
      renderSummary(rows);
-     list.innerHTML=rows.map(r=>`<article class="valuation-card" style="display:block">
-       <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-         <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username)}</strong><p>User ID: ${esc(r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
-         <div style="display:flex;gap:.65rem;flex-wrap:wrap"><a class="btn btn-secondary" href="admin-staff-activity.html?staff=${encodeURIComponent(r.user_id)}">VIEW ACTIVITY LOG</a><button class="btn btn-secondary" data-edit="${r.user_id}">EDIT STAFF ACCOUNT</button></div>
-       </div>
+     list.innerHTML=rows.map(r=>`<details class="valuation-card staff-account-dropdown" style="display:block;padding:0">
+       <summary style="list-style:none;cursor:pointer;padding:1rem 1.15rem;display:flex;justify-content:space-between;gap:1rem;align-items:center">
+         <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username||"Staff account")}</strong><p style="margin:.3rem 0 0">User ID: ${esc(r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
+         <span style="font-size:.75rem;font-weight:700;color:#102f4f;text-transform:uppercase;letter-spacing:.06em">Open account ▾</span>
+       </summary>
+       <div style="padding:0 1.15rem 1.15rem;border-top:1px solid #ddd">
+         <div style="display:flex;gap:.65rem;flex-wrap:wrap;padding-top:1rem"><a class="btn btn-secondary" href="admin-staff-activity.html?staff=${encodeURIComponent(r.user_id)}">VIEW ACTIVITY LOG</a><button class="btn btn-secondary" data-edit="${r.user_id}">EDIT STAFF ACCOUNT</button></div>
        <div id="edit-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd">
          <label>Display name<input type="text" data-display-name value="${esc(r.display_name||"")}" required></label>
          <label>User ID<input type="text" data-username value="${esc(r.username||"")}" minlength="3" maxlength="40" autocomplete="off" required></label>
@@ -44,8 +46,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
          </div>
        </div>
        <div id="activity-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd"></div>
-     </article>`).join("")||"<p>No staff accounts found.</p>";
+       </div>
+     </details>`).join("")||"<p>No staff accounts found.</p>";
      rows.forEach(r=>{const panel=document.getElementById("edit-"+r.user_id),root=panel?.querySelector("[data-edit-schedule]");if(root){root.innerHTML=scheduleHTML(r.work_schedule||{});bindSchedule(root);}});
+     list.querySelectorAll("details.staff-account-dropdown").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)list.querySelectorAll("details.staff-account-dropdown[open]").forEach(other=>{if(other!==d)other.open=false;});}));
    }catch(e){notice(e.message||"Could not load staff.",false);}
  }
  document.getElementById("create-staff-form").addEventListener("submit",async e=>{
