@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const signout=document.getElementById("staff-sign-out");
  if(signout)signout.addEventListener("click",()=>auth.signOut());
 
- if(allowed.purchasing) loadCatalogueSummary(auth.supabase);
+ loadCatalogueSummary(auth.supabase);
 });
 
 async function loadCatalogueSummary(supabase){
