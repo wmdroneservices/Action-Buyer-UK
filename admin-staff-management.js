@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
            <button class="btn" style="background:#b42318;color:#fff;border-color:#b42318" data-delete="${r.user_id}" data-name="${esc(r.display_name||r.username)}">DELETE STAFF ACCOUNT</button>
          </div>
        </div>
+       <div id="activity-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd"></div>
      </article>`).join("")||"<p>No staff accounts found.</p>";
      rows.forEach(r=>{const panel=document.getElementById("edit-"+r.user_id),root=panel?.querySelector("[data-edit-schedule]");if(root){root.innerHTML=scheduleHTML(r.work_schedule||{});bindSchedule(root);}});
    }catch(e){notice(e.message||"Could not load staff.",false);}
@@ -57,6 +58,25 @@ document.addEventListener("DOMContentLoaded",async()=>{
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
  list.addEventListener("click",async e=>{
+   const activity=e.target.closest("[data-activity]");
+   if(activity){
+     const id=activity.dataset.activity,name=activity.dataset.name||"Staff member",panel=document.getElementById("activity-"+id);
+     if(!panel)return;
+     if(!panel.hidden){panel.hidden=true;activity.textContent="VIEW TODAY'S ACTIVITY";return;}
+     activity.disabled=true;activity.textContent="LOADING ACTIVITY...";
+     panel.hidden=false;panel.innerHTML="<p>Loading today's activity…</p>";
+     try{
+       const {data,error}=await auth.supabase.functions.invoke("staff-activity",{body:{action:"list",staff_user_id:id,limit:300}});
+       if(error)throw error;if(data?.error)throw new Error(data.error);
+       const rows=data?.activity||[],s=data?.summary||{total:0,logins:0,page_views:0,actions:0};
+       const time=v=>new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date(v));
+       panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;flex-wrap:wrap"><div><p class="section-kicker">TODAY · STAFF ACTIVITY</p><strong style="font-size:1.05rem;color:#102f4f">'+esc(name)+'</strong></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><span class="status-badge">'+s.logins+' logins</span><span class="status-badge">'+s.page_views+' pages</span><span class="status-badge">'+s.actions+' actions</span></div></div>'+
+         (rows.length?'<div style="margin-top:1rem;max-height:520px;overflow:auto;border:1px solid #d8dde3">'+rows.map(r=>'<div style="padding:.75rem 1rem;border-bottom:1px solid #e5e8ec;display:grid;grid-template-columns:90px minmax(120px,1fr) minmax(0,2fr);gap:.75rem"><strong style="color:#102f4f">'+esc(time(r.created_at))+'</strong><span style="font-weight:700">'+esc(r.action_type||r.action_category||"Activity")+'</span><span style="color:#5f6b78">'+esc((r.details?.label||r.details?.title||r.details?.href||r.page||"").toString())+'</span></div>').join("")+'</div>':'<p style="margin-top:1rem">No activity recorded for this staff member today.</p>');
+       activity.textContent="HIDE TODAY'S ACTIVITY";
+     }catch(err){panel.innerHTML='<p class="form-message error">'+esc(err.message||"Could not load staff activity.")+'</p>';activity.textContent="VIEW TODAY'S ACTIVITY";}
+     finally{activity.disabled=false;}
+     return;
+   }
    const edit=e.target.closest("[data-edit]");
    if(edit){const p=document.getElementById("edit-"+edit.dataset.edit);p.hidden=!p.hidden;return;}
    const save=e.target.closest("[data-save]");
