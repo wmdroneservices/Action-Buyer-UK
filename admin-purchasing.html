@@ -110,16 +110,43 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Purchase Pipeline</h2>
         <p>One continuous workflow from valuation received through customer response, shipping, receipt, inspection, payment and completion into Inventory.</p>
       </div>
-      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));">
-        <div><strong id="valuation-count">—</strong><span>valuations</span></div>
-        <div><strong id="customer-response-count">—</strong><span>customer response</span></div>
-        <div><strong id="shipping-label-count">—</strong><span>labels required</span></div>
-        <div><strong id="delivery-count">—</strong><span>awaiting delivery</span></div>
-        <div><strong id="inspection-count">—</strong><span>inspection</span></div>
-        <div><strong id="final-offer-count">—</strong><span>final offer</span></div>
-        <div><strong id="payment-due-count">—</strong><span>payment due</span></div>
-        <div><strong id="payment-processing-count">—</strong><span>processing</span></div>
-        <div><strong id="paid-count">—</strong><span>completed</span></div>
+      <div class="purchase-pipeline" aria-label="Live purchase pipeline">
+        <article class="pipeline-stage" data-count-for="valuation-count" data-singular="valuation" data-plural="valuations">
+          <div class="pipeline-number"><strong id="valuation-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 1</span><strong class="pipeline-count-label">Checking valuations</strong><small>Awaiting review</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="customer-response-count" data-singular="customer response" data-plural="customer responses">
+          <div class="pipeline-number"><strong id="customer-response-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 2</span><strong class="pipeline-count-label">Checking responses</strong><small>Awaiting customer action</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="shipping-label-count" data-singular="label" data-plural="labels">
+          <div class="pipeline-number"><strong id="shipping-label-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 3</span><strong class="pipeline-count-label">Checking labels</strong><small>Shipping label required</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="delivery-count" data-singular="delivery" data-plural="deliveries">
+          <div class="pipeline-number"><strong id="delivery-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 3</span><strong class="pipeline-count-label">Checking deliveries</strong><small>Awaiting delivery</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="inspection-count" data-singular="inspection" data-plural="inspections">
+          <div class="pipeline-number"><strong id="inspection-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 4</span><strong class="pipeline-count-label">Checking inspections</strong><small>Receipt and inspection</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="final-offer-count" data-singular="final offer" data-plural="final offers">
+          <div class="pipeline-number"><strong id="final-offer-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 4</span><strong class="pipeline-count-label">Checking offers</strong><small>Final offer required</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="payment-due-count" data-singular="payment" data-plural="payments">
+          <div class="pipeline-number"><strong id="payment-due-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 5</span><strong class="pipeline-count-label">Checking payments</strong><small>Payment due</small></div>
+        </article>
+        <article class="pipeline-stage" data-count-for="payment-processing-count" data-singular="payment" data-plural="payments">
+          <div class="pipeline-number"><strong id="payment-processing-count">—</strong></div>
+          <div><span class="pipeline-step">STEP 5</span><strong class="pipeline-count-label">Checking processing</strong><small>Payment processing</small></div>
+        </article>
+        <article class="pipeline-stage pipeline-stage-complete" data-count-for="paid-count" data-singular="completed purchase" data-plural="completed purchases">
+          <div class="pipeline-number"><strong id="paid-count">—</strong></div>
+          <div><span class="pipeline-step">COMPLETE</span><strong class="pipeline-count-label">Checking completion</strong><small>Ready for Inventory</small></div>
+        </article>
       </div>
     </section>
 
