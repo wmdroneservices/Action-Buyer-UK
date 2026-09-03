@@ -81,15 +81,27 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Deduplicate customer-facing dropdown values by a normalised key.
   // This protects the valuation wizard from case, spacing and invisible-character
   // variations in catalogue data without changing the underlying catalogue records.
-  const optionKey = value => clean(value)
-    .normalize("NFKC")
-    .replace(/\s+/g, " ")
-    .toLocaleLowerCase("en-GB");
+  const categoryAliases = {
+    "camera accessory": "Camera Accessories",
+    "camera accessories": "Camera Accessories",
+    "lens": "Lenses",
+    "lenses": "Lenses"
+  };
+
+  function canonicalOption(value) {
+    const cleaned = clean(value)
+      .normalize("NFKC")
+      .replace(/\s+/g, " ");
+    const aliasKey = cleaned.toLocaleLowerCase("en-GB");
+    return categoryAliases[aliasKey] || cleaned;
+  }
+
+  const optionKey = value => canonicalOption(value).toLocaleLowerCase("en-GB");
 
   function uniqueOptions(values) {
     const seen = new Map();
     (values || []).forEach(raw => {
-      const value = clean(raw);
+      const value = canonicalOption(raw);
       const key = optionKey(value);
       if (value && key && !seen.has(key)) seen.set(key, value);
     });
