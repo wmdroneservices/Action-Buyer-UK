@@ -33,7 +33,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(returned)returned.textContent='RETURNED ARCHIVE';
     };
     fix();
-    new MutationObserver(fix).observe(nav,{childList:true,subtree:true,characterData:true});
+    // Do not observe this nav: writing textContent inside a MutationObserver
+    // callback creates another mutation and can lock the page in a loop.
   }
 
   const countText=id=>document.getElementById(id)?.textContent?.trim()||'0';
@@ -72,7 +73,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     setNotice('payment-step-notice',paymentParts.length?paymentParts.join(' · '):'NO PAYMENT ACTIONS CURRENTLY REQUIRED',paymentParts.length?'action':'success');
   };
   refreshNotices();
-  new MutationObserver(refreshNotices).observe(document.body,{subtree:true,childList:true,characterData:true});
+
+  // Refresh only when pipeline counts are updated. A whole-document MutationObserver
+  // here caused refreshNotices() to react to its own DOM writes and repeatedly
+  // trigger itself, freezing the purchasing page.
+  const countIds=['valuation-count','customer-response-count','shipping-label-count','delivery-count','inspection-count','final-offer-count','payment-due-count','payment-processing-count','paid-count'];
+  const countObserver=new MutationObserver(refreshNotices);
+  countIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) countObserver.observe(el,{childList:true,characterData:true,subtree:true});
+  });
 });
 </script>
 </head>
