@@ -3,7 +3,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Staff Management | GearCashOut</title><link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="auth.js" defer></script><script src="admin-staff-management.js?v=20260903-login-hours-1" defer></script>
+<script src="auth.js" defer></script><script src="admin-staff-management.js?v=20260903-weekly-hours-1" defer></script>
 </head><body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li></ul></nav></div></header>
 <main class="account-page"><div class="container">
@@ -13,12 +13,9 @@
 <label>Display name<input id="new-display-name" type="text" required></label>
 <label>User ID<input id="new-username" type="text" required minlength="3" maxlength="40" autocomplete="off"></label>
 <label>Password<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label>
-<p><strong>Permitted login hours (optional)</strong></p>
-<p class="auth-intro" style="margin-top:-.5rem">Leave both times blank for unrestricted access. Times use UK local time, including daylight-saving changes.</p>
-<div style="display:flex;gap:1rem;flex-wrap:wrap">
-<label style="flex:1;min-width:180px">Start time<input id="new-work-start" type="time"></label>
-<label style="flex:1;min-width:180px">End time<input id="new-work-end" type="time"></label>
-</div>
+<p><strong>Weekly working hours (optional)</strong></p>
+<p class="auth-intro" style="margin-top:-.5rem">Set hours separately for all seven days. Tick <strong>Day off</strong> for non-working days. Leave both times blank on a working day for unrestricted access that day. Times use UK local time.</p>
+<div id="new-weekly-schedule"></div>
 <p><strong>Dashboard access</strong></p>
 <label class="checkbox-label"><input type="checkbox" name="research">Research &amp; Pricing</label>
 <label class="checkbox-label"><input type="checkbox" name="purchasing">Purchasing</label>
