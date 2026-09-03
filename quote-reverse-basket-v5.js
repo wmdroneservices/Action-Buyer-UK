@@ -78,34 +78,61 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
     select.disabled = !(options && options.length);
   }
+  // Deduplicate customer-facing dropdown values by a normalised key.
+  // This protects the valuation wizard from case, spacing and invisible-character
+  // variations in catalogue data without changing the underlying catalogue records.
+  const optionKey = value => clean(value)
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("en-GB");
+
+  function uniqueOptions(values) {
+    const seen = new Map();
+    (values || []).forEach(raw => {
+      const value = clean(raw);
+      const key = optionKey(value);
+      if (value && key && !seen.has(key)) seen.set(key, value);
+    });
+    return [...seen.values()]
+      .sort((a,b)=>a.localeCompare(b, "en-GB", {sensitivity:"base"}))
+      .map(value => ({value,label:value}));
+  }
+
+  function sameOption(a,b) { return optionKey(a) === optionKey(b); }
+
   function mainCategories() {
-    return [...new Set(catalog.map(p => clean(p.main_category || p.category)).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+    return uniqueOptions(catalog.map(p => p.main_category || p.category));
   }
   function productTypes() {
-    return [...new Set(catalog
-      .filter(p => clean(p.main_category || p.category) === clean(item.mainCategory))
-      .map(p => clean(p.product_type || p.category)).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+    return uniqueOptions(catalog
+      .filter(p => sameOption(p.main_category || p.category, item.mainCategory))
+      .map(p => p.product_type || p.category));
   }
   function scopedProducts() {
     return catalog.filter(p =>
-      clean(p.main_category || p.category) === clean(item.mainCategory) &&
-      clean(p.product_type || p.category) === clean(item.productType)
+      sameOption(p.main_category || p.category, item.mainCategory) &&
+      sameOption(p.product_type || p.category, item.productType)
     );
   }
   function manufacturers() {
-    return [...new Set(scopedProducts().map(p => clean(p.manufacturer)).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+    return uniqueOptions(scopedProducts().map(p => p.manufacturer));
   }
   function models() {
-    return [...new Set(scopedProducts().filter(p => clean(p.manufacturer) === clean(item.manufacturer))
-      .map(p => clean(p.model)).filter(Boolean))]
-      .sort((a,b)=>a.localeCompare(b)).map(value => ({value,label:value}));
+    return uniqueOptions(scopedProducts()
+      .filter(p => sameOption(p.manufacturer, item.manufacturer))
+      .map(p => p.model));
   }
   function packages() {
-    return scopedProducts().filter(p => clean(p.manufacturer) === clean(item.manufacturer) && clean(p.model) === clean(item.model))
-      .map(p => ({value:clean(p.package_key) || "standard",label:clean(p.package_name) || "Standard Package"}));
+    const seen = new Map();
+    scopedProducts()
+      .filter(p => sameOption(p.manufacturer, item.manufacturer) && sameOption(p.model, item.model))
+      .forEach(p => {
+        const value = clean(p.package_key) || "standard";
+        const label = clean(p.package_name) || "Standard Package";
+        const key = optionKey(value + "|" + label);
+        if (!seen.has(key)) seen.set(key, {value,label});
+      });
+    return [...seen.values()].sort((a,b)=>a.label.localeCompare(b.label, "en-GB", {sensitivity:"base"}));
   }
   function validateStep(step) {
     if (step === 1 && (!clean(item.mainCategory) || !clean(item.productType))) { alert("Please select a category and product type."); return false; }
