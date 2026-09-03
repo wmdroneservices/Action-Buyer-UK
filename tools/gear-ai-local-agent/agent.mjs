@@ -27,6 +27,8 @@ const cfg={
   model:process.env.OLLAMA_MODEL||'gemma3:4b',
   pollSeconds:Math.max(5,Number(process.env.POLL_SECONDS||15)),
   maxResults:Math.max(5,Math.min(30,Number(process.env.MAX_RESULTS_PER_PRODUCT||20))),
+  requestTimeoutMs:Math.max(5000,Number(process.env.REQUEST_TIMEOUT_MS||15000)),
+  sourceProbeLimit:Math.max(3,Math.min(20,Number(process.env.SOURCE_PROBE_LIMIT||12))),
   agentId:process.env.AGENT_ID||'gear-local-agent-1',
   agentName:process.env.AGENT_NAME||'GearCashOut Local Research Agent'
 };
@@ -66,7 +68,17 @@ async function ensureOllama(){
 }
 
 function productName(p){
-  return [p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+  const parts=[p.manufacturer,p.model,p.package_name].filter(Boolean).map(x=>String(x).trim()).filter(Boolean);
+  const out=[];
+  for(const part of parts){
+    if(!out.some(x=>x.toLowerCase()===part.toLowerCase()))out.push(part);
+  }
+  return out.join(' ').replace(/\s+/g,' ').trim();
+}
+
+function productTerms(p){
+  const raw=[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ');
+  return [...new Set(String(raw).toLowerCase().match(/[a-z0-9]+/g)||[])].filter(x=>x.length>1);
 }
 
 function decodeDdgUrl(href){
@@ -83,7 +95,7 @@ function decodeDdgUrl(href){
 }
 
 function stripHtml(html){
-  return html.replace(/<script[\s\S]*?<\/script>/gi,' ')
+  return String(html||'').replace(/<script[\s\S]*?<\/script>/gi,' ')
     .replace(/<style[\s\S]*?<\/style>/gi,' ')
     .replace(/<[^>]+>/g,' ')
     .replace(/&nbsp;/g,' ')
@@ -95,8 +107,7 @@ function stripHtml(html){
 }
 
 function extractSearchLinks(html, baseUrl){
-  const out=[];
-  const seen=new Set();
+  const out=[],seen=new Set();
   const patterns=[
     /<a[^>]+class=["'][^"']*(?:result__a|result-link)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
     /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
@@ -107,7 +118,7 @@ function extractSearchLinks(html, baseUrl){
       const raw=decodeDdgUrl(m[1])||(()=>{try{return new URL(m[1],baseUrl).href}catch{return null}})();
       if(!raw||!/^https?:\/\//i.test(raw))continue;
       const host=hostOf(raw);
-      if(!host||host.includes('duckduckgo.com')||host.includes('bing.com')||host.includes('google.com'))continue;
+      if(!host||/(duckduckgo|bing|google|yahoo)\.com$/i.test(host))continue;
       const key=raw.split('#')[0];
       if(seen.has(key))continue;
       seen.add(key);
@@ -122,18 +133,23 @@ function extractSearchLinks(html, baseUrl){
 }
 
 async function fetchText(url){
-  const res=await fetch(url,{
-    redirect:'follow',
-    headers:{
-      'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36',
-      'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language':'en-GB,en;q=0.9'
-    }
-  });
-  if(!res.ok)throw new Error('HTTP '+res.status);
-  const type=res.headers.get('content-type')||'';
-  if(!type.includes('text/html'))throw new Error('Not HTML: '+type);
-  return {url:res.url,html:await res.text()};
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),cfg.requestTimeoutMs);
+  try{
+    const res=await fetch(url,{
+      redirect:'follow',
+      signal:controller.signal,
+      headers:{
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36',
+        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language':'en-GB,en;q=0.9'
+      }
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const type=res.headers.get('content-type')||'';
+    if(!type.includes('text/html'))throw new Error('Not HTML: '+type);
+    return {url:res.url,html:await res.text()};
+  }finally{clearTimeout(timer)}
 }
 
 async function searchDdg(query){
@@ -155,37 +171,110 @@ async function searchBing(query){
   const url='https://www.bing.com/search?q='+encodeURIComponent(query)+'&cc=gb&setlang=en-GB';
   try{
     const {html}=await fetchText(url);
-    const out=[];
-    const seen=new Set();
+    const out=[],seen=new Set();
     const re=/<li[^>]+class=["'][^"']*b_algo[^"']*["'][^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/li>/gi;
     let m;
     while((m=re.exec(html))){
       const href=m[1],host=hostOf(href);
       if(!host||host==='bing.com'||host.endsWith('.bing.com')||seen.has(href))continue;
       seen.add(href);
-      out.push({url:href,title:stripHtml(m[2]),snippet:''});
+      out.push({url:href,title:stripHtml(m[2]||''),snippet:''});
       if(out.length>=20)break;
     }
     return out;
   }catch(e){log('Bing search warning:',e.message);return []}
 }
 
+async function searchMojeek(query){
+  const url='https://www.mojeek.com/search?q='+encodeURIComponent(query);
+  try{
+    const {html}=await fetchText(url);
+    return extractSearchLinks(html,url);
+  }catch(e){log('Mojeek search warning:',e.message);return []}
+}
+
 async function searchWeb(query){
   const ddg=await searchDdg(query);
   if(ddg.length)return ddg;
-  return await searchBing(query);
+  const bing=await searchBing(query);
+  if(bing.length)return bing;
+  return await searchMojeek(query);
 }
+
+function scoreCandidateLink(url,title,terms){
+  const hay=(String(url)+' '+String(title)).toLowerCase();
+  return terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0);
+}
+
+function extractSameDomainLinks(html,baseUrl,terms){
+  const baseHost=hostOf(baseUrl),out=[],seen=new Set();
+  const re=/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while((m=re.exec(html))){
+    let url;
+    try{url=new URL(m[1],baseUrl).href}catch{continue}
+    if(hostOf(url)!==baseHost||seen.has(url))continue;
+    const title=stripHtml(m[2]||'');
+    const score=scoreCandidateLink(url,title,terms);
+    if(score<Math.min(2,Math.max(1,terms.length)))continue;
+    seen.add(url);
+    out.push({url,title,snippet:'Direct source search result'});
+  }
+  return out.sort((a,b)=>scoreCandidateLink(b.url,b.title,terms)-scoreCandidateLink(a.url,a.title,terms)).slice(0,8);
+}
+
+async function probeKnownSource(source,name,terms){
+  if(!source.domain)return [];
+  const domain=String(source.domain).replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/$/,'');
+  const root='https://'+domain;
+  const q=encodeURIComponent(name);
+  const attempts=[
+    root+'/search?q='+q,
+    root+'/search?query='+q,
+    root+'/search?s='+q,
+    root+'/?s='+q,
+    root+'/search?keyword='+q
+  ];
+  const out=[],seen=new Set();
+  for(const url of attempts){
+    try{
+      const {url:finalUrl,html}=await fetchText(url);
+      for(const r of extractSameDomainLinks(html,finalUrl,terms)){
+        if(!seen.has(r.url)){seen.add(r.url);out.push(r)}
+      }
+      if(out.length>=5)break;
+    }catch(e){
+      // Individual site search patterns commonly 404 or block; try the next pattern quietly.
+    }
+  }
+  return out.slice(0,5);
+}
+
+async function discoverFromKnownSources(product,sources){
+  const name=productName(product),terms=productTerms(product);
+  const priority=[...sources].filter(s=>s.enabled&&s.domain).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,cfg.sourceProbeLimit);
+  const out=[];
+  for(const source of priority){
+    const found=await probeKnownSource(source,name,terms);
+    if(found.length)log('Direct source probe',source.domain,'returned',found.length,'result(s)');
+    for(const r of found)out.push({...r,query:'direct:'+source.domain,host:hostOf(r.url)});
+  }
+  return out;
+}
+
 function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'').toLowerCase()}catch{return ''}}
 
 async function collectEvidence(product,sources){
   const name=productName(product);
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
+  const terms=productTerms(product);
   const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
   const queries=[
-    '"'+name+'" price UK',
+    '"'+name+'" UK price',
     '"'+name+'" used UK',
-    '"'+name+'" retailer'
+    '"'+name+'" buy',
+    name
   ];
   for(const s of priority){
     if(s.domain)queries.push('site:'+s.domain+' "'+name+'"');
@@ -202,32 +291,43 @@ async function collectEvidence(product,sources){
     }
   }
 
+  // If public search engines are blocked or weak, search the approved source registry directly.
+  if(seen.size<3){
+    log('Search engines produced too few results; switching to direct approved-source probes.');
+    const direct=await discoverFromKnownSources(product,sources);
+    for(const r of direct){
+      if(!seen.has(r.url))seen.set(r.url,r);
+    }
+  }
+
   const ranked=[...seen.values()].sort((a,b)=>{
     const ap=priority.find(s=>String(s.domain||'').replace(/^www\./,'').toLowerCase()===a.host)?.priority??999;
-    const bp=priority.find(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===b.host)?.priority??999;
+    const bp=priority.find(s=>String(s.domain||'').replace(/^www\./,'').toLowerCase()===b.host)?.priority??999;
     return ap-bp;
   }).slice(0,cfg.maxResults);
 
-  // Keep search-result evidence as a fallback when a retailer blocks automated page fetches.
   const pages=[];
   for(const r of ranked){
-    let fallbackText=[r.title,r.snippet,'Search query: '+r.query].filter(Boolean).join(' — ');
+    const fallbackText=[r.title,r.snippet,'Search query: '+r.query].filter(Boolean).join(' — ');
     try{
       const {url,html}=await fetchText(r.url);
-      const text=stripHtml(html).slice(0,7000);
+      const text=stripHtml(html).slice(0,9000);
       if(text.length>=120){
-        pages.push({...r,url,text});
-        continue;
+        const score=scoreCandidateLink(url,r.title,terms);
+        if(score>=1||r.query?.startsWith('direct:')){
+          pages.push({...r,url,text});
+          continue;
+        }
       }
     }catch(e){
       log('Page fetch blocked/unavailable:',r.host,e.message);
     }
-    if(fallbackText.length>=20){
-      pages.push({...r,text:fallbackText+' (Search result evidence; full page could not be fetched automatically.)'});
+    if(fallbackText.length>=30&&r.query&&!r.query.startsWith('direct:')){
+      pages.push({...r,text:fallbackText+' (Search-result evidence only; full page could not be fetched automatically.)'});
     }
   }
 
-  log('Collected',pages.length,'usable evidence item(s) from',ranked.length,'search result(s).');
+  log('Collected',pages.length,'usable evidence item(s) from',ranked.length,'discovered result(s).');
   return pages;
 }
 const schema={
@@ -391,6 +491,25 @@ async function processOne(){
     const pages=await collectEvidence(product,sources||[]);
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
+    // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
+    const sourceMapBefore=new Map((sources||[]).map(s=>[String(s.domain||'').replace(/^www\./,'').toLowerCase(),s]));
+    for(const page of pages){
+      const host=hostOf(page.url);
+      if(host&&!sourceMapBefore.has(host)){
+        try{
+          await registerSource({
+            source_url:page.url,
+            source_name:host,
+            source_country_code:null,
+            source_kind:'other',
+            evidence_category:'discovered'
+          });
+          sourceMapBefore.set(host,{domain:host});
+          log('Learned new source:',host);
+        }catch(e){log('Source registry warning:',host,e.message)}
+      }
+    }
+
     const research=await analyse(product,sources||[],pages);
     const sourceMap=new Map((sources||[]).map(s=>[String(s.domain||'').replace(/^www\./,'').toLowerCase(),s]));
     for(const s of research.discovered_sources||[]){
@@ -425,7 +544,7 @@ async function processOne(){
     log('Product failed:',message);
     await sb.rpc('ai_research_complete_queue_item',{p_queue_id:item.queue_id,p_success:false,p_error:message});
     await finishRunIfComplete(item.run_id).catch(()=>{});
-    throw e;
+    return true;
   }finally{
     await heartbeat('online',null,{}).catch(()=>{});
   }
