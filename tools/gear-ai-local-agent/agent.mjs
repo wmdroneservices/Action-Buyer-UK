@@ -94,37 +94,95 @@ function stripHtml(html){
     .trim();
 }
 
-async function searchDdg(query){
-  const url='https://html.duckduckgo.com/html/?q='+encodeURIComponent(query);
-  const res=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 GearCashOut research agent'}});
-  if(!res.ok)throw new Error('Search request failed: '+res.status);
-  const html=await res.text();
+function extractSearchLinks(html, baseUrl){
   const out=[];
-  const re=/<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]{0,300}?(?:result__snippet[^>]*>([\s\S]*?)<\/a>|result__snippet[^>]*>([\s\S]*?)<\/div>)/gi;
-  let m;
-  while((m=re.exec(html))){
-    const url=decodeDdgUrl(m[1]);
-    if(url&&/^https?:\/\//i.test(url))out.push({url,title:stripHtml(m[2]),snippet:stripHtml(m[3]||m[4]||'')});
-  }
-  if(!out.length){
-    const a=/<a[^>]+href="([^"]+)"[^>]*>([^<]{3,200})<\/a>/gi;
-    while((m=a.exec(html))){
-      const url=decodeDdgUrl(m[1]);
-      if(url&&/^https?:\/\//i.test(url)&&!url.includes('duckduckgo.com'))out.push({url,title:stripHtml(m[2]),snippet:''});
+  const seen=new Set();
+  const patterns=[
+    /<a[^>]+class=["'][^"']*(?:result__a|result-link)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi,
+    /<a[^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi
+  ];
+  for(const re of patterns){
+    let m;
+    while((m=re.exec(html))){
+      const raw=decodeDdgUrl(m[1])||(()=>{try{return new URL(m[1],baseUrl).href}catch{return null}})();
+      if(!raw||!/^https?:\\/\\//i.test(raw))continue;
+      const host=hostOf(raw);
+      if(!host||host.includes('duckduckgo.com')||host.includes('bing.com')||host.includes('google.com'))continue;
+      const key=raw.split('#')[0];
+      if(seen.has(key))continue;
+      seen.add(key);
+      const title=stripHtml(m[2]||'');
+      if(title.length<2)continue;
+      out.push({url:key,title,snippet:''});
+      if(out.length>=20)return out;
     }
+    if(out.length)break;
   }
-  return out.slice(0,15);
+  return out;
 }
 
+async function fetchText(url){
+  const res=await fetch(url,{
+    redirect:'follow',
+    headers:{
+      'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36',
+      'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language':'en-GB,en;q=0.9'
+    }
+  });
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const type=res.headers.get('content-type')||'';
+  if(!type.includes('text/html'))throw new Error('Not HTML: '+type);
+  return {url:res.url,html:await res.text()};
+}
+
+async function searchDdg(query){
+  const urls=[
+    'https://html.duckduckgo.com/html/?q='+encodeURIComponent(query),
+    'https://lite.duckduckgo.com/lite/?q='+encodeURIComponent(query)
+  ];
+  for(const url of urls){
+    try{
+      const {html}=await fetchText(url);
+      const results=extractSearchLinks(html,url);
+      if(results.length)return results;
+    }catch(e){log('DuckDuckGo search warning:',e.message)}
+  }
+  return [];
+}
+
+async function searchBing(query){
+  const url='https://www.bing.com/search?q='+encodeURIComponent(query)+'&cc=gb&setlang=en-GB';
+  try{
+    const {html}=await fetchText(url);
+    const out=[];
+    const re=/<li[^>]+class=["'][^"']*b_algo[^"']*["'][^>]*>[\\s\\S]*?<h2[^>]*>[\\s\\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>[\\s\\S]*?<\\/li>/gi;
+    let m;
+    while((m=re.exec(html))){
+      const href=m[1],host=hostOf(href);
+      if(host&&href.startsWith('http'))out.push({url:href,title:stripHtml(m[2]),snippet:''});
+      if(out.length>=20)break;
+    }
+    return out;
+  }catch(e){log('Bing search warning:',e.message);return []}
+}
+
+async function searchWeb(query){
+  const ddg=await searchDdg(query);
+  if(ddg.length)return ddg;
+  return await searchBing(query);
+}
 function hostOf(url){try{return new URL(url).hostname.replace(/^www\./,'').toLowerCase()}catch{return ''}}
 
 async function collectEvidence(product,sources){
   const name=productName(product);
-  const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,10);
+  if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
+
+  const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
   const queries=[
-    '"'+name+'" price',
-    '"'+name+'" UK',
-    '"'+name+'" used'
+    '"'+name+'" price UK',
+    '"'+name+'" used UK',
+    '"'+name+'" retailer'
   ];
   for(const s of priority){
     if(s.domain)queries.push('site:'+s.domain+' "'+name+'"');
@@ -132,37 +190,43 @@ async function collectEvidence(product,sources){
 
   const seen=new Map();
   for(const q of queries){
-    try{
-      for(const r of await searchDdg(q)){
-        const host=hostOf(r.url);
-        if(!host||seen.has(r.url))continue;
-        seen.set(r.url,{...r,query:q,host});
-      }
-    }catch(e){log('Search warning:',e.message)}
+    const results=await searchWeb(q);
+    log('Search',q,'returned',results.length,'result(s)');
+    for(const r of results){
+      const host=hostOf(r.url);
+      if(!host||seen.has(r.url))continue;
+      seen.set(r.url,{...r,query:q,host});
+    }
   }
 
   const ranked=[...seen.values()].sort((a,b)=>{
-    const ak=priority.some(s=>hostOf('https://'+s.domain)===a.host)?0:1;
-    const bk=priority.some(s=>hostOf('https://'+s.domain)===b.host)?0:1;
-    return ak-bk;
+    const ap=priority.find(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===a.host)?.priority??999;
+    const bp=priority.find(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===b.host)?.priority??999;
+    return ap-bp;
   }).slice(0,cfg.maxResults);
 
+  // Keep search-result evidence as a fallback when a retailer blocks automated page fetches.
   const pages=[];
   for(const r of ranked){
+    let fallbackText=[r.title,r.snippet,'Search query: '+r.query].filter(Boolean).join(' — ');
     try{
-      const res=await fetch(r.url,{redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 GearCashOut research agent'}});
-      if(!res.ok)continue;
-      const type=res.headers.get('content-type')||'';
-      if(!type.includes('text/html'))continue;
-      const html=await res.text();
+      const {url,html}=await fetchText(r.url);
       const text=stripHtml(html).slice(0,7000);
-      if(text.length<120)continue;
-      pages.push({...r,url:res.url,text});
-    }catch{}
+      if(text.length>=120){
+        pages.push({...r,url,text});
+        continue;
+      }
+    }catch(e){
+      log('Page fetch blocked/unavailable:',r.host,e.message);
+    }
+    if(fallbackText.length>=20){
+      pages.push({...r,text:fallbackText+' (Search result evidence; full page could not be fetched automatically.)'});
+    }
   }
+
+  log('Collected',pages.length,'usable evidence item(s) from',ranked.length,'search result(s).');
   return pages;
 }
-
 const schema={
   type:'object',
   properties:{
