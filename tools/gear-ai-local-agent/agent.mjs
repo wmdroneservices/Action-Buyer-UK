@@ -68,16 +68,31 @@ async function ensureOllama(){
 }
 
 function productName(p){
-  const parts=[p.manufacturer,p.model,p.package_name].filter(Boolean).map(x=>String(x).trim()).filter(Boolean);
+  // Catalogue fields often repeat the model at the start of package_name,
+  // e.g. manufacturer="BetaFPV", model="Pavo30",
+  // package_name="Pavo30 Brushless Whoop Quadcopter".
+  const parts=[p.manufacturer,p.model,p.package_name]
+    .filter(Boolean).map(x=>String(x).replace(/\s+/g,' ').trim()).filter(Boolean);
+
   const out=[];
   for(const part of parts){
-    if(!out.some(x=>x.toLowerCase()===part.toLowerCase()))out.push(part);
+    const lower=part.toLowerCase();
+    // Remove an exact duplicate part.
+    if(out.some(x=>x.toLowerCase()===lower))continue;
+
+    // Remove a prefix that repeats the immediately preceding catalogue part.
+    const prev=out[out.length-1];
+    if(prev){
+      const prevWords=prev.split(/\s+/);
+      const words=part.split(/\s+/);
+      let n=Math.min(prevWords.length,words.length);
+      while(n>0 && prevWords.slice(-n).join(' ').toLowerCase()!==words.slice(0,n).join(' ').toLowerCase())n--;
+      if(n>0)part=words.slice(n).join(' ').trim();
+    }
+    if(part)out.push(part);
   }
-  // Remove accidental adjacent duplicate words, e.g. "Pavo20 Pavo20".
-  return out.join(' ').replace(/\s+/g,' ').trim()
-    .split(' ')
-    .filter((word,i,arr)=>i===0||word.toLowerCase()!==arr[i-1].toLowerCase())
-    .join(' ');
+
+  return out.join(' ').replace(/\s+/g,' ').trim();
 }
 
 function productTerms(p){
@@ -136,9 +151,9 @@ function extractSearchLinks(html, baseUrl){
   return out;
 }
 
-async function fetchText(url){
+async function fetchText(url, timeoutMs=cfg.requestTimeoutMs){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),cfg.requestTimeoutMs);
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const res=await fetch(url,{
       redirect:'follow',
@@ -157,18 +172,16 @@ async function fetchText(url){
 }
 
 async function searchDdg(query){
-  const urls=[
-    'https://html.duckduckgo.com/html/?q='+encodeURIComponent(query),
-    'https://lite.duckduckgo.com/lite/?q='+encodeURIComponent(query)
-  ];
-  for(const url of urls){
-    try{
-      const {html}=await fetchText(url);
-      const results=extractSearchLinks(html,url);
-      if(results.length)return results;
-    }catch(e){log('DuckDuckGo search warning:',e.message)}
+  // DDG often rate-limits automated requests. One short attempt is enough;
+  // do not spend 30 seconds waiting on two endpoints.
+  const url='https://html.duckduckgo.com/html/?q='+encodeURIComponent(query);
+  try{
+    const {html}=await fetchText(url,5000);
+    return extractSearchLinks(html,url);
+  }catch(e){
+    log('DuckDuckGo search warning:',e.message);
+    return [];
   }
-  return [];
 }
 
 async function searchBing(query){
@@ -198,13 +211,23 @@ async function searchMojeek(query){
 }
 
 async function searchWeb(query){
-  // Try the engines in order, but do not keep retrying a failing engine chain
-  // once another engine has already supplied usable results.
-  const ddg=await searchDdg(query);
-  if(ddg.length)return ddg;
-  const bing=await searchBing(query);
-  if(bing.length)return bing;
-  return await searchMojeek(query);
+  // Public engines are unreliable from an automated local worker. Query the
+  // fallbacks concurrently and use whichever produces usable links.
+  const results=await Promise.allSettled([
+    searchDdg(query),
+    searchBing(query),
+    searchMojeek(query)
+  ]);
+  const merged=[],seen=new Set();
+  for(const r of results){
+    if(r.status!=='fulfilled')continue;
+    for(const item of r.value||[]){
+      if(!item.url||seen.has(item.url))continue;
+      seen.add(item.url);
+      merged.push(item);
+    }
+  }
+  return merged.slice(0,20);
 }
 
 function scoreCandidateLink(url,title,terms){
@@ -307,6 +330,8 @@ async function collectEvidence(product,sources){
   // site: query when the public engines are clearly blocked.
   for(const q of coreQueries){
     await addResults(q);
+    // We only need a small pool before moving on to page collection.
+    if(seen.size>=6)break;
   }
 
   // If broad search is weak, immediately switch to the approved source registry.
