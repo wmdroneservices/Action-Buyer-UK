@@ -21,6 +21,7 @@
 <script src="admin-sales-accepted-shipping-alert.js?v=20260903-purchasing-sales-layout-1" defer></script>
 <script src="admin-sales-action-alerts.js?v=20260903-purchasing-sales-layout-1" defer></script>
 <script src="purchase-return-dashboard.js?v=20260903-1" defer></script>
+<script src="live-task-board.js?v=20260903-live-tasks-1" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const nav=document.getElementById('sales-view-nav');
@@ -172,13 +173,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       </div>
     </section>
 
-    <section class="account-panel" style="margin-top:1rem">
-      <div class="section-heading">
-        <p class="section-kicker">MARKET CHECK</p>
-        <h2>Quote Catalogue / Market Check</h2>
-        <p>Read-only reference for checking catalogue and market evidence during purchasing. Purchasing staff cannot change catalogue prices from this screen.</p>
+    <section id="live-task-board" class="account-panel live-task-board" style="margin-top:1rem" aria-live="polite">
+      <div class="section-heading live-task-heading">
+        <p class="section-kicker">LIVE TASKS</p>
+        <h2>What Needs Doing</h2>
+        <p>One live list of staff actions across Purchasing, Inventory and Sales. Tasks automatically update as work moves through the workflow.</p>
       </div>
-      <p><a class="btn btn-secondary" href="sales-pricing-guide.html?from=purchasing">OPEN QUOTE CATALOGUE / MARKET CHECK</a></p>
+      <div class="task-board-legend" aria-label="Task urgency guide">
+        <span class="task-legend task-legend-green"><b>GREEN</b> Within the normal action window</span>
+        <span class="task-legend task-legend-amber"><b>AMBER</b> Overdue — should now be completed</span>
+        <span class="task-legend task-legend-red"><b>RED</b> Significantly overdue — prioritise this task</span>
+      </div>
+      <div id="live-task-summary" class="live-task-summary">Checking live tasks...</div>
+      <div id="live-task-list" class="live-task-list"><p>Checking the workflow for actions...</p></div>
+      <p id="live-task-updated" class="live-task-updated"></p>
     </section>
 
     <section class="account-panel purchase-step-card">
