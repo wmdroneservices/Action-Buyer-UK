@@ -148,3 +148,16 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 }
 #shipping-settings .btn{justify-self:start;}
 #shipping-settings-message{width:100%;}
+
+
+/* Staff dashboard CTA buttons: one consistent size and alignment. */
+#staff-dashboard-grid .dashboard-link-card .dashboard-cta{
+  width:100%;
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  padding:.75rem 1rem;
+  white-space:normal;
+}
