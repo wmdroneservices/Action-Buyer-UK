@@ -73,7 +73,11 @@ function productName(p){
   for(const part of parts){
     if(!out.some(x=>x.toLowerCase()===part.toLowerCase()))out.push(part);
   }
-  return out.join(' ').replace(/\s+/g,' ').trim();
+  // Remove accidental adjacent duplicate words, e.g. "Pavo20 Pavo20".
+  return out.join(' ').replace(/\s+/g,' ').trim()
+    .split(' ')
+    .filter((word,i,arr)=>i===0||word.toLowerCase()!==arr[i-1].toLowerCase())
+    .join(' ');
 }
 
 function productTerms(p){
@@ -194,6 +198,8 @@ async function searchMojeek(query){
 }
 
 async function searchWeb(query){
+  // Try the engines in order, but do not keep retrying a failing engine chain
+  // once another engine has already supplied usable results.
   const ddg=await searchDdg(query);
   if(ddg.length)return ddg;
   const bing=await searchBing(query);
@@ -279,18 +285,15 @@ async function collectEvidence(product,sources){
 
   const terms=productTerms(product);
   const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
-  const queries=[
+  const coreQueries=[
     '"'+name+'" UK price',
     '"'+name+'" used UK',
     '"'+name+'" buy',
     name
   ];
-  for(const s of priority){
-    if(s.domain)queries.push('site:'+s.domain+' "'+name+'"');
-  }
 
   const seen=new Map();
-  for(const q of queries){
+  async function addResults(q){
     const results=await searchWeb(q);
     log('Search',q,'returned',results.length,'result(s)');
     for(const r of results){
@@ -300,12 +303,23 @@ async function collectEvidence(product,sources){
     }
   }
 
-  // If public search engines are blocked or weak, search the approved source registry directly.
+  // First do broad searches only. Do not waste several minutes running every
+  // site: query when the public engines are clearly blocked.
+  for(const q of coreQueries){
+    await addResults(q);
+  }
+
+  // If broad search is weak, immediately switch to the approved source registry.
   if(seen.size<3){
-    log('Search engines produced too few results; switching to direct approved-source probes.');
+    log('Broad search produced too few results; switching immediately to direct approved-source probes.');
     const direct=await discoverFromKnownSources(product,sources);
     for(const r of direct){
       if(!seen.has(r.url))seen.set(r.url,r);
+    }
+  }else{
+    // Only use a small number of targeted site searches when broad search is healthy.
+    for(const s of priority.slice(0,4)){
+      if(s.domain)await addResults('site:'+s.domain+' "'+name+'"');
     }
   }
 
