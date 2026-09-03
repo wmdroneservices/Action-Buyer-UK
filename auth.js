@@ -30,3 +30,39 @@ supabaseClient.auth.onAuthStateChange((_e,s)=>{setAuthMarker(s);actionBuyerAuth.
   window.setTimeout(sync,300);
   window.setTimeout(sync,1200);
 })();
+
+
+/* Enforce staff login hours on staff pages, including sessions that remain open past the permitted end time. */
+(function(){
+  const isStaffPage=/\/admin(?:[-_][^/]+)?\.html$/i.test(location.pathname)||/\/admin\//i.test(location.pathname);
+  if(!isStaffPage)return;
+  let checking=false;
+  function londonTime(){
+    const parts=Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+    const get=t=>parts.find(p=>p.type===t)?.value||"00";
+    return get("hour")+":"+get("minute");
+  }
+  function withinHours(start,end,now=londonTime()){
+    if(!start||!end)return true;
+    if(start<end)return now>=start&&now<end;
+    return now>=start||now<end;
+  }
+  async function enforce(){
+    if(checking)return;checking=true;
+    try{
+      const {data:{session}}=await supabaseClient.auth.getSession();
+      if(!session?.user?.id)return;
+      const {data:staff}=await supabaseClient.from("staff_users").select("active,work_start_time,work_end_time").eq("user_id",session.user.id).maybeSingle();
+      if(!staff)return;
+      if(!staff.active||!withinHours(staff.work_start_time,staff.work_end_time)){
+        await supabaseClient.auth.signOut();
+        setAuthMarker(null);
+        location.href="staff-login.html?restricted=hours";
+      }
+    }catch(_){}finally{checking=false;}
+  }
+  enforce();
+  window.setInterval(enforce,60000);
+  window.addEventListener("focus",enforce);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)enforce();});
+})();
