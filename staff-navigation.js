@@ -1,71 +1,169 @@
-/* Shared three-stage staff navigation: Research & Pricing → Purchasing → Sales. */
+/* Shared four-dashboard staff navigation.
+   Main Dashboard → Research & Pricing | Purchasing | Sales | Customers */
 (function () {
   'use strict';
 
-  const researchPages = new Set([
-    'admin-research-pricing.html','admin-catalog.html','admin-catalog-control.html',
-    'admin-automatic-pricing.html','admin-ai-research.html'
-  ]);
-  const purchasingPages = new Set([
-    'admin-purchasing.html','admin-valuations.html','admin-sales.html','admin-customers.html'
-  ]);
-  const salesPages = new Set([
-    'admin-sales-dashboard.html','inventory.html','inventory-sales.html','active-sales-listings.html',
-    'sold-items.html','returns.html','return-database.html','inventory-finance.html',
-    'listing-readiness.html','sales-workbench.html','sales-pricing-guide.html'
-  ]);
+  const dashboards = {
+    research: 'admin-research-pricing.html',
+    purchasing: 'admin-purchasing.html',
+    sales: 'admin-sales-dashboard.html',
+    customers: 'admin-customers.html'
+  };
 
-  const researchLinks = [
-    ['admin-research-pricing.html','RESEARCH & PRICING'],
-    ['admin-catalog.html','QUOTE CATALOGUE'],
-    ['admin-catalog-control.html','CATALOGUE CONTROL'],
-    ['admin-automatic-pricing.html','AUTOMATIC PRICING'],
-    ['admin-ai-research.html','AI RESEARCH'],
-    ['admin-purchasing.html','PURCHASING'],
-    ['admin-sales-dashboard.html','SALES']
-  ];
-  const purchasingLinks = [
-    ['admin-purchasing.html','PURCHASING DASHBOARD'],
-    ['admin-valuations.html','VALUATIONS'],
-    ['admin-sales.html','PURCHASE PIPELINE'],
-    ['admin-customers.html','CUSTOMERS'],
-    ['admin-catalog.html','QUOTE CATALOGUE'],
-    ['admin-research-pricing.html','RESEARCH & PRICING'],
-    ['admin-sales-dashboard.html','SALES DASHBOARD']
-  ];
-  const salesLinks = [
-    ['admin-sales-dashboard.html','SALES DASHBOARD'],
-    ['inventory.html','INVENTORY'],
-    ['inventory-sales.html','PRE-SALE / CHANNELS'],
-    ['active-sales-listings.html','ACTIVE LISTINGS'],
-    ['sold-items.html','SOLD ITEMS'],
-    ['returns.html','RETURNS'],
-    ['return-database.html','RETURN DATABASE'],
-    ['inventory-finance.html','PROFIT & LOSS'],
-    ['sales-pricing-guide.html','QUOTE CATALOGUE / MARKET CHECK']
-  ];
+  const groups = {
+    research: new Set([
+      'admin-research-pricing.html',
+      'admin-catalog.html',
+      'admin-catalog-control.html',
+      'admin-automatic-pricing.html',
+      'admin-ai-research.html'
+    ]),
+    purchasing: new Set([
+      'admin-purchasing.html',
+      'admin-valuations.html',
+      'admin-sales.html',
+      'admin-sale.html',
+      'admin-quote.html',
+      'admin-item-review.html'
+    ]),
+    sales: new Set([
+      'admin-sales-dashboard.html',
+      'inventory.html',
+      'inventory-add.html',
+      'inventory-sales.html',
+      'active-sales-listings.html',
+      'sold-items.html',
+      'returns.html',
+      'return-database.html',
+      'inventory-finance.html',
+      'listing-readiness.html',
+      'sales-workbench.html',
+      'sales-pricing-guide.html'
+    ]),
+    customers: new Set([
+      'admin-customers.html'
+    ])
+  };
 
-  function mode(current){
-    if(researchPages.has(current))return 'research';
-    if(purchasingPages.has(current))return 'purchasing';
-    if(salesPages.has(current))return 'sales';
+  const links = {
+    research: [
+      ['admin-research-pricing.html', 'RESEARCH & PRICING'],
+      ['admin-catalog.html', 'QUOTE CATALOGUE'],
+      ['admin-automatic-pricing.html', 'AUTOMATIC PRICING'],
+      ['admin-ai-research.html', 'AI RESEARCH'],
+      ['admin-catalog-control.html', 'CATALOGUE CONTROL']
+    ],
+    purchasing: [
+      ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
+      ['admin-valuations.html', 'VALUATIONS'],
+      ['admin-sales.html', 'PURCHASE PIPELINE']
+    ],
+    sales: [
+      ['admin-sales-dashboard.html', 'SALES DASHBOARD'],
+      ['inventory.html', 'INVENTORY'],
+      ['inventory-sales.html', 'PRE-SALE / CHANNELS'],
+      ['active-sales-listings.html', 'ACTIVE LISTINGS'],
+      ['sold-items.html', 'SOLD ITEMS'],
+      ['returns.html', 'RETURNS'],
+      ['return-database.html', 'RETURN DATABASE'],
+      ['inventory-finance.html', 'PROFIT & LOSS'],
+      ['sales-pricing-guide.html', 'QUOTE CATALOGUE / MARKET CHECK']
+    ],
+    customers: [
+      ['admin-customers.html', 'CUSTOMER DASHBOARD']
+    ]
+  };
+
+  const backLabels = {
+    research: 'BACK TO RESEARCH & PRICING',
+    purchasing: 'BACK TO PURCHASING',
+    sales: 'BACK TO SALES',
+    customers: 'BACK TO CUSTOMERS'
+  };
+
+  function currentPage() {
+    return (location.pathname.split('/').pop() || 'admin.html').toLowerCase();
+  }
+
+  function mode(page) {
+    for (const [name, pages] of Object.entries(groups)) {
+      if (pages.has(page)) return name;
+    }
     return null;
   }
-  function apply(){
-    const header=document.querySelector('header.header');
-    const container=header?.querySelector('.header-container');
-    if(!container)return;
-    const current=(location.pathname.split('/').pop()||'').toLowerCase();
-    const m=mode(current); if(!m)return;
-    const links=m==='research'?researchLinks:m==='purchasing'?purchasingLinks:salesLinks;
-    let nav=container.querySelector('nav'); if(!nav){nav=document.createElement('nav');container.appendChild(nav);}
-    nav.setAttribute('aria-label',m+' dashboard navigation');
-    const ul=document.createElement('ul');ul.className='nav-list staff-workflow-nav';
-    links.forEach(([href,label])=>{const li=document.createElement('li'),a=document.createElement('a');a.href=href;a.textContent=label;if(current===href.toLowerCase())a.setAttribute('aria-current','page');li.appendChild(a);ul.appendChild(li);});
-    nav.replaceChildren(ul);
-    container.classList.add('staff-dashboard-header','staff-'+m+'-header');
-    const logo=container.querySelector('.logo');
-    if(logo){logo.href='admin.html';logo.setAttribute('aria-label','GearCashOut staff dashboard');}
+
+  function makeNav(items, current) {
+    const ul = document.createElement('ul');
+    ul.className = 'nav-list staff-workflow-nav';
+
+    items.forEach(([href, label]) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = href;
+      a.textContent = label;
+      if (current === href.toLowerCase()) a.setAttribute('aria-current', 'page');
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+
+    return ul;
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
+
+  function addBackButton(section, current) {
+    const dashboard = dashboards[section];
+    if (current === dashboard) return;
+
+    const accountHeader = document.querySelector('.account-header');
+    if (!accountHeader || accountHeader.querySelector('.staff-dashboard-back')) return;
+
+    const actions = accountHeader.querySelector(':scope > div:last-child') || accountHeader;
+    const back = document.createElement('a');
+    back.href = dashboard;
+    back.className = 'btn btn-secondary staff-dashboard-back';
+    back.textContent = backLabels[section];
+
+    if (actions === accountHeader) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;gap:.5rem;flex-wrap:wrap';
+      wrap.appendChild(back);
+      accountHeader.appendChild(wrap);
+    } else {
+      actions.prepend(back);
+    }
+  }
+
+  function apply() {
+    const current = currentPage();
+    const section = mode(current);
+    if (!section) return;
+
+    const header = document.querySelector('header.header');
+    const container = header && header.querySelector('.header-container');
+    if (!container) return;
+
+    let nav = container.querySelector('nav');
+    if (!nav) {
+      nav = document.createElement('nav');
+      container.appendChild(nav);
+    }
+
+    nav.setAttribute('aria-label', section + ' dashboard navigation');
+    nav.replaceChildren(makeNav(links[section], current));
+
+    container.classList.add('staff-dashboard-header', 'staff-' + section + '-header');
+
+    const logo = container.querySelector('.logo');
+    if (logo) {
+      logo.href = 'admin.html';
+      logo.setAttribute('aria-label', 'GearCashOut main staff dashboard');
+    }
+
+    addBackButton(section, current);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply);
+  } else {
+    apply();
+  }
 })();
