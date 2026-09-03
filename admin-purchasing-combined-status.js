@@ -7,8 +7,15 @@
     if(!el)return;
     const n=Number(value)||0;
     el.textContent=n;
-    el.style.color=n>0?"#c62828":"";
-    el.style.fontWeight=n>0?"800":"";
+    const card=document.querySelector('[data-count-for="'+id+'"]');
+    if(card){
+      const singular=card.dataset.singular||"item";
+      const plural=card.dataset.plural||singular+"s";
+      const label=card.querySelector(".pipeline-count-label");
+      if(label)label.textContent=n+" "+(n===1?singular:plural);
+      card.classList.toggle("has-action",n>0);
+      card.classList.toggle("is-clear",n===0);
+    }
   };
 
   const effectiveOffer=(offers,itemId)=>{
