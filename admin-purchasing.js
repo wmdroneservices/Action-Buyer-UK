@@ -16,8 +16,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!el) return;
     const count = Number(value) || 0;
     el.textContent = count;
-    el.style.color = count > 0 ? "#c62828" : "";
-    el.style.fontWeight = count > 0 ? "800" : "";
+
+    const card = document.querySelector('[data-count-for="' + id + '"]');
+    if (card) {
+      const singular = card.dataset.singular || "item";
+      const plural = card.dataset.plural || singular + "s";
+      const label = card.querySelector(".pipeline-count-label");
+      if (label) label.textContent = count + " " + (count === 1 ? singular : plural);
+      card.classList.toggle("has-action", count > 0);
+      card.classList.toggle("is-clear", count === 0);
+    }
   }
 
   async function loadCounts() {
