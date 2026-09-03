@@ -302,18 +302,25 @@ function isSearchHost(host){
   return ['duckduckgo.com','bing.com','google.com','google.co.uk','yahoo.com','search.yahoo.com','mojeek.com'].some(d=>host===d||host.endsWith('.'+d));
 }
 
-async function collectEvidence(product,sources){
+async function getRunEvidenceScope(runId){
+  const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
+  if(error)throw error;
+  return ['all','new_uk','used_uk','overseas'].includes(data?.evidence_scope)?data.evidence_scope:'all';
+}
+
+async function collectEvidence(product,sources,evidenceScope='all'){
   const name=productName(product);
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
   const terms=productTerms(product);
   const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
-  const coreQueries=[
-    '"'+name+'" UK price',
-    '"'+name+'" used UK',
-    '"'+name+'" buy',
-    name
-  ];
+  const coreQueries=evidenceScope==='new_uk'
+    ? ['"'+name+'" UK price','"'+name+'" new UK retailer','"'+name+'" buy UK']
+    : evidenceScope==='used_uk'
+      ? ['"'+name+'" used UK','"'+name+'" eBay UK','"'+name+'" marketplace UK']
+      : evidenceScope==='overseas'
+        ? ['"'+name+'" price international','"'+name+'" overseas retailer','"'+name+'" buy']
+        : ['"'+name+'" UK price','"'+name+'" used UK','"'+name+'" overseas price','"'+name+'" buy'];
 
   const seen=new Map();
   async function addResults(q){
@@ -397,7 +404,7 @@ const schema={
   required:['candidates','discovered_sources']
 };
 
-async function analyse(product,sources,pages){
+async function analyse(product,sources,pages,evidenceScope='all'){
   const known=sources.map(s=>({id:s.id,name:s.source_name,domain:s.domain,country:s.country_code,kind:s.source_kind,scope:s.research_scope}));
   const evidence=pages.map((p,i)=>({id:i+1,url:p.url,title:p.title,snippet:p.snippet,text:p.text}));
   const prompt=`You are the validation layer for a GearCashOut resale catalogue.
@@ -411,6 +418,8 @@ ${JSON.stringify(known)}
 COLLECTED WEB EVIDENCE:
 ${JSON.stringify(evidence)}
 
+RESEARCH MODE: ${evidenceScope}
+
 Rules:
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, price or availability.
 - Exact model/variant/package matching is mandatory.
@@ -418,6 +427,10 @@ Rules:
 - Used UK = evidence_category used_uk and bucket 2. IMPORTANT: UK marketplace listings belong here even when the listing says new.
 - Overseas = evidence_category overseas and bucket 3.
 - Manufacturer product information = official, separate from market price evidence.
+- If RESEARCH MODE is new_uk, return only new_uk candidates.
+- If RESEARCH MODE is used_uk, return only used_uk candidates; UK marketplace listings belong here even when labelled new.
+- If RESEARCH MODE is overseas, return only overseas candidates.
+- If RESEARCH MODE is all, return all valid categories.
 - Do not mix generations, storage capacities, body-only products, kits, controllers or bundles.
 - Reject mismatches by omitting them.
 - Minimum confidence 0.60.
@@ -576,7 +589,9 @@ async function processOne(){
     ]);
     if(pErr)throw pErr;if(sErr)throw sErr;
 
-    const pages=await collectEvidence(product,sources||[]);
+    const evidenceScope=await getRunEvidenceScope(item.run_id);
+    log('Research evidence scope:',evidenceScope);
+    const pages=await collectEvidence(product,sources||[],evidenceScope);
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
     // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
@@ -598,7 +613,7 @@ async function processOne(){
       }
     }
 
-    const research=await analyse(product,sources||[],pages);
+    const research=await analyse(product,sources||[],pages,evidenceScope);
     const sourceMap=new Map((sources||[]).map(s=>[String(s.domain||'').replace(/^www\./,'').toLowerCase(),s]));
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
