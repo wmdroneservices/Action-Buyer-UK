@@ -36,23 +36,54 @@ async function loadCatalogueSummary(supabase){
 
  const message=document.getElementById("catalogue-summary-message");
  try{
-   const {data,error}=await supabase.rpc("get_staff_catalogue_dashboard_summary");
-   if(error) throw error;
+   const rows=[];
+   const pageSize=1000;
 
-   const summary=data||{};
+   for(let from=0;;from+=pageSize){
+     const {data,error}=await supabase
+       .from("quote_catalog_products")
+       .select("manufacturer,category,customer_visible")
+       .range(from,from+pageSize-1)
+       .order("manufacturer")
+       .order("category");
+
+     if(error) throw error;
+     rows.push(...(data||[]));
+     if(!data||data.length<pageSize) break;
+   }
+
    const format=value=>Number(value||0).toLocaleString("en-GB");
+   const totalProducts=rows.length;
+   const visibleProducts=rows.filter(row=>row.customer_visible!==false).length;
+   const hiddenProducts=rows.filter(row=>row.customer_visible===false).length;
+   const manufacturerCount=new Set(
+     rows.map(row=>String(row.manufacturer||"Unknown").trim()||"Unknown")
+   ).size;
 
    const total=document.getElementById("catalogue-total-count");
    const active=document.getElementById("catalogue-active-count");
    const inactive=document.getElementById("catalogue-inactive-count");
 
-   if(total) total.textContent=format(summary.total_products);
-   if(active) active.textContent=format(summary.active_products);
-   if(inactive) inactive.textContent=format(summary.inactive_products);
+   if(total) total.textContent=format(totalProducts);
+   if(active) active.textContent=format(visibleProducts);
+   if(inactive) inactive.textContent=format(hiddenProducts);
 
-   const categories=Array.isArray(summary.categories)?summary.categories:[];
+   const categoryMap=new Map();
+   rows.forEach(row=>{
+     const name=String(row.category||"Uncategorised").trim()||"Uncategorised";
+     categoryMap.set(name,(categoryMap.get(name)||0)+1);
+   });
+
+   const categories=[...categoryMap.entries()]
+     .map(([name,count])=>({name,count}))
+     .sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+
    const categoryTotal=document.getElementById("catalogue-category-total");
-   if(categoryTotal) categoryTotal.textContent=format(categories.length)+" categories";
+   if(categoryTotal){
+     categoryTotal.textContent=
+       format(categories.length)+" categories · "+
+       format(manufacturerCount)+" manufacturers";
+   }
 
    const list=document.getElementById("catalogue-category-list");
    if(list){
@@ -61,7 +92,7 @@ async function loadCatalogueSummary(supabase){
        const row=document.createElement("div");
        row.style.cssText="display:flex;justify-content:space-between;gap:1rem;padding:.7rem .8rem;border:1px solid #d8dde3;background:#f8fafb;color:#102f4f";
        const name=document.createElement("span");
-       name.textContent=category.name||"Uncategorised";
+       name.textContent=category.name;
        const count=document.createElement("strong");
        count.textContent=format(category.count);
        row.append(name,count);
@@ -69,10 +100,11 @@ async function loadCatalogueSummary(supabase){
      });
    }
 
+   if(message) message.textContent="";
    panel.hidden=false;
  }catch(err){
    console.error("Unable to load catalogue summary",err);
-   if(message) message.textContent="Catalogue summary could not be loaded.";
+   if(message) message.textContent="Catalogue summary could not be loaded: "+(err?.message||"Unknown error");
    panel.hidden=false;
  }
 }
