@@ -42,10 +42,7 @@
     ['returns.html','RETURNS'],
     ['return-database.html','RETURN DATABASE'],
     ['inventory-finance.html','PROFIT & LOSS'],
-    ['sales-pricing-guide.html','QUOTE CATALOGUE / MARKET CHECK'],
-    ['admin-catalog.html','QUOTE CATALOGUE'],
-    ['admin-research-pricing.html','RESEARCH & PRICING'],
-    ['admin-purchasing.html','PURCHASING']
+    ['sales-pricing-guide.html','QUOTE CATALOGUE / MARKET CHECK']
   ];
 
   function mode(current){
