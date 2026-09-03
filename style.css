@@ -121,3 +121,30 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
   font-weight:800;
   letter-spacing:.04em;
 }
+
+
+/* Purchasing dashboard: keep Shipping & Receipt settings as separate, full-width fields */
+#shipping-settings.shipment-form{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:1rem;
+  max-width:760px;
+  align-items:start;
+}
+#shipping-settings.shipment-form label{
+  display:flex;
+  flex-direction:column;
+  gap:.45rem;
+  width:100%;
+  font-weight:700;
+  color:#24384d;
+}
+#shipping-settings.shipment-form input{
+  display:block;
+  width:100%;
+  min-height:42px;
+  box-sizing:border-box;
+  padding:.65rem .75rem;
+}
+#shipping-settings .btn{justify-self:start;}
+#shipping-settings-message{width:100%;}
