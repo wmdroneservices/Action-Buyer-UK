@@ -14,11 +14,23 @@
     });
   }
 
-  fixPurchaseNavigation();
-  document.addEventListener("DOMContentLoaded", fixPurchaseNavigation);
-  new MutationObserver(fixPurchaseNavigation).observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
+  function start() {
+    const nav = document.getElementById("sales-view-nav");
+    if (!nav) return;
+    fixPurchaseNavigation();
+
+    // Watch only the navigation that admin-sales.js replaces, rather than the
+    // entire document. The previous whole-document observer ran on every DOM
+    // change across the purchasing dashboard and added unnecessary load.
+    new MutationObserver(fixPurchaseNavigation).observe(nav, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
 })();
