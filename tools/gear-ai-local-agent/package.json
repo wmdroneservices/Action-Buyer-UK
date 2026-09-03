@@ -1,0 +1,13 @@
+{
+  "name": "gearcashout-local-ai-research-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Ollama research worker for GearCashOut Quote Catalogue",
+  "scripts": {
+    "start": "node agent.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  }
+}
