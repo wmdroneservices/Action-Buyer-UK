@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      list.innerHTML=rows.map(r=>`<article class="valuation-card" style="display:block">
        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
          <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username)}</strong><p>User ID: ${esc(r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
-         <button class="btn btn-secondary" data-edit="${r.user_id}">EDIT STAFF ACCOUNT</button>
+         <div style="display:flex;gap:.65rem;flex-wrap:wrap"><a class="btn btn-secondary" href="admin-staff-activity.html?staff=${encodeURIComponent(r.user_id)}">VIEW ACTIVITY LOG</a><button class="btn btn-secondary" data-edit="${r.user_id}">EDIT STAFF ACCOUNT</button></div>
        </div>
        <div id="edit-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd">
          <label>Display name<input type="text" data-display-name value="${esc(r.display_name||"")}" required></label>
