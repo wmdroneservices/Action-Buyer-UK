@@ -8,6 +8,13 @@
 <style>
 .pricing-product-picker{margin-top:1rem}
 .pricing-product-picker select{margin-bottom:0}
+.pricing-search{grid-column:1/-1;border-bottom:1px solid #e3e0da;padding-bottom:1rem;margin-bottom:.25rem}
+.pricing-search-row{display:flex;gap:.6rem}
+.pricing-search-row input{flex:1;min-width:0}
+.pricing-search-row .btn{white-space:nowrap}
+.pricing-search-results{margin-top:.65rem}
+.pricing-search-results select{width:100%;margin:0}
+.pricing-search-help{margin:.45rem 0 0;color:#666;font-size:.9rem}
 .pricing-product-help{margin:.45rem 0 0;color:#666;font-size:.9rem}
 .pricing-cascade{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;align-items:end}
 .pricing-cascade .pricing-product-picker{grid-column:1/-1}
@@ -15,8 +22,8 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="staff-navigation.js?v=20260902-4" defer></script>
-<script src="sales-pricing-guide.js?v=20260902-3" defer></script>
+<script src="staff-navigation.js?v=20260903-1" defer></script>
+<script src="sales-pricing-guide.js?v=20260903-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin-sales-dashboard.html">GEARCASHOUT</a><nav aria-label="Sales navigation"></nav></div></header>
@@ -25,6 +32,18 @@
 <section class="account-panel">
 <div class="section-heading"><p class="section-kicker">PRODUCT LOOKUP</p><h2>Select a product</h2><p>Choose the main category first, then the product type, then the manufacturer. Each list only shows options relevant to the previous selection.</p></div>
 <div class="pricing-cascade">
+<div class="pricing-search">
+<label for="pricing-search">Search by product name</label>
+<div class="pricing-search-row">
+<input id="pricing-search" type="search" placeholder="Paste or type a product name, model or package">
+<button id="pricing-search-button" class="btn btn-primary" type="button">SEARCH</button>
+</div>
+<div id="pricing-search-results" class="pricing-search-results" hidden>
+<label for="pricing-search-select">Relevant products</label>
+<select id="pricing-search-select"></select>
+</div>
+<p id="pricing-search-help" class="pricing-search-help">Search the live catalogue directly, or use the filters below.</p>
+</div>
 <div class="catalog-filter"><label for="pricing-main-category">Category</label><select id="pricing-main-category"><option value="">-- Select category --</option></select></div>
 <div class="catalog-filter"><label for="pricing-category">Type</label><select id="pricing-category" disabled><option value="">-- Select category first --</option></select></div>
 <div class="catalog-filter"><label for="pricing-manufacturer">Manufacturer</label><select id="pricing-manufacturer" disabled><option value="">-- Select type first --</option></select></div>
