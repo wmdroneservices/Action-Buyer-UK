@@ -91,6 +91,68 @@ function resetDetail(){
   $('pricing-no-evidence').hidden=true;
 }
 
+function searchText(p){
+  return [p.manufacturer,p.model,p.package_name,p.package_key,p.category,p.main_category,p.product_type]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+
+function runProductSearch(query){
+  const q=String(query||'').trim().toLowerCase();
+  const box=$('pricing-search-results');
+  const select=$('pricing-search-select');
+  const help=$('pricing-search-help');
+
+  if(!q){
+    box.classList.remove('show');
+    select.innerHTML='';
+    help.textContent='Search the catalogue directly, or use the filters below.';
+    return;
+  }
+
+  const terms=q.split(/\s+/).filter(Boolean);
+  const ranked=products.map(p=>{
+    const text=searchText(p);
+    let score=0;
+    if(text===q) score+=1000;
+    if(String(productLabel(p)).toLowerCase()===q) score+=900;
+    if(text.includes(q)) score+=500;
+    for(const term of terms) if(text.includes(term)) score+=50;
+    return {p,score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||productLabel(a.p).localeCompare(productLabel(b.p))).slice(0,20);
+
+  if(!ranked.length){
+    box.classList.remove('show');
+    select.innerHTML='';
+    help.textContent='No relevant products found. Try a model, manufacturer or fewer words.';
+    return;
+  }
+
+  select.innerHTML=ranked.map(({p})=>
+    '<option value="'+esc(p.id)+'">'+esc(productLabel(p))+'</option>'
+  ).join('');
+  box.classList.add('show');
+  help.textContent=ranked.length+' relevant product'+(ranked.length===1?'':'s')+' found. Select one to open it.';
+}
+
+function selectSearchedProduct(id){
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p)return;
+
+  $('pricing-main-category').value=String(p.main_category||p.category||'');
+  populateTypes();
+  $('pricing-category').value=String(p.product_type||p.category||'');
+  populateManufacturers();
+  $('pricing-manufacturer').value=String(p.manufacturer||'');
+  populateProducts();
+  $('pricing-product').value=String(p.id);
+  openProduct(p.id);
+
+  $('pricing-search-input').value=productLabel(p);
+  $('pricing-search-results').classList.remove('show');
+  $('pricing-search-help').textContent='Showing '+productLabel(p)+'. Filters below have been matched automatically.';
+}
+
+
 function populateMainCategories(){
   const select=$('pricing-main-category');
   const values=[...new Set(products.map(p=>String(p.main_category||p.category||'').trim()).filter(Boolean))]
