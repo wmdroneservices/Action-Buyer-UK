@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Activity Log | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js?v=20260903-staff-audit-1" defer></script>
+<script src="staff-activity.js?v=20260903-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container">
+<a class="logo" href="admin.html">GEARCASHOUT</a>
+<nav><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li></ul></nav>
+</div></header>
+<main class="account-page"><div class="container">
+<div class="account-header">
+  <div><p class="section-kicker">MANAGEMENT · STAFF AUDIT</p><h1 id="activity-title">Staff Activity Log</h1><p id="activity-subtitle">Loading staff activity...</p></div>
+  <a class="btn btn-secondary" href="admin-staff-management.html">BACK TO STAFF MANAGEMENT</a>
+</div>
+<div id="activity-message" class="form-message" role="status"></div>
+<section class="account-panel">
+  <div style="display:flex;justify-content:space-between;gap:1rem;align-items:end;flex-wrap:wrap">
+    <div><p class="section-kicker">ACTIVITY</p><h2 style="margin:.15rem 0">Work carried out</h2></div>
+    <label style="min-width:210px">Show
+      <select id="activity-range">
+        <option value="today">Today</option>
+        <option value="week">Last 7 days</option>
+        <option value="all">All available activity</option>
+      </select>
+    </label>
+  </div>
+  <div id="activity-summary" style="display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0"></div>
+  <div id="activity-list"><p>Loading activity...</p></div>
+</section>
+</div></main>
+</body></html>
