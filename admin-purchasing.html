@@ -7,33 +7,72 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js" defer></script>
-<script src="staff-navigation.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-purchasing.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-purchasing-combined-status.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-customer-response-queue.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-payment-link.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-notifications.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-return-action-fix.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-payment-action.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-receipt-sync.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-label-fix.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-accepted-shipping-alert.js?v=20260903-purchasing-flow-1" defer></script>
-<script src="admin-sales-action-alerts.js?v=20260903-purchasing-flow-1" defer></script>
-<script defer>
+<script src="staff-navigation.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-purchasing.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-purchasing-combined-status.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-customer-response-queue.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-payment-link.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-notifications.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-return-action-fix.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-payment-action.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-receipt-sync.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-label-fix.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-accepted-shipping-alert.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script src="admin-sales-action-alerts.js?v=20260903-purchasing-sales-layout-1" defer></script>
+<script>
 document.addEventListener('DOMContentLoaded',()=>{
   const nav=document.getElementById('sales-view-nav');
-  if(!nav)return;
-  const active=nav.querySelector('a[href="admin-purchasing.html"]');
-  const archive=nav.querySelector('a[href="admin-purchasing.html?archive=1"]');
-  const returned=nav.querySelector('a[href="admin-purchasing.html?returned=1"]');
-  const fix=()=>{
-    if(active)active.textContent='ACTIVE PURCHASES';
-    if(archive)archive.textContent='PURCHASE ARCHIVE';
-    if(returned)returned.textContent='RETURNED ARCHIVE';
+  if(nav){
+    const active=nav.querySelector('a[href="admin-purchasing.html"]');
+    const archive=nav.querySelector('a[href="admin-purchasing.html?archive=1"]');
+    const returned=nav.querySelector('a[href="admin-purchasing.html?returned=1"]');
+    const fix=()=>{
+      if(active)active.textContent='ACTIVE PURCHASES';
+      if(archive)archive.textContent='PURCHASE ARCHIVE';
+      if(returned)returned.textContent='RETURNED ARCHIVE';
+    };
+    fix();
+    new MutationObserver(fix).observe(nav,{childList:true,subtree:true,characterData:true});
+  }
+
+  const countText=id=>document.getElementById(id)?.textContent?.trim()||'0';
+  const setNotice=(id,text,tone='success')=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.className='workflow-notice';
+    el.textContent=text;
+    el.style.borderColor=tone==='warning'?'#b42318':tone==='action'?'#d88732':'#18794e';
+    el.style.background=tone==='warning'?'#fff5f5':tone==='action'?'#fff8e8':'#f1fbf5';
   };
-  fix();
-  new MutationObserver(fix).observe(nav,{childList:true,subtree:true,characterData:true});
+  const refreshNotices=()=>{
+    const valuations=countText('valuation-count');
+    const responses=countText('customer-response-count');
+    const labels=countText('shipping-label-count');
+    const delivery=countText('delivery-count');
+    const inspection=countText('inspection-count');
+    const finalOffer=countText('final-offer-count');
+    const paymentDue=countText('payment-due-count');
+    const processing=countText('payment-processing-count');
+    const completed=countText('paid-count');
+    setNotice('valuation-step-notice', valuations==='0'?'NO VALUATIONS CURRENTLY AWAITING REVIEW':valuations+' VALUATION'+(valuations==='1'?'':'S')+' AWAITING REVIEW', valuations==='0'?'success':'action');
+    setNotice('response-step-notice', responses==='0'?'NO CUSTOMER RESPONSES CURRENTLY REQUIRED':responses+' CUSTOMER RESPONSE'+(responses==='1'?'':'S')+' AWAITING ACTION', responses==='0'?'success':'action');
+    const shippingParts=[];
+    if(labels!=='0')shippingParts.push(labels+' LABEL'+(labels==='1'?'':'S')+' REQUIRED');
+    if(delivery!=='0')shippingParts.push(delivery+' AWAITING DELIVERY');
+    setNotice('shipping-step-notice', shippingParts.length?shippingParts.join(' · '):'NO SHIPPING ACTIONS CURRENTLY REQUIRED',shippingParts.length?'action':'success');
+    const inspectionParts=[];
+    if(inspection!=='0')inspectionParts.push(inspection+' READY FOR INSPECTION');
+    if(finalOffer!=='0')inspectionParts.push(finalOffer+' FINAL OFFER'+(finalOffer==='1'?'':'S')+' REQUIRED');
+    setNotice('inspection-step-notice',inspectionParts.length?inspectionParts.join(' · '):'NO INSPECTION ACTIONS CURRENTLY REQUIRED',inspectionParts.length?'action':'success');
+    const paymentParts=[];
+    if(paymentDue!=='0')paymentParts.push(paymentDue+' PAYMENT'+(paymentDue==='1'?'':'S')+' DUE');
+    if(processing!=='0')paymentParts.push(processing+' PAYMENT'+(processing==='1'?'':'S')+' PROCESSING');
+    if(completed!=='0')paymentParts.push(completed+' COMPLETED');
+    setNotice('payment-step-notice',paymentParts.length?paymentParts.join(' · '):'NO PAYMENT ACTIONS CURRENTLY REQUIRED',paymentParts.length?'action':'success');
+  };
+  refreshNotices();
+  new MutationObserver(refreshNotices).observe(document.body,{subtree:true,childList:true,characterData:true});
 });
 </script>
 </head>
@@ -49,97 +88,74 @@ document.addEventListener('DOMContentLoaded',()=>{
   <div class="container">
     <div class="account-header">
       <div>
-        <p class="section-kicker">STAFF · PURCHASING</p>
+        <p class="section-kicker">STAFF DASHBOARD</p>
         <h1>Purchasing Dashboard</h1>
         <p id="staff-welcome">Checking staff access...</p>
       </div>
       <button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button>
     </div>
 
-    <section class="account-panel">
-      <div class="section-heading">
-        <p class="section-kicker">PURCHASE FLOW</p>
-        <h2>From valuation received to inventory</h2>
-        <p>One purchasing workflow. Start with the customer valuation, then manage the response, shipping, receipt, inspection and payment until the purchase is complete and ready for Inventory.</p>
-      </div>
-      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:1rem">
-        <div><strong>1</strong><span>Valuation received</span></div>
-        <div><strong>2</strong><span>Customer response</span></div>
-        <div><strong>3</strong><span>Shipping &amp; receipt</span></div>
-        <div><strong>4</strong><span>Inspection &amp; payment</span></div>
-        <div><strong>5</strong><span>Completed → Inventory</span></div>
-      </div>
-    </section>
+    <div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
 
-    <div id="automatic-response-cta" class="account-panel" hidden style="margin-bottom:1rem;border:3px solid #d88732;background:#fff7eb;padding:1.5rem 1.75rem">
+    <div id="automatic-response-cta" class="account-panel" hidden style="margin:1rem 0;border:3px solid #d88732;background:#fff7eb">
       <p class="section-kicker">VALUATION ACTION REQUIRED</p>
-      <h2>VALUATION REQUIRES ATTENTION</h2>
+      <h2>Valuation requires attention</h2>
       <p id="automatic-response-text"></p>
       <a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a>
     </div>
 
     <section class="account-panel">
       <div class="section-heading">
-        <p class="section-kicker">STEP 1</p>
-        <h2>Valuations received</h2>
-        <p>Review new customer valuations and prepare the purchase offer using the buying prices already set by Research &amp; Pricing.</p>
+        <p class="section-kicker">LIVE PURCHASE STATUS</p>
+        <h2>Purchase Pipeline</h2>
+        <p>One continuous workflow from valuation received through customer response, shipping, receipt, inspection, payment and completion into Inventory.</p>
       </div>
-      <div class="dashboard-link-card">
-        <div><strong class="dashboard-count" id="valuation-count">—</strong><span>awaiting valuation</span></div>
-        <a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a>
-      </div>
-    </section>
-
-    <section class="account-panel">
-      <div class="section-heading">
-        <p class="section-kicker">MARKET REFERENCE</p>
-        <h2>Quote Catalogue / Market Check</h2>
-        <p>Read-only reference for checking the live catalogue and market evidence during purchasing. Purchasing staff cannot change catalogue prices from this screen.</p>
-      </div>
-      <a class="btn btn-secondary" href="sales-pricing-guide.html?from=purchasing">OPEN QUOTE CATALOGUE / MARKET CHECK</a>
-    </section>
-
-    <div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
-
-    <section class="account-panel">
-      <div class="section-heading">
-        <p class="section-kicker">LIVE PURCHASE QUEUE</p>
-        <h2>Purchases, payments &amp; shipping</h2>
-        <p>Continue the same workflow after a quote has been sent: customer response, accepted offer, shipment, receipt, inspection, final offer, payment and completion.</p>
-      </div>
-      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-        <div><strong id="customer-response-count">—</strong><span>awaiting customer response</span></div>
-        <div><strong id="shipping-label-count">—</strong><span>shipping label required</span></div>
+      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));">
+        <div><strong id="valuation-count">—</strong><span>valuations</span></div>
+        <div><strong id="customer-response-count">—</strong><span>customer response</span></div>
+        <div><strong id="shipping-label-count">—</strong><span>labels required</span></div>
         <div><strong id="delivery-count">—</strong><span>awaiting delivery</span></div>
         <div><strong id="inspection-count">—</strong><span>inspection</span></div>
         <div><strong id="final-offer-count">—</strong><span>final offer</span></div>
-        <div><strong id="payment-due-count">—</strong><span>awaiting payment</span></div>
-        <div><strong id="payment-processing-count">—</strong><span>payment processing</span></div>
+        <div><strong id="payment-due-count">—</strong><span>payment due</span></div>
+        <div><strong id="payment-processing-count">—</strong><span>processing</span></div>
         <div><strong id="paid-count">—</strong><span>completed</span></div>
       </div>
     </section>
 
-    <div id="sales-view-nav" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;">
-      <a class="btn btn-primary" href="admin-purchasing.html">ACTIVE PURCHASES</a>
-      <a class="btn btn-secondary" href="admin-purchasing.html?archive=1">PURCHASE ARCHIVE</a>
-      <a class="btn btn-secondary" href="admin-purchasing.html?returned=1">RETURNED ARCHIVE</a>
-      <button class="btn btn-secondary" type="button" onclick="location.reload()">REFRESH</button>
-    </div>
+    <section class="account-panel" style="margin-top:1rem">
+      <div class="section-heading">
+        <p class="section-kicker">MARKET CHECK</p>
+        <h2>Quote Catalogue / Market Check</h2>
+        <p>Read-only reference for checking catalogue and market evidence during purchasing. Purchasing staff cannot change catalogue prices from this screen.</p>
+      </div>
+      <p><a class="btn btn-secondary" href="sales-pricing-guide.html?from=purchasing">OPEN QUOTE CATALOGUE / MARKET CHECK</a></p>
+    </section>
 
     <section class="account-panel">
       <div class="section-heading">
-        <p class="section-kicker">CUSTOMER RESPONSES</p>
-        <h2>Quotes awaiting customer response</h2>
-        <p>A sent combined quote stays visible here until the customer has responded to its items.</p>
+        <p class="section-kicker">STEP 1</p>
+        <h2>Valuations Received</h2>
+        <div id="valuation-step-notice" class="workflow-notice">Checking valuations...</div>
       </div>
+      <p><a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a></p>
+    </section>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">STEP 2</p>
+        <h2>Customer Response</h2>
+        <div id="response-step-notice" class="workflow-notice">Checking customer responses...</div>
+      </div>
+      <p>Sent quotes remain in the purchasing workflow until the customer responds.</p>
       <div id="customer-response-queue"><p>Loading customer responses...</p></div>
     </section>
 
     <section class="account-panel">
       <div class="section-heading">
-        <p class="section-kicker">SHIPPING SETTINGS</p>
-        <h2>Postal labels &amp; QR codes</h2>
-        <p>Save reusable label and QR-code links for inbound and return shipments.</p>
+        <p class="section-kicker">STEP 3</p>
+        <h2>Shipping &amp; Receipt</h2>
+        <div id="shipping-step-notice" class="workflow-notice">Checking shipping...</div>
       </div>
       <div id="shipping-settings" class="shipment-form">
         <label>Customer → GearCashOut label URL <input id="setting-inbound-label" type="url" placeholder="https://..."></label>
@@ -152,21 +168,46 @@ document.addEventListener('DOMContentLoaded',()=>{
     </section>
 
     <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">STEP 4</p>
+        <h2>Receipt, Inspection &amp; Final Offer</h2>
+        <div id="inspection-step-notice" class="workflow-notice">Checking inspection actions...</div>
+      </div>
+      <p>Manage received purchases, inspection and any final offer required before payment.</p>
+    </section>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">STEP 5</p>
+        <h2>Payment &amp; Completion</h2>
+        <div id="payment-step-notice" class="workflow-notice">Checking payment actions...</div>
+      </div>
+      <p>Complete payment and finish the purchase. Completed items then hand over into Inventory for the Sales team.</p>
+    </section>
+
+    <div id="sales-view-nav" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0;">
+      <a class="btn btn-primary" href="admin-purchasing.html">ACTIVE PURCHASES</a>
+      <a class="btn btn-secondary" href="admin-purchasing.html?archive=1">PURCHASE ARCHIVE</a>
+      <a class="btn btn-secondary" href="admin-purchasing.html?returned=1">RETURNED ARCHIVE</a>
+      <button class="btn btn-secondary" type="button" onclick="location.reload()">REFRESH</button>
+    </div>
+
+    <section class="account-panel">
       <div id="admin-sales-message" class="form-message" role="status" aria-live="polite"></div>
       <div id="sales-list"><p>Loading purchases...</p></div>
     </section>
 
     <section class="account-panel">
       <div class="section-heading">
-        <p class="section-kicker">STEP 5</p>
-        <h2>Completed purchase → Inventory</h2>
-        <p>Once purchasing is complete, the item leaves this workflow and continues into Inventory for the Sales team.</p>
+        <p class="section-kicker">HANDOVER TO SALES</p>
+        <h2>Completed Purchase → Inventory</h2>
+        <p>Once purchasing is complete, the item leaves the purchasing workflow and continues into Inventory for the Sales team.</p>
       </div>
-      <a class="btn btn-secondary" href="inventory.html">OPEN INVENTORY</a>
+      <p><a class="btn btn-secondary" href="inventory.html">OPEN INVENTORY</a></p>
     </section>
   </div>
 </main>
 
-<footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer response → Shipping → Receipt → Inspection → Payment → Inventory.</div></footer>
+<footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer Response → Shipping → Receipt → Inspection → Payment → Inventory.</div></footer>
 </body>
 </html>
