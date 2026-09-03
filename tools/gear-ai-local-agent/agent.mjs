@@ -105,7 +105,7 @@ function extractSearchLinks(html, baseUrl){
     let m;
     while((m=re.exec(html))){
       const raw=decodeDdgUrl(m[1])||(()=>{try{return new URL(m[1],baseUrl).href}catch{return null}})();
-      if(!raw||!/^https?:\/\///i.test(raw))continue;
+      if(!raw||!/^https?:\/\//i.test(raw))continue;
       const host=hostOf(raw);
       if(!host||host.includes('duckduckgo.com')||host.includes('bing.com')||host.includes('google.com'))continue;
       const key=raw.split('#')[0];
@@ -156,11 +156,14 @@ async function searchBing(query){
   try{
     const {html}=await fetchText(url);
     const out=[];
+    const seen=new Set();
     const re=/<li[^>]+class=["'][^"']*b_algo[^"']*["'][^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/li>/gi;
     let m;
     while((m=re.exec(html))){
       const href=m[1],host=hostOf(href);
-      if(host&&href.startsWith('http'))out.push({url:href,title:stripHtml(m[2]),snippet:''});
+      if(!host||host==='bing.com'||host.endsWith('.bing.com')||seen.has(href))continue;
+      seen.add(href);
+      out.push({url:href,title:stripHtml(m[2]),snippet:''});
       if(out.length>=20)break;
     }
     return out;
@@ -200,7 +203,7 @@ async function collectEvidence(product,sources){
   }
 
   const ranked=[...seen.values()].sort((a,b)=>{
-    const ap=priority.find(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===a.host)?.priority??999;
+    const ap=priority.find(s=>String(s.domain||'').replace(/^www\./,'').toLowerCase()===a.host)?.priority??999;
     const bp=priority.find(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===b.host)?.priority??999;
     return ap-bp;
   }).slice(0,cfg.maxResults);
