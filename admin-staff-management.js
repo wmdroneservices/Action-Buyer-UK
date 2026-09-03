@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
          <label class="checkbox-label"><input type="checkbox" data-p="sales" ${r.can_access_sales?"checked":""}>Sales</label>
          <label class="checkbox-label"><input type="checkbox" data-p="customers" ${r.can_access_customers?"checked":""}>Customers</label>
          <label class="checkbox-label"><input type="checkbox" data-p="manage_staff" ${r.can_manage_staff?"checked":""}>Staff Management</label>
-         <label class="checkbox-label"><input type="checkbox" data-active ${r.active?"checked":""}>Account active</label>
+         <p style="margin-top:1rem"><strong>Permitted login hours (optional)</strong></p>\n         <p style="font-size:.82rem;color:#5f6b78;margin-top:-.35rem">Leave both blank for unrestricted access. UK local time is used.</p>\n         <div style="display:flex;gap:1rem;flex-wrap:wrap">\n           <label style="flex:1;min-width:180px">Start time<input type="time" data-work-start value="${esc(r.work_start_time||"")}"></label>\n           <label style="flex:1;min-width:180px">End time<input type="time" data-work-end value="${esc(r.work_end_time||"")}"></label>\n         </div>\n         <label class="checkbox-label"><input type="checkbox" data-active ${r.active?"checked":""}>Account active</label>
          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
            <button class="btn btn-primary" data-save="${r.user_id}">SAVE CHANGES</button>
            <button class="btn btn-secondary" data-reset="${r.user_id}">RESET PASSWORD</button>
@@ -43,9 +43,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
  }
  document.getElementById("create-staff-form").addEventListener("submit",async e=>{
    e.preventDefault();const permissions={};
+   const workStart=document.getElementById("new-work-start").value||null;
+   const workEnd=document.getElementById("new-work-end").value||null;
    ["research","purchasing","sales","customers","manage_staff"].forEach(k=>permissions[k]=document.querySelector('[name="'+k+'"]').checked);
    try{
-     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),password:document.getElementById("new-password").value,permissions});
+     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),password:document.getElementById("new-password").value,work_start_time:workStart,work_end_time:workEnd,permissions});
      e.target.reset();notice("Staff account created.");await load();
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
@@ -59,7 +61,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      const originalText=save.textContent;
      save.disabled=true;save.textContent="SAVING...";
      try{
-       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,permissions});
+       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,work_start_time:panel.querySelector("[data-work-start]").value||null,work_end_time:panel.querySelector("[data-work-end]").value||null,permissions});
        save.textContent="SAVED";
        notice("Staff account updated successfully.");
        await load();
