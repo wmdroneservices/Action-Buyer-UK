@@ -153,11 +153,21 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 /* Staff dashboard CTA buttons: one consistent size and alignment. */
 #staff-dashboard-grid .dashboard-link-card .dashboard-cta{
   width:100%;
+  height:46px;
   min-height:46px;
   display:flex;
   align-items:center;
   justify-content:center;
   box-sizing:border-box;
   padding:.75rem 1rem;
-  white-space:normal;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+}
+@media(max-width:600px){
+  #staff-dashboard-grid .dashboard-link-card .dashboard-cta{
+    height:auto;
+    min-height:46px;
+    white-space:normal;
+  }
 }
