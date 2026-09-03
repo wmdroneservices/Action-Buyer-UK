@@ -441,7 +441,47 @@ Return JSON only matching the schema.`;
   const data=await res.json();
   const text=data.message?.content;
   if(!text)throw new Error('Ollama returned no structured content');
-  return JSON.parse(text);
+  const parsed=JSON.parse(text);
+
+  // Local models occasionally emit an enum value that is semantically clear
+  // but not one of the strict database values. Normalise those values here
+  // rather than failing the entire product and losing otherwise valid research.
+  const validMatch=new Set(['exact','match','uncertain','mismatch']);
+  const normaliseMatch=v=>{
+    const s=String(v||'uncertain').trim().toLowerCase();
+    if(validMatch.has(s))return s;
+    if(['yes','true','matched','correct','same'].includes(s))return 'match';
+    if(['no','false','different','incorrect','wrong'].includes(s))return 'mismatch';
+    if(['likely','probable','possible','partial','unknown','unclear','n/a','na'].includes(s))return 'uncertain';
+    return 'uncertain';
+  };
+  const validCondition=new Set(['new','used','refurbished','unknown']);
+  const validKind=new Set(['manufacturer','retailer','marketplace','used_dealer','auction','other']);
+  const validCategory=new Set(['new_uk','used_uk','overseas','official']);
+  const normaliseCategory=v=>{
+    const s=String(v||'').trim().toLowerCase();
+    if(validCategory.has(s))return s;
+    if(s.includes('official')||s.includes('manufacturer'))return 'official';
+    if(s.includes('used')||s.includes('marketplace')||s.includes('second'))return 'used_uk';
+    if(s.includes('new')&&s.includes('uk'))return 'new_uk';
+    return 'overseas';
+  };
+  const normaliseCondition=v=>validCondition.has(String(v||'').toLowerCase())?String(v).toLowerCase():'unknown';
+  const normaliseKind=v=>validKind.has(String(v||'').toLowerCase())?String(v).toLowerCase():'other';
+
+  parsed.candidates=Array.isArray(parsed.candidates)?parsed.candidates:[];
+  parsed.discovered_sources=Array.isArray(parsed.discovered_sources)?parsed.discovered_sources:[];
+  parsed.candidates=parsed.candidates.map(c=>({
+    ...c,
+    package_match:normaliseMatch(c.package_match),
+    variant_match:normaliseMatch(c.variant_match),
+    condition:normaliseCondition(c.condition),
+    source_kind:normaliseKind(c.source_kind),
+    evidence_category:normaliseCategory(c.evidence_category),
+    market_region:String(c.market_region||'').toUpperCase()==='UK'||normaliseCategory(c.evidence_category)==='new_uk'||normaliseCategory(c.evidence_category)==='used_uk'?'UK':normaliseCategory(c.evidence_category)==='official'?'official':'overseas',
+    match_confidence:Math.max(0,Math.min(1,Number(c.match_confidence||0)))
+  }));
+  return parsed;
 }
 
 function classifyFromSource(s){
