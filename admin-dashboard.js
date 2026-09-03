@@ -1,3 +1,6 @@
+let catalogueRefreshTimer=null;
+let catalogueLoadInProgress=false;
+
 document.addEventListener("DOMContentLoaded",async()=>{
  const auth=window.actionBuyerAuth;
  const session=await auth.getSession();
@@ -27,14 +30,59 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const signout=document.getElementById("staff-sign-out");
  if(signout)signout.addEventListener("click",()=>auth.signOut());
 
- loadCatalogueSummary(auth.supabase);
+ const refresh=()=>loadCatalogueSummary(auth.supabase);
+ await refresh();
+
+ // Keep the dashboard genuinely live without relying on a hard page refresh.
+ catalogueRefreshTimer=window.setInterval(refresh,30000);
+ document.addEventListener("visibilitychange",()=>{
+   if(document.visibilityState==="visible") refresh();
+ });
+
+ window.addEventListener("beforeunload",()=>{
+   if(catalogueRefreshTimer) window.clearInterval(catalogueRefreshTimer);
+ });
 });
+
+function formatCount(value){
+ return Number(value||0).toLocaleString("en-GB");
+}
+
+function buildBreakdown(rows,key,fallback){
+ const counts=new Map();
+ rows.forEach(row=>{
+   const name=String(row[key]||fallback).trim()||fallback;
+   counts.set(name,(counts.get(name)||0)+1);
+ });
+ return [...counts.entries()]
+   .map(([name,count])=>({name,count}))
+   .sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+}
+
+function renderBreakdown(listId,items){
+ const list=document.getElementById(listId);
+ if(!list) return;
+
+ list.innerHTML="";
+ items.forEach(item=>{
+   const row=document.createElement("div");
+   row.style.cssText="display:flex;justify-content:space-between;gap:1rem;padding:.7rem .8rem;border:1px solid #d8dde3;background:#f8fafb;color:#102f4f";
+   const name=document.createElement("span");
+   name.textContent=item.name;
+   const count=document.createElement("strong");
+   count.textContent=formatCount(item.count);
+   row.append(name,count);
+   list.appendChild(row);
+ });
+}
 
 async function loadCatalogueSummary(supabase){
  const panel=document.getElementById("catalogue-summary-panel");
- if(!panel) return;
+ if(!panel||catalogueLoadInProgress) return;
 
+ catalogueLoadInProgress=true;
  const message=document.getElementById("catalogue-summary-message");
+
  try{
    const rows=[];
    const pageSize=1000;
@@ -42,63 +90,40 @@ async function loadCatalogueSummary(supabase){
    for(let from=0;;from+=pageSize){
      const {data,error}=await supabase
        .from("quote_catalog_products")
-       .select("manufacturer,category,customer_visible")
+       .select("manufacturer,category,active")
        .range(from,from+pageSize-1)
-       .order("manufacturer")
-       .order("category");
+       .order("id",{ascending:true});
 
      if(error) throw error;
      rows.push(...(data||[]));
      if(!data||data.length<pageSize) break;
    }
 
-   const format=value=>Number(value||0).toLocaleString("en-GB");
+   // Dashboard status is based on the catalogue's actual active flag,
+   // not customer visibility, so the figures match Catalogue Control.
    const totalProducts=rows.length;
-   const visibleProducts=rows.filter(row=>row.customer_visible!==false).length;
-   const hiddenProducts=rows.filter(row=>row.customer_visible===false).length;
-   const manufacturerCount=new Set(
-     rows.map(row=>String(row.manufacturer||"Unknown").trim()||"Unknown")
-   ).size;
+   const activeProducts=rows.filter(row=>row.active===true).length;
+   const inactiveProducts=totalProducts-activeProducts;
 
    const total=document.getElementById("catalogue-total-count");
    const active=document.getElementById("catalogue-active-count");
    const inactive=document.getElementById("catalogue-inactive-count");
 
-   if(total) total.textContent=format(totalProducts);
-   if(active) active.textContent=format(visibleProducts);
-   if(inactive) inactive.textContent=format(hiddenProducts);
+   if(total) total.textContent=formatCount(totalProducts);
+   if(active) active.textContent=formatCount(activeProducts);
+   if(inactive) inactive.textContent=formatCount(inactiveProducts);
 
-   const categoryMap=new Map();
-   rows.forEach(row=>{
-     const name=String(row.category||"Uncategorised").trim()||"Uncategorised";
-     categoryMap.set(name,(categoryMap.get(name)||0)+1);
-   });
-
-   const categories=[...categoryMap.entries()]
-     .map(([name,count])=>({name,count}))
-     .sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+   const categories=buildBreakdown(rows,"category","Uncategorised");
+   const manufacturers=buildBreakdown(rows,"manufacturer","Unknown");
 
    const categoryTotal=document.getElementById("catalogue-category-total");
-   if(categoryTotal){
-     categoryTotal.textContent=
-       format(categories.length)+" categories · "+
-       format(manufacturerCount)+" manufacturers";
-   }
+   if(categoryTotal) categoryTotal.textContent=formatCount(categories.length)+" categories";
 
-   const list=document.getElementById("catalogue-category-list");
-   if(list){
-     list.innerHTML="";
-     categories.forEach(category=>{
-       const row=document.createElement("div");
-       row.style.cssText="display:flex;justify-content:space-between;gap:1rem;padding:.7rem .8rem;border:1px solid #d8dde3;background:#f8fafb;color:#102f4f";
-       const name=document.createElement("span");
-       name.textContent=category.name;
-       const count=document.createElement("strong");
-       count.textContent=format(category.count);
-       row.append(name,count);
-       list.appendChild(row);
-     });
-   }
+   const manufacturerTotal=document.getElementById("catalogue-manufacturer-total");
+   if(manufacturerTotal) manufacturerTotal.textContent=formatCount(manufacturers.length)+" manufacturers";
+
+   renderBreakdown("catalogue-category-list",categories);
+   renderBreakdown("catalogue-manufacturer-list",manufacturers);
 
    if(message) message.textContent="";
    panel.hidden=false;
@@ -106,5 +131,7 @@ async function loadCatalogueSummary(supabase){
    console.error("Unable to load catalogue summary",err);
    if(message) message.textContent="Catalogue summary could not be loaded: "+(err?.message||"Unknown error");
    panel.hidden=false;
+ }finally{
+   catalogueLoadInProgress=false;
  }
 }
