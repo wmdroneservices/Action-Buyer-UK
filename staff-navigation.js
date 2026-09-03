@@ -1,148 +1,74 @@
-/* Shared staff navigation.
-   Purchasing and sales have workflow-specific menus, with a clear bridge between dashboards. */
+/* Shared three-stage staff navigation: Research & Pricing → Purchasing → Sales. */
 (function () {
   'use strict';
 
+  const researchPages = new Set([
+    'admin-research-pricing.html','admin-catalog.html','admin-catalog-control.html',
+    'admin-automatic-pricing.html','admin-ai-research.html'
+  ]);
   const purchasingPages = new Set([
-    'admin-purchasing.html',
-    'admin-valuations.html',
-    'admin-sales.html',
-    'admin-catalog.html',
-    'admin-catalog-control.html',
-    'admin-automatic-pricing.html',
-    'admin-ai-research.html',
-    'admin-customers.html',
-    'inventory-add.html'
+    'admin-purchasing.html','admin-valuations.html','admin-sales.html','admin-customers.html'
   ]);
-
   const salesPages = new Set([
-    'admin-sales-dashboard.html',
-    'inventory-sales.html',
-    'active-sales-listings.html',
-    'sold-items.html',
-    'returns.html',
-    'return-database.html',
-    'inventory-finance.html',
-    'listing-readiness.html',
-    'sales-workbench.html',
-    'sales-pricing-guide.html'
+    'admin-sales-dashboard.html','inventory.html','inventory-sales.html','active-sales-listings.html',
+    'sold-items.html','returns.html','return-database.html','inventory-finance.html',
+    'listing-readiness.html','sales-workbench.html','sales-pricing-guide.html'
   ]);
 
+  const researchLinks = [
+    ['admin-research-pricing.html','RESEARCH & PRICING'],
+    ['admin-catalog.html','QUOTE CATALOGUE'],
+    ['admin-catalog-control.html','CATALOGUE CONTROL'],
+    ['admin-automatic-pricing.html','AUTOMATIC PRICING'],
+    ['admin-ai-research.html','AI RESEARCH'],
+    ['admin-purchasing.html','PURCHASING'],
+    ['admin-sales-dashboard.html','SALES']
+  ];
   const purchasingLinks = [
-    ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
-    ['admin-valuations.html', 'VALUATIONS'],
-    ['admin-sales.html', 'PURCHASE PIPELINE'],
-    ['inventory.html', 'INVENTORY'],
-    ['admin-catalog.html', 'QUOTE CATALOGUE'],
-    ['admin-catalog-control.html', 'CATALOGUE CONTROL'],
-    ['admin-automatic-pricing.html', 'AUTOMATIC PRICING'],
-    ['admin-ai-research.html', 'AI RESEARCH'],
-    ['admin-customers.html', 'CUSTOMERS'],
-    ['admin-sales-dashboard.html', 'SALES DASHBOARD']
+    ['admin-purchasing.html','PURCHASING DASHBOARD'],
+    ['admin-valuations.html','VALUATIONS'],
+    ['admin-sales.html','PURCHASE PIPELINE'],
+    ['admin-customers.html','CUSTOMERS'],
+    ['admin-catalog.html','QUOTE CATALOGUE'],
+    ['admin-research-pricing.html','RESEARCH & PRICING'],
+    ['admin-sales-dashboard.html','SALES DASHBOARD']
   ];
-
   const salesLinks = [
-    ['admin-sales-dashboard.html', 'SALES DASHBOARD'],
-    ['inventory.html', 'INVENTORY'],
-    ['inventory-sales.html', 'PRE-SALE / CHANNELS'],
-    ['active-sales-listings.html', 'ACTIVE LISTINGS'],
-    ['sold-items.html', 'SOLD ITEMS'],
-    ['returns.html', 'RETURNS'],
-    ['return-database.html', 'RETURN DATABASE'],
-    ['inventory-finance.html', 'PROFIT & LOSS'],
-    ['sales-pricing-guide.html', 'PRICING GUIDE'],
-    ['admin-purchasing.html', 'PURCHASING DASHBOARD']
+    ['admin-sales-dashboard.html','SALES DASHBOARD'],
+    ['inventory.html','INVENTORY'],
+    ['inventory-sales.html','PRE-SALE / CHANNELS'],
+    ['active-sales-listings.html','ACTIVE LISTINGS'],
+    ['sold-items.html','SOLD ITEMS'],
+    ['returns.html','RETURNS'],
+    ['return-database.html','RETURN DATABASE'],
+    ['inventory-finance.html','PROFIT & LOSS'],
+    ['sales-pricing-guide.html','QUOTE CATALOGUE / MARKET CHECK'],
+    ['admin-catalog.html','QUOTE CATALOGUE'],
+    ['admin-research-pricing.html','RESEARCH & PRICING'],
+    ['admin-purchasing.html','PURCHASING']
   ];
 
-  const inventoryLinks = [
-    ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
-    ['inventory.html', 'INVENTORY'],
-    ['admin-sales-dashboard.html', 'SALES DASHBOARD'],
-    ['inventory-sales.html', 'PRE-SALE / CHANNELS'],
-    ['active-sales-listings.html', 'ACTIVE LISTINGS'],
-    ['sold-items.html', 'SOLD ITEMS'],
-    ['returns.html', 'RETURNS'],
-    ['inventory-finance.html', 'PROFIT & LOSS']
-  ];
-
-  function getMode(current) {
-    if (current === 'inventory.html') return 'inventory';
-    if (current === 'admin-purchasing.html') return 'purchasing';
-    if (current === 'admin-sales-dashboard.html') return 'sales';
-    if (purchasingPages.has(current)) return 'purchasing';
-    if (salesPages.has(current)) return 'sales';
+  function mode(current){
+    if(researchPages.has(current))return 'research';
+    if(purchasingPages.has(current))return 'purchasing';
+    if(salesPages.has(current))return 'sales';
     return null;
   }
-
-  function applyStaffNavigation() {
-    const header = document.querySelector('header.header');
-    if (!header) return;
-
-    const container = header.querySelector('.header-container');
-    if (!container) return;
-
-    const current = (window.location.pathname.split('/').pop() || '').toLowerCase();
-    const mode = getMode(current);
-    if (!mode) return;
-
-    let nav = container.querySelector('nav');
-    if (!nav) {
-      nav = document.createElement('nav');
-      container.appendChild(nav);
-    }
-
-    const links = mode === 'purchasing'
-      ? purchasingLinks
-      : mode === 'sales'
-        ? salesLinks
-        : inventoryLinks;
-
-    nav.setAttribute('aria-label',
-      mode === 'purchasing' ? 'Purchasing navigation' :
-      mode === 'sales' ? 'Sales navigation' :
-      'Inventory navigation'
-    );
-
-    const list = document.createElement('ul');
-    list.className = 'nav-list staff-workflow-nav';
-
-    links.forEach(function ([href, label]) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = href;
-      a.textContent = label;
-      if (current === href.toLowerCase()) a.setAttribute('aria-current', 'page');
-      li.appendChild(a);
-      list.appendChild(li);
-    });
-
-    nav.replaceChildren(list);
-    container.classList.add('staff-dashboard-header',
-      mode === 'purchasing' ? 'staff-purchasing-header' :
-      mode === 'sales' ? 'staff-sales-header' :
-      'staff-inventory-header'
-    );
-
-    const logo = container.querySelector('.logo');
-    if (logo) {
-      logo.href = mode === 'purchasing'
-        ? 'admin-purchasing.html'
-        : mode === 'sales'
-          ? 'admin-sales-dashboard.html'
-          : 'inventory.html';
-      logo.setAttribute('aria-label',
-        mode === 'purchasing'
-          ? 'GearCashOut Purchasing Dashboard'
-          : mode === 'sales'
-            ? 'GearCashOut Sales Dashboard'
-            : 'GearCashOut Inventory'
-      );
-    }
+  function apply(){
+    const header=document.querySelector('header.header');
+    const container=header?.querySelector('.header-container');
+    if(!container)return;
+    const current=(location.pathname.split('/').pop()||'').toLowerCase();
+    const m=mode(current); if(!m)return;
+    const links=m==='research'?researchLinks:m==='purchasing'?purchasingLinks:salesLinks;
+    let nav=container.querySelector('nav'); if(!nav){nav=document.createElement('nav');container.appendChild(nav);}
+    nav.setAttribute('aria-label',m+' dashboard navigation');
+    const ul=document.createElement('ul');ul.className='nav-list staff-workflow-nav';
+    links.forEach(([href,label])=>{const li=document.createElement('li'),a=document.createElement('a');a.href=href;a.textContent=label;if(current===href.toLowerCase())a.setAttribute('aria-current','page');li.appendChild(a);ul.appendChild(li);});
+    nav.replaceChildren(ul);
+    container.classList.add('staff-dashboard-header','staff-'+m+'-header');
+    const logo=container.querySelector('.logo');
+    if(logo){const home=m==='research'?'admin-research-pricing.html':m==='purchasing'?'admin-purchasing.html':'admin-sales-dashboard.html';logo.href=home;logo.setAttribute('aria-label','GearCashOut '+m+' dashboard');}
   }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyStaffNavigation);
-  } else {
-    applyStaffNavigation();
-  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
 })();
