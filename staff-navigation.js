@@ -65,7 +65,7 @@
     nav.replaceChildren(ul);
     container.classList.add('staff-dashboard-header','staff-'+m+'-header');
     const logo=container.querySelector('.logo');
-    if(logo){const home=m==='research'?'admin-research-pricing.html':m==='purchasing'?'admin-purchasing.html':'admin-sales-dashboard.html';logo.href=home;logo.setAttribute('aria-label','GearCashOut '+m+' dashboard');}
+    if(logo){logo.href='admin.html';logo.setAttribute('aria-label','GearCashOut staff dashboard');}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply);else apply();
 })();
