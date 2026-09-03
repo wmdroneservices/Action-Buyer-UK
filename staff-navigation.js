@@ -24,7 +24,8 @@
       'admin-sales.html',
       'admin-sale.html',
       'admin-quote.html',
-      'admin-item-review.html'
+      'admin-item-review.html',
+      'purchase-returns.html'
     ]),
     sales: new Set([
       'admin-sales-dashboard.html',
@@ -60,6 +61,7 @@
     purchasing: [
       ['admin-purchasing.html', 'PURCHASING DASHBOARD'],
       ['admin-valuations.html', 'VALUATIONS'],
+      ['purchase-returns.html', 'PURCHASE RETURNS'],
       ['sales-pricing-guide.html?from=purchasing', 'QUOTE CATALOGUE / MARKET CHECK']
     ],
     sales: [
