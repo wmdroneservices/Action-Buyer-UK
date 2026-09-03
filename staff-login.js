@@ -34,6 +34,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(sessionError){message.textContent="Could not start the staff session.";message.className="form-message error";return;}
     const target=await destination(sessionData.session);
     if(!target){await auth.supabase.auth.signOut();message.textContent="This account does not have active staff access.";message.className="form-message error";return;}
+    try{
+      await auth.supabase.rpc("log_staff_activity",{
+        p_action_type:"login",
+        p_action_category:"authentication",
+        p_entity_table:"staff_session",
+        p_entity_id:sessionData.session.user.id,
+        p_details:{method:"staff_user_id"},
+        p_page:"staff-login.html"
+      });
+    }catch(_){}
     location.href=target;
   });
 });
