@@ -148,3 +148,59 @@ supabaseClient.auth.onAuthStateChange((_e,s)=>{setAuthMarker(s);actionBuyerAuth.
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initialise,{once:true});
   else initialise();
 })();
+
+
+
+/* Staff activity audit trail: page views, navigation, form submissions and meaningful controls. */
+(function(){
+  const isStaffPage=/\/admin(?:[-_][^/]+)?\.html$/i.test(location.pathname)||/\/admin\//i.test(location.pathname);
+  if(!isStaffPage)return;
+  let staffChecked=false,staffActive=false,lastKey="",lastAt=0;
+  async function isActiveStaff(){
+    if(staffChecked)return staffActive;
+    try{
+      const {data:{session}}=await supabaseClient.auth.getSession();
+      if(!session?.user?.id)return false;
+      const {data}=await supabaseClient.from("staff_users").select("active").eq("user_id",session.user.id).maybeSingle();
+      staffActive=!!data?.active;staffChecked=true;
+    }catch(_){staffChecked=true;staffActive=false;}
+    return staffActive;
+  }
+  async function log(action_type,action_category="activity",details={},extra={}){
+    try{
+      if(!(await isActiveStaff()))return;
+      const key=action_category+"|"+action_type+"|"+JSON.stringify(details||{});
+      const now=Date.now();
+      if(key===lastKey&&now-lastAt<900)return;
+      lastKey=key;lastAt=now;
+      await supabaseClient.functions.invoke("staff-activity",{body:{
+        action:"log",
+        action_type:String(action_type||"Action").slice(0,120),
+        action_category:String(action_category||"activity").slice(0,60),
+        page:location.pathname.split("/").pop()||"admin.html",
+        entity_table:extra.entity_table||null,
+        entity_id:extra.entity_id||null,
+        details
+      }});
+    }catch(_){}
+  }
+  window.actionBuyerStaffActivity={log};
+  function labelFor(el){
+    return String(el.getAttribute("data-audit-label")||el.getAttribute("aria-label")||el.value||el.textContent||el.id||el.name||"Control").replace(/\s+/g," ").trim().slice(0,180);
+  }
+  document.addEventListener("DOMContentLoaded",()=>{
+    log("Page opened","page",{title:document.title});
+    document.addEventListener("click",e=>{
+      const el=e.target?.closest?.("a,button,input[type='submit'],input[type='button'],[role='button']");
+      if(!el)return;
+      const tag=el.tagName.toLowerCase(),href=el.getAttribute("href")||"";
+      if(tag==="a")log("Navigation","navigation",{label:labelFor(el),href:href.slice(0,220)});
+      else log("Control used","action",{label:labelFor(el),id:el.id||"",name:el.name||""});
+    },true);
+    document.addEventListener("submit",e=>{
+      const form=e.target;
+      if(!(form instanceof HTMLFormElement))return;
+      log("Form submitted","action",{form_id:form.id||"",form_name:form.getAttribute("name")||""});
+    },true);
+  });
+})();
