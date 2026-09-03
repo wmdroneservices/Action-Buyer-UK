@@ -27,7 +27,14 @@ async function runResearch(){
    }
    if(data?.error)throw Error(data.error);
    const r=data||{};
-   msg(r.message||('AI research complete: '+(r.processed||0)+' products processed. '+(r.results||[]).reduce((n,x)=>n+(x.submitted||0),0)+' findings sent for review.'));
+   const findings=(r.results||[]).reduce((n,x)=>n+(x.submitted||0),0);
+   const failures=(r.results||[]).filter(x=>x.error);
+   if(r.error||failures.length){
+     const detail=r.error||failures[0]?.error||'AI research encountered an error.';
+     msg('AI research did not produce findings: '+detail,true);
+   }else{
+     msg(r.message||('AI research complete: '+(r.processed||0)+' products processed. '+findings+' findings sent for review.'),findings===0);
+   }
    await Promise.all([load(),loadSources()]);
  }finally{if(b){b.disabled=false;b.textContent='RUN SELECTED AI RESEARCH'}}
 }
