@@ -2,8 +2,11 @@
 <html lang="en-GB">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260903-cta-uniform-2">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-catalogue-sync-3" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-live-catalogue-4" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
@@ -26,25 +29,25 @@
 
 <section id="catalogue-summary-panel" class="account-panel" hidden>
   <div class="section-heading">
-    <p class="section-kicker">READ-ONLY CATALOGUE OVERVIEW</p>
+    <p class="section-kicker">LIVE CATALOGUE OVERVIEW</p>
     <h2>Quote Catalogue</h2>
-    <p>Current catalogue coverage available to the purchasing workflow.</p>
+    <p>Live counts and breakdowns from Catalogue Control. This summary refreshes automatically while the dashboard is open.</p>
   </div>
   <div id="catalogue-summary-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0 1.25rem">
     <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
       <div class="section-kicker">TOTAL PRODUCTS</div>
       <strong id="catalogue-total-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">Total products in Catalogue Control</span>
+      <span style="font-size:.78rem;color:#5f6b78">All products currently in Catalogue Control</span>
     </div>
     <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
-      <div class="section-kicker">VISIBLE TO CUSTOMERS</div>
+      <div class="section-kicker">ACTIVE PRODUCTS</div>
       <strong id="catalogue-active-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">Matches Catalogue Control customer visibility</span>
+      <span style="font-size:.78rem;color:#5f6b78">Products currently marked active</span>
     </div>
     <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
-      <div class="section-kicker">HIDDEN FROM CUSTOMERS</div>
+      <div class="section-kicker">INACTIVE PRODUCTS</div>
       <strong id="catalogue-inactive-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">Matches Catalogue Control hidden count</span>
+      <span style="font-size:.78rem;color:#5f6b78">Products currently marked inactive</span>
     </div>
   </div>
   <div style="border-top:1px solid #d8dde3;padding-top:1rem">
@@ -56,6 +59,16 @@
       <span id="catalogue-category-total" style="font-size:.8rem;color:#5f6b78"></span>
     </div>
     <div id="catalogue-category-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.6rem 1rem;margin-top:1rem"></div>
+  </div>
+  <div style="border-top:1px solid #d8dde3;padding-top:1.25rem;margin-top:1.25rem">
+    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;flex-wrap:wrap">
+      <div>
+        <p class="section-kicker" style="margin-bottom:.25rem">MANUFACTURER BREAKDOWN</p>
+        <strong style="color:#102f4f">Products by manufacturer</strong>
+      </div>
+      <span id="catalogue-manufacturer-total" style="font-size:.8rem;color:#5f6b78"></span>
+    </div>
+    <div id="catalogue-manufacturer-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.6rem 1rem;margin-top:1rem"></div>
   </div>
   <div id="catalogue-summary-message" class="form-message" role="status" aria-live="polite"></div>
 </section>
