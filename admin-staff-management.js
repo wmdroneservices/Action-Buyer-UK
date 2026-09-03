@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded",async()=>{
- const auth=window.actionBuyerAuth,message=document.getElementById("staff-message"),list=document.getElementById("staff-list");
+ const auth=window.actionBuyerAuth,message=document.getElementById("staff-message"),list=document.getElementById("staff-list"),summary=document.getElementById("staff-summary");
  const session=await auth.getSession();
  if(!session){location.href="staff-login.html";return;}
  const {data:me}=await auth.supabase.from("staff_users").select("can_manage_staff,active").eq("user_id",session.user.id).maybeSingle();
@@ -7,9 +7,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const notice=(t,ok=true)=>{message.textContent=t;message.className="form-message "+(ok?"success":"error");};
  const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+ const renderSummary=rows=>{
+   const active=rows.filter(r=>r.active).length,inactive=rows.length-active;
+   summary.innerHTML=
+     '<div style="min-width:190px;padding:1rem 1.15rem;border:1px solid #2f7d5a;background:#edf8f1;color:#1f6b49"><strong style="display:block;font-size:1.55rem;line-height:1">'+active+'</strong><span style="font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.08em">Active staff</span></div>'+
+     '<div style="min-width:190px;padding:1rem 1.15rem;border:1px solid #b42318;background:#fff1f0;color:#b42318"><strong style="display:block;font-size:1.55rem;line-height:1">'+inactive+'</strong><span style="font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.08em">Inactive staff</span></div>';
+ };
  async function load(){
    try{
      const data=await call({action:"list"}),rows=data.staff||[];
+     renderSummary(rows);
      list.innerHTML=rows.map(r=>`<article class="valuation-card" style="display:block">
        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
          <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username)}</strong><p>User ID: ${esc(r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
