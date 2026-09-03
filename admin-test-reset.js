@@ -9,11 +9,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { data: staff } = await auth.supabase
     .from("staff_users")
-    .select("user_id")
+    .select("user_id,active,can_manage_staff")
     .eq("user_id", session.user.id)
     .maybeSingle();
 
-  if (!staff) return;
+  if (!staff?.active || !staff?.can_manage_staff) { window.location.href = "admin.html"; return; }
 
   const button = document.getElementById("test-reset-button");
   const message = document.getElementById("test-reset-message");
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         message.className = "form-message error";
       }
       button.disabled = false;
-      button.textContent = "RESET ALL TEST DATA";
+      button.textContent = "CLEAR ALL TEST DATA";
     }
   });
 });
