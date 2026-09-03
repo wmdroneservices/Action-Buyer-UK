@@ -218,3 +218,26 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
   .live-task-age{grid-column:1/2;text-align:left}
   .live-task-arrow{grid-column:2/3;grid-row:1;text-align:right}
 }
+
+
+/* AI Research PC startup guide */
+.ai-startup-guide{margin-top:20px}
+.ai-startup-guide details{width:100%}
+.ai-startup-guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:2px 0}
+.ai-startup-guide summary::-webkit-details-marker{display:none}
+.ai-startup-guide summary>div{min-width:0}
+.ai-startup-guide summary h2{margin:4px 0 6px}
+.ai-startup-guide summary p{margin:0}
+.ai-guide-toggle{flex:0 0 auto;font-size:.78rem;font-weight:700;letter-spacing:.08em;border:1px solid var(--border,#ddd);padding:10px 14px;border-radius:4px}
+.ai-startup-guide details[open] .ai-guide-toggle{opacity:.8}
+.ai-guide-content{border-top:1px solid var(--border,#ddd);margin-top:18px;padding-top:20px}
+.ai-guide-intro{max-width:900px;margin-bottom:20px}
+.ai-guide-intro p{margin:0}
+.ai-guide-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.ai-guide-grid article{border:1px solid var(--border,#ddd);border-radius:6px;padding:18px;background:var(--surface,#fff)}
+.ai-guide-grid h3{margin:0 0 10px;font-size:1rem}
+.ai-guide-grid p:last-child,.ai-guide-grid ol:last-child{margin-bottom:0}
+.ai-guide-grid pre{margin:10px 0;padding:12px;overflow-x:auto;border-radius:4px;background:rgba(0,0,0,.05);white-space:pre-wrap;word-break:break-word}
+.ai-guide-grid code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em}
+.ai-guide-grid pre code{font-size:.82rem}
+@media(max-width:640px){.ai-startup-guide summary{align-items:flex-start}.ai-guide-toggle{padding:8px 10px;font-size:.7rem}.ai-guide-grid{grid-template-columns:1fr}}
