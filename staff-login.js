@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
     return null;
   }
 
+  const restricted=new URLSearchParams(location.search).get("restricted");
+  if(restricted==="hours"){message.textContent="This staff account is outside its permitted login hours. Please contact management.";message.className="form-message error";}
+
   const existing=await auth.getSession();
   if(existing){const target=await destination(existing);if(target){location.href=target;return;}await auth.supabase.auth.signOut();}
 
@@ -26,7 +29,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     const password=document.getElementById("staff-password").value;
     message.textContent="Signing in...";message.className="form-message";
     const {data,error}=await auth.supabase.functions.invoke("staff-login",{body:{username,password}});
-    if(error||!data?.access_token||!data?.refresh_token){message.textContent="Invalid User ID or password.";message.className="form-message error";return;}
+    if(error||!data?.access_token||!data?.refresh_token){message.textContent=data?.error||"Invalid User ID or password.";message.className="form-message error";return;}
     const {data:sessionData,error:sessionError}=await auth.supabase.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
     if(sessionError){message.textContent="Could not start the staff session.";message.className="form-message error";return;}
     const target=await destination(sessionData.session);
