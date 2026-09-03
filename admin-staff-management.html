@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en-GB"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Management | GearCashOut</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script><script src="admin-staff-management.js" defer></script>
+</head><body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">MANAGEMENT</p><h1>Staff Management</h1><p>Create staff User IDs and allocate dashboard access.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO STAFF DASHBOARD</a></div>
+<div id="staff-message" class="form-message" role="status"></div>
+<section class="account-panel"><p class="section-kicker">NEW STAFF ACCOUNT</p><form id="create-staff-form" class="auth-form">
+<label>Display name<input id="new-display-name" type="text" required></label>
+<label>User ID<input id="new-username" type="text" required minlength="3" maxlength="40" autocomplete="off"></label>
+<label>Password<input id="new-password" type="password" required minlength="8" autocomplete="new-password"></label>
+<p><strong>Dashboard access</strong></p>
+<label class="checkbox-label"><input type="checkbox" name="research">Research &amp; Pricing</label>
+<label class="checkbox-label"><input type="checkbox" name="purchasing">Purchasing</label>
+<label class="checkbox-label"><input type="checkbox" name="sales">Sales</label>
+<label class="checkbox-label"><input type="checkbox" name="customers">Customers</label>
+<label class="checkbox-label"><input type="checkbox" name="manage_staff">Staff Management</label>
+<button class="btn btn-primary" type="submit">CREATE STAFF ACCOUNT</button>
+</form></section>
+<section class="account-panel" style="margin-top:1.5rem"><p class="section-kicker">STAFF ACCOUNTS</p><div id="staff-list"></div></section>
+</div></main></body></html>
