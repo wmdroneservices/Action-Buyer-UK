@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260903-cta-uniform-2">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-dashboard-todo-1" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-dashboard-todo-2" defer></script><script src="live-task-board.js?v=20260903-live-task-main-1" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
 </head>
 <body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
@@ -50,14 +50,21 @@
       <span style="font-size:.78rem;color:#5f6b78">Products currently marked inactive</span>
     </div>
   </div>
-  <div style="border-top:1px solid #d8dde3;padding-top:1.25rem;margin-top:1.25rem">
-    <div class="section-heading" style="margin-bottom:1rem">
-      <p class="section-kicker">LIVE WORK QUEUE</p>
-      <h2 style="margin-bottom:.35rem">To Do List</h2>
-      <p>Only actions currently requiring attention are shown here. The list updates automatically as work moves through the system.</p>
-    </div>
-    <div id="dashboard-todo-list" style="display:grid;gap:.75rem"></div>
-    <div id="dashboard-todo-message" class="form-message" role="status" aria-live="polite"></div>
+  <section id="live-task-board" class="account-panel live-task-board" style="margin-top:1rem" aria-live="polite">
+      <div class="section-heading live-task-heading">
+        <p class="section-kicker">LIVE TASKS</p>
+        <h2>What Needs Doing</h2>
+        <p>One live list of staff actions across Purchasing, Inventory and Sales. Tasks automatically update as work moves through the workflow.</p>
+      </div>
+      <div class="task-board-legend" aria-label="Task urgency guide">
+        <span class="task-legend task-legend-green"><b>GREEN</b> Within the normal action window</span>
+        <span class="task-legend task-legend-amber"><b>AMBER</b> Overdue — should now be completed</span>
+        <span class="task-legend task-legend-red"><b>RED</b> Significantly overdue — prioritise this task</span>
+      </div>
+      <div id="live-task-summary" class="live-task-summary">Checking live tasks...</div>
+      <div id="live-task-list" class="live-task-list"><p>Checking the workflow for actions...</p></div>
+      <p id="live-task-updated" class="live-task-updated"></p>
+    </section>
   </div>
   <div id="catalogue-summary-message" class="form-message" role="status" aria-live="polite"></div>
 </section>
