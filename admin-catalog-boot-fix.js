@@ -20,10 +20,12 @@
   }
   function retry(){
     const list=document.getElementById('catalog-list');
-    if(!list||!window.actionBuyerAuth||typeof window.load!=='function')return;
+    if(!list||!window.actionBuyerAuth)return;
+    const run=typeof window.load==='function'?window.load:null;
+    if(!run)return;
     const text=(list.textContent||'').trim();
     if(text==='Loading...'||!list.children.length){
-      try{window.load();}catch(e){console.error('Catalogue bootstrap retry failed',e);}
+      try{run();}catch(e){console.error('Catalogue bootstrap retry failed',e);}
     }
   }
   function init(){
