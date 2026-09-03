@@ -10,6 +10,7 @@
     'admin-catalog.html',
     'admin-catalog-control.html',
     'admin-automatic-pricing.html',
+    'admin-ai-research.html',
     'admin-customers.html',
     'inventory-add.html'
   ]);
@@ -35,6 +36,7 @@
     ['admin-catalog.html', 'QUOTE CATALOGUE'],
     ['admin-catalog-control.html', 'CATALOGUE CONTROL'],
     ['admin-automatic-pricing.html', 'AUTOMATIC PRICING'],
+    ['admin-ai-research.html', 'AI RESEARCH'],
     ['admin-customers.html', 'CUSTOMERS'],
     ['admin-sales-dashboard.html', 'SALES DASHBOARD']
   ];
