@@ -49,10 +49,19 @@ document.addEventListener("DOMContentLoaded",async()=>{
    if(save){
      const panel=document.getElementById("edit-"+save.dataset.save),permissions={};
      panel.querySelectorAll("[data-p]").forEach(x=>permissions[x.dataset.p]=x.checked);
+     const originalText=save.textContent;
+     save.disabled=true;save.textContent="SAVING...";
      try{
        await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,permissions});
-       notice("Staff account updated.");await load();
-     }catch(err){notice(err.message,false);}
+       save.textContent="SAVED";
+       notice("Staff account updated successfully.");
+       await load();
+       const reopened=document.getElementById("edit-"+save.dataset.save);
+       if(reopened)reopened.hidden=false;
+     }catch(err){
+       notice(err.message||"Could not save staff account.",false);
+       save.disabled=false;save.textContent=originalText;
+     }
      return;
    }
    const reset=e.target.closest("[data-reset]");
