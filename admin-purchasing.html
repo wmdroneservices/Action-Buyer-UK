@@ -1,1 +1,172 @@
-<!DOCTYPE html><html lang="en-GB"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Purchasing Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js?v=20260903-four-dashboard-3shboard-1" defer></script><script src="admin-purchasing.js?v=20260826-3" defer></script><script src="admin-purchasing-combined-status.js?v=20260826-3" defer></script></head><body><header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Purchasing navigation"></nav></div></header><main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF DASHBOARD</p><h1>Purchasing Dashboard</h1><p id="staff-welcome">Checking staff access...</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div><div id="automatic-response-cta" class="account-panel" hidden style="margin-bottom:1rem;border:3px solid #d88732;background:#fff7eb;padding:1.5rem 1.75rem"><p class="section-kicker">VALUATION ACTION REQUIRED</p><h2>VALUATION REQUIRES ATTENTION</h2><p id="automatic-response-text"></p><a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a></div><section class="account-panel"><div class="section-heading"><p class="section-kicker">PURCHASING TOOLS</p><h2>From customer valuation to completed purchase</h2><p>Manage customer valuations and every stage of the purchase process after pricing has been set by the Research &amp; Pricing Dashboard.</p></div><div style="display:flex;gap:.6rem;flex-wrap:wrap"><a class="btn btn-primary" href="admin-valuations.html">VALUATIONS</a><a class="btn btn-primary" href="admin-sales.html">PURCHASE PIPELINE</a></div></section><div id="staff-message" class="form-message" role="status" aria-live="polite"></div><section class="account-panel"><div class="section-heading"><p class="section-kicker">WORK QUEUE</p><h2>Valuations</h2><p>Customer valuations requiring staff review and pricing approval.</p></div><div class="dashboard-link-card"><div><strong class="dashboard-count" id="valuation-count">—</strong><span>awaiting valuation</span></div><a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a></div></section><section class="account-panel"><div class="section-heading"><p class="section-kicker">PURCHASE PIPELINE</p><h2>Purchases, payments &amp; shipping</h2><p>Manage customer responses, accepted offers, inbound shipping, receipt, inspection and completed purchases.</p></div><div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"><div><strong id="customer-response-count">—</strong><span>awaiting customer response</span></div><div><strong id="shipping-label-count">—</strong><span>shipping label required</span></div><div><strong id="delivery-count">—</strong><span>awaiting delivery</span></div><div><strong id="inspection-count">—</strong><span>inspection</span></div><div><strong id="final-offer-count">—</strong><span>final offer</span></div><div><strong id="payment-due-count">—</strong><span>awaiting payment</span></div><div><strong id="payment-processing-count">—</strong><span>payment processing</span></div><div><strong id="paid-count">—</strong><span>completed</span></div></div><div style="margin-top:1rem"><a class="btn btn-primary" href="admin-sales.html">OPEN PURCHASE PIPELINE</a></div></section><section class="account-panel"><div class="section-heading"><p class="section-kicker">HANDOVER TO SALES</p><h2>Purchased Item Complete</h2><p>When purchasing is complete, the item moves into Inventory and continues from the Sales Dashboard.</p></div><a class="btn btn-secondary" href="admin-sales-dashboard.html">OPEN SALES DASHBOARD</a></section></div></main><footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer response → Purchase completion.</div></footer></body></html>
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Purchasing Dashboard | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script>
+<script src="staff-navigation.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-purchasing.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-purchasing-combined-status.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-customer-response-queue.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-payment-link.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-notifications.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-return-action-fix.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-payment-action.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-receipt-sync.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-label-fix.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-accepted-shipping-alert.js?v=20260903-purchasing-flow-1" defer></script>
+<script src="admin-sales-action-alerts.js?v=20260903-purchasing-flow-1" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded',()=>{
+  const nav=document.getElementById('sales-view-nav');
+  if(!nav)return;
+  const active=nav.querySelector('a[href="admin-purchasing.html"]');
+  const archive=nav.querySelector('a[href="admin-purchasing.html?archive=1"]');
+  const returned=nav.querySelector('a[href="admin-purchasing.html?returned=1"]');
+  const fix=()=>{
+    if(active)active.textContent='ACTIVE PURCHASES';
+    if(archive)archive.textContent='PURCHASE ARCHIVE';
+    if(returned)returned.textContent='RETURNED ARCHIVE';
+  };
+  fix();
+  new MutationObserver(fix).observe(nav,{childList:true,subtree:true,characterData:true});
+});
+</script>
+</head>
+<body>
+<header class="header">
+  <div class="container header-container">
+    <a class="logo" href="admin.html">GEARCASHOUT</a>
+    <nav aria-label="Purchasing navigation"></nav>
+  </div>
+</header>
+
+<main class="account-page">
+  <div class="container">
+    <div class="account-header">
+      <div>
+        <p class="section-kicker">STAFF · PURCHASING</p>
+        <h1>Purchasing Dashboard</h1>
+        <p id="staff-welcome">Checking staff access...</p>
+      </div>
+      <button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button>
+    </div>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">PURCHASE FLOW</p>
+        <h2>From valuation received to inventory</h2>
+        <p>One purchasing workflow. Start with the customer valuation, then manage the response, shipping, receipt, inspection and payment until the purchase is complete and ready for Inventory.</p>
+      </div>
+      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:1rem">
+        <div><strong>1</strong><span>Valuation received</span></div>
+        <div><strong>2</strong><span>Customer response</span></div>
+        <div><strong>3</strong><span>Shipping &amp; receipt</span></div>
+        <div><strong>4</strong><span>Inspection &amp; payment</span></div>
+        <div><strong>5</strong><span>Completed → Inventory</span></div>
+      </div>
+    </section>
+
+    <div id="automatic-response-cta" class="account-panel" hidden style="margin-bottom:1rem;border:3px solid #d88732;background:#fff7eb;padding:1.5rem 1.75rem">
+      <p class="section-kicker">VALUATION ACTION REQUIRED</p>
+      <h2>VALUATION REQUIRES ATTENTION</h2>
+      <p id="automatic-response-text"></p>
+      <a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a>
+    </div>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">STEP 1</p>
+        <h2>Valuations received</h2>
+        <p>Review new customer valuations and prepare the purchase offer using the buying prices already set by Research &amp; Pricing.</p>
+      </div>
+      <div class="dashboard-link-card">
+        <div><strong class="dashboard-count" id="valuation-count">—</strong><span>awaiting valuation</span></div>
+        <a class="btn btn-primary" href="admin-valuations.html">OPEN VALUATIONS</a>
+      </div>
+    </section>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">MARKET REFERENCE</p>
+        <h2>Quote Catalogue / Market Check</h2>
+        <p>Read-only reference for checking the live catalogue and market evidence during purchasing. Purchasing staff cannot change catalogue prices from this screen.</p>
+      </div>
+      <a class="btn btn-secondary" href="sales-pricing-guide.html">OPEN QUOTE CATALOGUE / MARKET CHECK</a>
+    </section>
+
+    <div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">LIVE PURCHASE QUEUE</p>
+        <h2>Purchases, payments &amp; shipping</h2>
+        <p>Continue the same workflow after a quote has been sent: customer response, accepted offer, shipment, receipt, inspection, final offer, payment and completion.</p>
+      </div>
+      <div class="dashboard-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+        <div><strong id="customer-response-count">—</strong><span>awaiting customer response</span></div>
+        <div><strong id="shipping-label-count">—</strong><span>shipping label required</span></div>
+        <div><strong id="delivery-count">—</strong><span>awaiting delivery</span></div>
+        <div><strong id="inspection-count">—</strong><span>inspection</span></div>
+        <div><strong id="final-offer-count">—</strong><span>final offer</span></div>
+        <div><strong id="payment-due-count">—</strong><span>awaiting payment</span></div>
+        <div><strong id="payment-processing-count">—</strong><span>payment processing</span></div>
+        <div><strong id="paid-count">—</strong><span>completed</span></div>
+      </div>
+    </section>
+
+    <div id="sales-view-nav" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <a class="btn btn-primary" href="admin-purchasing.html">ACTIVE PURCHASES</a>
+      <a class="btn btn-secondary" href="admin-purchasing.html?archive=1">PURCHASE ARCHIVE</a>
+      <a class="btn btn-secondary" href="admin-purchasing.html?returned=1">RETURNED ARCHIVE</a>
+      <button class="btn btn-secondary" type="button" onclick="location.reload()">REFRESH</button>
+    </div>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">CUSTOMER RESPONSES</p>
+        <h2>Quotes awaiting customer response</h2>
+        <p>A sent combined quote stays visible here until the customer has responded to its items.</p>
+      </div>
+      <div id="customer-response-queue"><p>Loading customer responses...</p></div>
+    </section>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">SHIPPING SETTINGS</p>
+        <h2>Postal labels &amp; QR codes</h2>
+        <p>Save reusable label and QR-code links for inbound and return shipments.</p>
+      </div>
+      <div id="shipping-settings" class="shipment-form">
+        <label>Customer → GearCashOut label URL <input id="setting-inbound-label" type="url" placeholder="https://..."></label>
+        <label>Customer → GearCashOut QR code URL <input id="setting-inbound-qr" type="url" placeholder="https://..."></label>
+        <label>GearCashOut → Customer return label URL <input id="setting-return-label" type="url" placeholder="https://..."></label>
+        <label>GearCashOut → Customer return QR code URL <input id="setting-return-qr" type="url" placeholder="https://..."></label>
+        <button id="save-shipping-settings" class="btn btn-primary" type="button">SAVE SHIPPING SETTINGS</button>
+        <div id="shipping-settings-message" class="form-message" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="account-panel">
+      <div id="admin-sales-message" class="form-message" role="status" aria-live="polite"></div>
+      <div id="sales-list"><p>Loading purchases...</p></div>
+    </section>
+
+    <section class="account-panel">
+      <div class="section-heading">
+        <p class="section-kicker">STEP 5</p>
+        <h2>Completed purchase → Inventory</h2>
+        <p>Once purchasing is complete, the item leaves this workflow and continues into Inventory for the Sales team.</p>
+      </div>
+      <a class="btn btn-secondary" href="inventory.html">OPEN INVENTORY</a>
+    </section>
+  </div>
+</main>
+
+<footer class="footer"><div class="container"><strong>GEARCASHOUT PURCHASING</strong><br>Valuation → Customer response → Shipping → Receipt → Inspection → Payment → Inventory.</div></footer>
+</body>
+</html>
