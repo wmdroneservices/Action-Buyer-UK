@@ -98,14 +98,14 @@ function extractSearchLinks(html, baseUrl){
   const out=[];
   const seen=new Set();
   const patterns=[
-    /<a[^>]+class=["'][^"']*(?:result__a|result-link)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi,
-    /<a[^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi
+    /<a[^>]+class=["'][^"']*(?:result__a|result-link)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
   ];
   for(const re of patterns){
     let m;
     while((m=re.exec(html))){
       const raw=decodeDdgUrl(m[1])||(()=>{try{return new URL(m[1],baseUrl).href}catch{return null}})();
-      if(!raw||!/^https?:\\/\\//i.test(raw))continue;
+      if(!raw||!/^https?:\/\///i.test(raw))continue;
       const host=hostOf(raw);
       if(!host||host.includes('duckduckgo.com')||host.includes('bing.com')||host.includes('google.com'))continue;
       const key=raw.split('#')[0];
@@ -156,7 +156,7 @@ async function searchBing(query){
   try{
     const {html}=await fetchText(url);
     const out=[];
-    const re=/<li[^>]+class=["'][^"']*b_algo[^"']*["'][^>]*>[\\s\\S]*?<h2[^>]*>[\\s\\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>[\\s\\S]*?<\\/li>/gi;
+    const re=/<li[^>]+class=["'][^"']*b_algo[^"']*["'][^>]*>[\s\S]*?<h2[^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/li>/gi;
     let m;
     while((m=re.exec(html))){
       const href=m[1],host=hostOf(href);
