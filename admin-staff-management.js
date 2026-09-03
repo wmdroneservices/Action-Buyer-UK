@@ -7,6 +7,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const notice=(t,ok=true)=>{message.textContent=t;message.className="form-message "+(ok?"success":"error");};
  const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+ const DAYS=[["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"],["sunday","Sunday"]];
+ const scheduleHTML=s=>'<div style="display:grid;gap:.55rem">'+DAYS.map(([k,label])=>{const x=(s||{})[k]||{};return '<div data-day="'+k+'" style="display:grid;grid-template-columns:minmax(90px,1fr) minmax(125px,1fr) minmax(125px,1fr) minmax(105px,auto);gap:.65rem;align-items:end;padding:.65rem;border:1px solid #d9dee5;background:#fff"><strong style="padding-bottom:.55rem;color:#102f4f">'+label+'</strong><label>Start<input type="time" data-start value="'+esc(x.start||"")+'"></label><label>End<input type="time" data-end value="'+esc(x.end||"")+'"></label><label class="checkbox-label" style="margin:0;padding-bottom:.55rem"><input type="checkbox" data-off '+(x.off?"checked":"")+'> Day off</label></div>'}).join("")+'</div>';
+ const collectSchedule=root=>{const out={};root.querySelectorAll("[data-day]").forEach(row=>{const k=row.dataset.day,off=row.querySelector("[data-off]").checked;out[k]={off,start:off?null:(row.querySelector("[data-start]").value||null),end:off?null:(row.querySelector("[data-end]").value||null)};});return out;};
+ const bindSchedule=root=>{root.addEventListener("change",e=>{if(!e.target.matches("[data-off]"))return;const row=e.target.closest("[data-day]"),disabled=e.target.checked;row.querySelector("[data-start]").disabled=disabled;row.querySelector("[data-end]").disabled=disabled;});root.querySelectorAll("[data-off]:checked").forEach(x=>{const row=x.closest("[data-day]");row.querySelector("[data-start]").disabled=true;row.querySelector("[data-end]").disabled=true;});};
+ const newSchedule=document.getElementById("new-weekly-schedule");newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);
  const renderSummary=rows=>{
    const active=rows.filter(r=>r.active).length,inactive=rows.length-active;
    summary.innerHTML=
@@ -31,7 +36,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
          <label class="checkbox-label"><input type="checkbox" data-p="sales" ${r.can_access_sales?"checked":""}>Sales</label>
          <label class="checkbox-label"><input type="checkbox" data-p="customers" ${r.can_access_customers?"checked":""}>Customers</label>
          <label class="checkbox-label"><input type="checkbox" data-p="manage_staff" ${r.can_manage_staff?"checked":""}>Staff Management</label>
-         <p style="margin-top:1rem"><strong>Permitted login hours (optional)</strong></p>\n         <p style="font-size:.82rem;color:#5f6b78;margin-top:-.35rem">Leave both blank for unrestricted access. UK local time is used.</p>\n         <div style="display:flex;gap:1rem;flex-wrap:wrap">\n           <label style="flex:1;min-width:180px">Start time<input type="time" data-work-start value="${esc(r.work_start_time||"")}"></label>\n           <label style="flex:1;min-width:180px">End time<input type="time" data-work-end value="${esc(r.work_end_time||"")}"></label>\n         </div>\n         <label class="checkbox-label"><input type="checkbox" data-active ${r.active?"checked":""}>Account active</label>
+         <p style="margin-top:1rem"><strong>Weekly working hours</strong></p>\n         <p style="font-size:.82rem;color:#5f6b78;margin-top:-.35rem">Set each day individually and tick Day off where required.</p>\n         <div data-edit-schedule></div>\n         <label class="checkbox-label"><input type="checkbox" data-active ${r.active?"checked":""}>Account active</label>
          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
            <button class="btn btn-primary" data-save="${r.user_id}">SAVE CHANGES</button>
            <button class="btn btn-secondary" data-reset="${r.user_id}">RESET PASSWORD</button>
@@ -39,16 +44,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
          </div>
        </div>
      </article>`).join("")||"<p>No staff accounts found.</p>";
+     rows.forEach(r=>{const panel=document.getElementById("edit-"+r.user_id),root=panel?.querySelector("[data-edit-schedule]");if(root){root.innerHTML=scheduleHTML(r.work_schedule||{});bindSchedule(root);}});
    }catch(e){notice(e.message||"Could not load staff.",false);}
  }
  document.getElementById("create-staff-form").addEventListener("submit",async e=>{
    e.preventDefault();const permissions={};
-   const workStart=document.getElementById("new-work-start").value||null;
-   const workEnd=document.getElementById("new-work-end").value||null;
+   const workSchedule=collectSchedule(newSchedule);
    ["research","purchasing","sales","customers","manage_staff"].forEach(k=>permissions[k]=document.querySelector('[name="'+k+'"]').checked);
    try{
-     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),password:document.getElementById("new-password").value,work_start_time:workStart,work_end_time:workEnd,permissions});
-     e.target.reset();notice("Staff account created.");await load();
+     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,permissions});
+     e.target.reset();newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);notice("Staff account created.");await load();
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
  list.addEventListener("click",async e=>{
@@ -61,7 +66,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      const originalText=save.textContent;
      save.disabled=true;save.textContent="SAVING...";
      try{
-       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,work_start_time:panel.querySelector("[data-work-start]").value||null,work_end_time:panel.querySelector("[data-work-end]").value||null,permissions});
+       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),permissions});
        save.textContent="SAVED";
        notice("Staff account updated successfully.");
        await load();
