@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Customer Response</h2>
         <div id="response-step-notice" class="workflow-notice">Checking customer responses...</div>
       </div>
-      <p>Sent quotes remain in the purchasing workflow until the customer responds.</p>
+      <p><a class="btn btn-primary" href="#customer-response-queue">OPEN CUSTOMER RESPONSES</a></p>
       <div id="customer-response-queue"><p>Loading customer responses...</p></div>
     </section>
 
@@ -194,6 +194,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Shipping &amp; Receipt</h2>
         <div id="shipping-step-notice" class="workflow-notice">Checking shipping...</div>
       </div>
+      <p><a class="btn btn-primary" href="#shipping-settings">OPEN SHIPPING &amp; RECEIPT</a></p>
       <div id="shipping-settings" class="shipment-form">
         <label>Customer → GearCashOut label URL <input id="setting-inbound-label" type="url" placeholder="https://..."></label>
         <label>Customer → GearCashOut QR code URL <input id="setting-inbound-qr" type="url" placeholder="https://..."></label>
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Receipt, Inspection &amp; Final Offer</h2>
         <div id="inspection-step-notice" class="workflow-notice">Checking inspection actions...</div>
       </div>
-      <p>Manage received purchases, inspection and any final offer required before payment.</p>
+      <p><a class="btn btn-primary" href="#sales-list">OPEN RECEIPT / INSPECTION</a></p>
     </section>
 
     <section class="account-panel">
@@ -219,7 +220,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <h2>Payment &amp; Completion</h2>
         <div id="payment-step-notice" class="workflow-notice">Checking payment actions...</div>
       </div>
-      <p>Complete payment and finish the purchase. Completed items then hand over into Inventory for the Sales team.</p>
+      <p><a class="btn btn-primary" href="#sales-list">OPEN PAYMENT &amp; COMPLETION</a></p>
     </section>
 
     <div id="sales-view-nav" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0;">
