@@ -109,6 +109,29 @@
     return ul;
   }
 
+
+  function cleanHeaderNavigation(section, current) {
+    const accountHeader = document.querySelector('.account-header');
+    if (!accountHeader) return;
+
+    const navigationTargets = new Set([
+      dashboards[section],
+      ...links[section].map(([href]) => href)
+    ]);
+
+    accountHeader.querySelectorAll('a[href]').forEach((a) => {
+      const href = (a.getAttribute('href') || '').split('?')[0].toLowerCase();
+      if (href && href !== current && navigationTargets.has(href)) {
+        a.remove();
+      }
+    });
+
+    accountHeader.querySelectorAll('div').forEach((div) => {
+      if (!div.querySelector('a,button')) return;
+      if (!div.textContent.trim() && div.children.length === 0) div.remove();
+    });
+  }
+
   function addBackButton(section, current) {
     const dashboard = dashboards[section];
     if (current === dashboard) return;
@@ -158,6 +181,7 @@
       logo.setAttribute('aria-label', 'GearCashOut main staff dashboard');
     }
 
+    cleanHeaderNavigation(section, current);
     addBackButton(section, current);
   }
 
