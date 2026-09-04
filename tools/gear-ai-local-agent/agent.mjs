@@ -504,13 +504,14 @@ Return JSON only matching the schema.`;
   // Local models occasionally emit an enum value that is semantically clear
   // but not one of the strict database values. Normalise those values here
   // rather than failing the entire product and losing otherwise valid research.
-  const validMatch=new Set(['exact','match','uncertain','mismatch']);
+  const validMatch=new Set(['exact','compatible','uncertain','mismatch']);
   const normaliseMatch=v=>{
     const s=String(v||'uncertain').trim().toLowerCase();
     if(validMatch.has(s))return s;
-    if(['yes','true','matched','correct','same'].includes(s))return 'match';
+    if(['match','yes','true','matched','correct','same'].includes(s))return 'exact';
+    if(['partial','compatible','close'].includes(s))return 'compatible';
     if(['no','false','different','incorrect','wrong'].includes(s))return 'mismatch';
-    if(['likely','probable','possible','partial','unknown','unclear','n/a','na'].includes(s))return 'uncertain';
+    if(['likely','probable','possible','unknown','unclear','n/a','na'].includes(s))return 'uncertain';
     return 'uncertain';
   };
   const validCondition=new Set(['new','used','refurbished','unknown']);
