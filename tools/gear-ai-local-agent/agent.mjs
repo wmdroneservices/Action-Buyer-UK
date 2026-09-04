@@ -1287,6 +1287,15 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
   const source=known||null;
   const cls=source?classifyFromSource(source):{evidence_category:c.evidence_category||'overseas',market_region:c.market_region||'overseas'};
 
+  // Geography is determined from the actual market facts, not the model's label.
+  // A non-GBP listing is overseas evidence even when the product is brand new.
+  // Likewise, a known non-GB source can never enter either UK comparison bucket.
+  const actualCurrency=String(c.currency||'GBP').trim().toUpperCase()||'GBP';
+  const actualCountry=String(c.source_country_code||source?.country_code||'').trim().toUpperCase();
+  const actualCategory=(actualCurrency!=='GBP'||(actualCountry&&actualCountry!=='GB'))
+    ?'overseas'
+    :(c.evidence_category||cls.evidence_category);
+
   const {error}=await sb.rpc('ai_research_submit_candidate',{
     p_run_id:runId,
     p_catalog_product_id:productId,
@@ -1296,14 +1305,14 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
     p_discovered_model_number:c.discovered_model_number||null,
     p_identifier_type:null,p_identifier_value:null,
     p_price:c.price??null,
-    p_currency:c.currency||'GBP',
-    p_price_type:c.evidence_category||cls.evidence_category,
+    p_currency:actualCurrency,
+    p_price_type:actualCategory,
     p_condition:c.condition||'unknown',
     p_availability_status:c.availability_status||'unknown',
     p_match_confidence:Number(c.match_confidence||0),
     p_match_method:'Local Ollama + collected web evidence',
-    p_evidence_category:c.evidence_category||cls.evidence_category,
-    p_market_region:c.market_region||cls.market_region,
+    p_evidence_category:actualCategory,
+    p_market_region:actualCategory==='overseas'?'overseas':(c.market_region||cls.market_region),
     p_source_country_code:c.source_country_code||source?.country_code||null,
     p_source_kind:c.source_kind||source?.source_kind||'other',
     p_package_match:c.package_match||'uncertain',
