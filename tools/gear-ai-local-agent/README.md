@@ -29,36 +29,86 @@ node --version
 npm --version
 ```
 
-## 3. Configure the agent
+## 3. Permanent configuration — recommended
 
-Copy:
+Your real secrets should live **outside the GitHub repository** so downloading, extracting or replacing the repository cannot overwrite or delete them.
 
-```
-.env.example
-```
-
-to:
+Create this permanent folder:
 
 ```
-.env
+C:\GearCashOut-Config\
 ```
 
-Enter the Supabase **service role key** in the local `.env` file.
-
-Never put this key into GitHub or the website.
-
-## 4. Start it
-
-Double-click:
+Put your real configuration file here:
 
 ```
-start.bat
+C:\GearCashOut-Config\.env
 ```
 
-or run:
+Example contents:
+
+```env
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+OLLAMA_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=gemma3:4b
+POLL_SECONDS=15
+```
+
+The agent automatically loads the permanent external file first:
+
+```
+C:\GearCashOut-Config\.env
+```
+
+A repository-local:
+
+```
+tools\gear-ai-local-agent\.env
+```
+
+is only a backwards-compatible fallback. It **cannot overwrite values already loaded from the permanent configuration**.
+
+Never put the service role key into GitHub or the website.
+
+### Optional custom location
+
+If you ever move the configuration file, set this Windows environment variable:
+
+```powershell
+$env:GEARCASHOUT_CONFIG_PATH="D:\MySecureConfig\.env"
+```
+
+The default remains:
+
+```
+C:\GearCashOut-Config\.env
+```
+
+## 4. Start or restart after a PC reboot
+
+From the agent folder:
 
 ```powershell
 npm install
+npm start
+```
+
+### Why `npm install` may be needed after downloading a new repository
+
+`node_modules` is not normally included in a GitHub repository ZIP. After extracting a fresh repository, run:
+
+```powershell
+npm install
+```
+
+This downloads the packages required by the agent, including `@supabase/supabase-js`.
+
+You do **not** normally need to run `npm install` merely because the PC was restarted, provided you are still using the same repository folder and its `node_modules` folder is intact.
+
+Then start the worker:
+
+```powershell
 npm start
 ```
 
