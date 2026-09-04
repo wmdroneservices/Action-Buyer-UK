@@ -347,7 +347,7 @@ async function monitorOpeningSoonSources(force=false){
 
   for(const source of rows||[]){
     const url=source.homepage_url||('https://'+String(source.domain||'').replace(/^www\\./,'')+'/');
-    if(!/^https?:\\/\\//i.test(url))continue;
+    if(!/^https?:\/\//i.test(url))continue;
     try{
       const {html}=await fetchText(url,8000);
       const text=stripHtml(html).toLowerCase();
