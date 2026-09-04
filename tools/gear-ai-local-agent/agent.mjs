@@ -45,7 +45,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.0.0',
+    version:'1.1.0',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -814,7 +814,15 @@ async function processOne(){
   const {data:claim,error:claimError}=await sb.rpc('ai_research_claim_next_queue_item');
   if(claimError)throw claimError;
   const item=Array.isArray(claim)?claim[0]:claim;
-  if(!item)return false;
+  if(!item){
+    const {data:auto,error:autoError}=await sb.rpc('ai_research_enqueue_next_continuous');
+    if(autoError)throw autoError;
+    if(auto?.enqueued){
+      log('Continuous research queued next product:',auto.product_name||auto.product_id,'·',auto.mode);
+      return true;
+    }
+    return false;
+  }
 
   log('Claimed product',item.catalog_product_id);
   try{
