@@ -75,7 +75,7 @@ function productName(p){
     .filter(Boolean).map(x=>String(x).replace(/\s+/g,' ').trim()).filter(Boolean);
 
   const out=[];
-  for(const part of parts){
+  for(let part of parts){
     const lower=part.toLowerCase();
     // Remove an exact duplicate part.
     if(out.some(x=>x.toLowerCase()===lower))continue;
@@ -139,7 +139,7 @@ function extractStructuredPageData(html,finalUrl){
   return {url:canonical,title:stripHtml(title||''),price,currency,availability,product};
 }
 function isSuspiciousEvidenceUrl(value){try{const u=new URL(value),p=(u.pathname+' '+u.search).toLowerCase();return /skip[-_ ]?to[-_ ]?content|generate[-_ ]?help[-_ ]?code/.test(p)||/\/(account|cart|checkout|help|contact|about|policy|policies)\/?$/.test(u.pathname.toLowerCase())}catch{return true}}
-function hasExactModelEvidence(product,title,text){const model=normaliseIdentityText(product?.model);if(!model)return false;const hay=normaliseIdentityText([title,text].filter(Boolean).join(' '));return hay.includes(model)}
+function hasExactModelEvidence(product,title,text,url=''){const model=normaliseIdentityText(product?.model);if(!model)return false;if(pageLooksLikeError(text,title))return false;const hay=normaliseIdentityText([title,text,url].filter(Boolean).join(' '));return hay.includes(model)}
 
 function extractSearchLinks(html, baseUrl){
   const out=[],seen=new Set();
@@ -334,7 +334,22 @@ function normaliseIdentityText(v){
 function looksGenericTitle(v){
   const x=normaliseIdentityText(v);
   if(!x||x.length<8)return true;
-  return /^(skip to content|generate help code|search|home|shop|menu|page not found|continue shopping|cookie consent|privacy policy|accessibility|sign in|basket)(\b|$)/.test(x);
+  return /^(skip to content|generate help code|search|home|shop|menu|page not found|continue shopping|cookie consent|privacy policy|accessibility|sign in|basket|404|not found)(\\b|$)/.test(x);
+}
+function pageLooksLikeError(text,title){
+  const x=normaliseIdentityText([title,text].filter(Boolean).join(' '));
+  return /\\b(page not found|404 not found|error 404|access denied|robot check|captcha)\\b/.test(x);
+}
+function productIdentityScore(product,title,text,url=''){
+  const hay=normaliseIdentityText([title,text,url].filter(Boolean).join(' '));
+  const manufacturer=normaliseIdentityText(product?.manufacturer);
+  const model=normaliseIdentityText(product?.model);
+  const pkg=normaliseIdentityText(product?.package_name);
+  let score=0;
+  if(manufacturer&&hay.includes(manufacturer))score+=3;
+  if(model&&hay.includes(model))score+=6;
+  if(pkg&&pkg.length>=6&&hay.includes(pkg))score+=4;
+  return score;
 }
 function evidenceMatchesProduct(product,candidate){
   const model=normaliseIdentityText(product?.model);
@@ -428,8 +443,11 @@ async function collectEvidence(product,sources,evidenceScope='all'){
       if(isSearchResultUrl(finalUrl)||isSuspiciousEvidenceUrl(finalUrl))continue;
       const text=stripHtml(html).slice(0,12000);
       const title=meta.title||r.title||'';
-      if(looksGenericTitle(title))continue;
-      if(!hasExactModelEvidence(product,title,text))continue;
+      if(looksGenericTitle(title)||pageLooksLikeError(text,title))continue;
+      if(!hasExactModelEvidence(product,title,text,finalUrl))continue;
+      // Do not keep navigation/category/search pages merely because the model words
+      // appear somewhere in their text. A product page needs strong identity evidence.
+      if(!meta.product && productIdentityScore(product,title,text,finalUrl)<6)continue;
       const source=priority.find(x=>String(x.domain||'').replace(/^www\./,'').toLowerCase()===hostOf(finalUrl));
       if(String(source?.source_kind||'').toLowerCase()!=='manufacturer'&&meta.price===null){
         log('Rejected page without verified market price:',hostOf(finalUrl),title);continue;
@@ -581,7 +599,7 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
   if(!c.source_url||!/^https?:\/\//i.test(c.source_url))return false;
   if(isSearchResultUrl(c.source_url)||isSuspiciousEvidenceUrl(c.source_url)){log('Rejected non-product URL:',c.source_url);return false;}
   if(looksGenericTitle(c.discovered_title)){log('Rejected generic listing title:',c.discovered_title);return false;}
-  if(!evidenceMatchesProduct(product,c)){log('Rejected weak product match:',c.source_url);return false;}
+  if(!evidenceMatchesProduct(product,c)||productIdentityScore(product,c._evidence_title,c._evidence_text,c.source_url)<6){log('Rejected weak product match:',c.source_url);return false;}
   if(c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){log('Rejected candidate without a usable price:',c.source_url);return false;}
   if(c.package_match==='mismatch'||c.variant_match==='mismatch'||Number(c.match_confidence||0)<0.6)return false;
 
@@ -675,8 +693,12 @@ async function processOne(){
       }
     }
 
-    const research=await analyse(product,sources||[],pages,evidenceScope);
-    const sourceMap=new Map((sources||[]).map(s=>[String(s.domain||'').replace(/^www\./,'').toLowerCase(),s]));
+    // Re-read the registry after automatic source learning so subsequent candidates
+    // use a real source_id rather than a host-only placeholder.
+    const {data:latestSources,error:latestSourcesError}=await sb.from('quote_catalog_ai_sources').select('*').eq('enabled',true).order('priority');
+    if(latestSourcesError)throw latestSourcesError;
+    const research=await analyse(product,latestSources||sources||[],pages,evidenceScope);
+    const sourceMap=new Map((latestSources||[]).map(s=>[String(s.domain||'').replace(/^www\\./,'').toLowerCase(),s]));
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
         try{await registerSource(s)}catch{}
@@ -689,8 +711,22 @@ async function processOne(){
       const evidenceId=Math.trunc(Number(raw.evidence_id));
       const page=pages[evidenceId-1];
       if(!page){log('Rejected candidate with invalid evidence_id:',raw.evidence_id);continue;}
+      const knownSource=sourceMap.get(hostOf(page.url));
+      const sourceClass=knownSource?classifyFromSource(knownSource):null;
+      // The model may classify the evidence, but the actual listing facts are always
+      // copied from the page we collected. This prevents "Unknown product", invented
+      // titles, wrong links and missing comparison prices in the review queue.
       const c={...raw,
         source_url:page.url,
+        discovered_title:page.title||raw.discovered_title||null,
+        price:page.discovered_price??raw.price??null,
+        currency:page.discovered_currency||raw.currency||'GBP',
+        availability_status:page.discovered_availability||raw.availability_status||'unknown',
+        source_name:knownSource?.source_name||hostOf(page.url)||raw.source_name||null,
+        source_country_code:knownSource?.country_code||raw.source_country_code||null,
+        source_kind:knownSource?.source_kind||raw.source_kind||'other',
+        evidence_category:sourceClass?.evidence_category||raw.evidence_category,
+        market_region:sourceClass?.market_region||raw.market_region,
         _evidence_title:page.title,
         _evidence_text:page.text
       };
