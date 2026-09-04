@@ -151,12 +151,22 @@ Deno.serve(async req=>{
      if(action==="messages"){const status=await client.status(folder,{messages:true,unseen:true}),total=Number(status.messages||0),start=Math.max(1,total-49),messages:any[]=[];
       const pushMessage=(m:any)=>messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});
       if(total>0){
-       for await(const m of client.fetch(`${start}:*`,{uid:true,envelope:true,flags:true,internalDate:true}))pushMessage(m);
-       // Some newly created Purelymail folders report a message count before a sequence-range
-       // fetch returns the appended message. Fall back to an explicit UID search for that folder.
+       const query={uid:true,envelope:true,flags:true,internalDate:true};
+       // Normal sequence-range retrieval.
+       for await(const m of client.fetch(`${start}:*`,query))pushMessage(m);
+       // Purelymail can expose a newly appended message to STATUS before its range iterator
+       // returns it. Read the known last sequence directly before falling back to UID search.
+       if(!messages.length){
+        const last=await client.fetchOne(String(total),query);
+        if(last)pushMessage(last);
+       }
+       if(!messages.length){
+        const last=await client.fetchOne("*",query);
+        if(last)pushMessage(last);
+       }
        if(!messages.length){
         const uids=await client.search({all:true},{uid:true});
-        if(uids.length)for await(const m of client.fetch(uids.join(","),{uid:true,envelope:true,flags:true,internalDate:true},{uid:true}))pushMessage(m);
+        if(uids.length)for await(const m of client.fetch(uids.join(","),query,{uid:true}))pushMessage(m);
        }
       }
       messages.reverse();return json({ok:true,folder,total,unseen:Number(status.unseen||0),messages});}
