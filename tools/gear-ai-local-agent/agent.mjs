@@ -768,7 +768,11 @@ async function getRunEvidenceScope(runId){
 }
 
 async function recordRawDiscoveries(context={},discoveries=[]){
-  if(!context.runId||!context.productId||!discoveries.length)return;
+  if(!discoveries.length)return;
+  if(!context.runId||!context.productId){
+    log('Raw discovery log warning: missing run or product context; discovered results could not be persisted.');
+    return;
+  }
   const rows=discoveries.filter(r=>r?.url).map(r=>({
     run_id:context.runId,
     catalog_product_id:context.productId,
@@ -782,10 +786,17 @@ async function recordRawDiscoveries(context={},discoveries=[]){
     reason:null,
     updated_at:new Date().toISOString()
   }));
-  if(!rows.length)return;
+  if(!rows.length){
+    log('Raw discovery log warning: search returned results but none had a usable URL.');
+    return;
+  }
   const {error}=await sb.from('quote_catalog_ai_discoveries')
     .upsert(rows,{onConflict:'run_id,source_url'});
-  if(error)log('Raw discovery log warning:',error.message);
+  if(error){
+    log('Raw discovery log warning:',error.message);
+    return;
+  }
+  log('Recorded',rows.length,'raw discovered result(s) for dashboard display.');
 }
 
 
