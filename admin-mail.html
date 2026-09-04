@@ -1,60 +1,37 @@
 <!DOCTYPE html>
-<html lang="en-GB">
-<head>
+<html lang="en-GB"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Management Mail | GearCashOut</title>
+<title>Business Mail | GearCashOut</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="auth.js?v=20260904-mail-1" defer></script>
-<script src="admin-mail.js?v=20260904-mail-1" defer></script>
-</head>
-<body>
-<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a></div></header>
-<main class="account-page"><div class="container">
-  <div class="account-header">
-    <div><p class="section-kicker">MANAGEMENT ONLY</p><h1>Business Mail</h1><p>Securely connect your Purelymail business inbox to the GearCashOut management system.</p></div>
-    <a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a>
-  </div>
-  <div id="mail-message" class="form-message" role="status" aria-live="polite"></div>
+<script src="auth.js?v=20260904-mail-2" defer></script><script src="admin-mail.js?v=20260904-mail-2" defer></script>
+</head><body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav><ul class="nav-list"><li><a href="admin.html">DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container mail-page">
+<div class="account-header"><div><p class="section-kicker">MANAGEMENT ONLY</p><h1>Business Mail</h1><p>Manage your business mailboxes and staff addresses from one place.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a></div>
+<div id="mail-message" class="form-message" role="status"></div>
 
-  <section class="account-panel" id="mail-status-panel">
-    <div class="section-heading"><p class="section-kicker">PURELYMAIL CONNECTION</p><h2>Mail Service</h2><p id="mail-status-text">Checking the secure server connection...</p></div>
-  </section>
+<section class="mail-topbar">
+ <div><span class="mail-label">CURRENT MAILBOX</span><select id="mailbox-select"></select></div>
+ <div class="mail-top-actions"><button id="mail-refresh" class="btn btn-secondary" type="button">REFRESH</button><button id="manage-mailboxes" class="btn btn-secondary" type="button">MANAGE MAILBOXES</button><button id="mail-compose" class="btn btn-primary" type="button">COMPOSE</button></div>
+</section>
 
-  <section class="mail-workspace" id="mail-workspace" hidden>
-    <aside class="mail-sidebar">
-      <button id="mail-compose" class="btn btn-primary" type="button">COMPOSE</button>
-      <div id="mail-folders" class="mail-folders"><button class="mail-folder active" data-folder="INBOX" type="button">INBOX</button></div>
-    </aside>
-    <section class="mail-list-panel">
-      <div class="mail-panel-heading"><strong id="mail-folder-title">INBOX</strong><button id="mail-refresh" class="btn btn-secondary mail-small-btn" type="button">REFRESH</button></div>
-      <div id="mail-list" class="mail-list"><p>Loading messages...</p></div>
-    </section>
-    <section class="mail-reader">
-      <div id="mail-reader-empty" class="empty-account"><h3>Select an email</h3><p>Your selected message will appear here.</p></div>
-      <article id="mail-reader-content" hidden>
-        <h2 id="mail-subject"></h2>
-        <p id="mail-meta"></p>
-        <div id="mail-body" class="mail-body"></div>
-      </article>
-      <form id="mail-compose-form" hidden class="mail-compose-form">
-        <div class="mail-panel-heading"><strong>NEW MESSAGE</strong><button id="mail-cancel-compose" class="btn btn-secondary mail-small-btn" type="button">CANCEL</button></div>
-        <label>TO<input id="compose-to" type="email" required autocomplete="email"></label>
-        <label>SUBJECT<input id="compose-subject" type="text" required></label>
-        <label>MESSAGE<textarea id="compose-text" rows="16" required></textarea></label>
-        <button class="btn btn-primary" type="submit">SEND EMAIL</button>
-      </form>
-    </section>
-  </section>
-</div></main>
-<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT MANAGEMENT</strong><br>Business email management.</div></div></footer>
+<section id="mailbox-manager" class="account-panel" hidden>
+ <div class="mail-manager-heading"><div><p class="section-kicker">MAILBOX MANAGEMENT</p><h2>Business &amp; Staff Email</h2><p>Add the business addresses you want represented in GearCashOut. Existing Purelymail credentials remain server-side.</p></div><button id="close-mailbox-manager" class="btn btn-secondary" type="button">CLOSE</button></div>
+ <div class="mail-manager-grid"><div><div id="mailbox-cards"></div></div>
+ <form id="add-mailbox-form" class="auth-form compact-form"><h3>ADD MAILBOX</h3><label>Business email address<input id="new-mailbox-email" type="email" required placeholder="name@yourdomain.co.uk"></label><label>Display name<input id="new-mailbox-name" type="text" placeholder="Sales / Accounts / Staff name"></label><label>Mailbox type<select id="new-mailbox-type"><option value="shared">Shared business mailbox</option><option value="management">Management mailbox</option><option value="staff">Staff mailbox</option></select></label><label>Assign to staff (optional)<select id="new-mailbox-staff"><option value="">Not assigned</option></select></label><button class="btn btn-primary" type="submit">ADD TO SYSTEM</button><p class="auth-intro">Adding an address registers it here. A new Purelymail mailbox still needs its actual mailbox credentials configured securely on the server before its inbox can be opened.</p></form></div>
+</section>
+
+<section class="mail-workspace">
+ <aside class="mail-sidebar"><div id="mailbox-summary" class="mailbox-summary"></div><button id="mail-compose-side" class="btn btn-primary" type="button">NEW EMAIL</button><div id="mail-folders" class="mail-folders"></div></aside>
+ <section class="mail-list-panel"><div class="mail-panel-heading"><div><strong id="mail-folder-title">INBOX</strong><span id="mail-count"></span></div></div><div id="mail-list" class="mail-list"></div></section>
+ <section class="mail-reader">
+   <div id="mail-reader-empty" class="mail-empty"><div><strong>Select an email</strong><p>Choose a message from the list to read it here.</p></div></div>
+   <article id="mail-reader-content" hidden><div class="mail-reader-header"><h2 id="mail-subject"></h2><p id="mail-meta"></p></div><div id="mail-body" class="mail-body"></div></article>
+   <form id="mail-compose-form" hidden class="mail-compose-form"><div class="mail-compose-heading"><div><p class="section-kicker">NEW MESSAGE</p><h2 id="compose-from-label">Compose</h2></div><button id="mail-cancel-compose" class="btn btn-secondary" type="button">CANCEL</button></div><label>TO<input id="compose-to" type="email" required></label><label>SUBJECT<input id="compose-subject" type="text" required></label><label>MESSAGE<textarea id="compose-text" rows="16" required></textarea></label><button class="btn btn-primary" type="submit">SEND EMAIL</button></form>
+ </section>
+</section></div></main>
 <style>
-.mail-workspace{display:grid;grid-template-columns:220px 360px minmax(0,1fr);min-height:620px;border:1px solid #dfdfdc;background:#fff}
-.mail-sidebar{padding:1rem;border-right:1px solid #dfdfdc;background:#f8f7f3;display:flex;flex-direction:column;gap:1rem}.mail-folders{display:flex;flex-direction:column;gap:.25rem}.mail-folder{border:0;background:transparent;text-align:left;padding:.7rem .75rem;font:inherit;color:#102f4f;font-weight:700;cursor:pointer}.mail-folder.active{background:#102f4f;color:#fff}
-.mail-list-panel{border-right:1px solid #dfdfdc;min-width:0}.mail-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem;border-bottom:1px solid #dfdfdc;color:#102f4f}.mail-small-btn{padding:.45rem .7rem;font-size:.75rem}
-.mail-list{max-height:560px;overflow:auto}.mail-item{width:100%;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;padding:.9rem 1rem;cursor:pointer}.mail-item:hover,.mail-item.active{background:#f3f1ec}.mail-item.unread .mail-item-subject{font-weight:800}.mail-item-row{display:flex;justify-content:space-between;gap:.5rem;font-size:.78rem;color:#666}.mail-item-subject{color:#102f4f;margin:.3rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mail-reader{min-width:0;padding:0}.mail-reader h2{color:#102f4f;margin:0 0 .5rem}.mail-reader #mail-reader-content{padding:1.5rem}.mail-reader #mail-meta{color:#666;border-bottom:1px solid #ddd;padding-bottom:1rem}.mail-body{white-space:pre-wrap;line-height:1.55;word-break:break-word}
-.mail-compose-form{padding:1.25rem}.mail-compose-form label{display:flex;flex-direction:column;gap:.35rem;font-size:.75rem;font-weight:800;color:#102f4f;letter-spacing:.04em;margin-bottom:1rem}.mail-compose-form input,.mail-compose-form textarea{font:inherit;letter-spacing:normal;padding:.7rem;border:1px solid #cfd3d6;background:#fff;color:#222}.mail-compose-form textarea{resize:vertical}
-@media(max-width:1050px){.mail-workspace{grid-template-columns:180px 300px minmax(0,1fr)}}@media(max-width:800px){.mail-workspace{grid-template-columns:1fr}.mail-sidebar,.mail-list-panel{border-right:0;border-bottom:1px solid #dfdfdc}.mail-list{max-height:300px}}
-</style>
-</body></html>
+.mail-page{max-width:1600px}.mail-topbar{background:#fff;border:1px solid #d9dde1;padding:1rem 1.25rem;display:flex;justify-content:space-between;gap:1rem;align-items:end;margin-bottom:1rem}.mail-topbar>div:first-child{min-width:340px}.mail-label{display:block;font-size:.68rem;font-weight:800;letter-spacing:.1em;color:#65717d;margin-bottom:.35rem}.mail-topbar select{width:100%;padding:.7rem;border:1px solid #cbd1d7;font:inherit}.mail-top-actions{display:flex;gap:.6rem;flex-wrap:wrap}.mail-workspace{display:grid;grid-template-columns:235px 390px minmax(0,1fr);min-height:700px;border:1px solid #d9dde1;background:#fff}.mail-sidebar{background:#f6f5f1;border-right:1px solid #d9dde1;padding:1rem;display:flex;flex-direction:column;gap:.85rem}.mailbox-summary{padding:.9rem;border:1px solid #e0ddd4;background:#fff;color:#102f4f;font-size:.82rem}.mailbox-summary strong{display:block;font-size:1rem;margin-bottom:.2rem}.mail-folders{display:flex;flex-direction:column;gap:.2rem}.mail-folder{border:0;background:transparent;text-align:left;padding:.75rem .8rem;color:#34475a;font:inherit;font-weight:700;cursor:pointer;border-left:3px solid transparent}.mail-folder:hover{background:#eceae4}.mail-folder.active{background:#102f4f;color:#fff;border-left-color:#d6842b}.mail-list-panel{border-right:1px solid #d9dde1;background:#fff}.mail-panel-heading{padding:1.15rem 1.25rem;border-bottom:1px solid #e3e5e7;color:#102f4f}.mail-panel-heading strong{font-size:1rem;letter-spacing:.04em}.mail-panel-heading span{display:block;font-size:.72rem;color:#7a838c;margin-top:.2rem}.mail-list{max-height:645px;overflow:auto}.mail-item{width:100%;border:0;border-bottom:1px solid #edf0f2;background:#fff;padding:1rem 1.15rem;text-align:left;cursor:pointer}.mail-item:hover{background:#faf9f6}.mail-item.active{background:#f2eee7;border-left:3px solid #d6842b}.mail-item.unread .mail-item-subject{font-weight:800}.mail-item-row{display:flex;justify-content:space-between;gap:.75rem;color:#65717d;font-size:.76rem}.mail-item-from{font-weight:700;color:#263f57;max-width:65%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mail-item-subject{margin:.35rem 0 .15rem;color:#102f4f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mail-reader{min-width:0;background:#fff}.mail-empty{height:100%;min-height:700px;display:grid;place-items:center;text-align:center;color:#71808d}.mail-empty strong{font-size:1.25rem;color:#102f4f}.mail-reader-header{padding:2rem 2rem 1.2rem;border-bottom:1px solid #e1e4e7}.mail-reader-header h2{margin:0 0 .75rem;color:#102f4f;font-size:1.55rem}.mail-reader-header p{margin:0;color:#65717d;white-space:pre-line;line-height:1.55}.mail-body{padding:2rem;white-space:pre-wrap;line-height:1.65;color:#26313b;word-break:break-word}.mail-compose-form{padding:1.75rem;max-width:850px}.mail-compose-heading,.mail-manager-heading{display:flex;justify-content:space-between;gap:1rem;align-items:start;margin-bottom:1.5rem}.mail-compose-form label{display:flex;flex-direction:column;gap:.35rem;font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#425568;margin-bottom:1rem}.mail-compose-form input,.mail-compose-form textarea,.compact-form input,.compact-form select{padding:.75rem;border:1px solid #cbd1d7;background:#fff;font:inherit;color:#172330}.mail-compose-form textarea{resize:vertical}.mail-manager-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:1.5rem}.mailbox-card{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:1rem;border:1px solid #dde1e5;background:#fafaf8;margin-bottom:.65rem}.mailbox-card strong{display:block;color:#102f4f}.mailbox-card small{color:#6d7882}.mailbox-state{font-size:.68rem;font-weight:800;letter-spacing:.08em;padding:.3rem .45rem;background:#edf8f1;color:#1f6b49}.mailbox-state.pending{background:#fff3e6;color:#9a5a10}.compact-form{border-left:3px solid #d6842b;padding-left:1rem}.compact-form h3{color:#102f4f}.compact-form label{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.9rem;font-size:.75rem;font-weight:700;color:#425568}.auth-intro{font-size:.8rem;color:#6d7882;line-height:1.5}
+@media(max-width:1100px){.mail-workspace{grid-template-columns:200px 320px minmax(0,1fr)}.mail-manager-grid{grid-template-columns:1fr}.mail-topbar{align-items:stretch;flex-direction:column}.mail-topbar>div:first-child{min-width:0}}@media(max-width:800px){.mail-workspace{grid-template-columns:1fr}.mail-sidebar,.mail-list-panel{border-right:0;border-bottom:1px solid #d9dde1}.mail-empty{min-height:300px}.mail-list{max-height:350px}}
+</style></body></html>
