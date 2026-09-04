@@ -1095,17 +1095,32 @@ Rules:
 - source_kind must be manufacturer, retailer, marketplace, used_dealer, auction or other.
 Return JSON only matching the schema.`;
 
-  const res=await fetch(cfg.ollamaUrl+'/api/chat',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:cfg.model,
-      messages:[{role:'user',content:prompt}],
-      format:schema,
-      stream:false,
-      options:{temperature:0}
-    })
-  });
+  // Ollama can occasionally leave a request open indefinitely. A hung validator
+  // must never freeze the whole sequential worker and leave fresh discoveries
+  // invisible behind a permanently PROCESSING queue item.
+  const analysisController=new AbortController();
+  const analysisTimeoutMs=Math.max(30000,Math.min(120000,cfg.requestTimeoutMs*4));
+  const analysisTimer=setTimeout(()=>analysisController.abort(),analysisTimeoutMs);
+  let res;
+  try{
+    res=await fetch(cfg.ollamaUrl+'/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      signal:analysisController.signal,
+      body:JSON.stringify({
+        model:cfg.model,
+        messages:[{role:'user',content:prompt}],
+        format:schema,
+        stream:false,
+        options:{temperature:0}
+      })
+    });
+  }catch(e){
+    if(analysisController.signal.aborted)throw new Error('Ollama analysis timed out after '+analysisTimeoutMs+'ms');
+    throw e;
+  }finally{
+    clearTimeout(analysisTimer);
+  }
   if(!res.ok)throw new Error('Ollama analysis failed: '+res.status+' '+(await res.text()).slice(0,500));
   const data=await res.json();
   const text=data.message?.content;
@@ -1396,7 +1411,19 @@ async function processOne(){
     // use a real source_id rather than a host-only placeholder.
     const {data:latestSources,error:latestSourcesError}=await sb.from('quote_catalog_ai_sources').select('*').eq('enabled',true).order('priority');
     if(latestSourcesError)throw latestSourcesError;
-    const research=await analyse(product,latestSources||sources||[],pages,evidenceScope);
+
+    // Ollama improves validation, but it is not allowed to be a single point of
+    // failure between collected live evidence and the Pending Review queue.
+    // If analysis fails or times out, the exact/strong-page preservation path below
+    // still submits the collected evidence as clearly marked manual-review findings.
+    let research;
+    try{
+      research=await analyse(product,latestSources||sources||[],pages,evidenceScope);
+    }catch(e){
+      log('Ollama analysis warning; continuing with manual-review preservation:',e.message||String(e));
+      research={candidates:[],discovered_sources:[]};
+    }
+
     const sourceMap=new Map((latestSources||[]).map(s=>[String(s.domain||'').replace(/^www\\./,'').toLowerCase(),s]));
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
