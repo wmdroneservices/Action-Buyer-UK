@@ -400,7 +400,7 @@ async function probeKnownSource(source,name,terms){
   const out=[],seen=new Set();
   for(const url of attempts){
     try{
-      const {url:finalUrl,html}=await fetchText(url);
+      const {url:finalUrl,html}=await fetchText(url,Math.min(cfg.requestTimeoutMs,5000));
       for(const r of extractSameDomainLinks(html,finalUrl,terms)){
         if(!seen.has(r.url)){seen.add(r.url);out.push(r)}
       }
@@ -414,7 +414,42 @@ async function probeKnownSource(source,name,terms){
 
 async function discoverFromKnownSources(product,sources,evidenceScope='all'){
   const name=productName(product),terms=productTerms(product);
-  const priority=[...sources].filter(s=>s.enabled&&s.domain&&sourceFitsScope(s,evidenceScope)).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,cfg.sourceProbeLimit);
+  const eligible=[...sources]
+    .filter(s=>s.enabled&&s.domain&&sourceFitsScope(s,evidenceScope))
+    .sort((a,b)=>(a.priority||999)-(b.priority||999));
+
+  // "All markets" must not spend the entire probe budget on the first few
+  // manufacturers. Deliberately cover new UK, used UK and overseas sources so
+  // the worker can find the separate comparison prices the review workflow needs.
+  const bucketFor=s=>{
+    const explicit=String(s.research_scope||'').toLowerCase();
+    if(['new_uk','used_uk','overseas','official'].includes(explicit))return explicit;
+    const kind=String(s.source_kind||'other').toLowerCase();
+    const cc=String(s.country_code||'').toUpperCase();
+    if(kind==='manufacturer')return 'official';
+    if(cc==='GB'&&kind==='retailer')return 'new_uk';
+    if(cc==='GB'&&['marketplace','used_dealer','auction'].includes(kind))return 'used_uk';
+    return 'overseas';
+  };
+
+  let priority=[];
+  if(evidenceScope==='all'){
+    const groups=new Map(['new_uk','used_uk','overseas','official'].map(k=>[k,eligible.filter(s=>bucketFor(s)===k)]));
+    let index=0;
+    while(priority.length<cfg.sourceProbeLimit){
+      let added=false;
+      for(const key of ['new_uk','used_uk','overseas','official']){
+        const list=groups.get(key)||[];
+        if(index<list.length){priority.push(list[index]);added=true;}
+        if(priority.length>=cfg.sourceProbeLimit)break;
+      }
+      if(!added)break;
+      index++;
+    }
+  }else{
+    priority=eligible.slice(0,cfg.sourceProbeLimit);
+  }
+
   const out=[];
   for(const source of priority){
     const found=await probeKnownSource(source,name,terms);
