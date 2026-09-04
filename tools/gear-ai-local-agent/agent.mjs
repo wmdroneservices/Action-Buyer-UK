@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { spawn } from 'node:child_process';
 
 function loadEnvFile(file){
   try{
@@ -101,7 +102,30 @@ async function processRemoteCommand(){
       return true;
     }
     if(data.command==='restart_worker'){
-      await sb.from('quote_catalog_ai_agent_commands').update({status:'failed',completed_at:new Date().toISOString(),error:'Automatic process restart is not available in this installation. Stop and start the worker from the dashboard after installing the restart helper.'}).eq('id',data.id);
+      const restartScript=process.env.GEAR_RESTART_SCRIPT||'C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1';
+      await sb.from('quote_catalog_ai_agent_commands').update({
+        status:'completed',
+        completed_at:new Date().toISOString(),
+        result:{worker:'restarting',restart_script:restartScript}
+      }).eq('id',data.id);
+
+      log('Remote dashboard requested PowerShell / AI worker restart using:',restartScript);
+      try{
+        const child=spawn('powershell.exe',[
+          '-NoProfile',
+          '-ExecutionPolicy','Bypass',
+          '-File',restartScript
+        ],{
+          detached:true,
+          stdio:'ignore',
+          windowsHide:false
+        });
+        child.unref();
+      }catch(e){
+        log('Restart helper launch warning:',e.message||String(e));
+      }
+
+      setTimeout(()=>process.exit(0),1200);
       return true;
     }
   }catch(e){
