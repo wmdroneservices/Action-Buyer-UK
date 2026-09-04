@@ -306,6 +306,74 @@ async function fetchText(url, timeoutMs=cfg.requestTimeoutMs){
   }finally{clearTimeout(timer)}
 }
 
+let lastOpeningSourceCheckAt=0;
+const OPENING_SOURCE_CHECK_MS=10*60*1000;
+
+async function monitorOpeningSoonSources(force=false){
+  if(!force&&Date.now()-lastOpeningSourceCheckAt<OPENING_SOURCE_CHECK_MS)return;
+  lastOpeningSourceCheckAt=Date.now();
+
+  const {data:rows,error}=await sb.from('quote_catalog_ai_sources')
+    .select('id,source_name,domain,homepage_url,enabled,site_status,monitor_for_opening,opened_at')
+    .eq('monitor_for_opening',true);
+  if(error){
+    log('Opening-source monitor warning:',error.message);
+    return;
+  }
+
+  for(const source of rows||[]){
+    const url=source.homepage_url||('https://'+String(source.domain||'').replace(/^www\\./,'')+'/');
+    if(!/^https?:\\/\\//i.test(url))continue;
+    try{
+      const {html}=await fetchText(url,8000);
+      const text=stripHtml(html).toLowerCase();
+      const openingSoon=/\\bopening\\s+soon\\b/.test(text)||/be\\s+the\\s+first\\s+to\\s+know\\s+when\\s+we\\s+launch/.test(text);
+      const liveStore=/\\b(add to cart|buy now|in stock|shop now|checkout)\\b/.test(text);
+
+      if(openingSoon&&!liveStore){
+        await sb.from('quote_catalog_ai_sources').update({
+          enabled:false,
+          site_status:'opening_soon',
+          opening_soon_detected_at:new Date().toISOString(),
+          last_status_checked_at:new Date().toISOString(),
+          status_note:'Still displaying a public "Opening soon" storefront.'
+        }).eq('id',source.id);
+        log('Opening-source monitor:',source.domain,'still opening soon.');
+        continue;
+      }
+
+      // A monitored storefront is considered live only after the opening screen
+      // has disappeared and normal store signals are visible. The first_live date
+      // is preserved permanently once recorded.
+      if(!openingSoon&&liveStore){
+        const now=new Date().toISOString();
+        await sb.from('quote_catalog_ai_sources').update({
+          enabled:true,
+          site_status:'live',
+          opened_at:source.opened_at||now,
+          last_status_checked_at:now,
+          status_note:'Live storefront detected automatically by the GearCashOut research worker.'
+        }).eq('id',source.id);
+        log('Opening-source monitor:',source.domain,'is LIVE. Research source enabled; opened_at recorded.');
+        continue;
+      }
+
+      await sb.from('quote_catalog_ai_sources').update({
+        site_status:'unknown',
+        last_status_checked_at:new Date().toISOString(),
+        status_note:'Store status could not yet be classified automatically; monitoring will continue.'
+      }).eq('id',source.id);
+      log('Opening-source monitor:',source.domain,'status currently unknown; continuing to monitor.');
+    }catch(e){
+      await sb.from('quote_catalog_ai_sources').update({
+        last_status_checked_at:new Date().toISOString(),
+        status_note:'Status check failed: '+String(e.message||e).slice(0,300)
+      }).eq('id',source.id);
+      log('Opening-source monitor warning:',source.domain,e.message);
+    }
+  }
+}
+
 const searchCooldownUntil=new Map();
 const searchConfigNotice=new Set();
 
@@ -1196,6 +1264,7 @@ async function main(){
 
   while(true){
     try{
+      await monitorOpeningSoonSources();
       const did=await processOne();
       if(!did)await sleep(cfg.pollSeconds*1000);
     }catch(e){
