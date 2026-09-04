@@ -7,7 +7,7 @@ const checked=()=>[...selectedCandidateIds];
 const withTimeout=(promise,ms=12000,label='Request')=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(Error(label+' timed out.')),ms))]);
 const rememberSelection=()=>{document.querySelectorAll('.candidate-check').forEach(x=>{if(x.checked)selectedCandidateIds.add(String(x.value));else selectedCandidateIds.delete(String(x.value));});};
 const productFor=c=>products.find(x=>String(x.id)===String(c.catalog_product_id));
-const pname=c=>{const p=productFor(c);return p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product not loaded'};
+const pname=c=>{const p=productFor(c);if(!p)return'Catalogue product not loaded';const m=clean(p.model),pkg=clean(p.package_name);const parts=[p.manufacturer,m];if(pkg&&pkg.toLowerCase()!==m.toLowerCase()&&!pkg.toLowerCase().startsWith(m.toLowerCase()+' '))parts.push(pkg);return parts.filter(Boolean).join(' · ')};
 async function initClient(){if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');sb=window.actionBuyerAuth.supabase;const s=await window.actionBuyerAuth.getSession();if(!s?.user)throw Error('Please sign in again.')}
 async function api(body){const {data,error}=await sb.functions.invoke('quote-catalog-ai-orchestrator',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data}
 function renderProductCandidateCard(c){
