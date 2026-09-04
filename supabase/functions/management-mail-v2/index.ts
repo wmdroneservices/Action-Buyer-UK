@@ -32,6 +32,39 @@ async function staffMailboxPassword(email:string){
  const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,enc.encode("gearcashout-staff-mailbox:"+String(email||"").toLowerCase())));
  const hex=Array.from(sig).map(b=>b.toString(16).padStart(2,"0")).join("");return "GCOm!"+hex.slice(0,40);
 }
+async function purelymail(admin:any,path:string,body:any){
+ const {data:token,error}=await admin.rpc("get_purelymail_api_token");
+ if(error||!token)throw Error("Purelymail mailbox automation is not configured.");
+ const r=await fetch("https://purelymail.com/api/v0/"+path,{method:"POST",headers:{"Content-Type":"application/json","Purelymail-Api-Token":String(token)},body:JSON.stringify(body)});
+ const text=await r.text();let data:any={};try{data=text?JSON.parse(text):{};}catch{data={message:text};}
+ if(!r.ok||data?.error)throw Error(data?.message||data?.error?.message||"Purelymail API request failed.");
+ return data;
+}
+async function repairStaffMailbox(admin:any,box:any){
+ if(box?.mailbox_type!=="staff"||!box?.purelymail_provisioned)return false;
+ const email=String(box.email_address||"").trim().toLowerCase(),userName=email.split("@")[0];
+ if(!email||!userName)return false;
+ await purelymail(admin,"modifyUser",{userName,newPassword:await staffMailboxPassword(email)});
+ return true;
+}
+function isAuthFailure(e:any){const m=String(e?.message||e||"").toLowerCase();return m.includes("535")||m.includes("authentication failed")||m.includes("authentication");}
+async function connectImap(admin:any,box:any,c:any){
+ const make=()=>new ImapFlow({host:"imap.purelymail.com",port:993,secure:true,auth:{user:c.imapUser,pass:c.imapPass},logger:false});
+ let client=make();
+ try{await client.connect();return client;}catch(e){
+  try{await client.logout();}catch(_){}
+  if(!isAuthFailure(e)||!await repairStaffMailbox(admin,box))throw e;
+  client=make();await client.connect();return client;
+ }
+}
+async function verifySmtp(admin:any,box:any,c:any){
+ const make=()=>nodemailer.createTransport({host:"smtp.purelymail.com",port:465,secure:true,auth:{user:c.smtpUser,pass:c.smtpPass}});
+ let transporter=make();
+ try{await transporter.verify();return transporter;}catch(e){
+  if(!isAuthFailure(e)||!await repairStaffMailbox(admin,box))throw e;
+  transporter=make();await transporter.verify();return transporter;
+ }
+}
 async function cfg(box:any){
  const p=String(box.secret_prefix||"");
  if(box.id==="default"||p==="PURELYMAIL_INFO")return {smtpUser:env("PURELYMAIL_SMTP_USER"),smtpPass:env("PURELYMAIL_SMTP_PASS"),imapUser:env("PURELYMAIL_IMAP_USER","PURELYMAIL_SMTP_USER"),imapPass:env("PURELYMAIL_IMAP_PASS","PURELYMAIL_SMTP_PASS")};
@@ -74,9 +107,8 @@ Deno.serve(async req=>{
   const box=await boxFor(admin,ctx,String(body.mailbox_id||"default")),c=await cfg(box);
   if(action==="folders"||action==="messages"||action==="message"||action==="attachment"||action==="archive"||action==="delete"){
    if(!c.imapUser||!c.imapPass)return json({error:"This mailbox has not had its IMAP credentials configured yet."},503);
-   const client=new ImapFlow({host:"imap.purelymail.com",port:993,secure:true,auth:{user:c.imapUser,pass:c.imapPass},logger:false});
+   const client=await connectImap(admin,box,c);
    try{
-    await client.connect();
     if(action==="folders"){const list=await client.list();return json({ok:true,folders:list.map((f:any)=>({path:f.path,name:f.name,specialUse:f.specialUse||null}))});}
     const folder=String(body.folder||"INBOX"),lock=await client.getMailboxLock(folder);
     try{
@@ -102,7 +134,7 @@ Deno.serve(async req=>{
   if(action==="send"){
    if(!c.smtpUser||!c.smtpPass)return json({error:"This mailbox has not had its SMTP credentials configured yet."},503);
    const to=clean(body.to),subject=clean(body.subject),text=String(body.text||"");if(!to||!subject||!text)return json({error:"Recipient, subject and message are required"},400);
-   const transporter=nodemailer.createTransport({host:"smtp.purelymail.com",port:465,secure:true,auth:{user:c.smtpUser,pass:c.smtpPass}});await transporter.verify();
+   const transporter=await verifySmtp(admin,box,c);
    const info=await transporter.sendMail({from:c.smtpUser,to,subject,text,...(body.replyTo?{replyTo:clean(body.replyTo)}:{})});
    return json({ok:true,sent:true,messageId:info.messageId});
   }
