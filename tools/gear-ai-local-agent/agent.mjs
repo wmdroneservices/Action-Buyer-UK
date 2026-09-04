@@ -96,9 +96,46 @@ async function processRemoteCommand(){
       return true;
     }
     if(data.command==='stop_worker'){
-      await sb.from('quote_catalog_ai_agent_commands').update({status:'completed',completed_at:new Date().toISOString(),result:{worker:'stopping'}}).eq('id',data.id);
-      log('Remote dashboard requested worker stop.');
-      setTimeout(()=>process.exit(0),500);
+      // Mark the worker offline before terminating anything so the dashboard updates
+      // immediately instead of waiting for the heartbeat timeout.
+      await heartbeat('offline',null,{remote_stop:true}).catch(()=>{});
+      await sb.from('quote_catalog_ai_agent_commands').update({
+        status:'completed',
+        completed_at:new Date().toISOString(),
+        result:{worker:'stopping',launcher:'terminating',message:'Stopping the PowerShell launcher and its child process tree.'}
+      }).eq('id',data.id);
+      log('Remote dashboard requested PowerShell / AI launcher stop.');
+
+      // npm start is launched inside a PowerShell restart loop. Exiting only this
+      // Node process would make that loop start the worker again. Start from this
+      // Node PID, walk up the Windows process ancestry, and terminate the first
+      // PowerShell/pwsh ancestor so the launcher itself is closed.
+      const nodePid=process.pid;
+      const stopScript=[
+        '$pid='+nodePid,
+        '$seen=@{}',
+        'while($pid -and -not $seen.ContainsKey($pid)){',
+        '  $seen[$pid]=$true',
+        '  $p=Get-CimInstance Win32_Process -Filter ("ProcessId="+$pid) -ErrorAction SilentlyContinue',
+        '  if(!$p){break}',
+        '  if($p.Name -match "^(powershell|pwsh)\\.exe$"){',
+        '    Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop',
+        '    exit 0',
+        '  }',
+        '  $pid=[int]$p.ParentProcessId',
+        '}',
+        'exit 1'
+      ].join('; ');
+      try{
+        const helper=spawn('powershell.exe',[
+          '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
+          '-Command',stopScript
+        ],{detached:true,stdio:'ignore',windowsHide:true});
+        helper.unref();
+      }catch(e){
+        log('PowerShell launcher stop helper warning:',e.message||String(e));
+        setTimeout(()=>process.exit(0),500);
+      }
       return true;
     }
     if(data.command==='restart_worker'||data.command==='start_worker'){
