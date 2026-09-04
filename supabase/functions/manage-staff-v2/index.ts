@@ -10,6 +10,13 @@ const prefix=(e:string)=>"PURELYMAIL_MAILBOX_"+e.toUpperCase().replace(/[^A-Z0-9
 
 function sched(x:any){if(x==null)return null;if(typeof x!=="object"||Array.isArray(x))throw Error("Invalid weekly work schedule.");const o:any={};for(const d of DAYS){const r=x[d]||{},off=!!r.off,a=r.start?String(r.start):null,b=r.end?String(r.end):null;if(off)o[d]={off:true,start:null,end:null};else{if(!!a!==!!b)throw Error("Each working day needs both a start and end time, or neither.");if(a&&(!okT(a)||!okT(b!)))throw Error("Invalid work time.");o[d]={off:false,start:a,end:b};}}return o}
 
+async function staffMailboxPassword(email:string){
+  const seed=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!seed)throw Error("Secure server key is unavailable.");
+  const enc=new TextEncoder(),key=await crypto.subtle.importKey("raw",enc.encode(seed),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,enc.encode("gearcashout-staff-mailbox:"+String(email||"").toLowerCase())));
+  const hex=Array.from(sig).map(b=>b.toString(16).padStart(2,"0")).join("");
+  return "GCOm!"+hex.slice(0,40);
+}
 function mailboxParts(email:string){const [userName,domainName]=email.trim().toLowerCase().split("@");if(!userName||!domainName)throw Error("Invalid staff mailbox address.");return {userName,domainName};}
 async function purelymail(admin:any,path:string,body:any){
   const {data:token,error:tokenError}=await admin.rpc("get_purelymail_api_token");
@@ -67,7 +74,7 @@ Deno.serve(async req=>{
       if(!be||!okEmail(be)||p.length<8)throw Error("Enter a valid email address and a password of at least 8 characters.");
       const {data:existing}=await admin.from("staff_users").select("user_id").eq("username",be).maybeSingle();
       if(existing)throw Error("That email address is already being used by a staff account.");
-      await createMailbox(admin,be,p);
+      await createMailbox(admin,be,await staffMailboxPassword(be));
       let createdUserId:string|null=null;
       try{
         const {data:c,error:ce}=await admin.auth.admin.createUser({email:authEmail(be),password:p,email_confirm:true,user_metadata:{staff_username:be,display_name:dn||be}});
@@ -103,7 +110,7 @@ Deno.serve(async req=>{
       const id=String(b.user_id||""),p=String(b.password||"");if(p.length<8)throw Error("Password must be at least 8 characters.");
       const {data:staff}=await admin.from("staff_users").select("business_email").eq("user_id",id).maybeSingle();if(!staff?.business_email)throw Error("Staff mailbox not found.");
       const {userName}=mailboxParts(staff.business_email);
-      await purelymail(admin,"modifyUser",{userName,newPassword:p});
+      await purelymail(admin,"modifyUser",{userName,newPassword:await staffMailboxPassword(staff.business_email)});
       const {error}=await admin.auth.admin.updateUserById(id,{password:p});if(error)throw error;
       return new Response(JSON.stringify({ok:true}),{headers:H});
     }
