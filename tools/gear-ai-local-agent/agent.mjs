@@ -789,6 +789,17 @@ function productIdentityScore(product,title,text,url=''){
   if(pkg&&pkg.length>=6&&hay.includes(pkg))score+=4;
   return score;
 }
+function isDiscoveryRelevant(product,result){
+  const title=String(result?.title||'');
+  const snippet=String(result?.snippet||'');
+  const url=String(result?.url||'');
+  if(!title&&!snippet)return false;
+  if(pageLooksLikeError(snippet,title)||isSuspiciousEvidenceUrl(url))return false;
+  const exactModel=hasExactModelEvidence(product,title,snippet,url);
+  const score=productIdentityScore(product,title,snippet,url);
+  return exactModel||score>=6;
+}
+
 function evidenceMatchesProduct(product,candidate){
   const model=normaliseIdentityText(product?.model);
   const manufacturer=normaliseIdentityText(product?.manufacturer);
@@ -927,6 +938,10 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
     const results=await searchWeb(q);
     log('Search',q,'returned',results.length,'result(s)');
     for(const r of results){
+      if(!isDiscoveryRelevant(product,r)){
+        log('Rejected irrelevant search result before evidence fetch:',r.title||r.url);
+        continue;
+      }
       const host=hostOf(r.url);
       if(!host)continue;
       const key=String(r.url).split('#')[0];
@@ -963,6 +978,10 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
     const direct=await discoverFromKnownSources(product,priority,scope);
     if(direct.length)log('Approved-source fallback',scope,'returned',direct.length,'result(s)');
     for(const r of direct){
+      if(!isDiscoveryRelevant(product,r)){
+        log('Rejected irrelevant approved-source result before evidence fetch:',r.title||r.url);
+        continue;
+      }
       const key=String(r.url).split('#')[0];
       if(!seen.has(key))seen.set(key,{...r,url:key,host:hostOf(r.url),scope_hint:scope});
     }
@@ -1444,8 +1463,28 @@ async function processOne(){
     const seenCandidateUrls=new Set();
     for(const raw of (research.candidates||[]).slice(0,25)){
       const evidenceId=Math.trunc(Number(raw.evidence_id));
-      const page=pages[evidenceId-1];
-      if(!page){log('Rejected candidate with invalid evidence_id:',raw.evidence_id);continue;}
+      let page=Number.isInteger(evidenceId)&&evidenceId>=1&&evidenceId<=pages.length
+        ? pages[evidenceId-1] : null;
+
+      // Ollama occasionally returns an out-of-range evidence number. Do not attach
+      // that candidate to an arbitrary page. First try to recover the intended page
+      // from a URL or listing-title reference; otherwise leave the page for the
+      // deterministic manual-review preservation pass below.
+      if(!page){
+        const rawUrl=String(raw.source_url||raw.url||'').split('#')[0];
+        if(rawUrl)page=pages.find(p=>String(p.url||'').split('#')[0]===rawUrl)||null;
+      }
+      if(!page&&raw.discovered_title){
+        const wanted=normaliseIdentityText(raw.discovered_title);
+        if(wanted)page=pages.find(p=>{
+          const got=normaliseIdentityText(p.title||'');
+          return got&&(got===wanted||got.includes(wanted)||wanted.includes(got));
+        })||null;
+      }
+      if(!page){
+        log('Ignored candidate with unresolved evidence reference:',raw.evidence_id,'of',pages.length,'pages; exact collected pages will still be preserved for review.');
+        continue;
+      }
       const knownSource=sourceMap.get(hostOf(page.url));
       const sourceClass=knownSource?classifyFromSource(knownSource):null;
       // The model may classify the evidence, but the actual listing facts are always
