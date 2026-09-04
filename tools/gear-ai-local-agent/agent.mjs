@@ -66,7 +66,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.3.0',
+    version:'1.4.0',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -699,7 +699,29 @@ async function getRunEvidenceScope(runId){
   return ['all','new_uk','used_uk','overseas'].includes(data?.evidence_scope)?data.evidence_scope:'all';
 }
 
-async function collectEvidence(product,sources,evidenceScope='all'){
+async function recordRawDiscoveries(context={},discoveries=[]){
+  if(!context.runId||!context.productId||!discoveries.length)return;
+  const rows=discoveries.filter(r=>r?.url).map(r=>({
+    run_id:context.runId,
+    catalog_product_id:context.productId,
+    queue_id:context.queueId||null,
+    evidence_scope:r.scope_hint||context.evidenceScope||'all',
+    source_url:String(r.url).split('#')[0],
+    host:hostOf(r.url)||null,
+    discovered_title:r.title||null,
+    source_provider:r.provider||r.query||'direct',
+    discovery_status:'found',
+    reason:null,
+    updated_at:new Date().toISOString()
+  }));
+  if(!rows.length)return;
+  const {error}=await sb.from('quote_catalog_ai_discoveries')
+    .upsert(rows,{onConflict:'run_id,source_url'});
+  if(error)log('Raw discovery log warning:',error.message);
+}
+
+
+async function collectEvidence(product,sources,evidenceScope='all',context={}){
   const name=productName(product);
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
@@ -775,6 +797,11 @@ async function collectEvidence(product,sources,evidenceScope='all'){
       if(!used.has(r.url)){ranked.push(r);used.add(r.url);}
     }
   }
+
+  // Persist every discovered result before validation. The dashboard can therefore
+  // show what the worker actually found even when a page is later rejected as
+  // blocked, irrelevant, or lacking a verified market price.
+  await recordRawDiscoveries({...context,evidenceScope},ranked);
 
   const pages=[];
   for(const r of ranked){
@@ -1047,7 +1074,12 @@ async function processOne(){
     const sources=[...sourceByDomain.values()];
     log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry.');
 
-    const pages=await collectEvidence(product,sources,evidenceScope);
+    const pages=await collectEvidence(product,sources,evidenceScope,{
+      runId:item.run_id,
+      productId:item.catalog_product_id,
+      queueId:item.queue_id,
+      evidenceScope
+    });
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
     // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
