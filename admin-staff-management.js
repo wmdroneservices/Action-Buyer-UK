@@ -27,15 +27,14 @@ document.addEventListener("DOMContentLoaded",async()=>{
      renderSummary(rows);
      list.innerHTML=rows.map(r=>`<details class="valuation-card staff-account-dropdown" style="display:block;padding:0">
        <summary style="list-style:none;cursor:pointer;padding:1rem 1.15rem;display:flex;justify-content:space-between;gap:1rem;align-items:center">
-         <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username||"Staff account")}</strong><p style="margin:.3rem 0 0">User ID: ${esc(r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
+         <div><strong style="font-size:1.15rem;color:#102f4f">${esc(r.display_name||r.username||"Staff account")}</strong><p style="margin:.3rem 0 0">Login: ${esc(r.business_email||r.username||"Not set")} · ${r.active?"ACTIVE":"DISABLED"}</p></div>
          <span style="font-size:.75rem;font-weight:700;color:#102f4f;text-transform:uppercase;letter-spacing:.06em">Open account ▾</span>
        </summary>
        <div style="padding:0 1.15rem 1.15rem;border-top:1px solid #ddd">
          <div style="display:flex;gap:.65rem;flex-wrap:wrap;padding-top:1rem"><a class="btn btn-secondary" href="admin-staff-activity.html?staff=${encodeURIComponent(r.user_id)}">VIEW ACTIVITY LOG</a><button class="btn btn-secondary" data-edit="${r.user_id}">EDIT STAFF ACCOUNT</button></div>
        <div id="edit-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd">
          <label>Display name<input type="text" data-display-name value="${esc(r.display_name||"")}" required></label>
-         <label>User ID<input type="text" data-username value="${esc(r.username||"")}" minlength="3" maxlength="40" autocomplete="off" required></label>
-         <label>Business email / own inbox<input type="email" data-business-email value="${esc(r.business_email||"")}" placeholder="staff@gearcashout.co.uk"></label>
+         <label>Login email / staff inbox<input type="email" data-business-email value="${esc(r.business_email||r.username||"")}" placeholder="staff@gearcashout.co.uk" required></label>
          <p style="margin-top:1rem"><strong>Dashboard access</strong></p>
          <label class="checkbox-label"><input type="checkbox" data-p="research" ${r.can_access_research?"checked":""}>Research &amp; Pricing</label>
          <label class="checkbox-label"><input type="checkbox" data-p="purchasing" ${r.can_access_purchasing?"checked":""}>Purchasing</label>
@@ -62,7 +61,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
    const workSchedule=collectSchedule(newSchedule);const mailboxAccess=collectMailboxes(document.getElementById("new-mailbox-access"));
    ["research","purchasing","sales","customers","manage_staff"].forEach(k=>permissions[k]=document.querySelector('[name="'+k+'"]').checked);
    try{
-     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),business_email:document.getElementById("new-business-email").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,mailbox_access:mailboxAccess,permissions});
+     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),business_email:document.getElementById("new-business-email").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,mailbox_access:mailboxAccess,permissions});
      e.target.reset();newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);notice("Staff account created.");await load();
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
@@ -95,7 +94,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      const originalText=save.textContent;
      save.disabled=true;save.textContent="SAVING...";
      try{
-       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),business_email:panel.querySelector("[data-business-email]")?.value.trim()||"",active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),mailbox_access:collectMailboxes(panel.querySelector("[data-edit-mailboxes]")),permissions});
+       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-business-email]").value.trim(),business_email:panel.querySelector("[data-business-email]").value.trim(),active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),mailbox_access:collectMailboxes(panel.querySelector("[data-edit-mailboxes]")),permissions});
        save.textContent="SAVED";
        notice("Staff account updated successfully.");
        await load();
