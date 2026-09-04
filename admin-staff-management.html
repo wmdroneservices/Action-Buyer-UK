@@ -3,12 +3,13 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Staff Management | GearCashOut</title><link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="auth.js" defer></script><script src="admin-staff-management.js?v=20260904-password-autofill-1" defer></script>
+<script src="auth.js" defer></script><script src="admin-staff-management.js?v=20260904-purelymail-api-1" defer></script>
 </head><body>
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li></ul></nav></div></header>
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">MANAGEMENT</p><h1>Staff Management</h1><p>Create staff accounts and allocate dashboard, mailbox and working access.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO STAFF DASHBOARD</a></div>
 <div id="staff-message" class="form-message" role="status"></div>
+<section class="account-panel" id="purelymail-setup-panel"><p class="section-kicker">PURELYMAIL AUTOMATION</p><h2 style="margin-top:0">Staff Mailbox Provisioning</h2><p class="auth-intro">This key is stored in the secure server vault and is never written to GitHub or displayed after saving.</p><p id="purelymail-status" class="status-badge" style="display:inline-block;margin:.5rem 0 1rem">CHECKING CONFIGURATION…</p><form id="purelymail-api-form" class="auth-form compact-form"><label>Purelymail API key<input id="purelymail-api-key" type="password" required autocomplete="off" data-lpignore="true" data-1p-ignore="true" placeholder="Paste API key here once"></label><button class="btn btn-primary" type="submit">SAVE SECURELY</button></form></section>
 <section class="account-panel"><p class="section-kicker">NEW STAFF ACCOUNT</p><form id="create-staff-form" class="auth-form">
 <label>Display name<input id="new-display-name" type="text" required></label>
 <label>Password<input id="new-password" type="password" required minlength="8" autocomplete="off" data-lpignore="true" data-1p-ignore="true"></label>\n<label>Staff email / login / own inbox<input id="new-business-email" type="email" autocomplete="email" placeholder="staff@gearcashout.co.uk" required></label>
