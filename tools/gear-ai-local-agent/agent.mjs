@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.1',
+    version:'1.4.2',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -457,11 +457,24 @@ async function monitorOpeningSoonSources(force=false){
       }).eq('id',source.id);
       log('Opening-source monitor:',source.domain,'status currently unknown; continuing to monitor.');
     }catch(e){
+      const message=String(e.message||e);
+      // A 403 only means this storefront refuses automated homepage checks. It is
+      // not a worker failure and must never make the research loop appear paused.
+      // Leave the source monitored for a future manual/browser check and continue
+      // immediately to the catalogue queue.
+      const blocked=/\\bHTTP\\s*403\\b/i.test(message);
       await sb.from('quote_catalog_ai_sources').update({
+        site_status:blocked?(source.site_status||'unknown'):source.site_status,
         last_status_checked_at:new Date().toISOString(),
-        status_note:'Status check failed: '+String(e.message||e).slice(0,300)
+        status_note:blocked
+          ? 'Automated opening-status check blocked by HTTP 403. Skipped; catalogue research continues normally.'
+          : 'Status check failed: '+message.slice(0,300)
       }).eq('id',source.id);
-      log('Opening-source monitor warning:',source.domain,e.message);
+      log(
+        blocked?'Opening-source monitor skipped (HTTP 403; research continues):':'Opening-source monitor warning:',
+        source.domain,
+        message
+      );
     }
   }
 }
@@ -1282,10 +1295,36 @@ async function finishRunIfComplete(runId){
   }).eq('id',runId);
 }
 
-async function processOne(){
+async function recoverInterruptedQueueItems(maxAge='00:01:00',reason='idle worker'){
+  try{
+    const {data,error}=await sb.rpc('ai_research_recover_interrupted_queue_items',{p_max_age:maxAge});
+    if(error)throw error;
+    const recovered=Number(data||0);
+    if(recovered>0)log('Recovered',recovered,'interrupted queue item(s) while',reason+'.');
+    return recovered;
+  }catch(e){
+    log('Queue recovery warning:',e.message||String(e));
+    return 0;
+  }
+}
+
+async function claimNextQueueItem(){
   const {data:claim,error:claimError}=await sb.rpc('ai_research_claim_next_queue_item');
   if(claimError)throw claimError;
-  const item=Array.isArray(claim)?claim[0]:claim;
+  return Array.isArray(claim)?claim[0]:claim;
+}
+
+async function processOne(){
+  let item=await claimNextQueueItem();
+  if(!item){
+    // A restart can leave a queue item marked PROCESSING for a few minutes. On
+    // startup it may be too recent for the five-minute recovery window, which
+    // previously left the worker online but apparently "paused" forever. We only
+    // run this recovery while THIS worker is idle, so we never recover an item
+    // currently being processed by this single sequential loop.
+    const recovered=await recoverInterruptedQueueItems('00:01:00','the worker was idle');
+    if(recovered>0)item=await claimNextQueueItem();
+  }
   if(!item){
     const {data:auto,error:autoError}=await sb.rpc('ai_research_enqueue_next_continuous');
     if(autoError)throw autoError;
@@ -1461,16 +1500,10 @@ async function main(){
   await heartbeat('starting',null,{ollama_url:cfg.ollamaUrl});
   await ensureOllama();
 
-  // If the PC or worker was restarted while a queue item was marked as
-  // processing, recover that orphaned item before continuous research resumes.
-  // This prevents one abandoned item from blocking the entire continuous queue.
-  try{
-    const {data,error}=await sb.rpc('ai_research_recover_interrupted_queue_items',{p_max_age:'00:05:00'});
-    if(error)throw error;
-    if(Number(data||0)>0)log('Recovered',data,'interrupted queue item(s) left behind by a previous worker session.');
-  }catch(e){
-    log('Queue recovery warning:',e.message||String(e));
-  }
+  // Recover genuinely stale work immediately. If a restart happened less than
+  // five minutes ago, the idle-loop recovery below will pick it up as soon as it
+  // becomes stale instead of leaving the dashboard showing PROCESSING forever.
+  await recoverInterruptedQueueItems('00:05:00','starting after a restart');
 
   await heartbeat('online',null,{ollama_url:cfg.ollamaUrl});
   log('Ready. Polling every',cfg.pollSeconds,'seconds.');
