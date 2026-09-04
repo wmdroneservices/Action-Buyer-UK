@@ -109,8 +109,7 @@ Deno.serve(async req=>{
     if(act==="reset_password"){
       const id=String(b.user_id||""),p=String(b.password||"");if(p.length<8)throw Error("Password must be at least 8 characters.");
       const {data:staff}=await admin.from("staff_users").select("business_email").eq("user_id",id).maybeSingle();if(!staff?.business_email)throw Error("Staff mailbox not found.");
-      const {userName}=mailboxParts(staff.business_email);
-      await purelymail(admin,"modifyUser",{userName,newPassword:await staffMailboxPassword(staff.business_email)});
+      await purelymail(admin,"modifyUser",{userName:staff.business_email,newPassword:await staffMailboxPassword(staff.business_email)});
       const {error}=await admin.auth.admin.updateUserById(id,{password:p});if(error)throw error;
       return new Response(JSON.stringify({ok:true}),{headers:H});
     }
