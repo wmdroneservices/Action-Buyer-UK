@@ -45,7 +45,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.1.0',
+    version:'1.2.0',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -55,6 +55,39 @@ async function heartbeat(status='online',last_error=null,metadata={}){
   Object.keys(row).forEach(k=>row[k]===undefined&&delete row[k]);
   const {error}=await sb.from('quote_catalog_ai_agents').upsert(row,{onConflict:'agent_id'});
   if(error)throw error;
+}
+
+async function processRemoteCommand(){
+  const {data,error}=await sb.from('quote_catalog_ai_agent_commands')
+    .select('*').eq('agent_id',cfg.agentId).eq('status','queued').order('requested_at').limit(1).maybeSingle();
+  if(error)throw error;
+  if(!data)return false;
+  await sb.from('quote_catalog_ai_agent_commands').update({status:'claimed',claimed_at:new Date().toISOString()}).eq('id',data.id).eq('status','queued');
+  try{
+    if(data.command==='check_status'){
+      await sb.from('quote_catalog_ai_agent_commands').update({status:'completed',completed_at:new Date().toISOString(),result:{worker:'running',model:cfg.model,agent:cfg.agentName}}).eq('id',data.id);
+      return true;
+    }
+    if(data.command==='check_ollama'){
+      await ensureOllama();
+      await sb.from('quote_catalog_ai_agent_commands').update({status:'completed',completed_at:new Date().toISOString(),result:{ollama:'online',model:cfg.model}}).eq('id',data.id);
+      return true;
+    }
+    if(data.command==='stop_worker'){
+      await sb.from('quote_catalog_ai_agent_commands').update({status:'completed',completed_at:new Date().toISOString(),result:{worker:'stopping'}}).eq('id',data.id);
+      log('Remote dashboard requested worker stop.');
+      setTimeout(()=>process.exit(0),500);
+      return true;
+    }
+    if(data.command==='restart_worker'){
+      await sb.from('quote_catalog_ai_agent_commands').update({status:'failed',completed_at:new Date().toISOString(),error:'Automatic process restart is not available in this installation. Stop and start the worker from the dashboard after installing the restart helper.'}).eq('id',data.id);
+      return true;
+    }
+  }catch(e){
+    await sb.from('quote_catalog_ai_agent_commands').update({status:'failed',completed_at:new Date().toISOString(),error:(e.message||String(e)).slice(0,1000)}).eq('id',data.id);
+    return true;
+  }
+  return false;
 }
 
 async function ensureOllama(){
@@ -963,6 +996,7 @@ async function main(){
   log('Ready. Polling every',cfg.pollSeconds,'seconds.');
 
   setInterval(()=>heartbeat('online',null,{}).catch(e=>log('Heartbeat error',e.message)),30000);
+  setInterval(()=>processRemoteCommand().catch(e=>log('Remote command error',e.message)),3000);
 
   while(true){
     try{
