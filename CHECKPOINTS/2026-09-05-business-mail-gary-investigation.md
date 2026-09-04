@@ -128,3 +128,37 @@ Therefore the remaining investigation should focus on verifying the actual IMAP 
 
 ## Investigation rule
 Before making another speculative fix, compare the next finding against this checkpoint so completed checks are not repeated.
+
+
+## 8. Continued investigation — canonical folder paths and APPEND verification
+Completed on 2026-09-05 after the initial checkpoint.
+
+A further weakness was found in the implementation: the backend accepted the folder name/path supplied by the interface literally. That can be unreliable when a provider exposes a Sent mailbox under a provider-specific path or special-use mapping.
+
+The live function has now been updated to:
+- resolve requested folders against the mailbox's actual IMAP folder list;
+- recognise the IMAP \\Sent special-use folder and common Sent aliases;
+- open the canonical folder path returned by the mailbox rather than relying on a literal UI label.
+
+The save flow has also been strengthened materially:
+1. UID-search the actual Sent folder before APPEND.
+2. APPEND the sent message.
+3. Re-open/search the same exact Sent path.
+4. Retry verification briefly to allow Purelymail mailbox indexing to catch up.
+5. Only report the message as saved when the post-append UID state proves it is visible.
+
+This replaces the earlier assumption that a successful APPEND acknowledgement alone proved that the message would be visible to the reader.
+
+### Deployment
+- GitHub commit: `4c395b6bd76fd6b78646e79c2e5523965e425ed1`.
+- Live Edge Function: `management-mail-v2` version 22.
+- Deployment status: ACTIVE.
+
+## Next test
+Send one new email specifically from Gary Martin's mailbox.
+
+Expected result:
+- if the message is genuinely appended, it must now appear in the exact canonical Sent folder immediately after the send flow completes;
+- if Purelymail acknowledges APPEND but does not expose the message, the interface will report that the Sent save could not be verified instead of falsely claiming success.
+
+Do not repeat earlier mailbox-selection, duplicate-record, permissions, STATUS-only, or generic UID-reader checks unless this new test produces evidence that requires revisiting them.
