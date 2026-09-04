@@ -1,0 +1,3 @@
+-- Staff instant messenger: direct-message permissions, management-created group chats and messages.
+-- Production migration applied via Supabase on 2026-09-04.
+-- See database migration staff_instant_messaging for the full DDL and security-definer RPC layer.
