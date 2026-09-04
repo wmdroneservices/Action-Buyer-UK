@@ -1401,8 +1401,10 @@ async function processOne(){
       };
       const dedupeKey=String(c.source_url).split('#')[0];
       if(seenCandidateUrls.has(dedupeKey))continue;
-      seenCandidateUrls.add(dedupeKey);
-      if(await submitCandidate(item.run_id,item.catalog_product_id,product,c,sourceMap))submitted++;
+      if(await submitCandidate(item.run_id,item.catalog_product_id,product,c,sourceMap)){
+        seenCandidateUrls.add(dedupeKey);
+        submitted++;
+      }
     }
 
     // Preserve collected exact/strong product pages that Ollama did not return.
@@ -1411,7 +1413,7 @@ async function processOne(){
     // those pages. They remain clearly lower-confidence manual-review findings.
     let preserved=0;
     for(const page of pages){
-      if(submitted+preserved>=25)break;
+      if(submitted>=25)break;
       const dedupeKey=String(page.url||'').split('#')[0];
       if(!dedupeKey||seenCandidateUrls.has(dedupeKey))continue;
       const knownSource=sourceMap.get(hostOf(page.url));
