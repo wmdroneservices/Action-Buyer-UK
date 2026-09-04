@@ -151,7 +151,23 @@ function render(){
  if(applied.length)html+=renderSection('Applied to live evidence','These accepted findings have already been applied to the live evidence catalogue.',applied,'applied',false);
  body.innerHTML=html;
 }
-function renderSources(){const body=$('ai-sources');if(!body)return;const rows=sources.filter(s=>s.discovery_status==='discovered'||s.discovery_status==='blocked'||s.discovered_at);if(!rows.length){body.innerHTML='<tr><td colspan="8">No newly discovered sources yet.</td></tr>';return}body.innerHTML=rows.map(s=>'<tr><td><strong>'+esc(s.source_name)+'</strong><br><small>'+esc(s.domain)+'</small></td><td>'+esc(s.country_code||'—')+'</td><td>'+esc(s.source_kind||'—')+'</td><td>'+esc(s.research_scope||'—')+'</td><td>'+esc(s.discovered_at?new Date(s.discovered_at).toLocaleDateString('en-GB'):'—')+'</td><td>'+esc(s.discovery_count??0)+'</td><td>'+esc(s.discovery_status||'approved')+'</td><td><button class="btn btn-primary source-action" data-id="'+esc(s.id)+'" data-status="approved" type="button">APPROVE</button> <button class="btn btn-secondary source-action" data-id="'+esc(s.id)+'" data-status="blocked" type="button">BLOCK</button></td></tr>').join('')}
+function renderSources(){
+ const body=$('ai-sources');if(!body)return;
+ const rows=sources.filter(s=>s.discovery_status==='discovered'||s.discovery_status==='blocked'||s.discovered_at||s.monitor_for_opening);
+ if(!rows.length){body.innerHTML='<tr><td colspan="8">No newly discovered or monitored sources yet.</td></tr>';return}
+ body.innerHTML=rows.map(s=>{
+   const opened=s.opened_at?new Date(s.opened_at).toLocaleDateString('en-GB'):null;
+   const openingSoon=s.opening_soon_detected_at?new Date(s.opening_soon_detected_at).toLocaleDateString('en-GB'):null;
+   const found=opened?'LIVE '+opened:(openingSoon?'OPENING SOON '+openingSoon:(s.discovered_at?new Date(s.discovered_at).toLocaleDateString('en-GB'):'—'));
+   const status=s.monitor_for_opening
+     ?(s.site_status==='live'?'LIVE — opened '+(opened||'date pending'):'MONITORING — '+String(s.site_status||'unknown').replaceAll('_',' ').toUpperCase())
+     :esc(s.discovery_status||'approved');
+   const actions=s.monitor_for_opening
+     ?'<span class="ai-badge">'+(s.site_status==='live'?'ACTIVE':'WATCHING FOR OPENING')+'</span>'
+     :'<button class="btn btn-primary source-action" data-id="'+esc(s.id)+'" data-status="approved" type="button">APPROVE</button> <button class="btn btn-secondary source-action" data-id="'+esc(s.id)+'" data-status="blocked" type="button">BLOCK</button>';
+   return '<tr><td><strong>'+esc(s.source_name)+'</strong><br><small>'+esc(s.domain)+'</small>'+(s.status_note?'<br><small>'+esc(s.status_note)+'</small>':'')+'</td><td>'+esc(s.country_code||'—')+'</td><td>'+esc(s.source_kind||'—')+'</td><td>'+esc(s.research_scope||'—')+'</td><td>'+esc(found)+'</td><td>'+esc(s.discovery_count??0)+'</td><td>'+status+'</td><td>'+actions+'</td></tr>';
+ }).join('');
+}
 function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=current}
 function populateResearchFilters(){fillSelect('research-manufacturer',products.map(p=>p.manufacturer),'Any manufacturer');fillSelect('research-category',products.map(p=>p.category),'Any category');fillSelect('research-product-type',products.map(p=>p.product_type),'Any product type')}
 async function load(){
