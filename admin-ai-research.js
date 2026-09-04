@@ -4,15 +4,63 @@ let sb,candidates=[],products=[],sources=[];
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...document.querySelectorAll('.candidate-check:checked')].map(x=>x.value);
-const pname=c=>{const p=products.find(x=>x.id===c.catalog_product_id);return p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Unknown product'};
+const productFor=c=>products.find(x=>String(x.id)===String(c.catalog_product_id));
+const pname=c=>{const p=productFor(c);return p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product not loaded'};
 async function initClient(){if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');sb=window.actionBuyerAuth.supabase;const s=await window.actionBuyerAuth.getSession();if(!s?.user)throw Error('Please sign in again.')}
 async function api(body){const {data,error}=await sb.functions.invoke('quote-catalog-ai-orchestrator',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data}
 function renderMemory(rows){const el=$('ai-memory');if(!el)return;el.innerHTML=!rows.length?'<p>No review learning has been recorded yet.</p>':'<div style="overflow-x:auto"><table class="ai-table"><thead><tr><th>Type</th><th>Key</th><th>Category</th><th>Confidence</th><th>Updated</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.learning_type)+'</td><td>'+esc(r.learning_key)+'</td><td>'+esc(r.evidence_category||'—')+'</td><td>'+esc(r.confidence??'—')+'</td><td>'+esc(r.updated_at?new Date(r.updated_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'}
-function render(){const body=$('ai-candidates');if(!body)return;if(!candidates.length){body.innerHTML='<tr><td colspan="9">No proposed AI findings yet.</td></tr>';return}body.innerHTML=candidates.map(c=>{const title=c.edited_title??c.discovered_title??'—',price=c.edited_price??c.price,condition=c.edited_condition??c.condition??'—',url=c.edited_source_url??c.source_url,match=c.match_confidence==null?'—':Math.round(Number(c.match_confidence)*100)+'%',decision=c.applied_at?'applied':(c.decision||'pending'),category=c.evidence_category||c.price_type||'Unclassified';return '<tr><td><input type="checkbox" class="candidate-check" value="'+esc(c.id)+'"></td><td><strong>'+esc(pname(c))+'</strong><br><small>'+esc(category)+'</small></td><td>'+esc(title)+'</td><td>'+esc(c.currency||'GBP')+' '+esc(price??'—')+'</td><td>'+esc(condition)+'</td><td>'+esc(match)+'</td><td>'+esc(decision)+'</td><td><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">EDIT</button></td><td>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN</a>':'—')+'</td></tr>'}).join('')}
+function render(){
+ const body=$('ai-candidates');if(!body)return;
+ if(!candidates.length){body.innerHTML='<div class="ai-empty-state">No proposed AI findings yet.</div>';return}
+ body.innerHTML=candidates.map(c=>{
+   const p=productFor(c);
+   const title=c.edited_title??c.discovered_title??'—';
+   const price=c.edited_price??c.price;
+   const condition=c.edited_condition??c.condition??'—';
+   const url=c.edited_source_url??c.source_url;
+   const match=c.match_confidence==null?'—':Math.round(Number(c.match_confidence)*100)+'%';
+   const decision=c.applied_at?'applied':(c.decision||'pending');
+   const category=c.evidence_category||c.price_type||'Unclassified';
+   const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
+   const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable';
+   const productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'Product ID '+String(c.catalog_product_id||'—');
+   return '<article class="ai-review-card">'
+     +'<div class="ai-review-select"><input type="checkbox" class="candidate-check" value="'+esc(c.id)+'" aria-label="Select this finding"></div>'
+     +'<div class="ai-review-product"><p class="section-kicker">CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta)+'</p></div>'
+     +'<div class="ai-review-evidence">'
+       +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
+       +'<h3>'+esc(title)+'</h3>'
+       +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Match</strong> '+esc(match)+'</span></div>'
+       +(c.evidence_notes?'<p class="ai-review-notes">'+esc(c.evidence_notes)+'</p>':'')
+       +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EVIDENCE</a>':'')+'</div>'
+     +'</div>'
+     +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">EDIT FINDING</button></div>'
+   +'</article>';
+ }).join('');
+}
 function renderSources(){const body=$('ai-sources');if(!body)return;const rows=sources.filter(s=>s.discovery_status==='discovered'||s.discovery_status==='blocked'||s.discovered_at);if(!rows.length){body.innerHTML='<tr><td colspan="8">No newly discovered sources yet.</td></tr>';return}body.innerHTML=rows.map(s=>'<tr><td><strong>'+esc(s.source_name)+'</strong><br><small>'+esc(s.domain)+'</small></td><td>'+esc(s.country_code||'—')+'</td><td>'+esc(s.source_kind||'—')+'</td><td>'+esc(s.research_scope||'—')+'</td><td>'+esc(s.discovered_at?new Date(s.discovered_at).toLocaleDateString('en-GB'):'—')+'</td><td>'+esc(s.discovery_count??0)+'</td><td>'+esc(s.discovery_status||'approved')+'</td><td><button class="btn btn-primary source-action" data-id="'+esc(s.id)+'" data-status="approved" type="button">APPROVE</button> <button class="btn btn-secondary source-action" data-id="'+esc(s.id)+'" data-status="blocked" type="button">BLOCK</button></td></tr>').join('')}
 function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=current}
 function populateResearchFilters(){fillSelect('research-manufacturer',products.map(p=>p.manufacturer),'Any manufacturer');fillSelect('research-category',products.map(p=>p.category),'Any category');fillSelect('research-product-type',products.map(p=>p.product_type),'Any product type')}
-async function load(){const [c,p,m]=await Promise.all([sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100)]);if(c.error)throw c.error;if(p.error)throw p.error;if(m.error)throw m.error;candidates=c.data||[];products=p.data||[];populateResearchFilters();render();renderMemory(m.data||[])}
+async function load(){
+ const [c,allProducts,m]=await Promise.all([
+   sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),
+   sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),
+   sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100)
+ ]);
+ if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(m.error)throw m.error;
+ candidates=c.data||[];
+ const candidateProductIds=[...new Set(candidates.map(x=>x.catalog_product_id).filter(Boolean))];
+ let candidateProducts=[];
+ if(candidateProductIds.length){
+   const r=await sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').in('id',candidateProductIds);
+   if(r.error)throw r.error;
+   candidateProducts=r.data||[];
+ }
+ const byId=new Map();
+ [...(allProducts.data||[]),...candidateProducts].forEach(p=>byId.set(String(p.id),p));
+ products=[...byId.values()];
+ populateResearchFilters();render();renderMemory(m.data||[])
+}
 async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources()}
 async function loadAgentStatus(){
  const el=$('local-ai-status');if(!el)return;
