@@ -48,7 +48,8 @@ function render(){
    const price=c.edited_price??c.price;
    const condition=c.edited_condition??c.condition??'—';
    const url=c.edited_source_url??c.source_url;
-   const rawMatch=c.edited_match_confidence??c.match_confidence;\n   const match=rawMatch==null||rawMatch===''?'—':Math.round(Number(rawMatch)<=1?Number(rawMatch)*100:Number(rawMatch))+'%';
+   const rawMatch=c.edited_match_confidence??c.match_confidence;
+   const match=rawMatch==null||rawMatch===''?'—':Math.round(Number(rawMatch)<=1?Number(rawMatch)*100:Number(rawMatch))+'%';
    const decision=c.applied_at?'applied':(c.decision||'pending');
    const category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified';
    const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
