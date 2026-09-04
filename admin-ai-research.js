@@ -4,6 +4,7 @@ let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
+const withTimeout=(promise,ms=12000,label='Request')=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(Error(label+' timed out.')),ms))]);
 const rememberSelection=()=>{document.querySelectorAll('.candidate-check').forEach(x=>{if(x.checked)selectedCandidateIds.add(String(x.value);else selectedCandidateIds.delete(String(x.value));});};
 const productFor=c=>products.find(x=>String(x.id)===String(c.catalog_product_id));
 const pname=c=>{const p=productFor(c);return p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product not loaded'};
@@ -405,5 +406,23 @@ setResearchScope($('research-evidence-scope')?.value||'all');document.addEventLi
   msg(cmd==='start_worker'?'Start command sent. Waiting for the Research PC to come online…':'Restart command sent. Waiting for the Research PC to come back online…');
   setTimeout(()=>loadResearchPcControl().catch(()=>{}),6000);
   setTimeout(()=>loadResearchPcControl().catch(()=>{}),12000);
-}).catch(x=>msg(x.message,true));return}const continuousStart=e.target.closest('#start-continuous-research');if(continuousStart){setContinuousResearch(true).catch(x=>msg(x.message,true));return}const continuousStop=e.target.closest('#stop-continuous-research');if(continuousStop){setContinuousResearch(false).catch(x=>msg(x.message,true));return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});await Promise.all([load(),loadSources(),loadAgentStatus(),loadContinuousResearch(),loadLiveResearch(),loadRawDiscoveries(),loadResearchPcControl()]);msg('Review queue loaded.');setInterval(()=>{loadAgentStatus().catch(()=>{});loadContinuousResearch().catch(()=>{});loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadResearchPcControl().catch(()=>{});load().catch(()=>{})},15000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+}).catch(x=>msg(x.message,true));return}const continuousStart=e.target.closest('#start-continuous-research');if(continuousStart){setContinuousResearch(true).catch(x=>msg(x.message,true));return}const continuousStop=e.target.closest('#stop-continuous-research');if(continuousStop){setContinuousResearch(false).catch(x=>msg(x.message,true));return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});// Do not allow one slow API call to leave the entire Research Centre permanently on "Checking…".
+const initialLoads=[
+  ['review queue',()=>load()],
+  ['sources',()=>loadSources()],
+  ['agent status',()=>loadAgentStatus()],
+  ['continuous research',()=>loadContinuousResearch()],
+  ['live research',()=>loadLiveResearch()],
+  ['raw discoveries',()=>loadRawDiscoveries()],
+  ['Research PC controls',()=>loadResearchPcControl()]
+];
+const initialResults=await Promise.allSettled(initialLoads.map(([label,fn])=>withTimeout(Promise.resolve().then(fn),12000,label)));
+const failed=initialResults.filter(r=>r.status==='rejected');
+if(failed.length)console.warn('Some AI Research Centre panels failed to load initially:',failed);
+const worker=$('rpc-worker');if(worker&&worker.textContent==='Checking…')worker.textContent='CHECK REQUIRED';
+const ollama=$('rpc-ollama');if(ollama&&ollama.textContent==='Checking…')ollama.textContent='CHECK REQUIRED';
+const model=$('rpc-model');if(model&&model.textContent==='Checking…')model.textContent='—';
+const live=$('live-research-list');if(live&&/Loading live research activity/i.test(live.textContent))live.innerHTML='<div class="empty">Live research status is temporarily unavailable. The panel will retry automatically.</div>';
+msg(failed.length?'Research Centre loaded; some live panels will retry automatically.':'Review queue loaded.');
+setInterval(()=>{loadAgentStatus().catch(()=>{});loadContinuousResearch().catch(()=>{});loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadResearchPcControl().catch(()=>{});load().catch(()=>{});},15000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
