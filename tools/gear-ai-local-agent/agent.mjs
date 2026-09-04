@@ -47,6 +47,8 @@ const cfg={
   sourceProbeLimit:Math.max(3,Math.min(20,Number(process.env.SOURCE_PROBE_LIMIT||12))),
   googleSearchEnabled:process.env.GOOGLE_SEARCH_ENABLED!=='false',
   googleSearchApiKey:String(process.env.GOOGLE_SEARCH_API_KEY||process.env.GOOGLE_API_KEY||'').trim(),
+  googleWebSearchClientId:String(process.env.GOOGLE_WEB_SEARCH_CLIENT_ID||'').trim(),
+  googleSearchUserIp:String(process.env.GOOGLE_SEARCH_USER_IP||'').trim(),
   googleCseId:String(process.env.GOOGLE_CSE_ID||'').trim(),
   agentId:process.env.AGENT_ID||'gear-local-agent-1',
   agentName:process.env.AGENT_NAME||'GearCashOut Local Research Agent'
@@ -328,42 +330,75 @@ function noteSearchUnavailable(name,message){
 
 async function searchGoogle(query){
   if(!cfg.googleSearchEnabled)return [];
-  if(!cfg.googleSearchApiKey||!cfg.googleCseId){
-    noteSearchUnavailable('Google Programmable Search','set GOOGLE_SEARCH_API_KEY and GOOGLE_CSE_ID to enable it.');
+  if(!cfg.googleSearchApiKey){
+    noteSearchUnavailable('Google search','set GOOGLE_SEARCH_API_KEY to enable an official Google API integration.');
     return [];
   }
   if(!searchEngineAvailable('Google'))return [];
-  const url='https://www.googleapis.com/customsearch/v1?'+new URLSearchParams({
-    key:cfg.googleSearchApiKey,
-    cx:cfg.googleCseId,
-    q:query,
-    num:'10',
-    gl:'uk',
-    hl:'en'
-  }).toString();
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),Math.min(cfg.requestTimeoutMs,8000));
   try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),Math.min(cfg.requestTimeoutMs,8000));
-    try{
-      const res=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}});
-      if(!res.ok){
-        const detail=(await res.text()).slice(0,180);
-        if(res.status===403||res.status===429)coolSearchEngine('Google','HTTP '+res.status+' '+detail);
-        throw new Error('HTTP '+res.status);
-      }
-      const data=await res.json();
-      return (data.items||[]).map(item=>({
-        url:item.link,
-        title:stripHtml(item.title||''),
-        snippet:stripHtml(item.snippet||''),
-        provider:'google'
-      })).filter(item=>item.url&&/^https?:\/\//i.test(item.url));
-    }finally{clearTimeout(timer)}
-  }catch(e){
-    if(!String(e.message||'').includes('HTTP 403')&&!String(e.message||'').includes('HTTP 429')){
-      log('Google search warning:',e.message);
+    let res,mode='';
+
+    // Current Google Web Search Service integration. This requires a designated
+    // partner client ID and an end-user IP address, so use it automatically when
+    // those credentials are configured.
+    if(cfg.googleWebSearchClientId&&cfg.googleSearchUserIp){
+      mode='web-search-service';
+      const params=new URLSearchParams({
+        'clientContext.clientId':cfg.googleWebSearchClientId,
+        'userContext.ipAddress':cfg.googleSearchUserIp,
+        'userContext.regionCode':'GB',
+        'searchQuery.query':query,
+        'searchQuery.languageCode':'en',
+        'searchQuery.restrictRegionCode':'GB',
+        'searchQuery.safeSearch':'ON',
+        'pageSize':'10'
+      });
+      res=await fetch('https://websearchservice.googleapis.com/v1:search?'+params.toString(),{
+        signal:controller.signal,
+        headers:{Accept:'application/json','X-Goog-Api-Key':cfg.googleSearchApiKey}
+      });
+    }else if(cfg.googleCseId){
+      // Compatibility mode for an existing Google Programmable Search engine.
+      mode='programmable-search';
+      const params=new URLSearchParams({
+        key:cfg.googleSearchApiKey,
+        cx:cfg.googleCseId,
+        q:query,
+        num:'10',
+        gl:'uk',
+        hl:'en'
+      });
+      res=await fetch('https://www.googleapis.com/customsearch/v1?'+params.toString(),{
+        signal:controller.signal,
+        headers:{Accept:'application/json'}
+      });
+    }else{
+      noteSearchUnavailable('Google search','configure GOOGLE_WEB_SEARCH_CLIENT_ID + GOOGLE_SEARCH_USER_IP, or an existing GOOGLE_CSE_ID for compatibility mode.');
+      return [];
     }
+
+    if(!res.ok){
+      const detail=(await res.text()).slice(0,180);
+      if(res.status===403||res.status===429)coolSearchEngine('Google','HTTP '+res.status+' '+detail);
+      throw new Error(mode+' HTTP '+res.status);
+    }
+
+    const data=await res.json();
+    const items=mode==='web-search-service'?(data.searchResults||[]):(data.items||[]);
+    return items.map(item=>({
+      url:item.displayUrl||item.link,
+      title:stripHtml(item.title||''),
+      snippet:stripHtml(item.snippet||''),
+      provider:'google'
+    })).filter(item=>item.url&&/^https?:\/\//i.test(item.url));
+  }catch(e){
+    if(!/HTTP (403|429)/.test(String(e.message||'')))log('Google search warning:',e.message);
     return [];
+  }finally{
+    clearTimeout(timer);
   }
 }
 
