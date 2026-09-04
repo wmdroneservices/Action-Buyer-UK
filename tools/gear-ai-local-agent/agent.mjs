@@ -106,23 +106,26 @@ async function processRemoteCommand(){
       }).eq('id',data.id);
       log('Remote dashboard requested PowerShell / AI launcher stop.');
 
-      // npm start is launched inside a PowerShell restart loop. Exiting only this
-      // Node process would make that loop start the worker again. Start from this
-      // Node PID, walk up the Windows process ancestry, and terminate the first
-      // PowerShell/pwsh ancestor so the launcher itself is closed.
+      // The desktop launcher may be a PowerShell loop or a CMD loop. Exiting
+      // only Node (or killing the nearest shell) can therefore trigger another
+      // automatic restart. Walk the full ancestry, remember every launcher shell,
+      // then terminate the OUTERMOST launcher with its whole child tree.
       const nodePid=process.pid;
       const stopScript=[
         '$pid='+nodePid,
         '$seen=@{}',
+        '$launchers=@()',
         'while($pid -and -not $seen.ContainsKey($pid)){',
         '  $seen[$pid]=$true',
         '  $p=Get-CimInstance Win32_Process -Filter ("ProcessId="+$pid) -ErrorAction SilentlyContinue',
         '  if(!$p){break}',
-        '  if($p.Name -match "^(powershell|pwsh)\\.exe$"){',
-        '    Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop',
-        '    exit 0',
-        '  }',
+        '  if($p.Name -match "^(powershell|pwsh|cmd)\\.exe$"){ $launchers += [int]$p.ProcessId }',
         '  $pid=[int]$p.ParentProcessId',
+        '}',
+        'if($launchers.Count -gt 0){',
+        '  $target=$launchers[$launchers.Count-1]',
+        '  & taskkill.exe /PID $target /T /F | Out-Null',
+        '  exit 0',
         '}',
         'exit 1'
       ].join('; ');
