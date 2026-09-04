@@ -45,6 +45,7 @@
     }
     cache.clear();next.forEach((v,k)=>cache.set(k,v));renderAll();
   }
+  window.addEventListener('gco:evidence-saved',()=>{load();});
   function wire(){const list=document.getElementById('catalog-list');if(!list||wired)return;wired=true;new MutationObserver(renderAll).observe(list,{childList:true,subtree:true});load();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();
 })();
