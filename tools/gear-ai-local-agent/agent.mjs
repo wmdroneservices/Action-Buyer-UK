@@ -128,14 +128,83 @@ function stripHtml(html){
 function safeJson(value){try{return JSON.parse(value)}catch{return null}}
 function flattenJsonLd(value,out=[]){if(!value)return out;if(Array.isArray(value)){for(const v of value)flattenJsonLd(v,out);return out}if(typeof value==='object'){out.push(value);if(value['@graph'])flattenJsonLd(value['@graph'],out)}return out}
 function extractStructuredPageData(html,finalUrl){
-  let canonical=finalUrl,title='',price=null,currency='',availability='',product=false;
-  const cm=String(html).match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);if(cm){try{canonical=new URL(cm[1],finalUrl).href}catch{}}
-  const og=String(html).match(/<meta[^>]+(?:property|name)=["']og:title["'][^>]+content=["']([^"']+)["']/i)||String(html).match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:title["']/i);
-  const tt=String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i);title=og?stripHtml(og[1]):(tt?stripHtml(tt[1]):'');
-  const scripts=String(html).match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)||[];
-  for(const script of scripts){const m=script.match(/>([\s\S]*?)<\/script>/i),parsed=m?safeJson(m[1].trim()):null;for(const node of flattenJsonLd(parsed)){const types=Array.isArray(node?.['@type'])?node['@type']:[node?.['@type']];if(!types.map(x=>String(x).toLowerCase()).includes('product'))continue;product=true;if(node.name&&!looksGenericTitle(node.name))title=String(node.name).trim();const offers=Array.isArray(node.offers)?node.offers[0]:node.offers;if(offers&&typeof offers==='object'){const p=Number(String(offers.price??offers.lowPrice??'').replace(/[^0-9.]/g,''));if(Number.isFinite(p)&&p>0)price=p;currency=String(offers.priceCurrency||currency||'').toUpperCase();availability=String(offers.availability||availability||'').split('/').pop()}}}
-  const mp=String(html).match(/<meta[^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["'][^>]+content=["']([^"']+)["']/i)||String(html).match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["']/i);
-  if(price===null&&mp){const p=Number(String(mp[1]).replace(/[^0-9.]/g,''));if(Number.isFinite(p)&&p>0)price=p}
+  let canonical=finalUrl,currency='',availability='',product=false;
+  const source=String(html||'');
+  const cm=source.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+  if(cm){try{canonical=new URL(cm[1],finalUrl).href}catch{}}
+
+  const og=source.match(/<meta[^>]+(?:property|name)=["']og:title["'][^>]+content=["']([^"']+)["']/i)||source.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:title["']/i);
+  const tt=source.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const pageTitle=stripHtml(og?og[1]:(tt?tt[1]:''));
+
+  // Some Shopify pages contain JSON-LD for related/recommended products as well
+  // as the actual page product. Never simply use the last Product object: that
+  // can attach another product's £price/title to the current page URL.
+  const scripts=source.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)||[];
+  const products=[];
+  for(const script of scripts){
+    const m=script.match(/>([\s\S]*?)<\/script>/i),parsed=m?safeJson(m[1].trim()):null;
+    for(const node of flattenJsonLd(parsed)){
+      const types=Array.isArray(node?.['@type'])?node['@type']:[node?.['@type']];
+      if(!types.map(x=>String(x).toLowerCase()).includes('product'))continue;
+      const name=stripHtml(node.name||'');
+      const offers=Array.isArray(node.offers)?node.offers[0]:node.offers;
+      let price=null,cur='',avail='';
+      if(offers&&typeof offers==='object'){
+        const raw=offers.price??offers.lowPrice??'';
+        const p=Number(String(raw).replace(/[^0-9.]/g,''));
+        if(Number.isFinite(p)&&p>0)price=p;
+        cur=String(offers.priceCurrency||'').toUpperCase();
+        avail=String(offers.availability||'').split('/').pop();
+      }
+      products.push({name,price,currency:cur,availability:avail});
+    }
+  }
+
+  const words=v=>new Set(normaliseIdentityText(v).split(/\s+/).filter(x=>x.length>1&&!['used','new','product','camera','flash','unit'].includes(x)));
+  const pageWords=words(pageTitle+' '+decodeURIComponent(new URL(canonical).pathname));
+  const scoreProduct=p=>{
+    const pw=words(p.name);
+    let overlap=0;for(const w of pw)if(pageWords.has(w))overlap++;
+    const pageNorm=normaliseIdentityText(pageTitle);
+    const nameNorm=normaliseIdentityText(p.name);
+    if(pageNorm&&nameNorm&&(pageNorm.includes(nameNorm)||nameNorm.includes(pageNorm)))overlap+=8;
+    return overlap;
+  };
+  const selected=products.map(p=>({...p,_score:scoreProduct(p)})).sort((a,b)=>b._score-a._score)[0]||null;
+
+  // Only trust structured Product data when it clearly describes this page.
+  const selectedMatches=selected&&selected._score>=2;
+  let title=pageTitle;
+  let price=selectedMatches?selected.price:null;
+  currency=selectedMatches?selected.currency:'';
+  availability=selectedMatches?selected.availability:'';
+  product=!!selectedMatches;
+
+  // If the primary page title is missing/generic, a strongly matching Product name
+  // is safer than leaving the title blank.
+  if((!title||looksGenericTitle(title))&&selectedMatches&&selected.name)title=selected.name;
+
+  // Metadata price is a fallback only; it must not replace a verified price from
+  // the matching Product JSON-LD.
+  const mp=source.match(/<meta[^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["'][^>]+content=["']([^"']+)["']/i)||source.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["']/i);
+  if(price===null&&mp){
+    const p=Number(String(mp[1]).replace(/[^0-9.]/g,''));
+    if(Number.isFinite(p)&&p>0)price=p;
+  }
+
+  // Common retailer pages expose the displayed selling price as plain text.
+  // Use it only as a last fallback and only from a short context around labels
+  // such as "Our Price", avoiding unrelated navigation/recommendation prices.
+  if(price===null){
+    const visible=stripHtml(source);
+    const pm=visible.match(/(?:our\s*price|price)\s*[:\-]?\s*(?:£|GBP\s*)([0-9]{1,6}(?:[,.][0-9]{2})?)/i);
+    if(pm){
+      const p=Number(String(pm[1]).replace(/,/g,''));
+      if(Number.isFinite(p)&&p>0){price=p;currency='GBP';}
+    }
+  }
+
   return {url:canonical,title:stripHtml(title||''),price,currency,availability,product};
 }
 function isSuspiciousEvidenceUrl(value){try{const u=new URL(value),p=(u.pathname+' '+u.search).toLowerCase();return /skip[-_ ]?to[-_ ]?content|generate[-_ ]?help[-_ ]?code/.test(p)||/\/(account|cart|checkout|help|contact|about|policy|policies)\/?$/.test(u.pathname.toLowerCase())}catch{return true}}
