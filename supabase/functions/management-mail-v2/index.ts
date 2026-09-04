@@ -26,22 +26,28 @@ function managerOnly(ctx:any){if(!ctx.isManager)throw Error("Management access r
 function toBase64(bytes:Uint8Array){let s="";const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)s+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));return btoa(s);}
 async function parseEmail(source:string){const p=await simpleParser(source);const map=(a:any)=>Array.isArray(a)?a.map((x:any)=>({name:x.name||"",address:x.address||""})):[];return {text:p.text||"",html:typeof p.html==="string"?p.html:"",from:map(p.from?.value),to:map(p.to?.value),cc:map(p.cc?.value),replyTo:map(p.replyTo?.value),attachments:(p.attachments||[]).map((a:any,i:number)=>({index:i,filename:a.filename||"attachment",content_type:a.contentType||"application/octet-stream",size:a.size||a.content?.length||0,content_id:a.cid||null}))};}
 function defaultBox(){return {id:"default",email_address:env("PURELYMAIL_SMTP_USER","PURELYMAIL_QUOTE_SMTP_USER")||env("PURELYMAIL_IMAP_USER")||"Primary mailbox",display_name:"Primary business mailbox",mailbox_type:"management",secret_prefix:"PURELYMAIL",active:true,configured:true};}
-function cfg(box:any){
+async function staffMailboxPassword(email:string){
+ const seed=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!seed)throw Error("Secure server key is unavailable.");
+ const enc=new TextEncoder(),key=await crypto.subtle.importKey("raw",enc.encode(seed),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,enc.encode("gearcashout-staff-mailbox:"+String(email||"").toLowerCase())));
+ const hex=Array.from(sig).map(b=>b.toString(16).padStart(2,"0")).join("");return "GCOm!"+hex.slice(0,40);
+}
+async function cfg(box:any){
  const p=String(box.secret_prefix||"");
- // Existing GearCashOut business credentials: info uses the original PURELYMAIL names,
- // while quote uses the dedicated PURELYMAIL_QUOTE names.
  if(box.id==="default"||p==="PURELYMAIL_INFO")return {smtpUser:env("PURELYMAIL_SMTP_USER"),smtpPass:env("PURELYMAIL_SMTP_PASS"),imapUser:env("PURELYMAIL_IMAP_USER","PURELYMAIL_SMTP_USER"),imapPass:env("PURELYMAIL_IMAP_PASS","PURELYMAIL_SMTP_PASS")};
  if(p==="PURELYMAIL_QUOTE")return {smtpUser:env("PURELYMAIL_QUOTE_SMTP_USER"),smtpPass:env("PURELYMAIL_QUOTE_SMTP_PASS"),imapUser:env("PURELYMAIL_QUOTE_IMAP_USER","PURELYMAIL_QUOTE_SMTP_USER"),imapPass:env("PURELYMAIL_QUOTE_IMAP_PASS","PURELYMAIL_QUOTE_SMTP_PASS")};
+ if(box.mailbox_type==="staff"&&box.purelymail_provisioned){const pass=await staffMailboxPassword(box.email_address);return {smtpUser:box.email_address,smtpPass:pass,imapUser:box.email_address,imapPass:pass};}
  return {smtpUser:env(p+"_SMTP_USER"),smtpPass:env(p+"_SMTP_PASS"),imapUser:env(p+"_IMAP_USER",p+"_SMTP_USER"),imapPass:env(p+"_IMAP_PASS",p+"_SMTP_PASS")};
 }
 async function boxes(admin:any,ctx:any){
- const {data,error}=await admin.from("business_mailboxes").select("id,email_address,display_name,mailbox_type,staff_user_id,secret_prefix,active").eq("active",true).order("created_at");
+ const {data,error}=await admin.from("business_mailboxes").select("id,email_address,display_name,mailbox_type,staff_user_id,secret_prefix,active,purelymail_provisioned,purelymail_status").eq("active",true).order("created_at");
  if(error)throw error;
  const primary=defaultBox();
  let rows=(data||[]);
  if(!rows.some((x:any)=>x.email_address===primary.email_address))rows=[primary,...rows];
+ // Staff accounts see only their own mailbox plus explicitly assigned shared mailboxes. Management accounts retain full mailbox visibility.
  if(!ctx.isManager)rows=rows.filter((x:any)=>String(x.staff_user_id||"")===String(ctx.user.id)||ctx.allowed.has(String(x.id)));
- return rows.map((x:any)=>{const c=cfg(x);return {...x,smtpConfigured:!!(c.smtpUser&&c.smtpPass),imapConfigured:!!(c.imapUser&&c.imapPass)}});
+ return await Promise.all(rows.map(async (x:any)=>{const c=await cfg(x);return {...x,smtpConfigured:!!(c.smtpUser&&c.smtpPass),imapConfigured:!!(c.imapUser&&c.imapPass)}}));
 }
 async function boxFor(admin:any,ctx:any,id:string){const all=await boxes(admin,ctx);const box=all.find((x:any)=>String(x.id)===String(id||"default"));if(!box)throw Error("You are not authorised to access this mailbox.");return box;}
 
@@ -65,7 +71,7 @@ Deno.serve(async req=>{
    return json({ok:true});
   }
 
-  const box=await boxFor(admin,ctx,String(body.mailbox_id||"default")),c=cfg(box);
+  const box=await boxFor(admin,ctx,String(body.mailbox_id||"default")),c=await cfg(box);
   if(action==="folders"||action==="messages"||action==="message"||action==="attachment"||action==="archive"||action==="delete"){
    if(!c.imapUser||!c.imapPass)return json({error:"This mailbox has not had its IMAP credentials configured yet."},503);
    const client=new ImapFlow({host:"imap.purelymail.com",port:993,secure:true,auth:{user:c.imapUser,pass:c.imapPass},logger:false});
