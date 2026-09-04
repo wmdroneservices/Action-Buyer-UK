@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const session=await auth.getSession();if(!session){location.href="staff-login.html";return;}
  const {data:me}=await auth.supabase.from("staff_users").select("active,can_manage_staff,display_name,business_email").eq("user_id",session.user.id).maybeSingle();
  if(!me?.active){location.href="staff-login.html";return;}
- let staff=[],groups=[],current=null,refreshTimer=null;
+ let staff=[],groups=[],current=null,refreshTimer=null,messageChannel=null;
  const rpc=async(name,args={})=>{const {data,error}=await auth.supabase.rpc(name,args);if(error)throw error;return data;};
  async function loadDirectory(){
    staff=await rpc("staff_message_recipients")||[];
@@ -58,7 +58,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
    current={type,id,label};title.textContent=label;form.hidden=false;
    await loadConversation();
    if(refreshTimer)clearInterval(refreshTimer);
-   refreshTimer=setInterval(()=>loadConversation().catch(()=>{}),5000);
+   if(messageChannel){auth.supabase.removeChannel(messageChannel);messageChannel=null;}
+   messageChannel=auth.supabase.channel("staff-messenger-live").on("postgres_changes",{event:"INSERT",schema:"public",table:"staff_messages"},()=>loadConversation().catch(()=>{})).subscribe();
+   refreshTimer=setInterval(()=>loadConversation().catch(()=>{}),15000);
  }
  document.addEventListener("click",e=>{
    const d=e.target.closest("[data-direct]");if(d){const s=staff.find(x=>x.user_id===d.dataset.direct);openConversation("direct",d.dataset.direct,s?.display_name||s?.business_email||"Staff member").catch(err=>say(err.message));}
