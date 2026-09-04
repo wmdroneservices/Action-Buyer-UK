@@ -29,7 +29,7 @@ async function deleteMailbox(admin:any,email:string){
 }
 async function syncMailbox(admin:any,userId:string,email:string|null,displayName:string){
   if(!email)return;
-  const {error}=await admin.from("business_mailboxes").upsert({email_address:email,display_name:displayName||email,mailbox_type:"staff",staff_user_id:userId,secret_prefix:prefix(email),active:true,configured:true,updated_at:new Date().toISOString()},{onConflict:"email_address"});
+  const {error}=await admin.from("business_mailboxes").upsert({email_address:email,display_name:displayName||email,mailbox_type:"staff",staff_user_id:userId,secret_prefix:prefix(email),active:true,updated_at:new Date().toISOString()},{onConflict:"email_address"});
   if(error)throw error;
 }
 
