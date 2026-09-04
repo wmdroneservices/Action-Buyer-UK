@@ -1,24 +1,40 @@
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
-function loadEnv(){
-  const path=new URL('./.env',import.meta.url);
+function loadEnvFile(file){
   try{
-    const text=fs.readFileSync(path,'utf8');
+    if(!fs.existsSync(file))return false;
+    const text=fs.readFileSync(file,'utf8');
     for(const raw of text.split(/\r?\n/)){
       const line=raw.trim();
       if(!line||line.startsWith('#'))continue;
       const i=line.indexOf('=');
       if(i<0)continue;
       const k=line.slice(0,i).trim(),v=line.slice(i+1).trim().replace(/^['"]|['"]$/g,'');
+      // Earlier files win. The permanent external configuration is loaded first,
+      // so a repository-local .env can never silently overwrite your real keys.
       if(!process.env[k])process.env[k]=v;
     }
-  }catch{}
+    return true;
+  }catch{return false}
 }
-loadEnv();
+
+function loadEnv(){
+  const external=process.env.GEARCASHOUT_CONFIG_PATH||
+    (process.platform==='win32'?'C:\\GearCashOut-Config\\.env':'/etc/gearcashout/.env');
+  const local=new URL('./.env',import.meta.url);
+  const loaded=[];
+  if(loadEnvFile(external))loaded.push(external);
+  if(loadEnvFile(local))loaded.push('repository .env');
+  return {external,loaded};
+}
+
+const envConfig=loadEnv();
 
 const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY'];
-for(const key of required)if(!process.env[key])throw new Error(key+' is required in .env');
+for(const key of required)if(!process.env[key]){
+  throw new Error(key+' is required. Preferred location: '+envConfig.external);
+}
 
 const cfg={
   supabaseUrl:process.env.SUPABASE_URL,
@@ -990,6 +1006,8 @@ async function processOne(){
 
 async function main(){
   log('Starting',cfg.agentName,'with',cfg.model);
+  if(envConfig.loaded.length)log('Configuration loaded from:',envConfig.loaded.join(' + '));
+  else log('No configuration file found. Preferred location:',envConfig.external);
   await heartbeat('starting',null,{ollama_url:cfg.ollamaUrl});
   await ensureOllama();
   await heartbeat('online',null,{ollama_url:cfg.ollamaUrl});
