@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Management Mail | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js?v=20260904-mail-1" defer></script>
+<script src="admin-mail.js?v=20260904-mail-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a></div></header>
+<main class="account-page"><div class="container">
+  <div class="account-header">
+    <div><p class="section-kicker">MANAGEMENT ONLY</p><h1>Business Mail</h1><p>Securely connect your Purelymail business inbox to the GearCashOut management system.</p></div>
+    <a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a>
+  </div>
+  <div id="mail-message" class="form-message" role="status" aria-live="polite"></div>
+
+  <section class="account-panel" id="mail-status-panel">
+    <div class="section-heading"><p class="section-kicker">PURELYMAIL CONNECTION</p><h2>Mail Service</h2><p id="mail-status-text">Checking the secure server connection...</p></div>
+  </section>
+
+  <section class="mail-workspace" id="mail-workspace" hidden>
+    <aside class="mail-sidebar">
+      <button id="mail-compose" class="btn btn-primary" type="button">COMPOSE</button>
+      <div id="mail-folders" class="mail-folders"><button class="mail-folder active" data-folder="INBOX" type="button">INBOX</button></div>
+    </aside>
+    <section class="mail-list-panel">
+      <div class="mail-panel-heading"><strong id="mail-folder-title">INBOX</strong><button id="mail-refresh" class="btn btn-secondary mail-small-btn" type="button">REFRESH</button></div>
+      <div id="mail-list" class="mail-list"><p>Loading messages...</p></div>
+    </section>
+    <section class="mail-reader">
+      <div id="mail-reader-empty" class="empty-account"><h3>Select an email</h3><p>Your selected message will appear here.</p></div>
+      <article id="mail-reader-content" hidden>
+        <h2 id="mail-subject"></h2>
+        <p id="mail-meta"></p>
+        <div id="mail-body" class="mail-body"></div>
+      </article>
+      <form id="mail-compose-form" hidden class="mail-compose-form">
+        <div class="mail-panel-heading"><strong>NEW MESSAGE</strong><button id="mail-cancel-compose" class="btn btn-secondary mail-small-btn" type="button">CANCEL</button></div>
+        <label>TO<input id="compose-to" type="email" required autocomplete="email"></label>
+        <label>SUBJECT<input id="compose-subject" type="text" required></label>
+        <label>MESSAGE<textarea id="compose-text" rows="16" required></textarea></label>
+        <button class="btn btn-primary" type="submit">SEND EMAIL</button>
+      </form>
+    </section>
+  </section>
+</div></main>
+<footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT MANAGEMENT</strong><br>Business email management.</div></div></footer>
+<style>
+.mail-workspace{display:grid;grid-template-columns:220px 360px minmax(0,1fr);min-height:620px;border:1px solid #dfdfdc;background:#fff}
+.mail-sidebar{padding:1rem;border-right:1px solid #dfdfdc;background:#f8f7f3;display:flex;flex-direction:column;gap:1rem}.mail-folders{display:flex;flex-direction:column;gap:.25rem}.mail-folder{border:0;background:transparent;text-align:left;padding:.7rem .75rem;font:inherit;color:#102f4f;font-weight:700;cursor:pointer}.mail-folder.active{background:#102f4f;color:#fff}
+.mail-list-panel{border-right:1px solid #dfdfdc;min-width:0}.mail-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem;border-bottom:1px solid #dfdfdc;color:#102f4f}.mail-small-btn{padding:.45rem .7rem;font-size:.75rem}
+.mail-list{max-height:560px;overflow:auto}.mail-item{width:100%;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;padding:.9rem 1rem;cursor:pointer}.mail-item:hover,.mail-item.active{background:#f3f1ec}.mail-item.unread .mail-item-subject{font-weight:800}.mail-item-row{display:flex;justify-content:space-between;gap:.5rem;font-size:.78rem;color:#666}.mail-item-subject{color:#102f4f;margin:.3rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-reader{min-width:0;padding:0}.mail-reader h2{color:#102f4f;margin:0 0 .5rem}.mail-reader #mail-reader-content{padding:1.5rem}.mail-reader #mail-meta{color:#666;border-bottom:1px solid #ddd;padding-bottom:1rem}.mail-body{white-space:pre-wrap;line-height:1.55;word-break:break-word}
+.mail-compose-form{padding:1.25rem}.mail-compose-form label{display:flex;flex-direction:column;gap:.35rem;font-size:.75rem;font-weight:800;color:#102f4f;letter-spacing:.04em;margin-bottom:1rem}.mail-compose-form input,.mail-compose-form textarea{font:inherit;letter-spacing:normal;padding:.7rem;border:1px solid #cfd3d6;background:#fff;color:#222}.mail-compose-form textarea{resize:vertical}
+@media(max-width:1050px){.mail-workspace{grid-template-columns:180px 300px minmax(0,1fr)}}@media(max-width:800px){.mail-workspace{grid-template-columns:1fr}.mail-sidebar,.mail-list-panel{border-right:0;border-bottom:1px solid #dfdfdc}.mail-list{max-height:300px}}
+</style>
+</body></html>
