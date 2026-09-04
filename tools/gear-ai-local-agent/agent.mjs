@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.0',
+    version:'1.4.1',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -1076,7 +1076,7 @@ Rules:
 - Example: a NEW Canon listing at £249 and a USED Canon listing at £60 are two separate findings, each with its own exact title, condition, price and exact URL.
 - Do not mix generations, storage capacities, body-only products, kits, controllers or bundles.
 - Reject mismatches by omitting them.
-- Minimum confidence 0.60.
+- Prefer strong confidence for normal candidates, but do not silently lose collected exact-model evidence: uncertain collected pages can be preserved separately by the worker for manual review.
 - For new domains not present in KNOWN SOURCE REGISTRY, include them in discovered_sources.
 - condition must be new, used, refurbished or unknown.
 - source_kind must be manufacturer, retailer, marketplace, used_dealer, auction or other.
@@ -1141,6 +1141,48 @@ Return JSON only matching the schema.`;
   return parsed;
 }
 
+function buildManualReviewFallback(product,page,knownSource,evidenceScope='all'){
+  // Safety net: Ollama is a validator, not the sole gatekeeper. If a collected
+  // live page has exact-model evidence but the model omits it, preserve it for
+  // human review instead of silently losing it.
+  if(!page?.url||isSearchResultUrl(page.url)||isSuspiciousEvidenceUrl(page.url))return null;
+  if(looksGenericTitle(page.title)||pageLooksLikeError(page.text,page.title))return null;
+
+  const score=productIdentityScore(product,page.title,page.text,page.url);
+  const exactModel=hasExactModelEvidence(product,page.title,page.text,page.url);
+  if(!exactModel&&score<6)return null;
+
+  const cls=knownSource?classifyFromSource(knownSource):{
+    evidence_category:String(page.scope_hint||'overseas').toLowerCase(),
+    market_region:String(page.scope_hint||'overseas').toLowerCase()==='official'?'official':
+      ['new_uk','used_uk'].includes(String(page.scope_hint||'').toLowerCase())?'UK':'overseas'
+  };
+
+  if(evidenceScope!=='all'&&cls.evidence_category!==evidenceScope)return null;
+
+  return {
+    source_url:page.url,
+    discovered_title:page.title||null,
+    discovered_model_number:product?.model||null,
+    price:page.discovered_price??null,
+    currency:page.discovered_currency||'GBP',
+    condition:'unknown',
+    availability_status:page.discovered_availability||'unknown',
+    match_confidence:exactModel?0.55:0.45,
+    source_name:knownSource?.source_name||hostOf(page.url)||null,
+    source_country_code:knownSource?.country_code||null,
+    source_kind:knownSource?.source_kind||'other',
+    evidence_category:cls.evidence_category,
+    market_region:cls.market_region,
+    package_match:'uncertain',
+    variant_match:'uncertain',
+    evidence_notes:'Collected live evidence preserved for manual review because automated validation did not return it as a candidate. Exact/strong product identity was detected, but package, variant, condition or price may require human confirmation. Live URL retained.',
+    _evidence_title:page.title,
+    _evidence_text:page.text,
+    _manual_review_fallback:true
+  };
+}
+
 function classifyFromSource(s){
   const cc=String(s.country_code||'').toUpperCase();
   const kind=String(s.source_kind||'other');
@@ -1164,16 +1206,29 @@ async function registerSource(c){
 }
 
 async function submitCandidate(runId,productId,product,c,sourceMap){
+  const manualFallback=c._manual_review_fallback===true;
   if(!c.source_url||!/^https?:\/\//i.test(c.source_url))return false;
   if(isSearchResultUrl(c.source_url)||isSuspiciousEvidenceUrl(c.source_url)){log('Rejected non-product URL:',c.source_url);return false;}
   if(looksGenericTitle(c.discovered_title)){log('Rejected generic listing title:',c.discovered_title);return false;}
-  if(!evidenceMatchesProduct(product,c)||productIdentityScore(product,c._evidence_title,c._evidence_text,c.source_url)<6){log('Rejected weak product match:',c.source_url);return false;}
-  if(c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){log('Rejected candidate without a usable price:',c.source_url);return false;}
+
+  const identityScore=productIdentityScore(product,c._evidence_title,c._evidence_text,c.source_url);
+  const exactModel=hasExactModelEvidence(product,c._evidence_title,c._evidence_text,c.source_url);
+  const normalMatch=evidenceMatchesProduct(product,c)&&identityScore>=6;
+  const fallbackMatch=manualFallback&&(exactModel||identityScore>=6);
+  if(!normalMatch&&!fallbackMatch){log('Rejected weak product match:',c.source_url);return false;}
+
+  // A normal pricing candidate still needs a usable market price. The manual
+  // review safety net deliberately keeps an exact/strong live product page even
+  // when price extraction failed, so the reviewer can inspect the source rather
+  // than losing the discovery.
+  if(!manualFallback&&c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){
+    log('Rejected candidate without a usable price:',c.source_url);return false;
+  }
+
   // Package uncertainty must never hide an exact-model listing from manual review.
-  // Only a proven variant mismatch is disqualifying. Exact-model evidence gets a
-  // minimum review confidence so an internal package label cannot suppress it.
+  // Only a proven variant mismatch is disqualifying.
   if(c.variant_match==='mismatch')return false;
-  if(Number(c.match_confidence||0)<0.6)c.match_confidence=0.6;
+  if(Number(c.match_confidence||0)<(manualFallback?0.45:0.6))c.match_confidence=manualFallback?0.45:0.6;
   if(c.package_match==='mismatch')c.package_match='uncertain';
 
   let sourceId;
@@ -1349,6 +1404,26 @@ async function processOne(){
       seenCandidateUrls.add(dedupeKey);
       if(await submitCandidate(item.run_id,item.catalog_product_id,product,c,sourceMap))submitted++;
     }
+
+    // Preserve collected exact/strong product pages that Ollama did not return.
+    // This prevents "Approved-source fallback returned N results" from becoming
+    // "nothing appeared in Pending Review" merely because the validator omitted
+    // those pages. They remain clearly lower-confidence manual-review findings.
+    let preserved=0;
+    for(const page of pages){
+      if(submitted+preserved>=25)break;
+      const dedupeKey=String(page.url||'').split('#')[0];
+      if(!dedupeKey||seenCandidateUrls.has(dedupeKey))continue;
+      const knownSource=sourceMap.get(hostOf(page.url));
+      const fallback=buildManualReviewFallback(product,page,knownSource,evidenceScope);
+      if(!fallback)continue;
+      seenCandidateUrls.add(dedupeKey);
+      if(await submitCandidate(item.run_id,item.catalog_product_id,product,fallback,sourceMap)){
+        submitted++;
+        preserved++;
+      }
+    }
+    if(preserved>0)log('Preserved',preserved,'uncertain collected result(s) for manual review.');
 
     const {error:doneError}=await sb.rpc('ai_research_complete_queue_item',{
       p_queue_id:item.queue_id,p_success:true,p_error:null
