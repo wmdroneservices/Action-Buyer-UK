@@ -53,6 +53,12 @@ SUPABASE_SERVICE_ROLE_KEY=...
 OLLAMA_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=gemma3:4b
 POLL_SECONDS=15
+
+# Optional but recommended: official Google discovery API.
+# Leave these blank to use Bing/DuckDuckGo/Mojeek + direct source probes only.
+GOOGLE_SEARCH_API_KEY=...
+GOOGLE_CSE_ID=...
+GOOGLE_SEARCH_ENABLED=true
 ```
 
 The agent automatically loads the permanent external file first:
@@ -119,13 +125,15 @@ The agent writes a heartbeat to Supabase and then waits for queued research jobs
 For each queued catalogue product the agent:
 
 1. Builds an exact product search query.
-2. Searches the wider web and prioritises domains in the GearCashOut Source Registry.
-3. Collects result URLs and page excerpts.
-4. Sends only collected evidence to the local Ollama model.
-5. Requires structured JSON output.
-6. Rejects mismatched variants and weak matches.
-7. Submits valid findings to the existing manual review queue.
-8. Registers genuinely new domains in the Source Registry.
+2. Searches the wider web through Google Programmable Search when configured, alongside Bing, DuckDuckGo and Mojeek fallbacks.
+3. Automatically cools down providers that return blocking/rate-limit responses so repeated failures do not hold up the catalogue.
+4. Directly probes approved GearCashOut sources for each requested market/condition.
+5. Collects result URLs and page excerpts.
+6. Sends only collected evidence to the local Ollama model.
+7. Requires structured JSON output.
+8. Rejects mismatched variants and weak matches.
+9. Submits valid findings to the existing manual review queue.
+10. Registers genuinely new domains in the Source Registry.
 
 No finding is automatically applied to live evidence.
 
