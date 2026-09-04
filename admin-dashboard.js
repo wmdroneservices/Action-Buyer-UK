@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  if(!session){location.href="staff-login.html";return;}
 
  const {data:staff,error}=await auth.supabase.from("staff_users")
-   .select("username,display_name,active,can_access_research,can_access_purchasing,can_access_sales,can_access_customers,can_manage_staff")
+   .select("username,display_name,active,can_access_research,can_access_purchasing,can_access_sales,can_access_customers,can_access_mail,can_manage_staff")
    .eq("user_id",session.user.id).maybeSingle();
 
  if(error||!staff?.active){await auth.supabase.auth.signOut();location.href="staff-login.html";return;}
@@ -17,7 +17,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
    purchasing:!!staff.can_access_purchasing,
    sales:!!staff.can_access_sales,
    customers:!!staff.can_access_customers,
-   manage_staff:!!staff.can_manage_staff
+   manage_staff:!!staff.can_manage_staff,
+   mail:!!staff.can_access_mail||!!staff.can_manage_staff
  };
 
  document.querySelectorAll("[data-permission]").forEach(el=>{
