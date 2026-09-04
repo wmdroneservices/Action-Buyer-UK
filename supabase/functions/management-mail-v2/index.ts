@@ -32,17 +32,6 @@ async function staffMailboxPassword(email:string){
  const sig=new Uint8Array(await crypto.subtle.sign("HMAC",key,enc.encode("gearcashout-staff-mailbox:"+String(email||"").toLowerCase())));
  const hex=Array.from(sig).map(b=>b.toString(16).padStart(2,"0")).join("");return "GCOm!"+hex.slice(0,40);
 }
-async function ensureStaffMailboxPassword(admin:any,box:any,c:any){
- if(box.mailbox_type!=="staff"||!box.purelymail_provisioned)return;
- const {data:token,error}=await admin.rpc("get_purelymail_api_token");
- if(error||!token)throw Error("Purelymail mailbox automation is not configured for this staff mailbox.");
- const email=String(box.email_address||"").toLowerCase(),userName=email.split("@")[0];
- if(!userName||!c.imapPass)throw Error("Staff mailbox credentials could not be prepared.");
- const r=await fetch("https://purelymail.com/api/v0/modifyUser",{method:"POST",headers:{"Content-Type":"application/json","Purelymail-Api-Token":String(token)},body:JSON.stringify({userName,newPassword:c.imapPass})});
- const t=await r.text();let d:any={};try{d=t?JSON.parse(t):{};}catch{d={message:t};}
- if(!r.ok||d?.error)throw Error(d?.message||d?.error?.message||"Purelymail could not synchronise this staff mailbox.");
-}
-
 async function cfg(box:any){
  const p=String(box.secret_prefix||"");
  if(box.id==="default"||p==="PURELYMAIL_INFO")return {smtpUser:env("PURELYMAIL_SMTP_USER"),smtpPass:env("PURELYMAIL_SMTP_PASS"),imapUser:env("PURELYMAIL_IMAP_USER","PURELYMAIL_SMTP_USER"),imapPass:env("PURELYMAIL_IMAP_PASS","PURELYMAIL_SMTP_PASS")};
@@ -83,7 +72,6 @@ Deno.serve(async req=>{
   }
 
   const box=await boxFor(admin,ctx,String(body.mailbox_id||"default")),c=await cfg(box);
-  await ensureStaffMailboxPassword(admin,box,c);
   if(action==="folders"||action==="messages"||action==="message"||action==="attachment"||action==="archive"||action==="delete"){
    if(!c.imapUser||!c.imapPass)return json({error:"This mailbox has not had its IMAP credentials configured yet."},503);
    const client=new ImapFlow({host:"imap.purelymail.com",port:993,secure:true,auth:{user:c.imapUser,pass:c.imapPass},logger:false});
