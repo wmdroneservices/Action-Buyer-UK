@@ -41,10 +41,12 @@
 <p><button class="btn btn-secondary" id="add-retailer-price" type="button">+ ADD MARKET PRICE / BUYING PRICE</button></p>
 <label><input id="active" type="checkbox" checked> Active</label><label>Product notes<textarea id="notes" rows="3"></textarea></label><p><button class="btn btn-primary" type="submit">SAVE PRODUCT</button> <button class="btn btn-secondary" id="clear-form" type="button">CLEAR</button></p><div id="catalog-message" class="form-message" role="status" aria-live="polite"></div>
 </form></div></details>
-<section id="catalogue-status-summary" class="account-panel">
-<div class="section-heading"><p class="section-kicker">CATALOGUE STATUS</p><h2>Active / Inactive by Brand &amp; Type</h2><p>See exactly how many products are active and inactive within each manufacturer and product type.</p></div>
+<details id="catalogue-status-summary" class="account-panel catalogue-status-panel">
+<summary class="catalogue-status-summary-toggle"><span><span class="section-kicker">CATALOGUE STATUS</span><strong>Active / Inactive by Brand &amp; Type</strong><small>Open to see exactly how many products are active and inactive within each manufacturer and product type.</small></span><span class="catalogue-status-chevron" aria-hidden="true"></span></summary>
+<div class="catalogue-status-summary-content">
 <div id="catalogue-status-summary-list" class="catalogue-status-summary-list">Loading catalogue status...</div>
-</section>
+</div>
+</details>
 <section class="account-panel"><div class="section-heading"><p class="section-kicker">CATALOGUE</p><h2>Products</h2><p>Filter the catalogue by manufacturer, product type, status, or search by model/package. Click a product to expand its market research without leaving your position in the list.</p></div>
 <div class="catalog-filters"><div class="catalog-filter"><label for="search">Search</label><input id="search" type="search" placeholder="Search model or package"></div><div class="catalog-filter"><label for="manufacturer-filter">Manufacturer</label><select id="manufacturer-filter"><option value="">All manufacturers</option></select></div><div class="catalog-filter"><label for="category-filter">Type</label><select id="category-filter"><option value="">All types</option></select></div><div class="catalog-filter catalog-filter-status"><label for="status-filter">Status</label><select id="status-filter"><option value="">All products</option><option value="active">Active only</option><option value="inactive">Inactive only</option></select></div><div class="catalog-filter"><label for="pricing-filter">Automatic pricing</label><select id="pricing-filter"><option value="">All products</option><option value="automatic">Automatic pricing only</option><option value="manual">Manual pricing only</option><option value="any">Any pricing</option><option value="none">No pricing</option><option value="incomplete">Incomplete pricing</option></select></div><div class="catalog-filter-actions"><button class="btn btn-secondary" id="clear-filters" type="button">CLEAR</button></div></div>
 <div id="catalog-list">Loading...</div>
