@@ -149,9 +149,16 @@ Deno.serve(async req=>{
     const folder=String(body.folder||"INBOX"),lock=await client.getMailboxLock(folder);
     try{
      if(action==="messages"){const status=await client.status(folder,{messages:true,unseen:true}),total=Number(status.messages||0),start=Math.max(1,total-49),messages:any[]=[];
-      // Fetch by sequence number while the mailbox is locked. A UID range such as 1:* can miss
-      // messages in a newly created Sent folder when the first UID is not in that range.
-      if(total>0)for await(const m of client.fetch(`${start}:*`,{uid:true,envelope:true,flags:true,internalDate:true}))messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});
+      const pushMessage=(m:any)=>messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});
+      if(total>0){
+       for await(const m of client.fetch(`${start}:*`,{uid:true,envelope:true,flags:true,internalDate:true}))pushMessage(m);
+       // Some newly created Purelymail folders report a message count before a sequence-range
+       // fetch returns the appended message. Fall back to an explicit UID search for that folder.
+       if(!messages.length){
+        const uids=await client.search({all:true},{uid:true});
+        if(uids.length)for await(const m of client.fetch(uids.join(","),{uid:true,envelope:true,flags:true,internalDate:true},{uid:true}))pushMessage(m);
+       }
+      }
       messages.reverse();return json({ok:true,folder,total,unseen:Number(status.unseen||0),messages});}
      const uid=Number(body.uid);if(!uid)return json({error:"Message UID is required"},400);
      if(action==="archive"||action==="delete"){
