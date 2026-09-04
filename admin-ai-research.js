@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],editingId=null;
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...document.querySelectorAll('.candidate-check:checked')].map(x=>x.value);
@@ -8,6 +8,47 @@ const productFor=c=>products.find(x=>String(x.id)===String(c.catalog_product_id)
 const pname=c=>{const p=productFor(c);return p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product not loaded'};
 async function initClient(){if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');sb=window.actionBuyerAuth.supabase;const s=await window.actionBuyerAuth.getSession();if(!s?.user)throw Error('Please sign in again.')}
 async function api(body){const {data,error}=await sb.functions.invoke('quote-catalog-ai-orchestrator',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data}
+function renderProductCandidateCard(c){
+ const matches=Array.isArray(c.duplicate_matches)?c.duplicate_matches:[];
+ const duplicate=c.duplicate_status==='likely_duplicate';
+ return '<article class="ai-review-card ai-product-candidate">'
+  +'<div class="ai-review-product"><p class="section-kicker">NEW PRODUCT CANDIDATE</p><h3>'+esc(c.proposed_title||[c.manufacturer,c.model,c.package_name].filter(Boolean).join(' · ')||'Unnamed product')+'</h3><p>'+esc([c.main_category,c.product_type].filter(Boolean).join(' · ')||'Category still required')+'</p></div>'
+  +'<div class="ai-review-evidence"><div class="ai-review-badges"><span class="ai-badge">'+esc(c.duplicate_status||'unchecked').replaceAll('_',' ').toUpperCase()+'</span><span class="ai-badge ai-badge-muted">MANUAL REVIEW ONLY</span></div>'
+  +'<div class="ai-review-details"><span><strong>Manufacturer</strong> '+esc(c.manufacturer||'—')+'</span><span><strong>Model</strong> '+esc(c.model||'—')+'</span><span><strong>Package</strong> '+esc(c.package_name||'—')+'</span></div>'
+  +(matches.length?'<p class="ai-review-notes"><strong>Possible existing matches:</strong> '+esc(matches.map(m=>[m.manufacturer,m.model,m.package_name].filter(Boolean).join(' · ')).join(' | '))+'</p>':'')
+  +(c.evidence_notes?'<p class="ai-review-notes">'+esc(c.evidence_notes)+'</p>':'')
+  +(c.discovery_source_url?'<div class="ai-review-source"><strong>Discovery source:</strong> '+esc(c.discovery_source_name||'—')+' · <a href="'+esc(c.discovery_source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a></div>':'')
+  +'</div>'
+  +'<div class="ai-review-actions">'
+  +(c.decision==='pending'?'<button type="button" class="btn btn-primary ai-product-candidate-accept" data-id="'+esc(c.id)+'">APPROVE FOR CATALOGUE</button><button type="button" class="btn btn-secondary ai-product-candidate-reject" data-id="'+esc(c.id)+'">REJECT</button>':'')
+  +(c.decision==='accepted'?'<button type="button" class="btn btn-primary ai-product-candidate-create" data-id="'+esc(c.id)+'">CREATE DRAFT CATALOGUE PRODUCT</button>':'')
+  +(c.decision==='catalogue_created'?'<span class="ai-badge">DRAFT CREATED</span>':'')
+  +'</div></article>';
+}
+function renderProductCandidates(){
+ const body=$('ai-product-candidates');if(!body)return;
+ if(!productCandidates.length){body.innerHTML='<div class="ai-empty-state">No new product candidates have been found yet.</div>';return}
+ const pending=productCandidates.filter(c=>c.decision==='pending');
+ const accepted=productCandidates.filter(c=>c.decision==='accepted');
+ const rejected=productCandidates.filter(c=>c.decision==='rejected');
+ const created=productCandidates.filter(c=>c.decision==='catalogue_created');
+ body.innerHTML='<div class="ai-current-findings"><div class="ai-current-findings-heading"><p class="section-kicker">NEW MODELS</p><h2>New product candidates</h2><p>Nothing here is automatically added to the catalogue. Review duplicates first, then explicitly approve and create a draft product.</p></div>'+pending.map(renderProductCandidateCard).join('')+'</div>'
+ +renderSection('Approved product candidates','These are approved for creation as draft catalogue products only.',accepted,'accepted',false).replace(/<article class="ai-review-card">[\s\S]*?<\/article>/g,'')
+ +(accepted.length?'<div class="ai-decision-section-content">'+accepted.map(renderProductCandidateCard).join('')+'</div>':'')
+ +(rejected.length?'<details class="ai-decision-section ai-decision-rejected"><summary><div><p class="section-kicker">REJECTED</p><h2>Rejected product candidates <span class="ai-decision-count">'+rejected.length+'</span></h2></div><span class="ai-decision-toggle">VIEW</span></summary><div class="ai-decision-section-content">'+rejected.map(renderProductCandidateCard).join('')+'</div></details>':'')
+ +(created.length?'<details class="ai-decision-section ai-decision-applied"><summary><div><p class="section-kicker">DRAFTS CREATED</p><h2>Catalogue drafts <span class="ai-decision-count">'+created.length+'</span></h2></div><span class="ai-decision-toggle">VIEW</span></summary><div class="ai-decision-section-content">'+created.map(renderProductCandidateCard).join('')+'</div></details>':'');
+}
+async function decideProductCandidate(id,decision){
+ const {error}=await sb.from('quote_catalog_ai_product_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).eq('id',id);
+ if(error)throw error;msg('Product candidate '+decision+'.');await load();
+}
+async function createCatalogueDraft(id){
+ const {data,error}=await sb.rpc('ai_research_create_catalogue_product_from_candidate',{p_candidate_id:id});
+ if(error)throw error;
+ msg('Draft catalogue product created. It remains inactive and not customer-visible until you complete and approve it.');
+ await load();
+}
+
 function renderMemory(rows){const el=$('ai-memory');if(!el)return;el.innerHTML=!rows.length?'<p>No review learning has been recorded yet.</p>':'<div style="overflow-x:auto"><table class="ai-table"><thead><tr><th>Type</th><th>Key</th><th>Category</th><th>Confidence</th><th>Updated</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.learning_type)+'</td><td>'+esc(r.learning_key)+'</td><td>'+esc(r.evidence_category||'—')+'</td><td>'+esc(r.confidence??'—')+'</td><td>'+esc(r.updated_at?new Date(r.updated_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'}
 function editorMarkup(c){
  const title=c.edited_title??c.discovered_title??'';
@@ -98,12 +139,14 @@ function renderSources(){const body=$('ai-sources');if(!body)return;const rows=s
 function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=current}
 function populateResearchFilters(){fillSelect('research-manufacturer',products.map(p=>p.manufacturer),'Any manufacturer');fillSelect('research-category',products.map(p=>p.category),'Any category');fillSelect('research-product-type',products.map(p=>p.product_type),'Any product type')}
 async function load(){
- const [c,allProducts,m]=await Promise.all([
+ const [c,allProducts,m,pc]=await Promise.all([
    sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),
    sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),
-   sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100)
+   sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100),
+   sb.from('quote_catalog_ai_product_candidates').select('*').order('created_at',{ascending:false}).limit(500)
  ]);
- if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(m.error)throw m.error;
+ if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(m.error)throw m.error;if(pc.error)throw pc.error;
+ productCandidates=pc.data||[];
  candidates=c.data||[];
  const candidateProductIds=[...new Set(candidates.map(x=>x.catalog_product_id).filter(Boolean))];
  let candidateProducts=[];
@@ -115,7 +158,7 @@ async function load(){
  const byId=new Map();
  [...(allProducts.data||[]),...candidateProducts].forEach(p=>byId.set(String(p.id),p));
  products=[...byId.values()];
- populateResearchFilters();render();renderMemory(m.data||[])
+ populateResearchFilters();render();renderProductCandidates();renderMemory(m.data||[])
 }
 async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources()}
 async function loadAgentStatus(){
