@@ -25,11 +25,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
 
   form.addEventListener("submit",async e=>{
     e.preventDefault();
-    const username=document.getElementById("staff-user-id").value.trim();
+    const username=document.getElementById("staff-user-id").value.trim().toLowerCase();
     const password=document.getElementById("staff-password").value;
     message.textContent="Signing in...";message.className="form-message";
     const {data,error}=await auth.supabase.functions.invoke("staff-login",{body:{username,password}});
-    if(error||!data?.access_token||!data?.refresh_token){message.textContent=data?.error||"Invalid User ID or password.";message.className="form-message error";return;}
+    if(error||!data?.access_token||!data?.refresh_token){message.textContent=data?.error||"Invalid email address or password.";message.className="form-message error";return;}
     const {data:sessionData,error:sessionError}=await auth.supabase.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
     if(sessionError){message.textContent="Could not start the staff session.";message.className="form-message error";return;}
     const target=await destination(sessionData.session);
