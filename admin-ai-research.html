@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260904-product-candidates-1" defer></script><style>
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260904-collapsible-findings-1" defer></script><style>
 .ai-review-grid{display:grid;gap:16px}
 .ai-empty-state{padding:24px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#5b6470}
 .ai-review-card{display:grid;grid-template-columns:auto minmax(240px,1fr) minmax(360px,1.6fr) auto;gap:18px;align-items:stretch;padding:18px;border:1px solid #d8dde3;border-left:4px solid #c97921;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -8,6 +8,27 @@
 .ai-review-details{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0;color:#435160}.ai-review-details strong{color:#233d59}
 .ai-review-notes{margin:10px 0;padding:10px 12px;background:#f7f8fa;border-left:3px solid #c97921;color:#4b5563}.ai-review-source{font-size:13px;color:#667085;word-break:break-word}.ai-review-source a{font-weight:700;color:#b76d1c}
 .ai-review-actions{display:flex;align-items:flex-start;justify-content:flex-end}
+.ai-finding-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:12px 14px;align-items:start}
+.ai-finding-card>.ai-review-select{padding-top:14px}
+.ai-finding-details{min-width:0}
+.ai-finding-details summary{display:flex;align-items:center;justify-content:space-between;gap:18px;cursor:pointer;list-style:none;padding:2px 0}
+.ai-finding-details summary::-webkit-details-marker{display:none}
+.ai-finding-summary-copy{min-width:0;flex:1}
+.ai-finding-summary-copy h3{margin:3px 0 4px;color:#233d59;font-size:15px}
+.ai-finding-summary-title{margin:0;color:#52606d;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-finding-summary-meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;font-size:12px;color:#667085}
+.ai-finding-summary-meta strong{color:#435160}
+.ai-finding-toggle{flex:0 0 auto;border:1px solid #cfd6de;border-radius:7px;padding:9px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;color:#233d59;background:#f7f8fa}
+.ai-finding-details[open] .ai-finding-toggle{border-color:#c97921;color:#a55f14;background:#fff7ec}
+.ai-finding-details[open] .ai-finding-toggle{font-size:0}
+.ai-finding-details[open] .ai-finding-toggle:after{content:'CLOSE';font-size:11px}
+.ai-finding-content{margin-top:14px;padding-top:14px;border-top:1px solid #e4e7eb}
+.ai-finding-body{display:grid;grid-template-columns:minmax(220px,1fr) minmax(320px,1.6fr) auto;gap:18px;align-items:start}
+.ai-finding-body .ai-review-product{padding-right:18px}
+.ai-finding-body .ai-review-actions{min-width:120px}
+.ai-finding-content .ai-inline-editor{margin-top:16px}
+@media(max-width:900px){.ai-finding-body{grid-template-columns:1fr}.ai-finding-body .ai-review-product{border-right:0;border-bottom:1px solid #e4e7eb;padding:0 0 12px}.ai-finding-body .ai-review-actions{justify-content:flex-start}.ai-finding-summary-meta{gap:6px 12px}}
+@media(max-width:600px){.ai-finding-card{padding:12px}.ai-finding-details summary{align-items:flex-start}.ai-finding-toggle{padding:8px 9px}.ai-finding-summary-title{white-space:normal}.ai-finding-summary-meta{display:none}}
 @media(max-width:900px){.ai-review-card{grid-template-columns:auto 1fr}.ai-review-product{border-right:0;border-bottom:1px solid #e4e7eb;padding:0 0 12px}.ai-review-evidence,.ai-review-actions{grid-column:2}.ai-review-actions{justify-content:flex-start}}
 .ai-inline-editor{grid-column:1/-1;border-top:1px solid #e4e7eb;margin-top:4px;padding:18px;background:#f7f8fa;border-radius:8px}
 .ai-editor-heading{display:flex;justify-content:space-between;gap:18px;margin-bottom:14px}.ai-editor-heading h3{margin:3px 0 6px;color:#233d59}.ai-editor-heading p{margin:0;color:#667085}
