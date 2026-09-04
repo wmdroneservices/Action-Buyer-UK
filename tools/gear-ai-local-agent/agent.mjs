@@ -453,54 +453,78 @@ async function collectEvidence(product,sources,evidenceScope='all'){
   const name=productName(product);
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
-  const terms=productTerms(product);
-  const priority=[...sources].filter(s=>s.enabled&&sourceFitsScope(s,evidenceScope)).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
-  const coreQueries=evidenceScope==='new_uk'
-    ? ['"'+name+'" UK price','"'+name+'" new UK retailer','"'+name+'" buy UK']
-    : evidenceScope==='used_uk'
-      ? ['"'+name+'" used UK','"'+name+'" eBay UK','"'+name+'" marketplace UK']
-      : evidenceScope==='overseas'
-        ? ['"'+name+'" price international','"'+name+'" overseas retailer','"'+name+'" buy']
-        : ['"'+name+'" UK price','"'+name+'" used UK','"'+name+'" overseas price','"'+name+'" buy'];
-
+  // In ALL mode we deliberately research each market independently. A healthy
+  // new-retail search must never stop the worker before it has looked for used
+  // UK and overseas evidence for the same exact product.
+  const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:[evidenceScope];
   const seen=new Map();
-  async function addResults(q){
+
+  const queriesFor=scope=>scope==='new_uk'
+    ? ['"'+name+'" UK price','"'+name+'" new UK retailer','"'+name+'" buy UK']
+    : scope==='used_uk'
+      ? ['"'+name+'" used UK','"'+name+'" second hand UK','"'+name+'" eBay UK']
+      : ['"'+name+'" price international','"'+name+'" overseas retailer','"'+name+'" international buy'];
+
+  async function addResults(q,scope){
     const results=await searchWeb(q);
     log('Search',q,'returned',results.length,'result(s)');
     for(const r of results){
       const host=hostOf(r.url);
-      if(!host||seen.has(r.url))continue;
-      seen.set(r.url,{...r,query:q,host});
+      if(!host)continue;
+      const key=String(r.url).split('#')[0];
+      if(!seen.has(key))seen.set(key,{...r,url:key,query:q,host,scope_hint:scope});
     }
+    return results.length;
   }
 
-  // First do broad searches only. Do not waste several minutes running every
-  // site: query when the public engines are clearly blocked.
-  for(const q of coreQueries){
-    await addResults(q);
-    // We only need a small pool before moving on to page collection.
-    if(seen.size>=6)break;
-  }
+  for(const scope of scopes){
+    const priority=[...sources]
+      .filter(s=>s.enabled&&sourceFitsScope(s,scope))
+      .sort((a,b)=>(a.priority||999)-(b.priority||999))
+      .slice(0,Math.max(4,Math.ceil(cfg.sourceProbeLimit/2)));
 
-  // If broad search is weak, immediately switch to the approved source registry.
-  if(seen.size<3){
-    log('Broad search produced too few results; switching immediately to direct approved-source probes.');
-    const direct=await discoverFromKnownSources(product,sources,evidenceScope);
+    let foundForScope=0;
+    for(const q of queriesFor(scope)){
+      foundForScope+=await addResults(q,scope);
+      // Keep searching this scope long enough to obtain market diversity.
+      if(foundForScope>=8)break;
+    }
+
+    // Always give the approved registry a chance in each requested market.
+    // Search engines often return new retail pages while missing used dealers.
+    const direct=await discoverFromKnownSources(product,priority,scope);
+    if(direct.length)log('Approved-source fallback',scope,'returned',direct.length,'result(s)');
     for(const r of direct){
-      if(!seen.has(r.url))seen.set(r.url,r);
-    }
-  }else{
-    // Only use a small number of targeted site searches when broad search is healthy.
-    for(const s of priority.slice(0,4)){
-      if(s.domain)await addResults('site:'+s.domain+' "'+name+'"');
+      const key=String(r.url).split('#')[0];
+      if(!seen.has(key))seen.set(key,{...r,url:key,host:hostOf(r.url),scope_hint:scope});
     }
   }
 
-  const ranked=[...seen.values()].sort((a,b)=>{
-    const ap=priority.find(s=>String(s.domain||'').replace(/^www\./,'').toLowerCase()===a.host)?.priority??999;
-    const bp=priority.find(s=>String(s.domain||'').replace(/^www\./,'').toLowerCase()===b.host)?.priority??999;
+  const sourceFor=host=>[...sources]
+    .filter(s=>String(s.domain||'').replace(/^www\\./,'').toLowerCase()===host)
+    .sort((a,b)=>(a.priority||999)-(b.priority||999))[0]||null;
+
+  // Preserve market diversity when trimming the discovery pool.
+  const byScope=new Map(scopes.map(s=>[s,[]]));
+  for(const r of seen.values()){
+    const bucket=byScope.has(r.scope_hint)?r.scope_hint:scopes[0];
+    byScope.get(bucket).push(r);
+  }
+  for(const list of byScope.values())list.sort((a,b)=>{
+    const ap=sourceFor(a.host)?.priority??999,bp=sourceFor(b.host)?.priority??999;
     return ap-bp;
-  }).slice(0,cfg.maxResults);
+  });
+
+  const ranked=[];
+  const perScope=Math.max(3,Math.floor(cfg.maxResults/scopes.length));
+  for(const scope of scopes)ranked.push(...(byScope.get(scope)||[]).slice(0,perScope));
+  if(ranked.length<cfg.maxResults){
+    const used=new Set(ranked.map(r=>r.url));
+    for(const r of [...seen.values()]){
+      if(ranked.length>=cfg.maxResults)break;
+      if(!used.has(r.url)){ranked.push(r);used.add(r.url);}
+    }
+  }
 
   const pages=[];
   for(const r of ranked){
@@ -514,18 +538,23 @@ async function collectEvidence(product,sources,evidenceScope='all'){
       const title=meta.title||r.title||'';
       if(looksGenericTitle(title)||pageLooksLikeError(text,title))continue;
       if(!hasExactModelEvidence(product,title,text,finalUrl))continue;
-      // Do not keep navigation/category/search pages merely because the model words
-      // appear somewhere in their text. A product page needs strong identity evidence.
-      if(!meta.product && productIdentityScore(product,title,text,finalUrl)<6)continue;
-      const source=priority.find(x=>String(x.domain||'').replace(/^www\./,'').toLowerCase()===hostOf(finalUrl));
+      if(!meta.product&&productIdentityScore(product,title,text,finalUrl)<6)continue;
+      const source=sourceFor(hostOf(finalUrl));
       if(String(source?.source_kind||'').toLowerCase()!=='manufacturer'&&meta.price===null){
         log('Rejected page without verified market price:',hostOf(finalUrl),title);continue;
       }
-      pages.push({...r,url:finalUrl,title,text,discovered_price:meta.price,discovered_currency:meta.currency||null,discovered_availability:meta.availability||null,structured_product:meta.product===true});
+      pages.push({...r,url:finalUrl,title,text,
+        discovered_price:meta.price,
+        discovered_currency:meta.currency||null,
+        discovered_availability:meta.availability||null,
+        structured_product:meta.product===true
+      });
     }catch(e){log('Page fetch blocked/unavailable:',r.host,e.message)}
   }
 
-  log('Collected',pages.length,'usable evidence item(s) from',ranked.length,'discovered result(s).');
+  const counts={};
+  for(const p of pages)counts[p.scope_hint]=(counts[p.scope_hint]||0)+1;
+  log('Collected',pages.length,'usable evidence item(s):',JSON.stringify(counts));
   return pages;
 }
 const schema={
@@ -575,6 +604,9 @@ Rules:
 - If RESEARCH MODE is used_uk, return only used_uk candidates; UK marketplace listings belong here even when labelled new.
 - If RESEARCH MODE is overseas, return only overseas candidates.
 - If RESEARCH MODE is all, return all valid categories.
+- Multiple prices for the same exact product are expected and desirable. NEVER merge new and used evidence into one candidate.
+- Return separate candidates for separate exact listings/pages, even where they are from the same retailer.
+- Example: a NEW Canon listing at £249 and a USED Canon listing at £60 are two separate findings, each with its own exact title, condition, price and exact URL.
 - Do not mix generations, storage capacities, body-only products, kits, controllers or bundles.
 - Reject mismatches by omitting them.
 - Minimum confidence 0.60.
