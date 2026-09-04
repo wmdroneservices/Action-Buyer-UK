@@ -145,32 +145,60 @@ async function ensureOllama(){
   }
 }
 
-function productName(p){
-  // Build one clean search identity. Catalogue package_name often repeats the
-  // model or the complete manufacturer + model, so remove those prefixes before
-  // constructing the query.
+function cleanProductPackageName(p){
+  // The catalogue can contain an internal quote label (for example "Standard Item")
+  // that is useful to us but is not necessarily part of the manufacturer/retailer
+  // product identity. Remove repeated manufacturer/model prefixes first.
   const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
   const manufacturer=clean(p.manufacturer);
   const model=clean(p.model);
   let packageName=clean(p.package_name);
-
   const full=clean([manufacturer,model].filter(Boolean).join(' '));
   const startsWithCI=(value,prefix)=>prefix&&value.toLowerCase().startsWith(prefix.toLowerCase());
 
   if(packageName){
     if(full&&packageName.toLowerCase()===full.toLowerCase()) packageName='';
-    else if(startsWithCI(packageName,full)){
-      packageName=clean(packageName.slice(full.length));
-    }else if(startsWithCI(packageName,model)){
-      packageName=clean(packageName.slice(model.length));
-    }
+    else if(startsWithCI(packageName,full)) packageName=clean(packageName.slice(full.length));
+    else if(startsWithCI(packageName,model)) packageName=clean(packageName.slice(model.length));
   }
+  return packageName;
+}
 
-  return clean([manufacturer,model,packageName].filter(Boolean).join(' '));
+function isGenericInternalPackageLabel(value){
+  const x=normaliseIdentityText(value);
+  return new Set([
+    '', 'standard item', 'standard', 'base item', 'base package',
+    'default package', 'default item', 'basic item', 'basic package',
+    'standard package', 'quote standard package'
+  ]).has(x);
+}
+
+function productName(p){
+  // Canonical search identity: always manufacturer + exact model first.
+  // Internal package labels must never make a retailer search fail.
+  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
+  return clean([p.manufacturer,p.model].filter(Boolean).join(' '));
+}
+
+function productSearchNames(p){
+  const base=productName(p);
+  const packageName=cleanProductPackageName(p);
+  const out=[base];
+
+  // A specific package/bundle name may genuinely be sold by the manufacturer or
+  // retailer, so keep it as an OPTIONAL secondary search. Generic internal quote
+  // labels are deliberately excluded from search identity.
+  if(packageName&&!isGenericInternalPackageLabel(packageName)){
+    out.push(String([base,packageName].filter(Boolean).join(' ')).replace(/\s+/g,' ').trim());
+  }
+  return [...new Set(out.filter(Boolean))];
 }
 
 function productTerms(p){
-  const raw=[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ');
+  const packageName=cleanProductPackageName(p);
+  const raw=[p.manufacturer,p.model,
+    packageName&&!isGenericInternalPackageLabel(packageName)?packageName:''
+  ].filter(Boolean).join(' ');
   return [...new Set(String(raw).toLowerCase().match(/[a-z0-9]+/g)||[])].filter(x=>x.length>1);
 }
 
@@ -620,7 +648,8 @@ async function probeKnownSource(source,name,terms){
 }
 
 async function discoverFromKnownSources(product,sources,evidenceScope='all'){
-  const name=productName(product),terms=productTerms(product);
+  const names=productSearchNames(product);
+  const name=names[0]||productName(product),terms=productTerms(product);
   const eligible=[...sources]
     .filter(s=>s.enabled&&s.domain&&sourceFitsScope(s,evidenceScope))
     .sort((a,b)=>(a.priority||999)-(b.priority||999));
@@ -825,7 +854,8 @@ async function recordRawDiscoveries(context={},discoveries=[]){
 
 
 async function collectEvidence(product,sources,evidenceScope='all',context={}){
-  const name=productName(product);
+  const names=productSearchNames(product);
+  const name=names[0];
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
   // In ALL mode we deliberately research each market independently. A healthy
@@ -834,11 +864,11 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
   const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:[evidenceScope];
   const seen=new Map();
 
-  const queriesFor=scope=>scope==='new_uk'
-    ? ['"'+name+'" UK price','"'+name+'" new UK retailer','"'+name+'" buy UK']
+  const queriesFor=(searchName,scope)=>scope==='new_uk'
+    ? ['"'+searchName+'" UK price','"'+searchName+'" new UK retailer','"'+searchName+'" buy UK']
     : scope==='used_uk'
-      ? ['"'+name+'" used UK','"'+name+'" second hand UK','"'+name+'" eBay UK']
-      : ['"'+name+'" price international','"'+name+'" overseas retailer','"'+name+'" international buy'];
+      ? ['"'+searchName+'" used UK','"'+searchName+'" second hand UK','"'+searchName+'" eBay UK']
+      : ['"'+searchName+'" price international','"'+searchName+'" overseas retailer','"'+searchName+'" international buy'];
 
   async function addResults(q,scope){
     const results=await searchWeb(q);
@@ -859,10 +889,20 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       .slice(0,Math.max(4,Math.ceil(cfg.sourceProbeLimit/2)));
 
     let foundForScope=0;
-    for(const q of queriesFor(scope)){
+    // Always search the canonical manufacturer + model identity first.
+    for(const q of queriesFor(name,scope)){
       foundForScope+=await addResults(q,scope);
-      // Keep searching this scope long enough to obtain market diversity.
       if(foundForScope>=8)break;
+    }
+
+    // If the catalogue has a specific commercial package name, search it as an
+    // additional discovery route. Its absence on a retailer page never counts as
+    // a rejection: package assignment is for the manual review stage when unclear.
+    if(foundForScope<8&&names[1]){
+      for(const q of queriesFor(names[1],scope)){
+        foundForScope+=await addResults(q,scope);
+        if(foundForScope>=8)break;
+      }
     }
 
     // Always give the approved registry a chance in each requested market.
@@ -975,7 +1015,14 @@ RESEARCH MODE: ${evidenceScope}
 Rules:
 - Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, title, price or availability. Prefer collected evidence title and price fields when present.
-- Exact model/variant/package matching is mandatory.
+- Exact model matching is mandatory. A true variant/generation mismatch must be rejected.
+- Package labels require special handling: catalogue labels such as "Standard Item",
+  "Standard Package" or other internal quote labels may not appear in manufacturer
+  or retailer advertising. Never reject otherwise exact-model evidence solely because
+  the package label is absent or cannot be verified. Use package_match "uncertain"
+  and preserve the evidence for manual review with its exact live URL.
+- Only mark package_match "mismatch" when the page positively proves a materially
+  different commercial bundle/package, not merely because the catalogue wording is absent.
 - New UK retail = evidence_category new_uk and bucket 1.
 - Used UK = evidence_category used_uk and bucket 2. IMPORTANT: UK marketplace listings belong here even when the listing says new.
 - Overseas = evidence_category overseas and bucket 3.
@@ -1082,7 +1129,12 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
   if(looksGenericTitle(c.discovered_title)){log('Rejected generic listing title:',c.discovered_title);return false;}
   if(!evidenceMatchesProduct(product,c)||productIdentityScore(product,c._evidence_title,c._evidence_text,c.source_url)<6){log('Rejected weak product match:',c.source_url);return false;}
   if(c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){log('Rejected candidate without a usable price:',c.source_url);return false;}
-  if(c.package_match==='mismatch'||c.variant_match==='mismatch'||Number(c.match_confidence||0)<0.6)return false;
+  // Package uncertainty must never hide an exact-model listing from manual review.
+  // Only a proven variant mismatch is disqualifying. Exact-model evidence gets a
+  // minimum review confidence so an internal package label cannot suppress it.
+  if(c.variant_match==='mismatch')return false;
+  if(Number(c.match_confidence||0)<0.6)c.match_confidence=0.6;
+  if(c.package_match==='mismatch')c.package_match='uncertain';
 
   let sourceId;
   const host=hostOf(c.source_url);
