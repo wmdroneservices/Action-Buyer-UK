@@ -45,6 +45,9 @@ const cfg={
   maxResults:Math.max(5,Math.min(30,Number(process.env.MAX_RESULTS_PER_PRODUCT||20))),
   requestTimeoutMs:Math.max(5000,Number(process.env.REQUEST_TIMEOUT_MS||15000)),
   sourceProbeLimit:Math.max(3,Math.min(20,Number(process.env.SOURCE_PROBE_LIMIT||12))),
+  googleSearchEnabled:process.env.GOOGLE_SEARCH_ENABLED!=='false',
+  googleSearchApiKey:String(process.env.GOOGLE_SEARCH_API_KEY||process.env.GOOGLE_API_KEY||'').trim(),
+  googleCseId:String(process.env.GOOGLE_CSE_ID||'').trim(),
   agentId:process.env.AGENT_ID||'gear-local-agent-1',
   agentName:process.env.AGENT_NAME||'GearCashOut Local Research Agent'
 };
@@ -61,7 +64,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.2.0',
+    version:'1.3.0',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -273,7 +276,7 @@ function extractSearchLinks(html, baseUrl){
       seen.add(key);
       const title=stripHtml(m[2]||'');
       if(title.length<2)continue;
-      out.push({url:key,title,snippet:''});
+      out.push({url:key,title,snippet:'',provider:'web'});
       if(out.length>=20)return out;
     }
     if(out.length)break;
@@ -301,20 +304,86 @@ async function fetchText(url, timeoutMs=cfg.requestTimeoutMs){
   }finally{clearTimeout(timer)}
 }
 
+const searchCooldownUntil=new Map();
+const searchConfigNotice=new Set();
+
+function searchEngineAvailable(name){
+  return (searchCooldownUntil.get(name)||0)<=Date.now();
+}
+function coolSearchEngine(name,message){
+  const wait=10*60*1000;
+  searchCooldownUntil.set(name,Date.now()+wait);
+  if(!searchConfigNotice.has(name+':cooldown')){
+    searchConfigNotice.add(name+':cooldown');
+    log(name,'temporarily cooling down for 10 minutes:',message);
+  }
+}
+function noteSearchUnavailable(name,message){
+  const key=name+':unavailable';
+  if(!searchConfigNotice.has(key)){
+    searchConfigNotice.add(key);
+    log(name,'not configured:',message);
+  }
+}
+
+async function searchGoogle(query){
+  if(!cfg.googleSearchEnabled)return [];
+  if(!cfg.googleSearchApiKey||!cfg.googleCseId){
+    noteSearchUnavailable('Google Programmable Search','set GOOGLE_SEARCH_API_KEY and GOOGLE_CSE_ID to enable it.');
+    return [];
+  }
+  if(!searchEngineAvailable('Google'))return [];
+  const url='https://www.googleapis.com/customsearch/v1?'+new URLSearchParams({
+    key:cfg.googleSearchApiKey,
+    cx:cfg.googleCseId,
+    q:query,
+    num:'10',
+    gl:'uk',
+    hl:'en'
+  }).toString();
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),Math.min(cfg.requestTimeoutMs,8000));
+    try{
+      const res=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}});
+      if(!res.ok){
+        const detail=(await res.text()).slice(0,180);
+        if(res.status===403||res.status===429)coolSearchEngine('Google','HTTP '+res.status+' '+detail);
+        throw new Error('HTTP '+res.status);
+      }
+      const data=await res.json();
+      return (data.items||[]).map(item=>({
+        url:item.link,
+        title:stripHtml(item.title||''),
+        snippet:stripHtml(item.snippet||''),
+        provider:'google'
+      })).filter(item=>item.url&&/^https?:\/\//i.test(item.url));
+    }finally{clearTimeout(timer)}
+  }catch(e){
+    if(!String(e.message||'').includes('HTTP 403')&&!String(e.message||'').includes('HTTP 429')){
+      log('Google search warning:',e.message);
+    }
+    return [];
+  }
+}
+
 async function searchDdg(query){
   // DDG often rate-limits automated requests. One short attempt is enough;
   // do not spend 30 seconds waiting on two endpoints.
+  if(!searchEngineAvailable('DuckDuckGo'))return [];
   const url='https://html.duckduckgo.com/html/?q='+encodeURIComponent(query);
   try{
     const {html}=await fetchText(url,5000);
     return extractSearchLinks(html,url);
   }catch(e){
-    log('DuckDuckGo search warning:',e.message);
+    if(/HTTP (403|429)/.test(String(e.message||'')))coolSearchEngine('DuckDuckGo',e.message);
+    else log('DuckDuckGo search warning:',e.message);
     return [];
   }
 }
 
 async function searchBing(query){
+  if(!searchEngineAvailable('Bing'))return [];
   const url='https://www.bing.com/search?q='+encodeURIComponent(query)+'&cc=gb&setlang=en-GB';
   try{
     const {html}=await fetchText(url);
@@ -325,25 +394,36 @@ async function searchBing(query){
       const href=m[1],host=hostOf(href);
       if(!host||isSearchHost(host)||seen.has(href))continue;
       seen.add(href);
-      out.push({url:href,title:stripHtml(m[2]||''),snippet:''});
+      out.push({url:href,title:stripHtml(m[2]||''),snippet:'',provider:'bing'});
       if(out.length>=20)break;
     }
     return out;
-  }catch(e){log('Bing search warning:',e.message);return []}
+  }catch(e){
+    if(/HTTP (403|429)/.test(String(e.message||'')))coolSearchEngine('Bing',e.message);
+    else log('Bing search warning:',e.message);
+    return [];
+  }
 }
 
 async function searchMojeek(query){
+  if(!searchEngineAvailable('Mojeek'))return [];
   const url='https://www.mojeek.com/search?q='+encodeURIComponent(query);
   try{
     const {html}=await fetchText(url);
     return extractSearchLinks(html,url);
-  }catch(e){log('Mojeek search warning:',e.message);return []}
+  }catch(e){
+    if(/HTTP (403|429)/.test(String(e.message||'')))coolSearchEngine('Mojeek',e.message);
+    else log('Mojeek search warning:',e.message);
+    return [];
+  }
 }
 
 async function searchWeb(query){
-  // Public engines are unreliable from an automated local worker. Query the
-  // fallbacks concurrently and use whichever produces usable links.
+  // Google Programmable Search is the primary discovery layer when configured.
+  // DuckDuckGo, Bing and Mojeek run alongside it so one blocked provider never
+  // stops the product research workflow.
   const results=await Promise.allSettled([
+    searchGoogle(query),
     searchDdg(query),
     searchBing(query),
     searchMojeek(query)
