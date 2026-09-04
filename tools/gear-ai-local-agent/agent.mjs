@@ -443,6 +443,26 @@ function sourceFitsScope(source,scope){
   return true;
 }
 
+async function getSharedSources(scope='all'){
+  // Supabase project memory is the shared source brain used by the page AI,
+  // this local worker and assistant-driven research.
+  const {data,error}=await sb.rpc('gearcashout_shared_research_sources',{p_scope:scope});
+  if(error){log('Shared source memory warning:',error.message);return [];}
+  return (data||[]).map(s=>({...s,enabled:s.enabled!==false}));
+}
+
+async function learnSharedSource(sourceUrl, sourceName, sourceKind='other', scope='discovered', notes=null){
+  if(!sourceUrl||!/^https?:\/\//i.test(sourceUrl))return;
+  const {error}=await sb.rpc('gearcashout_learn_research_source',{
+    p_source_url:sourceUrl,
+    p_source_name:sourceName||null,
+    p_source_kind:sourceKind||'other',
+    p_scope:scope||'discovered',
+    p_notes:notes||'Discovered and validated by the local GearCashOut research worker.'
+  });
+  if(error)log('Shared source learning warning:',error.message);
+}
+
 async function getRunEvidenceScope(runId){
   const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
   if(error)throw error;
@@ -764,7 +784,7 @@ async function processOne(){
   log('Claimed product',item.catalog_product_id);
   try{
     await heartbeat('working',null,{run_id:item.run_id,product_id:item.catalog_product_id});
-    const [{data:product,error:pErr},{data:sources,error:sErr}]=await Promise.all([
+    const [{data:product,error:pErr},{data:legacySources,error:sErr}]=await Promise.all([
       sb.from('quote_catalog_products').select('*').eq('id',item.catalog_product_id).single(),
       sb.from('quote_catalog_ai_sources').select('*').eq('enabled',true).order('priority')
     ]);
@@ -772,7 +792,24 @@ async function processOne(){
 
     const evidenceScope=await getRunEvidenceScope(item.run_id);
     log('Research evidence scope:',evidenceScope);
-    const pages=await collectEvidence(product,sources||[],evidenceScope);
+
+    // Dynamic source loading: project memory is primary. The legacy AI-source
+    // table remains a compatibility fallback while the page backend is migrated.
+    const [sharedAll,sharedScoped]=await Promise.all([
+      getSharedSources('all'),
+      evidenceScope==='all'?Promise.resolve([]):getSharedSources(evidenceScope)
+    ]);
+    const sourceByDomain=new Map();
+    for(const s of [...(legacySources||[]),...(sharedAll||[]),...(sharedScoped||[])]){
+      const domain=String(s.domain||'').replace(/^www\./,'').toLowerCase();
+      if(!domain)continue;
+      const existing=sourceByDomain.get(domain);
+      if(!existing || (s.priority||999)<(existing.priority||999))sourceByDomain.set(domain,{...existing,...s,enabled:s.enabled!==false});
+    }
+    const sources=[...sourceByDomain.values()];
+    log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry.');
+
+    const pages=await collectEvidence(product,sources,evidenceScope);
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
     // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
@@ -788,8 +825,10 @@ async function processOne(){
             source_kind:'other',
             evidence_category:'discovered'
           });
+          await learnSharedSource(page.url,host,'other',page.scope_hint||'discovered',
+            'Automatically discovered by the local worker while researching '+productName(product)+'.');
           sourceMapBefore.set(host,{domain:host});
-          log('Learned new source:',host);
+          log('Learned new source into shared memory:',host);
         }catch(e){log('Source registry warning:',host,e.message)}
       }
     }
@@ -802,7 +841,16 @@ async function processOne(){
     const sourceMap=new Map((latestSources||[]).map(s=>[String(s.domain||'').replace(/^www\\./,'').toLowerCase(),s]));
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
-        try{await registerSource(s)}catch{}
+        try{
+          await registerSource(s);
+          await learnSharedSource(
+            s.source_url,
+            s.source_name||hostOf(s.source_url),
+            s.source_kind||'other',
+            s.evidence_category||'discovered',
+            'Source identified by Ollama from validated collected research evidence for '+productName(product)+'.'
+          );
+        }catch{}
       }
     }
 
