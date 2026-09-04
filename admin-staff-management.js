@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
        <div id="edit-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd">
          <label>Display name<input type="text" data-display-name value="${esc(r.display_name||"")}" required></label>
          <label>User ID<input type="text" data-username value="${esc(r.username||"")}" minlength="3" maxlength="40" autocomplete="off" required></label>
+         <label>Business email / own inbox<input type="email" data-business-email value="${esc(r.business_email||"")}" placeholder="staff@gearcashout.co.uk"></label>
          <p style="margin-top:1rem"><strong>Dashboard access</strong></p>
          <label class="checkbox-label"><input type="checkbox" data-p="research" ${r.can_access_research?"checked":""}>Research &amp; Pricing</label>
          <label class="checkbox-label"><input type="checkbox" data-p="purchasing" ${r.can_access_purchasing?"checked":""}>Purchasing</label>
