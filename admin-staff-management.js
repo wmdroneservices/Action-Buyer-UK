@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const {data:me}=await auth.supabase.from("staff_users").select("can_manage_staff,active").eq("user_id",session.user.id).maybeSingle();
  if(!me?.active||!me?.can_manage_staff){location.href="admin.html";return;}
  const notice=(t,ok=true)=>{message.textContent=t;message.className="form-message "+(ok?"success":"error");};
+ const pmStatus=document.getElementById("purelymail-status");
+ const setPmStatus=configured=>{pmStatus.textContent=configured?"PURELYMAIL API CONNECTED":"PURELYMAIL API NOT CONFIGURED";pmStatus.style.color=configured?"#1f6b49":"#9a6700";};
  const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff-v2",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
  const DAYS=[["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"],["sunday","Sunday"]];
@@ -15,6 +17,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const collectSchedule=root=>{const out={};root.querySelectorAll("[data-day]").forEach(row=>{const k=row.dataset.day,off=row.querySelector("[data-off]").checked;out[k]={off,start:off?null:(row.querySelector("[data-start]").value||null),end:off?null:(row.querySelector("[data-end]").value||null)};});return out;};
  const bindSchedule=root=>{root.addEventListener("change",e=>{if(!e.target.matches("[data-off]"))return;const row=e.target.closest("[data-day]"),disabled=e.target.checked;row.querySelector("[data-start]").disabled=disabled;row.querySelector("[data-end]").disabled=disabled;});root.querySelectorAll("[data-off]:checked").forEach(x=>{const row=x.closest("[data-day]");row.querySelector("[data-start]").disabled=true;row.querySelector("[data-end]").disabled=true;});};
  const newSchedule=document.getElementById("new-weekly-schedule");newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);
+ document.getElementById("purelymail-api-form").addEventListener("submit",async e=>{e.preventDefault();const input=document.getElementById("purelymail-api-key"),button=e.target.querySelector("button");const key=input.value.trim();if(!key)return;button.disabled=true;button.textContent="SAVING...";try{await call({action:"configure_purelymail",api_key:key});input.value="";setPmStatus(true);notice("Purelymail API key stored securely. New staff accounts will now create their own mailboxes automatically.");}catch(err){notice(err.message||"Could not save the Purelymail API key.",false);}finally{button.disabled=false;button.textContent="SAVE SECURELY";}});
  const renderSummary=rows=>{
    const active=rows.filter(r=>r.active).length,inactive=rows.length-active;
    summary.innerHTML=
@@ -120,6 +123,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      try{await call({action:"delete",user_id:del.dataset.delete});notice("Staff account deleted.");await load();}catch(err){notice(err.message,false);}
    }
  });
+ try{const pm=await call({action:"purelymail_status"});setPmStatus(!!pm.configured);}catch(e){setPmStatus(false);}
  try{const mb=await call({action:"mailboxes"});mailboxOptions=mb.mailboxes||[];document.getElementById("new-mailbox-access").innerHTML=mailboxHTML([]);}catch(e){notice(e.message||"Could not load mailbox access options.",false);}
  await load();
 });
