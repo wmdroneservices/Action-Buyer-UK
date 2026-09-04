@@ -285,9 +285,9 @@ async function probeKnownSource(source,name,terms){
   return out.slice(0,5);
 }
 
-async function discoverFromKnownSources(product,sources){
+async function discoverFromKnownSources(product,sources,evidenceScope='all'){
   const name=productName(product),terms=productTerms(product);
-  const priority=[...sources].filter(s=>s.enabled&&s.domain).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,cfg.sourceProbeLimit);
+  const priority=[...sources].filter(s=>s.enabled&&s.domain&&sourceFitsScope(s,evidenceScope)).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,cfg.sourceProbeLimit);
   const out=[];
   for(const source of priority){
     const found=await probeKnownSource(source,name,terms);
@@ -302,6 +302,50 @@ function isSearchHost(host){
   return ['duckduckgo.com','bing.com','google.com','google.co.uk','yahoo.com','search.yahoo.com','mojeek.com'].some(d=>host===d||host.endsWith('.'+d));
 }
 
+function isSearchResultUrl(value){
+  try{
+    const u=new URL(value);
+    const host=hostOf(value),path=u.pathname.toLowerCase(),q=u.search.toLowerCase();
+    if(isSearchHost(host))return true;
+    if(/\/(search|catalog|sch)\/?$/.test(path)&&q)return true;
+    if(path.includes('/search/')||path.includes('/search?')||path.includes('/catalog'))return true;
+    if(/[?&](q|s|query|search_text|keyword|_nkw)=/.test(q))return true;
+    return false;
+  }catch{return true}
+}
+
+function normaliseIdentityText(v){
+  return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+
+function looksGenericTitle(v){
+  const s=normaliseIdentityText(v);
+  return !s||['skip to content','generate help code','search','home','shop','menu'].includes(s)||s.length<5;
+}
+
+function evidenceMatchesProduct(product,candidate){
+  const model=normaliseIdentityText(product?.model);
+  const manufacturer=normaliseIdentityText(product?.manufacturer);
+  const hay=normaliseIdentityText([
+    candidate?.source_url,candidate?.discovered_title,candidate?._evidence_title,candidate?._evidence_text
+  ].filter(Boolean).join(' '));
+  if(!model||!hay.includes(model))return false;
+  if(manufacturer&&!hay.includes(manufacturer))return false;
+  return true;
+}
+
+function sourceFitsScope(source,scope){
+  if(scope==='all')return true;
+  const kind=String(source?.source_kind||'').toLowerCase();
+  const cc=String(source?.country_code||'').toUpperCase();
+  const rs=String(source?.research_scope||'').toLowerCase();
+  if(rs&&rs!==scope&&rs!=='all')return false;
+  if(scope==='new_uk')return cc==='GB'&&['retailer','manufacturer'].includes(kind);
+  if(scope==='used_uk')return cc==='GB'&&['marketplace','used_dealer','auction'].includes(kind);
+  if(scope==='overseas')return cc&&cc!=='GB';
+  return true;
+}
+
 async function getRunEvidenceScope(runId){
   const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
   if(error)throw error;
@@ -313,7 +357,7 @@ async function collectEvidence(product,sources,evidenceScope='all'){
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
 
   const terms=productTerms(product);
-  const priority=[...sources].filter(s=>s.enabled).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
+  const priority=[...sources].filter(s=>s.enabled&&sourceFitsScope(s,evidenceScope)).sort((a,b)=>(a.priority||999)-(b.priority||999)).slice(0,12);
   const coreQueries=evidenceScope==='new_uk'
     ? ['"'+name+'" UK price','"'+name+'" new UK retailer','"'+name+'" buy UK']
     : evidenceScope==='used_uk'
@@ -344,7 +388,7 @@ async function collectEvidence(product,sources,evidenceScope='all'){
   // If broad search is weak, immediately switch to the approved source registry.
   if(seen.size<3){
     log('Broad search produced too few results; switching immediately to direct approved-source probes.');
-    const direct=await discoverFromKnownSources(product,sources);
+    const direct=await discoverFromKnownSources(product,sources,evidenceScope);
     for(const r of direct){
       if(!seen.has(r.url))seen.set(r.url,r);
     }
@@ -389,13 +433,13 @@ const schema={
   type:'object',
   properties:{
     candidates:{type:'array',items:{type:'object',properties:{
-      source_url:{type:'string'},source_name:{type:'string'},source_country_code:{type:'string'},
+      evidence_id:{type:'integer'},source_url:{type:'string'},source_name:{type:'string'},source_country_code:{type:'string'},
       source_kind:{type:'string'},discovered_title:{type:'string'},discovered_model_number:{type:'string'},
       price:{type:['number','null']},currency:{type:'string'},condition:{type:'string'},
       availability_status:{type:'string'},match_confidence:{type:'number'},evidence_category:{type:'string'},
       market_region:{type:'string'},package_match:{type:'string'},variant_match:{type:'string'},
       evidence_notes:{type:'string'}
-    },required:['source_url','source_name','source_kind','discovered_title','price','currency','condition','availability_status','match_confidence','evidence_category','market_region','package_match','variant_match','evidence_notes']}},
+    },required:['evidence_id','source_url','source_name','source_kind','discovered_title','price','currency','condition','availability_status','match_confidence','evidence_category','market_region','package_match','variant_match','evidence_notes']}},
     discovered_sources:{type:'array',items:{type:'object',properties:{
       source_url:{type:'string'},source_name:{type:'string'},source_country_code:{type:'string'},
       source_kind:{type:'string'},evidence_category:{type:'string'}
@@ -421,6 +465,7 @@ ${JSON.stringify(evidence)}
 RESEARCH MODE: ${evidenceScope}
 
 Rules:
+- Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, price or availability.
 - Exact model/variant/package matching is mandatory.
 - New UK retail = evidence_category new_uk and bucket 1.
@@ -519,8 +564,12 @@ async function registerSource(c){
   return data;
 }
 
-async function submitCandidate(runId,productId,c,sourceMap){
+async function submitCandidate(runId,productId,product,c,sourceMap){
   if(!c.source_url||!/^https?:\/\//i.test(c.source_url))return false;
+  if(isSearchResultUrl(c.source_url)){log('Rejected search-page URL:',c.source_url);return false;}
+  if(looksGenericTitle(c.discovered_title)){log('Rejected generic listing title:',c.discovered_title);return false;}
+  if(!evidenceMatchesProduct(product,c)){log('Rejected weak product match:',c.source_url);return false;}
+  if(c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){log('Rejected candidate without a usable price:',c.source_url);return false;}
   if(c.package_match==='mismatch'||c.variant_match==='mismatch'||Number(c.match_confidence||0)<0.6)return false;
 
   let sourceId;
@@ -622,8 +671,20 @@ async function processOne(){
     }
 
     let submitted=0;
-    for(const c of (research.candidates||[]).slice(0,25)){
-      if(await submitCandidate(item.run_id,item.catalog_product_id,c,sourceMap))submitted++;
+    const seenCandidateUrls=new Set();
+    for(const raw of (research.candidates||[]).slice(0,25)){
+      const evidenceId=Math.trunc(Number(raw.evidence_id));
+      const page=pages[evidenceId-1];
+      if(!page){log('Rejected candidate with invalid evidence_id:',raw.evidence_id);continue;}
+      const c={...raw,
+        source_url:page.url,
+        _evidence_title:page.title,
+        _evidence_text:page.text
+      };
+      const dedupeKey=String(c.source_url).split('#')[0];
+      if(seenCandidateUrls.has(dedupeKey))continue;
+      seenCandidateUrls.add(dedupeKey);
+      if(await submitCandidate(item.run_id,item.catalog_product_id,product,c,sourceMap))submitted++;
     }
 
     const {error:doneError}=await sb.rpc('ai_research_complete_queue_item',{
