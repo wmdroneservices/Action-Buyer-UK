@@ -101,15 +101,15 @@ async function processRemoteCommand(){
       setTimeout(()=>process.exit(0),500);
       return true;
     }
-    if(data.command==='restart_worker'){
+    if(data.command==='restart_worker'||data.command==='start_worker'){
       const restartScript=process.env.GEAR_RESTART_SCRIPT||'C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1';
       await sb.from('quote_catalog_ai_agent_commands').update({
         status:'completed',
         completed_at:new Date().toISOString(),
-        result:{worker:'restarting',restart_script:restartScript}
+        result:{worker:data.command==='start_worker'?'starting':'restarting',restart_script:restartScript}
       }).eq('id',data.id);
 
-      log('Remote dashboard requested PowerShell / AI worker restart using:',restartScript);
+      log('Remote dashboard requested PowerShell / AI worker '+(data.command==='start_worker'?'start':'restart')+' using:',restartScript);
       try{
         const child=spawn('powershell.exe',[
           '-NoProfile',
