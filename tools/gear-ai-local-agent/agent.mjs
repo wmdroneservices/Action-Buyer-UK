@@ -117,31 +117,27 @@ async function ensureOllama(){
 }
 
 function productName(p){
-  // Catalogue fields often repeat the model at the start of package_name,
-  // e.g. manufacturer="BetaFPV", model="Pavo30",
-  // package_name="Pavo30 Brushless Whoop Quadcopter".
-  const parts=[p.manufacturer,p.model,p.package_name]
-    .filter(Boolean).map(x=>String(x).replace(/\s+/g,' ').trim()).filter(Boolean);
+  // Build one clean search identity. Catalogue package_name often repeats the
+  // model or the complete manufacturer + model, so remove those prefixes before
+  // constructing the query.
+  const clean=v=>String(v||'').replace(/\s+/g,' ').trim();
+  const manufacturer=clean(p.manufacturer);
+  const model=clean(p.model);
+  let packageName=clean(p.package_name);
 
-  const out=[];
-  for(let part of parts){
-    const lower=part.toLowerCase();
-    // Remove an exact duplicate part.
-    if(out.some(x=>x.toLowerCase()===lower))continue;
+  const full=clean([manufacturer,model].filter(Boolean).join(' '));
+  const startsWithCI=(value,prefix)=>prefix&&value.toLowerCase().startsWith(prefix.toLowerCase());
 
-    // Remove a prefix that repeats the immediately preceding catalogue part.
-    const prev=out[out.length-1];
-    if(prev){
-      const prevWords=prev.split(/\s+/);
-      const words=part.split(/\s+/);
-      let n=Math.min(prevWords.length,words.length);
-      while(n>0 && prevWords.slice(-n).join(' ').toLowerCase()!==words.slice(0,n).join(' ').toLowerCase())n--;
-      if(n>0)part=words.slice(n).join(' ').trim();
+  if(packageName){
+    if(full&&packageName.toLowerCase()===full.toLowerCase()) packageName='';
+    else if(startsWithCI(packageName,full)){
+      packageName=clean(packageName.slice(full.length));
+    }else if(startsWithCI(packageName,model)){
+      packageName=clean(packageName.slice(model.length));
     }
-    if(part)out.push(part);
   }
 
-  return out.join(' ').replace(/\s+/g,' ').trim();
+  return clean([manufacturer,model,packageName].filter(Boolean).join(' '));
 }
 
 function productTerms(p){
