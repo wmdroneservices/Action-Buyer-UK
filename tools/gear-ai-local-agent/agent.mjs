@@ -1291,6 +1291,18 @@ async function main(){
   else log('No configuration file found. Preferred location:',envConfig.external);
   await heartbeat('starting',null,{ollama_url:cfg.ollamaUrl});
   await ensureOllama();
+
+  // If the PC or worker was restarted while a queue item was marked as
+  // processing, recover that orphaned item before continuous research resumes.
+  // This prevents one abandoned item from blocking the entire continuous queue.
+  try{
+    const {data,error}=await sb.rpc('ai_research_recover_interrupted_queue_items',{p_max_age:'00:05:00'});
+    if(error)throw error;
+    if(Number(data||0)>0)log('Recovered',data,'interrupted queue item(s) left behind by a previous worker session.');
+  }catch(e){
+    log('Queue recovery warning:',e.message||String(e));
+  }
+
   await heartbeat('online',null,{ollama_url:cfg.ollamaUrl});
   log('Ready. Polling every',cfg.pollSeconds,'seconds.');
 
