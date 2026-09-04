@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const {data:me}=await auth.supabase.from("staff_users").select("can_manage_staff,active").eq("user_id",session.user.id).maybeSingle();
  if(!me?.active||!me?.can_manage_staff){location.href="admin.html";return;}
  const notice=(t,ok=true)=>{message.textContent=t;message.className="form-message "+(ok?"success":"error");};
- const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
+ const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff-v2",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
  const DAYS=[["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"],["sunday","Sunday"]];
  const scheduleHTML=s=>'<div style="display:grid;gap:.55rem">'+DAYS.map(([k,label])=>{const x=(s||{})[k]||{};return '<div data-day="'+k+'" style="display:grid;grid-template-columns:minmax(90px,1fr) minmax(125px,1fr) minmax(125px,1fr) minmax(105px,auto);gap:.65rem;align-items:end;padding:.65rem;border:1px solid #d9dee5;background:#fff"><strong style="padding-bottom:.55rem;color:#102f4f">'+label+'</strong><label>Start<input type="time" data-start value="'+esc(x.start||"")+'"></label><label>End<input type="time" data-end value="'+esc(x.end||"")+'"></label><label class="checkbox-label" style="margin:0;padding-bottom:.55rem"><input type="checkbox" data-off '+(x.off?"checked":"")+'> Day off</label></div>'}).join("")+'</div>';
@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
    const workSchedule=collectSchedule(newSchedule);
    ["research","purchasing","sales","customers","manage_staff"].forEach(k=>permissions[k]=document.querySelector('[name="'+k+'"]').checked);
    try{
-     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,permissions});
+     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),business_email:document.getElementById("new-business-email").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,permissions});
      e.target.reset();newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);notice("Staff account created.");await load();
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      const originalText=save.textContent;
      save.disabled=true;save.textContent="SAVING...";
      try{
-       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),permissions});
+       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),business_email:panel.querySelector("[data-business-email]")?.value.trim()||"",active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),permissions});
        save.textContent="SAVED";
        notice("Staff account updated successfully.");
        await load();
