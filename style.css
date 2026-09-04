@@ -42,6 +42,18 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 @media(max-width:700px){.catalog-editor-summary{padding:18px}.catalog-editor-content{padding:0 18px 22px}.catalog-editor-summary strong{font-size:1.2rem}}
 
 
+/* Quote Catalogue: collapsible catalogue status summary. */
+.catalogue-status-panel{padding:0;overflow:hidden}
+.catalogue-status-summary-toggle{list-style:none;cursor:pointer;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.catalogue-status-summary-toggle::-webkit-details-marker{display:none}
+.catalogue-status-summary-toggle>span:first-child{display:grid;gap:5px}
+.catalogue-status-summary-toggle strong{font-size:1.45rem;color:var(--navy,#20384f)}
+.catalogue-status-summary-toggle small{color:var(--muted,#667085);font-size:.9rem}
+.catalogue-status-chevron{width:12px;height:12px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s ease;margin-right:6px;margin-bottom:6px}
+.catalogue-status-panel[open] .catalogue-status-chevron{transform:rotate(225deg);margin-bottom:-6px}
+.catalogue-status-summary-content{padding:0 28px 28px;border-top:1px solid rgba(0,0,0,.08)}
+@media(max-width:700px){.catalogue-status-summary-toggle{padding:18px}.catalogue-status-summary-content{padding:0 18px 22px}.catalogue-status-summary-toggle strong{font-size:1.2rem}}
+
 /* Purchasing dashboard: visual pipeline cards */
 .purchase-pipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;margin-top:1.25rem}
 .pipeline-stage{display:flex;align-items:center;gap:.9rem;min-height:104px;padding:1rem 1.05rem;background:#f7f8f8;border:1px solid #d9dedf;border-left:4px solid #8aa0af;box-shadow:0 2px 6px rgba(16,47,79,.05)}
