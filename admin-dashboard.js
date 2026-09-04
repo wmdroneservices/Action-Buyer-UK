@@ -2,6 +2,10 @@ let catalogueRefreshTimer=null;
 let catalogueLoadInProgress=false;
 
 document.addEventListener("DOMContentLoaded",async()=>{
+ if(window.__gearCashOutDashboardInitialised)return;
+ window.__gearCashOutDashboardInitialised=true;
+ document.body.classList.add("staff-permissions-loading");
+ document.body.classList.remove("staff-permissions-ready");
  const auth=window.actionBuyerAuth;
  const session=await auth.getSession();
  if(!session){location.href="staff-login.html";return;}
@@ -27,6 +31,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
 
  const welcome=document.getElementById("staff-welcome");
  if(welcome)welcome.textContent="Signed in as "+(staff.display_name||staff.username||"Staff");
+
+ // Reveal permission-controlled navigation and dashboard cards only after the
+ // staff record has been read and all permissions have been applied.
+ document.body.classList.remove("staff-permissions-loading");
+ document.body.classList.add("staff-permissions-ready");
 
  const signout=document.getElementById("staff-sign-out");
  if(signout)signout.addEventListener("click",()=>auth.signOut());
