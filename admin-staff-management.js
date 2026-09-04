@@ -118,9 +118,34 @@ document.addEventListener("DOMContentLoaded",async()=>{
    }
    const del=e.target.closest("[data-delete]");
    if(del){
-     const name=del.dataset.name||"this staff account";
-     if(!confirm('Delete "'+name+'"? This permanently removes the staff login and cannot be undone.'))return;
-     try{await call({action:"delete",user_id:del.dataset.delete});notice("Staff account deleted.");await load();}catch(err){notice(err.message,false);}
+     const name=del.dataset.name||"this staff account",userId=del.dataset.delete;
+     let modal=document.getElementById("staff-delete-confirmation");
+     if(!modal){
+       modal=document.createElement("div");
+       modal.id="staff-delete-confirmation";
+       modal.style.cssText="position:fixed;inset:0;background:rgba(9,24,39,.58);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem";
+       modal.innerHTML='<div role="dialog" aria-modal="true" aria-labelledby="staff-delete-title" style="width:min(100%,520px);background:#fff;border-radius:10px;border:1px solid #d9dee5;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:1.5rem"><p class="section-kicker">PERMANENT ACTION</p><h2 id="staff-delete-title" style="margin-top:0;color:#8f1d16">Delete staff account?</h2><p id="staff-delete-copy"></p><p style="font-size:.9rem;color:#5f6b78">To continue, type <strong>DELETE</strong> below. This is a second confirmation step and helps prevent accidental deletion.</p><label>Confirmation<input id="staff-delete-word" type="text" autocomplete="off" placeholder="Type DELETE"></label><div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.25rem;flex-wrap:wrap"><button type="button" class="btn btn-secondary" data-cancel-delete>CANCEL</button><button type="button" class="btn" data-confirm-delete disabled style="background:#b42318;color:#fff;border-color:#b42318">PERMANENTLY DELETE ACCOUNT</button></div></div>';
+       document.body.appendChild(modal);
+       const input=modal.querySelector("#staff-delete-word"),confirmBtn=modal.querySelector("[data-confirm-delete]");
+       input.addEventListener("input",()=>{confirmBtn.disabled=input.value.trim().toUpperCase()!=="DELETE";});
+       modal.addEventListener("click",ev=>{if(ev.target===modal)modal.remove();});
+       modal.querySelector("[data-cancel-delete]").addEventListener("click",()=>modal.remove());
+     }
+     modal.querySelector("#staff-delete-copy").textContent='You are about to permanently delete "'+name+'". The staff login will be removed and this cannot be undone.';
+     modal.dataset.userId=userId;
+     modal.querySelector("#staff-delete-word").value="";
+     const confirmBtn=modal.querySelector("[data-confirm-delete]");
+     confirmBtn.disabled=true;
+     confirmBtn.onclick=async()=>{
+       if(modal.querySelector("#staff-delete-word").value.trim().toUpperCase()!=="DELETE")return;
+       confirmBtn.disabled=true;confirmBtn.textContent="DELETING...";
+       try{
+         await call({action:"delete",user_id:modal.dataset.userId});
+         modal.remove();notice("Staff account deleted.");await load();
+       }catch(err){
+         confirmBtn.disabled=false;confirmBtn.textContent="PERMANENTLY DELETE ACCOUNT";notice(err.message||"Could not delete staff account.",false);
+       }
+     };
    }
  });
  try{const pm=await call({action:"purelymail_status"});setPmStatus(!!pm.configured);}catch(e){setPmStatus(false);}
