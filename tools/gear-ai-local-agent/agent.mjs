@@ -443,6 +443,41 @@ function sourceFitsScope(source,scope){
   return true;
 }
 
+function normalizeIdentity(value=''){
+  return String(value).toLowerCase()
+    .replace(/\b(the|camera|drone|digital|professional|standard package)\b/g,' ')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim().replace(/\s+/g,' ');
+}
+
+async function checkCatalogueDuplicate(candidate={}){
+  // Research findings are never allowed to auto-create catalogue products.
+  // This check only helps classify findings for manual review.
+  const manufacturer=normalizeIdentity(candidate.manufacturer||'');
+  const model=normalizeIdentity(candidate.model||candidate.discovered_model_number||'');
+  const title=normalizeIdentity(candidate.title||candidate.discovered_title||'');
+
+  const {data:products,error}=await sb.from('quote_catalog_products')
+    .select('id,manufacturer,model,package_key,package_name,main_category,product_type,active')
+    .limit(5000);
+  if(error)throw error;
+
+  const scored=(products||[]).map(p=>{
+    const pm=normalizeIdentity(p.manufacturer);
+    const pmodel=normalizeIdentity(p.model);
+    const pname=normalizeIdentity([p.manufacturer,p.model,p.package_name].filter(Boolean).join(' '));
+    let score=0;
+    if(manufacturer&&pm===manufacturer)score+=0.25;
+    if(model&&pmodel===model)score+=0.60;
+    if(title&&pname&&title===pname)score+=0.75;
+    if(model&&pmodel&& (model.includes(pmodel)||pmodel.includes(model)))score=Math.max(score,0.85);
+    return {...p,duplicate_score:Math.min(score,1)};
+  }).filter(p=>p.duplicate_score>=0.75)
+    .sort((a,b)=>b.duplicate_score-a.duplicate_score);
+
+  return {is_duplicate:scored.length>0,matches:scored.slice(0,5)};
+}
+
 async function getSharedSources(scope='all'){
   // Supabase project memory is the shared source brain used by the page AI,
   // this local worker and assistant-driven research.
