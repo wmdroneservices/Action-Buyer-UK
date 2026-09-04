@@ -332,6 +332,8 @@ function edit(id){editingId=editingId===id?null:id;render();}
 async function saveEdit(id){
  const editor=document.querySelector('[data-editor-id="'+CSS.escape(String(id))+'"]');
  if(!editor)throw Error('Editor not found.');
+ const current=candidates.find(c=>String(c.id)===String(id));
+ if(!current)throw Error('Finding is no longer available.');
  const value=name=>clean(editor.querySelector('[data-field="'+name+'"]')?.value||'');
  const priceText=value('edited_price');
  const price=priceText===''?null:Number(priceText);
@@ -360,8 +362,17 @@ async function saveEdit(id){
  };
  const {error}=await sb.from('quote_catalog_ai_candidates').update(payload).eq('id',id);
  if(error)throw error;
+
+ // Applied findings remain editable. Re-sync the existing live evidence row immediately
+ // so a corrected category (for example NEW UK) cannot remain stuck in the wrong bucket.
+ if(current.applied_at||current.applied_evidence_id){
+   const {error:syncError}=await sb.rpc('sync_applied_ai_candidate',{p_candidate_id:id});
+   if(syncError)throw syncError;
+   msg('Applied finding and live evidence updated.');
+ }else{
+   msg('Finding saved. You can now accept it and apply it to the live evidence catalogue.');
+ }
  editingId=null;
- msg('Finding saved. You can now accept it and apply it to the live evidence catalogue.');
  await load();
 }
 async function decide(decision){rememberSelection();const ids=checked();if(!ids.length)throw Error('Select at least one evidence entry first.');const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).in('id',ids);if(error)throw error;ids.forEach(id=>selectedCandidateIds.delete(String(id)));msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+'.');await load()}
