@@ -23,8 +23,11 @@ function toBase64(bytes:Uint8Array){let s="";const chunk=0x8000;for(let i=0;i<by
 async function parseEmail(source:string){const p=await simpleParser(source);const map=(a:any)=>Array.isArray(a)?a.map((x:any)=>({name:x.name||"",address:x.address||""})):[];return {text:p.text||"",html:typeof p.html==="string"?p.html:"",from:map(p.from?.value),to:map(p.to?.value),cc:map(p.cc?.value),replyTo:map(p.replyTo?.value),attachments:(p.attachments||[]).map((a:any,i:number)=>({index:i,filename:a.filename||"attachment",content_type:a.contentType||"application/octet-stream",size:a.size||a.content?.length||0,content_id:a.cid||null}))};}
 function defaultBox(){return {id:"default",email_address:env("PURELYMAIL_SMTP_USER","PURELYMAIL_QUOTE_SMTP_USER")||env("PURELYMAIL_IMAP_USER")||"Primary mailbox",display_name:"Primary business mailbox",mailbox_type:"management",secret_prefix:"PURELYMAIL",active:true,configured:true};}
 function cfg(box:any){
- if(box.id==="default")return {smtpUser:env("PURELYMAIL_SMTP_USER","PURELYMAIL_QUOTE_SMTP_USER"),smtpPass:env("PURELYMAIL_SMTP_PASS","PURELYMAIL_QUOTE_SMTP_PASS"),imapUser:env("PURELYMAIL_IMAP_USER","PURELYMAIL_SMTP_USER","PURELYMAIL_QUOTE_SMTP_USER"),imapPass:env("PURELYMAIL_IMAP_PASS","PURELYMAIL_SMTP_PASS","PURELYMAIL_QUOTE_SMTP_PASS")};
- const p=box.secret_prefix;
+ const p=String(box.secret_prefix||"");
+ // Existing GearCashOut business credentials: info uses the original PURELYMAIL names,
+ // while quote uses the dedicated PURELYMAIL_QUOTE names.
+ if(box.id==="default"||p==="PURELYMAIL_INFO")return {smtpUser:env("PURELYMAIL_SMTP_USER"),smtpPass:env("PURELYMAIL_SMTP_PASS"),imapUser:env("PURELYMAIL_IMAP_USER","PURELYMAIL_SMTP_USER"),imapPass:env("PURELYMAIL_IMAP_PASS","PURELYMAIL_SMTP_PASS")};
+ if(p==="PURELYMAIL_QUOTE")return {smtpUser:env("PURELYMAIL_QUOTE_SMTP_USER"),smtpPass:env("PURELYMAIL_QUOTE_SMTP_PASS"),imapUser:env("PURELYMAIL_QUOTE_IMAP_USER","PURELYMAIL_QUOTE_SMTP_USER"),imapPass:env("PURELYMAIL_QUOTE_IMAP_PASS","PURELYMAIL_QUOTE_SMTP_PASS")};
  return {smtpUser:env(p+"_SMTP_USER"),smtpPass:env(p+"_SMTP_PASS"),imapUser:env(p+"_IMAP_USER",p+"_SMTP_USER"),imapPass:env(p+"_IMAP_PASS",p+"_SMTP_PASS")};
 }
 async function boxes(admin:any){
