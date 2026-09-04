@@ -5,10 +5,10 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260903-cta-uniform-2">
+<title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260903-cta-uniform-2"><style>body.staff-permissions-loading [data-permission]{visibility:hidden!important}body.staff-permissions-ready [data-permission][hidden]{display:none!important}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-dashboard-todo-2" defer></script><script src="live-task-board.js?v=20260903-live-task-main-1" defer></script><script src="admin-test-reset.js?v=20260903-management-reset-1" defer></script>
 </head>
-<body>
+<body class="staff-permissions-loading">
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
 <li data-permission="research"><a href="admin-research-pricing.html">RESEARCH &amp; PRICING</a></li>
 <li data-permission="purchasing"><a href="admin-purchasing.html">PURCHASING</a></li>
@@ -17,7 +17,7 @@
 <li data-permission="manage_staff"><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li>\n<li data-permission="mail"><a href="admin-mail.html">MAIL</a></li>
 </ul></nav></div></header>
 <main class="account-page"><div class="container">
-<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>GearCashOut Dashboard</h1><p id="staff-welcome">Choose an area to manage.</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div>
+<div class="account-header"><div><p class="section-kicker">STAFF</p><h1>GearCashOut Dashboard</h1><p id="staff-welcome">Loading your dashboard…</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div>
 <div id="staff-message" class="form-message" role="status" aria-live="polite"></div>
 <section class="account-panel"><div id="staff-dashboard-grid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:1rem">
 <a data-permission="research" href="admin-research-pricing.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">RESEARCH &amp; PRICING DASHBOARD</strong><span class="btn btn-primary dashboard-cta">OPEN RESEARCH &amp; PRICING</span></a>
