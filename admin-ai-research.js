@@ -435,5 +435,5 @@ const ollama=$('rpc-ollama');if(ollama&&ollama.textContent==='Checking…')ollam
 const model=$('rpc-model');if(model&&model.textContent==='Checking…')model.textContent='—';
 const live=$('live-research-list');if(live&&/Loading live research activity/i.test(live.textContent))live.innerHTML='<div class="empty">Live research status is temporarily unavailable. The panel will retry automatically.</div>';
 msg(failed.length?'Research Centre loaded; some live panels will retry automatically.':'Review queue loaded.');
-setInterval(()=>{loadAgentStatus().catch(()=>{});loadContinuousResearch().catch(()=>{});loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadResearchPcControl().catch(()=>{});load().catch(()=>{});},15000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+setInterval(()=>{loadAgentStatus().catch(()=>{});loadContinuousResearch().catch(()=>{});loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadResearchPcControl().catch(()=>{});},15000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
