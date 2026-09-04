@@ -116,7 +116,7 @@ async function saveToSent(admin:any,box:any,c:any,info:any,to:string,subject:str
    ""
   ].join("\r\n");
   await client.append(sent.path,raw,["\\Seen"]);
-  return true;
+  return sent.path;
  }finally{try{await client.logout();}catch(_){}}
 }
 
@@ -148,7 +148,11 @@ Deno.serve(async req=>{
     if(action==="folders"){const list=await client.list();return json({ok:true,folders:list.map((f:any)=>({path:f.path,name:f.name,specialUse:f.specialUse||null}))});}
     const folder=String(body.folder||"INBOX"),lock=await client.getMailboxLock(folder);
     try{
-     if(action==="messages"){const status=await client.status(folder,{messages:true,unseen:true}),total=Number(status.messages||0),start=Math.max(1,total-49),messages:any[]=[];if(total>0)for await(const m of client.fetch(`${start}:*`,{uid:true,envelope:true,flags:true,internalDate:true}))messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});messages.reverse();return json({ok:true,folder,total,unseen:Number(status.unseen||0),messages});}
+     if(action==="messages"){const status=await client.status(folder,{messages:true,unseen:true}),total=Number(status.messages||0),start=Math.max(1,total-49),messages:any[]=[];
+      // Fetch by sequence number while the mailbox is locked. A UID range such as 1:* can miss
+      // messages in a newly created Sent folder when the first UID is not in that range.
+      if(total>0)for await(const m of client.fetch(`${start}:*`,{uid:true,envelope:true,flags:true,internalDate:true}))messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});
+      messages.reverse();return json({ok:true,folder,total,unseen:Number(status.unseen||0),messages});}
      const uid=Number(body.uid);if(!uid)return json({error:"Message UID is required"},400);
      if(action==="archive"||action==="delete"){
       const folders=await client.list();
@@ -172,9 +176,9 @@ Deno.serve(async req=>{
    const to=clean(body.to),subject=clean(body.subject),text=String(body.text||"");if(!to||!subject||!text)return json({error:"Recipient, subject and message are required"},400);
    const transporter=await verifySmtp(admin,box,c);
    const info=await transporter.sendMail({from:c.smtpUser,to,subject,text,...(body.replyTo?{replyTo:clean(body.replyTo)}:{})});
-   let savedToSent=false,sentSaveError="";
-   try{savedToSent=await saveToSent(admin,box,c,info,to,subject,text);}catch(e:any){sentSaveError=e?.message||"The email was sent, but could not be saved to Sent.";}
-   return json({ok:true,sent:true,savedToSent,sentSaveError,messageId:info.messageId});
+   let savedToSent=false,sentFolder="",sentSaveError="";
+   try{sentFolder=await saveToSent(admin,box,c,info,to,subject,text);savedToSent=!!sentFolder;}catch(e:any){sentSaveError=e?.message||"The email was sent, but could not be saved to Sent.";}
+   return json({ok:true,sent:true,savedToSent,sentFolder,sentSaveError,messageId:info.messageId});
   }
   return json({error:"Unknown action"},400);
  }catch(e:any){return json({error:e?.message||"Mail operation failed"},400);}
