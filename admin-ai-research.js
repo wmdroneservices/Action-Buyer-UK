@@ -39,36 +39,60 @@ function editorMarkup(c){
    +'<div class="ai-editor-actions"><button type="button" class="btn btn-primary ai-save-edit" data-id="'+esc(c.id)+'">SAVE FINDING</button><button type="button" class="btn btn-secondary ai-cancel-edit" data-id="'+esc(c.id)+'">CANCEL</button></div>'
    +'</section>';
 }
+function renderCandidateCard(c){
+ const p=productFor(c);
+ const title=c.edited_title??c.discovered_title??'—';
+ const price=c.edited_price??c.price;
+ const condition=c.edited_condition??c.condition??'—';
+ const url=c.edited_source_url??c.source_url;
+ const rawMatch=c.edited_match_confidence??c.match_confidence;
+ const match=rawMatch==null||rawMatch===''?'—':Math.round(Number(rawMatch)<=1?Number(rawMatch)*100:Number(rawMatch))+'%';
+ const decision=c.applied_at?'applied':(c.decision||'pending');
+ const category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified';
+ const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
+ const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable';
+ const productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'Product ID '+String(c.catalog_product_id||'—');
+ return '<article class="ai-review-card">'
+   +'<div class="ai-review-select"><input type="checkbox" class="candidate-check" value="'+esc(c.id)+'" aria-label="Select this finding"></div>'
+   +'<div class="ai-review-product"><p class="section-kicker">CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta)+'</p></div>'
+   +'<div class="ai-review-evidence">'
+     +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
+     +'<h3>'+esc(title)+'</h3>'
+     +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
+     +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
+     +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
+   +'</div>'
+   +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button></div>'
+   +(editingId===c.id?editorMarkup(c):'')
+ +'</article>';
+}
+function renderSection(title,description,rows,state,open){
+ if(!rows.length)return '';
+ return '<details class="ai-decision-section ai-decision-'+esc(state)+'"'+(open?' open':'')+'>'
+   +'<summary><div><p class="section-kicker">'+esc(state.toUpperCase())+' FINDINGS</p><h2>'+esc(title)+' <span class="ai-decision-count">'+rows.length+'</span></h2><p>'+esc(description)+'</p></div><span class="ai-decision-toggle">VIEW</span></summary>'
+   +'<div class="ai-decision-section-content">'+rows.map(renderCandidateCard).join('')+'</div>'
+ +'</details>';
+}
 function render(){
  const body=$('ai-candidates');if(!body)return;
  if(!candidates.length){body.innerHTML='<div class="ai-empty-state">No proposed AI findings yet.</div>';return}
- body.innerHTML=candidates.map(c=>{
-   const p=productFor(c);
-   const title=c.edited_title??c.discovered_title??'—';
-   const price=c.edited_price??c.price;
-   const condition=c.edited_condition??c.condition??'—';
-   const url=c.edited_source_url??c.source_url;
-   const rawMatch=c.edited_match_confidence??c.match_confidence;
-   const match=rawMatch==null||rawMatch===''?'—':Math.round(Number(rawMatch)<=1?Number(rawMatch)*100:Number(rawMatch))+'%';
-   const decision=c.applied_at?'applied':(c.decision||'pending');
-   const category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified';
-   const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
-   const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable';
-   const productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'Product ID '+String(c.catalog_product_id||'—');
-   return '<article class="ai-review-card">'
-     +'<div class="ai-review-select"><input type="checkbox" class="candidate-check" value="'+esc(c.id)+'" aria-label="Select this finding"></div>'
-     +'<div class="ai-review-product"><p class="section-kicker">CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta)+'</p></div>'
-     +'<div class="ai-review-evidence">'
-       +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
-       +'<h3>'+esc(title)+'</h3>'
-       +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
-       +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
-       +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
-     +'</div>'
-     +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button></div>'
-     +(editingId===c.id?editorMarkup(c):'')
-   +'</article>';
- }).join('');
+ const pending=candidates.filter(c=>!c.applied_at&&(c.decision||'pending')==='pending');
+ const accepted=candidates.filter(c=>!c.applied_at&&c.decision==='accepted');
+ const rejected=candidates.filter(c=>c.decision==='rejected');
+ const applied=candidates.filter(c=>c.applied_at);
+ let html='';
+ if(pending.length){
+   html+='<div class="ai-current-findings">'
+     +'<div class="ai-current-findings-heading"><p class="section-kicker">PENDING REVIEW</p><h2>Findings awaiting a decision <span class="ai-decision-count">'+pending.length+'</span></h2><p>These are the active findings currently waiting for you to edit, accept or reject.</p></div>'
+     +pending.map(renderCandidateCard).join('')
+   +'</div>';
+ }else{
+   html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
+ }
+ html+=renderSection('Accepted findings','Accepted evidence is kept separate here until you apply it to the live evidence catalogue.',accepted,'accepted',false);
+ html+=renderSection('Rejected findings','Rejected evidence is retained separately for audit and can still be opened and reviewed if needed.',rejected,'rejected',false);
+ if(applied.length)html+=renderSection('Applied to live evidence','These accepted findings have already been applied to the live evidence catalogue.',applied,'applied',false);
+ body.innerHTML=html;
 }
 function renderSources(){const body=$('ai-sources');if(!body)return;const rows=sources.filter(s=>s.discovery_status==='discovered'||s.discovery_status==='blocked'||s.discovered_at);if(!rows.length){body.innerHTML='<tr><td colspan="8">No newly discovered sources yet.</td></tr>';return}body.innerHTML=rows.map(s=>'<tr><td><strong>'+esc(s.source_name)+'</strong><br><small>'+esc(s.domain)+'</small></td><td>'+esc(s.country_code||'—')+'</td><td>'+esc(s.source_kind||'—')+'</td><td>'+esc(s.research_scope||'—')+'</td><td>'+esc(s.discovered_at?new Date(s.discovered_at).toLocaleDateString('en-GB'):'—')+'</td><td>'+esc(s.discovery_count??0)+'</td><td>'+esc(s.discovery_status||'approved')+'</td><td><button class="btn btn-primary source-action" data-id="'+esc(s.id)+'" data-status="approved" type="button">APPROVE</button> <button class="btn btn-secondary source-action" data-id="'+esc(s.id)+'" data-status="blocked" type="button">BLOCK</button></td></tr>').join('')}
 function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=current}
