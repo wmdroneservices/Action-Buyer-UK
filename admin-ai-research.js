@@ -364,7 +364,31 @@ async function saveEdit(id){
  await load();
 }
 async function decide(decision){rememberSelection();const ids=checked();if(!ids.length)throw Error('Select at least one evidence entry first.');const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).in('id',ids);if(error)throw error;ids.forEach(id=>selectedCandidateIds.delete(String(id)));msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+'.');await load()}
-async function apply(){rememberSelection();const ids=checked();if(!ids.length)throw Error('Select accepted evidence first.');let done=0;for(const id of ids){const c=candidates.find(x=>x.id===id);if(c?.decision!=='accepted'||c.applied_at)continue;const {error}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});if(error)throw error;done++}ids.forEach(id=>selectedCandidateIds.delete(String(id)));msg(done?done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to live evidence.':'Only newly accepted entries can be applied.',!done);await load()}
+async function apply(){
+ rememberSelection();
+ // "APPLY ACCEPTED TO LIVE EVIDENCE" should do exactly that. If specific accepted
+ // findings are ticked, apply those; otherwise apply every accepted, unapplied finding.
+ const selected=checked();
+ const ids=selected.length
+   ?selected.filter(id=>{const c=candidates.find(x=>String(x.id)===String(id));return c?.decision==='accepted'&&!c.applied_at;})
+   :candidates.filter(c=>c.decision==='accepted'&&!c.applied_at).map(c=>String(c.id));
+ if(!ids.length)throw Error('There are no accepted findings ready to apply to live evidence.');
+ const button=$('apply-selected');
+ if(button){button.disabled=true;button.textContent='APPLYING ACCEPTED EVIDENCE…';}
+ try{
+   let done=0;
+   for(const id of ids){
+     const {error}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
+     if(error)throw error;
+     done++;
+   }
+   ids.forEach(id=>selectedCandidateIds.delete(String(id)));
+   msg(done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to live evidence.');
+   await load();
+ }finally{
+   if(button){button.disabled=false;button.textContent='APPLY ACCEPTED TO LIVE EVIDENCE';}
+ }
+}
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
 async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
 document.querySelectorAll('.ai-scope-option').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
