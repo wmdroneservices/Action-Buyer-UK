@@ -17,18 +17,6 @@
     const seen=new Set();
     return (rows||[]).filter(r=>{const key=evidenceKey(r);if(seen.has(key))return false;seen.add(key);return true;});
   };
-  const evidenceKey=r=>[
-    String(r.retailer||'').trim().toLowerCase(),
-    String(r.price_type||'').trim().toLowerCase(),
-    String(r.condition||'').trim().toLowerCase(),
-    r.buy_price??'',r.sell_price??'',
-    String(r.source_url||'').trim().replace(/\\/$/,'').toLowerCase()
-  ].join('|');
-  const dedupeEvidenceRows=rows=>{
-    const seen=new Set();
-    return (rows||[]).filter(r=>{const key=evidenceKey(r);if(seen.has(key))return false;seen.add(key);return true;});
-  };
-
   function addStyles(){
     if(document.getElementById('catalog-accordion-styles'))return;
     const s=document.createElement('style');s.id='catalog-accordion-styles';s.textContent=`
@@ -54,7 +42,7 @@
     const rrp=p.manufacturer_rrp===null||p.manufacturer_rrp===undefined?'—':money(p.manufacturer_rrp);
     card.innerHTML=`
       <button type="button" class="catalog-accordion-trigger" aria-expanded="false">
-        <span class="catalog-accordion-title"><span class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</span><h3>${esc(p.manufacturer)} ${esc(p.model)} — ${esc(p.package_name||p.package_key)}</h3><p>RRP ${rrp} ${esc(p.manufacturer_rrp_currency||'')} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></span>
+        <span class="catalog-accordion-title"><span class="valuation-ref">${esc(p.manufacturer)} · ${esc(p.category||'')}</span><h3>${esc(p.manufacturer)} ${esc(p.model)}${(()=>{const m=String(p.model||'').trim().toLowerCase(),pkg=String(p.package_name||p.package_key||'').trim();return pkg&&pkg.toLowerCase()!==m&&!pkg.toLowerCase().startsWith(m+' ')?' — '+esc(pkg):''})()}</h3><p>RRP ${rrp} ${esc(p.manufacturer_rrp_currency||'')} · Sealed ${money(p.factory_sealed_price)} · Unused ${money(p.opened_unused_price)} · Excellent ${money(p.excellent_price)} · Good ${money(p.good_price)} · Fair ${money(p.fair_price)}</p></span>
         <span class="catalog-accordion-chevron" aria-hidden="true">⌄</span>
       </button>
       <div class="catalog-accordion-panel" aria-hidden="true"><div class="catalog-accordion-loading">Loading market research…</div></div>`;
