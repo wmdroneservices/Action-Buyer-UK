@@ -125,6 +125,22 @@ function stripHtml(html){
     .trim();
 }
 
+function safeJson(value){try{return JSON.parse(value)}catch{return null}}
+function flattenJsonLd(value,out=[]){if(!value)return out;if(Array.isArray(value)){for(const v of value)flattenJsonLd(v,out);return out}if(typeof value==='object'){out.push(value);if(value['@graph'])flattenJsonLd(value['@graph'],out)}return out}
+function extractStructuredPageData(html,finalUrl){
+  let canonical=finalUrl,title='',price=null,currency='',availability='',product=false;
+  const cm=String(html).match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);if(cm){try{canonical=new URL(cm[1],finalUrl).href}catch{}}
+  const og=String(html).match(/<meta[^>]+(?:property|name)=["']og:title["'][^>]+content=["']([^"']+)["']/i)||String(html).match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']og:title["']/i);
+  const tt=String(html).match(/<title[^>]*>([\s\S]*?)<\/title>/i);title=og?stripHtml(og[1]):(tt?stripHtml(tt[1]):'');
+  const scripts=String(html).match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)||[];
+  for(const script of scripts){const m=script.match(/>([\s\S]*?)<\/script>/i),parsed=m?safeJson(m[1].trim()):null;for(const node of flattenJsonLd(parsed)){const types=Array.isArray(node?.['@type'])?node['@type']:[node?.['@type']];if(!types.map(x=>String(x).toLowerCase()).includes('product'))continue;product=true;if(node.name&&!looksGenericTitle(node.name))title=String(node.name).trim();const offers=Array.isArray(node.offers)?node.offers[0]:node.offers;if(offers&&typeof offers==='object'){const p=Number(String(offers.price??offers.lowPrice??'').replace(/[^0-9.]/g,''));if(Number.isFinite(p)&&p>0)price=p;currency=String(offers.priceCurrency||currency||'').toUpperCase();availability=String(offers.availability||availability||'').split('/').pop()}}}
+  const mp=String(html).match(/<meta[^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["'][^>]+content=["']([^"']+)["']/i)||String(html).match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name|itemprop)=["'](?:product:price:amount|price)["']/i);
+  if(price===null&&mp){const p=Number(String(mp[1]).replace(/[^0-9.]/g,''));if(Number.isFinite(p)&&p>0)price=p}
+  return {url:canonical,title:stripHtml(title||''),price,currency,availability,product};
+}
+function isSuspiciousEvidenceUrl(value){try{const u=new URL(value),p=(u.pathname+' '+u.search).toLowerCase();return /skip[-_ ]?to[-_ ]?content|generate[-_ ]?help[-_ ]?code/.test(p)||/\/(account|cart|checkout|help|contact|about|policy|policies)\/?$/.test(u.pathname.toLowerCase())}catch{return true}}
+function hasExactModelEvidence(product,title,text){const model=normaliseIdentityText(product?.model);if(!model)return false;const hay=normaliseIdentityText([title,text].filter(Boolean).join(' '));return hay.includes(model)}
+
 function extractSearchLinks(html, baseUrl){
   const out=[],seen=new Set();
   const patterns=[
@@ -237,17 +253,14 @@ function scoreCandidateLink(url,title,terms){
 
 function extractSameDomainLinks(html,baseUrl,terms){
   const baseHost=hostOf(baseUrl),out=[],seen=new Set();
-  const re=/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-  let m;
+  const re=/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;
   while((m=re.exec(html))){
-    let url;
-    try{url=new URL(m[1],baseUrl).href}catch{continue}
+    let url;try{url=new URL(m[1],baseUrl).href}catch{continue}
     if(hostOf(url)!==baseHost||seen.has(url))continue;
-    const title=stripHtml(m[2]||'');
-    const score=scoreCandidateLink(url,title,terms);
-    if(score<Math.min(2,Math.max(1,terms.length)))continue;
-    seen.add(url);
-    out.push({url,title,snippet:'Direct source search result'});
+    if(isSearchResultUrl(url)||isSuspiciousEvidenceUrl(url))continue;
+    const title=stripHtml(m[2]||'');if(looksGenericTitle(title))continue;
+    const score=scoreCandidateLink(url,title,terms);if(score<2)continue;
+    seen.add(url);out.push({url,title,snippet:'Direct source product candidate'});
   }
   return out.sort((a,b)=>scoreCandidateLink(b.url,b.title,terms)-scoreCandidateLink(a.url,a.title,terms)).slice(0,8);
 }
@@ -319,18 +332,18 @@ function normaliseIdentityText(v){
 }
 
 function looksGenericTitle(v){
-  const s=normaliseIdentityText(v);
-  return !s||['skip to content','generate help code','search','home','shop','menu'].includes(s)||s.length<5;
+  const x=normaliseIdentityText(v);
+  if(!x||x.length<8)return true;
+  return /^(skip to content|generate help code|search|home|shop|menu|page not found|continue shopping|cookie consent|privacy policy|accessibility|sign in|basket)(\b|$)/.test(x);
 }
-
 function evidenceMatchesProduct(product,candidate){
   const model=normaliseIdentityText(product?.model);
   const manufacturer=normaliseIdentityText(product?.manufacturer);
-  const hay=normaliseIdentityText([
-    candidate?.source_url,candidate?.discovered_title,candidate?._evidence_title,candidate?._evidence_text
-  ].filter(Boolean).join(' '));
-  if(!model||!hay.includes(model))return false;
-  if(manufacturer&&!hay.includes(manufacturer))return false;
+  const title=normaliseIdentityText(candidate?.discovered_title||candidate?._evidence_title);
+  const text=normaliseIdentityText(candidate?._evidence_text);
+  if(!model||(!title.includes(model)&&!text.includes(model)))return false;
+  if(looksGenericTitle(candidate?.discovered_title||candidate?._evidence_title))return false;
+  if(manufacturer&&text&&title&&!title.includes(manufacturer)&&!text.includes(manufacturer))return false;
   return true;
 }
 
@@ -407,23 +420,22 @@ async function collectEvidence(product,sources,evidenceScope='all'){
 
   const pages=[];
   for(const r of ranked){
-    const fallbackText=[r.title,r.snippet,'Search query: '+r.query].filter(Boolean).join(' — ');
+    if(isSearchResultUrl(r.url)||isSuspiciousEvidenceUrl(r.url))continue;
     try{
       const {url,html}=await fetchText(r.url);
-      const text=stripHtml(html).slice(0,9000);
-      if(text.length>=120){
-        const score=scoreCandidateLink(url,r.title,terms);
-        if(score>=1||r.query?.startsWith('direct:')){
-          pages.push({...r,url,text});
-          continue;
-        }
+      const meta=extractStructuredPageData(html,url);
+      const finalUrl=meta.url||url;
+      if(isSearchResultUrl(finalUrl)||isSuspiciousEvidenceUrl(finalUrl))continue;
+      const text=stripHtml(html).slice(0,12000);
+      const title=meta.title||r.title||'';
+      if(looksGenericTitle(title))continue;
+      if(!hasExactModelEvidence(product,title,text))continue;
+      const source=priority.find(x=>String(x.domain||'').replace(/^www\./,'').toLowerCase()===hostOf(finalUrl));
+      if(String(source?.source_kind||'').toLowerCase()!=='manufacturer'&&meta.price===null){
+        log('Rejected page without verified market price:',hostOf(finalUrl),title);continue;
       }
-    }catch(e){
-      log('Page fetch blocked/unavailable:',r.host,e.message);
-    }
-    if(fallbackText.length>=30&&r.query&&!r.query.startsWith('direct:')){
-      pages.push({...r,text:fallbackText+' (Search-result evidence only; full page could not be fetched automatically.)'});
-    }
+      pages.push({...r,url:finalUrl,title,text,discovered_price:meta.price,discovered_currency:meta.currency||null,discovered_availability:meta.availability||null,structured_product:meta.product===true});
+    }catch(e){log('Page fetch blocked/unavailable:',r.host,e.message)}
   }
 
   log('Collected',pages.length,'usable evidence item(s) from',ranked.length,'discovered result(s).');
@@ -450,7 +462,7 @@ const schema={
 
 async function analyse(product,sources,pages,evidenceScope='all'){
   const known=sources.map(s=>({id:s.id,name:s.source_name,domain:s.domain,country:s.country_code,kind:s.source_kind,scope:s.research_scope}));
-  const evidence=pages.map((p,i)=>({id:i+1,url:p.url,title:p.title,snippet:p.snippet,text:p.text}));
+  const evidence=pages.map((p,i)=>({id:i+1,url:p.url,title:p.title,snippet:p.snippet,price:p.discovered_price??null,currency:p.discovered_currency??null,availability:p.discovered_availability??null,structured_product:p.structured_product===true,text:p.text}));
   const prompt=`You are the validation layer for a GearCashOut resale catalogue.
 
 EXACT PRODUCT:
@@ -466,7 +478,7 @@ RESEARCH MODE: ${evidenceScope}
 
 Rules:
 - Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
-- Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, price or availability.
+- Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, title, price or availability. Prefer collected evidence title and price fields when present.
 - Exact model/variant/package matching is mandatory.
 - New UK retail = evidence_category new_uk and bucket 1.
 - Used UK = evidence_category used_uk and bucket 2. IMPORTANT: UK marketplace listings belong here even when the listing says new.
@@ -567,7 +579,7 @@ async function registerSource(c){
 
 async function submitCandidate(runId,productId,product,c,sourceMap){
   if(!c.source_url||!/^https?:\/\//i.test(c.source_url))return false;
-  if(isSearchResultUrl(c.source_url)){log('Rejected search-page URL:',c.source_url);return false;}
+  if(isSearchResultUrl(c.source_url)||isSuspiciousEvidenceUrl(c.source_url)){log('Rejected non-product URL:',c.source_url);return false;}
   if(looksGenericTitle(c.discovered_title)){log('Rejected generic listing title:',c.discovered_title);return false;}
   if(!evidenceMatchesProduct(product,c)){log('Rejected weak product match:',c.source_url);return false;}
   if(c.evidence_category!=='official'&&(!Number.isFinite(Number(c.price))||Number(c.price)<=0)){log('Rejected candidate without a usable price:',c.source_url);return false;}
