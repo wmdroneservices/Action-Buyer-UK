@@ -13,7 +13,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     .eq("user_id", session.user.id)
     .maybeSingle();
 
-  if (!staff?.active || !staff?.can_manage_staff) { window.location.href = "admin.html"; return; }
+  if (!staff?.active || !staff?.can_manage_staff) {
+    // This script is also loaded on the main staff dashboard. Redirecting to
+    // admin.html from admin.html causes an endless reload loop for restricted staff.
+    const dangerZone = document.getElementById("management-danger-zone");
+    if (dangerZone) dangerZone.hidden = true;
+    return;
+  }
 
   const button = document.getElementById("test-reset-button");
   const message = document.getElementById("test-reset-message");
