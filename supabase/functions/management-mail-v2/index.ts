@@ -85,6 +85,34 @@ async function boxes(admin:any,ctx:any){
 }
 async function boxFor(admin:any,ctx:any,id:string){const all=await boxes(admin,ctx);const box=all.find((x:any)=>String(x.id)===String(id||"default"));if(!box)throw Error("You are not authorised to access this mailbox.");return box;}
 
+async function saveToSent(admin:any,box:any,c:any,info:any,to:string,subject:string,text:string){
+ try{
+  const client=await connectImap(admin,box,c);
+  try{
+   const folders=await client.list();
+   const sent=folders.find((f:any)=>String(f.specialUse||"").toLowerCase()==="\\sent")||folders.find((f:any)=>/^(sent|sent items)$/i.test(String(f.name||f.path||"")));
+   if(!sent)return false;
+   const b64=btoa(unescape(encodeURIComponent(text)));
+   const subj=/^[\x20-\x7E]*$/.test(subject)?subject:"=?UTF-8?B?"+btoa(unescape(encodeURIComponent(subject)))+"?=";
+   const raw=[
+    "From: "+clean(c.smtpUser),
+    "To: "+clean(to),
+    "Subject: "+subj,
+    "Date: "+new Date().toUTCString(),
+    "Message-ID: "+(info?.messageId||"<"+crypto.randomUUID()+"@gearcashout.co.uk>"),
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64,
+    ""
+   ].join("\r\n");
+   await client.append(sent.path,raw,["\\Seen"]);
+   return true;
+  }finally{try{await client.logout();}catch(_){}}
+ }catch(_){return false;}
+}
+
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  try{
@@ -137,7 +165,8 @@ Deno.serve(async req=>{
    const to=clean(body.to),subject=clean(body.subject),text=String(body.text||"");if(!to||!subject||!text)return json({error:"Recipient, subject and message are required"},400);
    const transporter=await verifySmtp(admin,box,c);
    const info=await transporter.sendMail({from:c.smtpUser,to,subject,text,...(body.replyTo?{replyTo:clean(body.replyTo)}:{})});
-   return json({ok:true,sent:true,messageId:info.messageId});
+   const savedToSent=await saveToSent(admin,box,c,info,to,subject,text);
+   return json({ok:true,sent:true,savedToSent,messageId:info.messageId});
   }
   return json({error:"Unknown action"},400);
  }catch(e:any){return json({error:e?.message||"Mail operation failed"},400);}
