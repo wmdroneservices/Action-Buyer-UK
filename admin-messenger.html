@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Messenger | GearCashOut</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script>
+<script src="admin-messenger.js?v=20260904-1" defer></script>
+<style>
+.messenger-shell{display:grid;grid-template-columns:300px minmax(0,1fr);gap:1rem}
+.messenger-list,.messenger-main{border:1px solid #d8dde3;background:#fff}
+.messenger-list{padding:1rem}.messenger-main{min-height:560px;display:flex;flex-direction:column}
+.messenger-heading{font-size:.75rem;font-weight:800;letter-spacing:.08em;color:#5f6b78;margin:1rem 0 .5rem}
+.messenger-target{display:block;width:100%;text-align:left;padding:.75rem;border:1px solid #e1e5e9;background:#fff;margin:.35rem 0;cursor:pointer}
+.messenger-target.active{border-color:#d27a1f;background:#fff8ef;color:#102f4f;font-weight:700}
+.messenger-messages{flex:1;overflow:auto;padding:1rem;background:#fafbfc}
+.message-row{margin:.65rem 0;max-width:76%;padding:.7rem .85rem;border:1px solid #d8dde3;background:#fff}
+.message-row.mine{margin-left:auto;background:#fff8ef;border-color:#e3b06e}
+.message-meta{font-size:.72rem;color:#6d7882;margin-bottom:.25rem}
+.message-compose{display:flex;gap:.7rem;padding:1rem;border-top:1px solid #d8dde3}
+.message-compose textarea{flex:1;min-height:58px;resize:vertical}
+.management-messenger{margin-top:1.5rem}
+.member-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+@media(max-width:800px){.messenger-shell{grid-template-columns:1fr}.member-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-messenger.html">MESSENGER</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">STAFF COMMUNICATION</p><h1>Staff Messenger</h1><p>Internal staff messaging with management-controlled contact permissions and group chats.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO DASHBOARD</a></div>
+<div id="messenger-notice" class="form-message" role="status"></div>
+<section class="messenger-shell">
+<aside class="messenger-list">
+<p class="section-kicker">DIRECT MESSAGES</p><div id="direct-targets">Loading staff…</div>
+<p class="messenger-heading">GROUP CHATS</p><div id="group-targets">Loading groups…</div>
+</aside>
+<section class="messenger-main">
+<div style="padding:1rem;border-bottom:1px solid #d8dde3"><p class="section-kicker">CONVERSATION</p><h2 id="conversation-title" style="margin:0">Select a conversation</h2></div>
+<div id="message-list" class="messenger-messages"><p>Select a staff member or group chat to start messaging.</p></div>
+<form id="message-form" class="message-compose" hidden>
+<textarea id="message-body" maxlength="4000" placeholder="Write a message…" required></textarea>
+<button class="btn btn-primary" type="submit">SEND</button>
+</form>
+</section>
+</section>
+<section id="messenger-management" class="account-panel management-messenger" hidden>
+<p class="section-kicker">MANAGEMENT ONLY</p><h2>Messaging Controls</h2>
+<p>Choose exactly who each staff member is allowed to message. These permissions are directional: you can allow Sales to message Quotes without automatically allowing Quotes to message Sales.</p>
+<div style="display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2fr);gap:1rem;align-items:start">
+<div><label>Staff member<select id="permission-staff"></select></label></div>
+<div><p style="margin-top:0"><strong>Allowed direct-message recipients</strong></p><div id="permission-recipients" class="member-grid"></div><button id="save-message-permissions" class="btn btn-primary" type="button" style="margin-top:1rem">SAVE MESSAGING ACCESS</button></div>
+</div>
+<hr style="margin:1.5rem 0;border:0;border-top:1px solid #ddd">
+<h3>Create group chat</h3>
+<p>Only Staff Management can create group chats and assign members.</p>
+<form id="create-group-form">
+<label>Group name<input id="group-name" maxlength="100" required placeholder="e.g. Sales Team"></label>
+<div id="group-members" class="member-grid"></div>
+<button class="btn btn-primary" type="submit" style="margin-top:1rem">CREATE GROUP CHAT</button>
+</form>
+</section>
+</div></main>
+</body></html>
