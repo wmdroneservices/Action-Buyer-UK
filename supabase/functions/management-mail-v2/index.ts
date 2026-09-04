@@ -42,9 +42,10 @@ async function purelymail(admin:any,path:string,body:any){
 }
 async function repairStaffMailbox(admin:any,box:any){
  if(box?.mailbox_type!=="staff"||!box?.purelymail_provisioned)return false;
- const email=String(box.email_address||"").trim().toLowerCase(),userName=email.split("@")[0];
- if(!email||!userName)return false;
- await purelymail(admin,"modifyUser",{userName,newPassword:await staffMailboxPassword(email)});
+ const email=String(box.email_address||"").trim().toLowerCase();
+ if(!email)return false;
+ // Purelymail modifyUser requires the full mailbox address, not only the local part.
+ await purelymail(admin,"modifyUser",{userName:email,newPassword:await staffMailboxPassword(email)});
  return true;
 }
 function isAuthFailure(e:any){const m=String(e?.message||e||"").toLowerCase();return m.includes("535")||m.includes("authentication failed")||m.includes("authentication");}
