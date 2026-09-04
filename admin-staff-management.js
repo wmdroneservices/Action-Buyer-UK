@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
    }
    const reset=e.target.closest("[data-reset]");
    if(reset){
-     const password=prompt("Enter the new password (minimum 8 characters):");
+     const password=prompt("Enter the new password (minimum 8 characters). Do not save this password in the browser on a shared computer:");
      if(!password)return;
      try{await call({action:"reset_password",user_id:reset.dataset.reset,password});notice("Password updated.");}catch(err){notice(err.message,false);}
      return;
