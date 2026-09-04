@@ -204,20 +204,35 @@ async function requestResearchPcCommand(command){
 async function loadLiveResearch(){
  const box=$('live-research-list'); if(!box)return;
  const {data:rows,error}=await sb.from('quote_catalog_ai_queue')
-   .select('id,status,attempts,claimed_at,updated_at,catalog_product_id,run_id,quote_catalog_products(manufacturer,model,package_name),quote_catalog_ai_research_runs(notes,evidence_scope,status)')
-   .in('status',['claimed','queued']).order('updated_at',{ascending:false}).limit(8);
- if(error){box.innerHTML='<div class="empty">Unable to load live research activity.</div>';return;}
+   .select('id,status,attempts,claimed_at,updated_at,catalog_product_id,run_id')
+   .in('status',['processing','claimed','queued']).order('updated_at',{ascending:false}).limit(8);
+ if(error){box.innerHTML='<div class="empty">Live research activity could not be loaded: '+esc(error.message||String(error))+'</div>';return;}
  if(!rows?.length){box.innerHTML='<div class="empty">No active research. Start a batch or continuous catalogue research.</div>';return;}
+ const productIds=[...new Set(rows.map(r=>r.catalog_product_id).filter(Boolean))];
+ const runIds=[...new Set(rows.map(r=>r.run_id).filter(Boolean))];
+ const [productResult,runResult]=await Promise.all([
+   productIds.length?sb.from('quote_catalog_products').select('id,manufacturer,model,package_name').in('id',productIds):Promise.resolve({data:[],error:null}),
+   runIds.length?sb.from('quote_catalog_ai_research_runs').select('id,notes,evidence_scope,status').in('id',runIds):Promise.resolve({data:[],error:null})
+ ]);
+ if(productResult.error||runResult.error){
+   const detail=(productResult.error||runResult.error).message||'Unknown database error';
+   box.innerHTML='<div class="empty">Live research activity could not be loaded: '+esc(detail)+'</div>';return;
+ }
+ const productsById=new Map((productResult.data||[]).map(p=>[String(p.id),p]));
+ const runsById=new Map((runResult.data||[]).map(r=>[String(r.id),r]));
  box.innerHTML=rows.map((r,i)=>{
-   const p=r.quote_catalog_products||{};
-   const run=r.quote_catalog_ai_research_runs||{};
+   const p=productsById.get(String(r.catalog_product_id))||{};
+   const run=runsById.get(String(r.run_id))||{};
    const name=[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' ')||'Catalogue product';
-   const active=r.status==='claimed';
-   const scope=(run.evidence_scope||'all').replace(/_/g,' ');
-   return '<div class="live-research-row '+(active?'active':'queued')+'"><div class="live-dot '+(active?'pulse':'')+'"></div><div class="live-copy"><strong>'+(active?'CURRENTLY RESEARCHING':'QUEUED NEXT')+'</strong><span>'+escapeHtml(name)+'</span><small>'+escapeHtml(scope.toUpperCase())+(run.notes?.startsWith('continuous-research:')?' · CONTINUOUS MODE':'')+'</small></div><div class="live-state">'+(active?'SEARCHING':'WAITING')+'</div></div>';
+   const state=(r.status||'queued').toUpperCase();
+   const scope=(run.evidence_scope||'all').replaceAll('_',' ');
+   const when=r.updated_at||r.claimed_at;
+   return '<article class="live-research-item">'
+     +'<div class="live-research-index">'+(i+1)+'</div>'
+     +'<div><strong>'+esc(name)+'</strong><span>'+esc(state)+' · '+esc(scope.toUpperCase())+(when?' · '+esc(new Date(when).toLocaleTimeString('en-GB')):'')+'</span></div>'
+     +'</article>';
  }).join('');
 }
-
 async function loadContinuousResearch(){
  const status=$('continuous-research-status');if(!status)return;
  const {data,error}=await sb.rpc('ai_research_get_continuous');if(error)throw error;
