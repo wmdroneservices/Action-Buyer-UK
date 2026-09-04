@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[];
+let sb,candidates=[],products=[],sources=[],editingId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...document.querySelectorAll('.candidate-check:checked')].map(x=>x.value);
@@ -9,6 +9,36 @@ const pname=c=>{const p=productFor(c);return p?[p.manufacturer,p.model,p.package
 async function initClient(){if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');sb=window.actionBuyerAuth.supabase;const s=await window.actionBuyerAuth.getSession();if(!s?.user)throw Error('Please sign in again.')}
 async function api(body){const {data,error}=await sb.functions.invoke('quote-catalog-ai-orchestrator',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data}
 function renderMemory(rows){const el=$('ai-memory');if(!el)return;el.innerHTML=!rows.length?'<p>No review learning has been recorded yet.</p>':'<div style="overflow-x:auto"><table class="ai-table"><thead><tr><th>Type</th><th>Key</th><th>Category</th><th>Confidence</th><th>Updated</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.learning_type)+'</td><td>'+esc(r.learning_key)+'</td><td>'+esc(r.evidence_category||'—')+'</td><td>'+esc(r.confidence??'—')+'</td><td>'+esc(r.updated_at?new Date(r.updated_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'}
+function editorMarkup(c){
+ const title=c.edited_title??c.discovered_title??'';
+ const price=c.edited_price??c.price??'';
+ const condition=c.edited_condition??c.condition??'';
+ const url=c.edited_source_url??c.source_url??'';
+ const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';
+ const availability=c.edited_availability_status??c.availability_status??'';
+ const packageMatch=c.edited_package_match??c.package_match??'';
+ const variantMatch=c.edited_variant_match??c.variant_match??'';
+ const confidence=c.edited_match_confidence??c.match_confidence??'';
+ const sourceKind=c.edited_source_kind??c.source_kind??'';
+ const notes=c.edited_evidence_notes??c.evidence_notes??'';
+ return '<section class="ai-inline-editor" data-editor-id="'+esc(c.id)+'">'
+   +'<div class="ai-editor-heading"><div><p class="section-kicker">CATALOGUE-STYLE EDITOR</p><h3>Edit finding before approval</h3><p>Correct the evidence, add your comparison price and keep the exact product page before accepting it.</p></div></div>'
+   +'<div class="ai-editor-grid">'
+   +'<label>Listing title<input class="ai-field" data-field="edited_title" value="'+esc(title)+'"></label>'
+   +'<label>Comparison price<input class="ai-field" data-field="edited_price" type="number" min="0" step="0.01" value="'+esc(price)+'"></label>'
+   +'<label>Condition<input class="ai-field" data-field="edited_condition" value="'+esc(condition)+'" placeholder="New, Used, Refurbished…"></label>'
+   +'<label>Evidence category<select class="ai-field" data-field="edited_evidence_category"><option value="">Select category</option>'+['new_uk','used_uk','overseas','retail','marketplace'].map(v=>'<option value="'+v+'"'+(String(category)===v?' selected':'')+'>'+v.replaceAll('_',' ').toUpperCase()+'</option>').join('')+'</select></label>'
+   +'<label>Availability<input class="ai-field" data-field="edited_availability_status" value="'+esc(availability)+'"></label>'
+   +'<label>Package match<input class="ai-field" data-field="edited_package_match" value="'+esc(packageMatch)+'"></label>'
+   +'<label>Variant match<input class="ai-field" data-field="edited_variant_match" value="'+esc(variantMatch)+'"></label>'
+   +'<label>Match confidence %<input class="ai-field" data-field="edited_match_confidence" type="number" min="0" max="100" step="1" value="'+esc(confidence===''?'':Number(confidence)<=1?Math.round(Number(confidence)*100):confidence)+'"></label>'
+   +'<label>Source / retailer<input class="ai-field" data-field="edited_source_kind" value="'+esc(sourceKind)+'"></label>'
+   +'<label class="ai-editor-wide">Exact product page URL<input class="ai-field" data-field="edited_source_url" type="url" value="'+esc(url)+'" placeholder="https://…"></label>'
+   +'<label class="ai-editor-wide">Research notes<textarea class="ai-field" data-field="edited_evidence_notes" rows="4">'+esc(notes)+'</textarea></label>'
+   +'</div>'
+   +'<div class="ai-editor-actions"><button type="button" class="btn btn-primary ai-save-edit" data-id="'+esc(c.id)+'">SAVE FINDING</button><button type="button" class="btn btn-secondary ai-cancel-edit" data-id="'+esc(c.id)+'">CANCEL</button></div>'
+   +'</section>';
+}
 function render(){
  const body=$('ai-candidates');if(!body)return;
  if(!candidates.length){body.innerHTML='<div class="ai-empty-state">No proposed AI findings yet.</div>';return}
@@ -18,9 +48,9 @@ function render(){
    const price=c.edited_price??c.price;
    const condition=c.edited_condition??c.condition??'—';
    const url=c.edited_source_url??c.source_url;
-   const match=c.match_confidence==null?'—':Math.round(Number(c.match_confidence)*100)+'%';
+   const rawMatch=c.edited_match_confidence??c.match_confidence;\n   const match=rawMatch==null||rawMatch===''?'—':Math.round(Number(rawMatch)<=1?Number(rawMatch)*100:Number(rawMatch))+'%';
    const decision=c.applied_at?'applied':(c.decision||'pending');
-   const category=c.evidence_category||c.price_type||'Unclassified';
+   const category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified';
    const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
    const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable';
    const productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'Product ID '+String(c.catalog_product_id||'—');
@@ -31,10 +61,11 @@ function render(){
        +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
        +'<h3>'+esc(title)+'</h3>'
        +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
-       +(c.evidence_notes?'<p class="ai-review-notes">'+esc(c.evidence_notes)+'</p>':'')
-       +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.source_kind||'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
+       +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
+       +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
      +'</div>'
-     +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">EDIT FINDING</button></div>'
+     +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button></div>'
+     +(editingId===c.id?editorMarkup(c):'')
    +'</article>';
  }).join('');
 }
@@ -93,9 +124,44 @@ async function runResearch(){
    await Promise.all([load(),loadSources(),loadAgentStatus()]);
  }finally{if(b){b.disabled=false;b.textContent='RUN SELECTED AI RESEARCH'}}
 }
-async function edit(id){const c=candidates.find(x=>x.id===id);if(!c)return;const title=prompt('Listing title',c.edited_title??c.discovered_title??'');if(title===null)return;const price=prompt('Price',String(c.edited_price??c.price??''));if(price===null)return;const condition=prompt('Condition',c.edited_condition??c.condition??'');if(condition===null)return;const url=prompt('Source URL',c.edited_source_url??c.source_url??'');if(url===null)return;const n=clean(price)===''?null:Number(price);if(n!==null&&!Number.isFinite(n))throw Error('Price must be a valid number.');const {error}=await sb.from('quote_catalog_ai_candidates').update({edited_title:clean(title)||null,edited_price:n,edited_condition:clean(condition)||null,edited_source_url:clean(url)||null,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)throw error;msg('Evidence entry updated.');await load()}
+function edit(id){editingId=editingId===id?null:id;render();}
+async function saveEdit(id){
+ const editor=document.querySelector('[data-editor-id="'+CSS.escape(String(id))+'"]');
+ if(!editor)throw Error('Editor not found.');
+ const value=name=>clean(editor.querySelector('[data-field="'+name+'"]')?.value||'');
+ const priceText=value('edited_price');
+ const price=priceText===''?null:Number(priceText);
+ if(price!==null&&!Number.isFinite(price))throw Error('Comparison price must be a valid number.');
+ const confidenceText=value('edited_match_confidence');
+ let confidence=confidenceText===''?null:Number(confidenceText);
+ if(confidence!==null){
+   if(!Number.isFinite(confidence)||confidence<0||confidence>100)throw Error('Match confidence must be between 0 and 100.');
+   confidence=confidence/100;
+ }
+ const url=value('edited_source_url');
+ if(url){try{new URL(url)}catch{throw Error('Please enter a valid exact product page URL.');}}
+ const payload={
+   edited_title:value('edited_title')||null,
+   edited_price:price,
+   edited_condition:value('edited_condition')||null,
+   edited_source_url:url||null,
+   edited_evidence_category:value('edited_evidence_category')||null,
+   edited_availability_status:value('edited_availability_status')||null,
+   edited_package_match:value('edited_package_match')||null,
+   edited_variant_match:value('edited_variant_match')||null,
+   edited_match_confidence:confidence,
+   edited_source_kind:value('edited_source_kind')||null,
+   edited_evidence_notes:value('edited_evidence_notes')||null,
+   reviewed_at:new Date().toISOString()
+ };
+ const {error}=await sb.from('quote_catalog_ai_candidates').update(payload).eq('id',id);
+ if(error)throw error;
+ editingId=null;
+ msg('Finding saved. You can now accept it and apply it to the live evidence catalogue.');
+ await load();
+}
 async function decide(decision){const ids=checked();if(!ids.length)throw Error('Select at least one evidence entry first.');const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).in('id',ids);if(error)throw error;msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+'.');await load()}
 async function apply(){const ids=checked();if(!ids.length)throw Error('Select accepted evidence first.');let done=0;for(const id of ids){const c=candidates.find(x=>x.id===id);if(c?.decision!=='accepted'||c.applied_at)continue;const {error}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});if(error)throw error;done++}msg(done?done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to live evidence.':'Only newly accepted entries can be applied.',!done);await load()}
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
-async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type','research-evidence-scope'].forEach(id=>{if($(id))$(id).value=(id==='research-evidence-scope'?'all':'')});});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b)edit(b.dataset.id).catch(x=>msg(x.message,true));const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});await Promise.all([load(),loadSources(),loadAgentStatus()]);msg('Review queue loaded.');setInterval(()=>loadAgentStatus().catch(()=>{}),30000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type','research-evidence-scope'].forEach(id=>{if($(id))$(id).value=(id==='research-evidence-scope'?'all':'')});});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});await Promise.all([load(),loadSources(),loadAgentStatus()]);msg('Review queue loaded.');setInterval(()=>loadAgentStatus().catch(()=>{}),30000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
