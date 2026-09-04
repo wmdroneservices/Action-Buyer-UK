@@ -54,10 +54,18 @@ OLLAMA_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=gemma3:4b
 POLL_SECONDS=15
 
-# Optional but recommended: official Google discovery API.
-# Leave these blank to use Bing/DuckDuckGo/Mojeek + direct source probes only.
+# Optional: official Google discovery.
+# Preferred current integration: Google Web Search Service.
+# This requires an API key, designated partner client ID and the end-user/public IP.
 GOOGLE_SEARCH_API_KEY=...
+GOOGLE_WEB_SEARCH_CLIENT_ID=...
+GOOGLE_SEARCH_USER_IP=...
+
+# Compatibility mode for an existing Google Programmable Search engine.
+# Use this instead when you already have a valid existing CSE ID.
 GOOGLE_CSE_ID=...
+
+# Set false to disable Google completely.
 GOOGLE_SEARCH_ENABLED=true
 ```
 
@@ -125,7 +133,7 @@ The agent writes a heartbeat to Supabase and then waits for queued research jobs
 For each queued catalogue product the agent:
 
 1. Builds an exact product search query.
-2. Searches the wider web through Google Programmable Search when configured, alongside Bing, DuckDuckGo and Mojeek fallbacks.
+2. Searches the wider web through Google's current Web Search Service when configured, with compatibility support for an existing Google Programmable Search engine, alongside Bing, DuckDuckGo and Mojeek fallbacks.
 3. Automatically cools down providers that return blocking/rate-limit responses so repeated failures do not hold up the catalogue.
 4. Directly probes approved GearCashOut sources for each requested market/condition.
 5. Collects result URLs and page excerpts.
@@ -147,3 +155,13 @@ No finding is automatically applied to live evidence.
 ## Important
 
 The local agent only works while this PC is switched on and the agent is running. Queued jobs remain in Supabase until the agent processes them.
+
+
+## Google search setup
+
+The agent now supports two official Google discovery modes:
+
+1. **Google Web Search Service — preferred current integration.** Google documents this for programmatic partners and requires an API key, a designated client ID and the end-user IP address.
+2. **Existing Google Programmable Search — compatibility mode.** If you already have a valid existing search engine ID, the agent can use `GOOGLE_CSE_ID`.
+
+If neither Google configuration is present, the agent continues automatically with Bing, DuckDuckGo, Mojeek and the GearCashOut approved-source registry. A blocked provider is cooled down temporarily rather than repeatedly slowing every catalogue product.
