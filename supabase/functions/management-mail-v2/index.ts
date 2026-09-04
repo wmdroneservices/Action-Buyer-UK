@@ -85,6 +85,16 @@ async function boxes(admin:any,ctx:any){
 }
 async function boxFor(admin:any,ctx:any,id:string){const all=await boxes(admin,ctx);const box=all.find((x:any)=>String(x.id)===String(id||"default"));if(!box)throw Error("You are not authorised to access this mailbox.");return box;}
 
+function resolveFolder(list:any[],requested:string){
+ const wanted=String(requested||"INBOX").trim();
+ const key=wanted.toLowerCase();
+ const exact=list.find((f:any)=>String(f.path||"")===wanted)||list.find((f:any)=>String(f.name||"")===wanted);
+ if(exact)return exact;
+ if(["sent","sent items","sent mail"].includes(key))return list.find((f:any)=>String(f.specialUse||"").toLowerCase()==="\\\\sent")||list.find((f:any)=>["sent","sent items","sent mail"].includes(String(f.name||f.path||"").toLowerCase()));
+ return list.find((f:any)=>String(f.path||"").toLowerCase()===key)||list.find((f:any)=>String(f.name||"").toLowerCase()===key)||null;
+}
+const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
+
 async function saveToSent(admin:any,box:any,c:any,info:any,to:string,subject:string,text:string){
  const client=await connectImap(admin,box,c);
  try{
@@ -115,7 +125,24 @@ async function saveToSent(admin:any,box:any,c:any,info:any,to:string,subject:str
    b64,
    ""
   ].join("\r\n");
-  await client.append(sent.path,raw,["\\Seen"]);
+  // Purelymail can acknowledge APPEND before a mailbox STATUS refresh catches up.
+  // Verify by UID search, not by trusting STATUS or the APPEND acknowledgement alone.
+  let before:any[]=[];
+  {const lock=await client.getMailboxLock(sent.path);try{const found=await client.search({all:true},{uid:true});before=Array.isArray(found)?found:[];}finally{lock.release();}}
+  const appended:any=await client.append(sent.path,raw,["\\Seen"]);
+  let verified=false;
+  for(let attempt=0;attempt<4&&!verified;attempt++){
+   const lock=await client.getMailboxLock(sent.path);
+   try{
+    const found=await client.search({all:true},{uid:true});
+    const after=Array.isArray(found)?found:[];
+    const appendedUid=Number(appended?.uid||0);
+    verified=after.length>before.length||(appendedUid>0&&after.includes(appendedUid));
+   }finally{lock.release();}
+   if(!verified)await sleep(500);
+  }
+  if(!verified)throw Error("The Sent message append could not be verified in this mailbox.");
+  console.log(JSON.stringify({event:"sent_append_verified",mailbox:box.email_address,folder:sent.path,before:before.length}));
   return sent.path;
  }finally{try{await client.logout();}catch(_){}}
 }
@@ -146,7 +173,7 @@ Deno.serve(async req=>{
    const client=await connectImap(admin,box,c);
    try{
     if(action==="folders"){const list=await client.list();return json({ok:true,folders:list.map((f:any)=>({path:f.path,name:f.name,specialUse:f.specialUse||null}))});}
-    const folder=String(body.folder||"INBOX"),lock=await client.getMailboxLock(folder);
+    const requestedFolder=String(body.folder||"INBOX"),folderList=await client.list(),resolved=resolveFolder(folderList,requestedFolder),folder=resolved?.path||requestedFolder,lock=await client.getMailboxLock(folder);
     try{
      if(action==="messages"){
       // Purelymail can briefly return STATUS=0 immediately after APPEND even when the
@@ -172,7 +199,7 @@ Deno.serve(async req=>{
      }
      const uid=Number(body.uid);if(!uid)return json({error:"Message UID is required"},400);
      if(action==="archive"||action==="delete"){
-      const folders=await client.list();
+      const folders=folderList;
       const wanted=action==="archive"?"\\Archive":"\\Trash";
       const fallback=action==="archive"?["archive"]:["trash","bin","deleted items"];
       const destination=folders.find((f:any)=>String(f.specialUse||"").toLowerCase()===wanted.toLowerCase())||folders.find((f:any)=>fallback.includes(String(f.name||f.path||"").toLowerCase()));
