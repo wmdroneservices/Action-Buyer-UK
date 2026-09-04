@@ -148,28 +148,28 @@ Deno.serve(async req=>{
     if(action==="folders"){const list=await client.list();return json({ok:true,folders:list.map((f:any)=>({path:f.path,name:f.name,specialUse:f.specialUse||null}))});}
     const folder=String(body.folder||"INBOX"),lock=await client.getMailboxLock(folder);
     try{
-     if(action==="messages"){const status=await client.status(folder,{messages:true,unseen:true}),total=Number(status.messages||0),start=Math.max(1,total-49),messages:any[]=[];
-      const pushMessage=(m:any)=>messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});
-      if(total>0){
-       const query={uid:true,envelope:true,flags:true,internalDate:true};
-       // Normal sequence-range retrieval.
-       for await(const m of client.fetch(`${start}:*`,query))pushMessage(m);
-       // Purelymail can expose a newly appended message to STATUS before its range iterator
-       // returns it. Read the known last sequence directly before falling back to UID search.
-       if(!messages.length){
-        const last=await client.fetchOne(String(total),query);
-        if(last)pushMessage(last);
-       }
-       if(!messages.length){
-        const last=await client.fetchOne("*",query);
-        if(last)pushMessage(last);
-       }
-       if(!messages.length){
-        const uids=await client.search({all:true},{uid:true});
-        if(uids.length)for await(const m of client.fetch(uids.join(","),query,{uid:true}))pushMessage(m);
-       }
+     if(action==="messages"){
+      // Purelymail can briefly return STATUS=0 immediately after APPEND even when the
+      // message is already present. UID SEARCH is the source of truth for this reader.
+      const status=await client.status(folder,{messages:true,unseen:true}).catch(()=>({messages:0,unseen:0}));
+      const query={uid:true,envelope:true,flags:true,internalDate:true};
+      const messages:any[]=[];
+      const seenUids=new Set<number>();
+      const pushMessage=(m:any)=>{const uid=Number(m?.uid||0);if(!uid||seenUids.has(uid))return;seenUids.add(uid);messages.push({uid:m.uid,subject:m.envelope?.subject||"(No subject)",from:(m.envelope?.from||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),to:(m.envelope?.to||[]).map((x:any)=>({name:x.name||"",address:x.address||""})),date:m.envelope?.date||m.internalDate||null,seen:(m.flags||new Set()).has("\\Seen")});};
+      const uids=await client.search({all:true},{uid:true});
+      if(uids.length){
+       const recent=uids.slice(-50);
+       for await(const m of client.fetch(recent.join(","),query,{uid:true}))pushMessage(m);
       }
-      messages.reverse();return json({ok:true,folder,total,unseen:Number(status.unseen||0),messages});}
+      // Keep a sequence fetch fallback for servers that do not return SEARCH results.
+      if(!messages.length&&Number(status.messages||0)>0){
+       const total=Number(status.messages||0),start=Math.max(1,total-49);
+       for await(const m of client.fetch(`${start}:*`,query))pushMessage(m);
+       if(!messages.length){const last=await client.fetchOne(String(total),query);if(last)pushMessage(last);}
+      }
+      messages.reverse();
+      return json({ok:true,folder,total:Math.max(Number(status.messages||0),uids.length,messages.length),unseen:Number(status.unseen||0),messages});
+     }
      const uid=Number(body.uid);if(!uid)return json({error:"Message UID is required"},400);
      if(action==="archive"||action==="delete"){
       const folders=await client.list();
