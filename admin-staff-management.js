@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const call=async body=>{const {data,error}=await auth.supabase.functions.invoke("manage-staff-v2",{body});if(error)throw error;if(data?.error)throw new Error(data.error);return data;};
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
  const DAYS=[["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"],["sunday","Sunday"]];
+ let mailboxOptions=[];
+ const mailboxHTML=(selected=[])=>{const chosen=new Set((selected||[]).map(String));return mailboxOptions.length?mailboxOptions.map(b=>'<label class="checkbox-label"><input type="checkbox" data-mailbox-access value="'+esc(b.id)+'" '+(chosen.has(String(b.id))?"checked":"")+'> '+esc(b.display_name||b.email_address)+' <span style="color:#6d7882;font-size:.82em">— '+esc(b.email_address)+'</span></label>').join(""):'<p style="color:#6d7882">No shared business mailboxes are available yet.</p>';};
+ const collectMailboxes=root=>[...root.querySelectorAll("[data-mailbox-access]:checked")].map(x=>x.value);
  const scheduleHTML=s=>'<div style="display:grid;gap:.55rem">'+DAYS.map(([k,label])=>{const x=(s||{})[k]||{};return '<div data-day="'+k+'" style="display:grid;grid-template-columns:minmax(90px,1fr) minmax(125px,1fr) minmax(125px,1fr) minmax(105px,auto);gap:.65rem;align-items:end;padding:.65rem;border:1px solid #d9dee5;background:#fff"><strong style="padding-bottom:.55rem;color:#102f4f">'+label+'</strong><label>Start<input type="time" data-start value="'+esc(x.start||"")+'"></label><label>End<input type="time" data-end value="'+esc(x.end||"")+'"></label><label class="checkbox-label" style="margin:0;padding-bottom:.55rem"><input type="checkbox" data-off '+(x.off?"checked":"")+'> Day off</label></div>'}).join("")+'</div>';
  const collectSchedule=root=>{const out={};root.querySelectorAll("[data-day]").forEach(row=>{const k=row.dataset.day,off=row.querySelector("[data-off]").checked;out[k]={off,start:off?null:(row.querySelector("[data-start]").value||null),end:off?null:(row.querySelector("[data-end]").value||null)};});return out;};
  const bindSchedule=root=>{root.addEventListener("change",e=>{if(!e.target.matches("[data-off]"))return;const row=e.target.closest("[data-day]"),disabled=e.target.checked;row.querySelector("[data-start]").disabled=disabled;row.querySelector("[data-end]").disabled=disabled;});root.querySelectorAll("[data-off]:checked").forEach(x=>{const row=x.closest("[data-day]");row.querySelector("[data-start]").disabled=true;row.querySelector("[data-end]").disabled=true;});};
@@ -38,6 +41,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
          <label class="checkbox-label"><input type="checkbox" data-p="sales" ${r.can_access_sales?"checked":""}>Sales</label>
          <label class="checkbox-label"><input type="checkbox" data-p="customers" ${r.can_access_customers?"checked":""}>Customers</label>
          <label class="checkbox-label"><input type="checkbox" data-p="manage_staff" ${r.can_manage_staff?"checked":""}>Staff Management</label>
+         <p style="margin-top:1rem"><strong>Email access</strong></p><p style="font-size:.82rem;color:#5f6b78;margin-top:-.35rem">The staff member always has access to their own assigned inbox. Tick any shared business inboxes they are also allowed to use.</p><div data-edit-mailboxes></div>
          <p style="margin-top:1rem"><strong>Weekly working hours</strong></p>\n         <p style="font-size:.82rem;color:#5f6b78;margin-top:-.35rem">Set each day individually and tick Day off where required.</p>\n         <div data-edit-schedule></div>\n         <label class="checkbox-label"><input type="checkbox" data-active ${r.active?"checked":""}>Account active</label>
          <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem">
            <button class="btn btn-primary" data-save="${r.user_id}">SAVE CHANGES</button>
@@ -48,16 +52,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
        <div id="activity-${r.user_id}" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid #ddd"></div>
        </div>
      </details>`).join("")||"<p>No staff accounts found.</p>";
-     rows.forEach(r=>{const panel=document.getElementById("edit-"+r.user_id),root=panel?.querySelector("[data-edit-schedule]");if(root){root.innerHTML=scheduleHTML(r.work_schedule||{});bindSchedule(root);}});
+     rows.forEach(r=>{const panel=document.getElementById("edit-"+r.user_id),root=panel?.querySelector("[data-edit-schedule]"),mailRoot=panel?.querySelector("[data-edit-mailboxes]");if(root){root.innerHTML=scheduleHTML(r.work_schedule||{});bindSchedule(root);}if(mailRoot)mailRoot.innerHTML=mailboxHTML(r.mailbox_access||[]);});
      list.querySelectorAll("details.staff-account-dropdown").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)list.querySelectorAll("details.staff-account-dropdown[open]").forEach(other=>{if(other!==d)other.open=false;});}));
    }catch(e){notice(e.message||"Could not load staff.",false);}
  }
  document.getElementById("create-staff-form").addEventListener("submit",async e=>{
    e.preventDefault();const permissions={};
-   const workSchedule=collectSchedule(newSchedule);
+   const workSchedule=collectSchedule(newSchedule);const mailboxAccess=collectMailboxes(document.getElementById("new-mailbox-access"));
    ["research","purchasing","sales","customers","manage_staff"].forEach(k=>permissions[k]=document.querySelector('[name="'+k+'"]').checked);
    try{
-     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),business_email:document.getElementById("new-business-email").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,permissions});
+     await call({action:"create",display_name:document.getElementById("new-display-name").value.trim(),username:document.getElementById("new-username").value.trim(),business_email:document.getElementById("new-business-email").value.trim(),password:document.getElementById("new-password").value,work_schedule:workSchedule,mailbox_access:mailboxAccess,permissions});
      e.target.reset();newSchedule.innerHTML=scheduleHTML({});bindSchedule(newSchedule);notice("Staff account created.");await load();
    }catch(err){notice(err.message||"Could not create staff account.",false);}
  });
@@ -90,7 +94,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
      const originalText=save.textContent;
      save.disabled=true;save.textContent="SAVING...";
      try{
-       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),business_email:panel.querySelector("[data-business-email]")?.value.trim()||"",active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),permissions});
+       await call({action:"update",user_id:save.dataset.save,display_name:panel.querySelector("[data-display-name]").value.trim(),username:panel.querySelector("[data-username]").value.trim(),business_email:panel.querySelector("[data-business-email]")?.value.trim()||"",active:panel.querySelector("[data-active]").checked,work_schedule:collectSchedule(panel.querySelector("[data-edit-schedule]")),mailbox_access:collectMailboxes(panel.querySelector("[data-edit-mailboxes]")),permissions});
        save.textContent="SAVED";
        notice("Staff account updated successfully.");
        await load();
@@ -116,5 +120,6 @@ document.addEventListener("DOMContentLoaded",async()=>{
      try{await call({action:"delete",user_id:del.dataset.delete});notice("Staff account deleted.");await load();}catch(err){notice(err.message,false);}
    }
  });
+ try{const mb=await call({action:"mailboxes"});mailboxOptions=mb.mailboxes||[];document.getElementById("new-mailbox-access").innerHTML=mailboxHTML([]);}catch(e){notice(e.message||"Could not load mailbox access options.",false);}
  await load();
 });
