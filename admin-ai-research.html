@@ -84,6 +84,13 @@
 .ai-manual-review-reason{display:block;color:#233d59;font-weight:700;font-size:12px}.ai-manual-review-reason textarea{width:100%;box-sizing:border-box;margin-top:7px;padding:10px;border:1px solid #cfd6de;border-radius:6px;font:inherit;font-weight:400;resize:vertical}
 .ai-manual-review-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 
+/* Structured right / wrong / adjusted feedback for Gemma. */
+.ai-review-outcomes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0}
+.ai-review-outcome{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #e1e5ea;border-radius:7px;background:#fff;color:#233d59;font-size:11px;font-weight:800;letter-spacing:.03em}
+.ai-review-outcome select{width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid #cfd6de;border-radius:5px;background:#fff;color:#233d59;font:inherit;font-size:12px;font-weight:700;letter-spacing:0}
+.ai-review-outcome select:focus{outline:2px solid rgba(201,121,33,.2);border-color:#c97921}
+@media(max-width:600px){.ai-review-outcomes{grid-template-columns:1fr}}
+
 /* Product-centred AI evidence review: one complete page per catalogue product. */
 .ai-product-review-card{margin-top:12px;border:1px solid #d8dde3;border-radius:10px;background:#fff;overflow:hidden}
 .ai-product-review-details summary{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px;cursor:pointer;list-style:none}
