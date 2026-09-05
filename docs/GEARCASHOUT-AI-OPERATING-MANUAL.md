@@ -922,9 +922,9 @@ For MPB UK:
 1. Use category/brand pages only to discover candidate models.
 2. Continue into the exact `/en-uk/product/...` model page.
 3. Inspect all currently displayed individual units.
-4. Preserve each unit as separate market evidence when relevant.
-5. Capture SKU, price, cosmetic condition, charges when shown, and meaningful included/package details.
-6. Never collapse a multi-unit MPB page to one representative price.
+4. Aggregate all live units on the same exact MPB page into one reference-only market range.
+5. Capture minimum price, maximum price, cosmetic conditions represented and unit count.
+6. Preserve the canonical MPB product URL so staff can verify the latest stock and manually refresh stale evidence.
 7. Never store category, brand or search pages as final exact product-price evidence.
 
 ## Current database audit state
@@ -946,7 +946,7 @@ This does not by itself complete the historical MPB audit. It prevents the learn
 
 # MPB Deterministic Deep-Inventory Audit Path — 5 September 2026
 
-The historical MPB audit found that Gemma must not be the authority for expanding a multi-unit MPB model page.
+The historical MPB audit found that Gemma must not be the authority for interpreting a multi-unit MPB model page. The source-specific collector aggregates the exact page into a deterministic reference range.
 
 ## First failures corrected
 
