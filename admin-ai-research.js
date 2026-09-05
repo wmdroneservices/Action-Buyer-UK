@@ -638,6 +638,44 @@ async function setContinuousResearch(enabled){
  }
  await loadContinuousResearch();
 }
+async function runDeepSourceAudit(){
+ const b=$('run-deep-source-audit');
+ const deepMsg=(t,e=false)=>{const x=$('deep-source-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
+ if(b){b.disabled=true;b.textContent='STARTING DEEP AUDIT…'}
+ try{
+   const url=clean($('deep-source-url')?.value||'');
+   if(!/^https?:\/\//i.test(url))throw Error('Enter the full landing page URL, including https://');
+   const limit=Number(clean($('deep-source-limit')?.value||'5'));
+   if(!Number.isFinite(limit)||limit<1)throw Error('Choose a valid Deep Source batch size.');
+   const body={
+     limit,
+     manufacturer:clean($('research-manufacturer')?.value||''),
+     model:clean($('research-model')?.value||''),
+     category:clean($('research-category')?.value||''),
+     product_type:clean($('research-product-type')?.value||''),
+     evidence_scope:'deep_source',
+     deep_source_url:url
+   };
+   const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
+   deepMsg('Deep Source Audit started for '+scope+'. The landing page is discovery-only; the worker will crawl relevant categories/subcategories and return exact product pages only.');
+   const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
+   if(error){
+     const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
+     throw Error(detail||error.message||'Deep Source Audit request failed');
+   }
+   if(data?.error)throw Error(data.error);
+   const r=data||{};
+   deepMsg(r.message||((r.products_queued||0)+' product(s) queued for Deep Source Audit.'),false);
+   msg('Deep Source Audit queued: '+scope+' · '+limit+' product(s) · '+url);
+   await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch()]);
+ }catch(e){
+   deepMsg(e.message||String(e),true);
+   throw e;
+ }finally{
+   if(b){b.disabled=false;b.textContent='RUN DEEP SOURCE AUDIT'}
+ }
+}
+
 async function runResearch(){
  const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='STARTING…'}
  try{
@@ -784,6 +822,7 @@ async function apply(){
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
 async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
+$('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));
 $('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear only WAITING products from the research queue? This does NOT stop a product already being researched. Use STOP ALL RESEARCH & WORKER if you need the worker stopped completely.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
 $('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
 document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
