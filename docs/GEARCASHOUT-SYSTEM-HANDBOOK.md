@@ -653,6 +653,28 @@ This section is part of the persistent project record and should be read togethe
 
 ---
 
+## 17C. 5 September 2026 — Simplified batch and continuous research control
+
+The AI Research Centre originally displayed a separate Continuous Catalogue Mode panel with its own mode selector and Start/Stop buttons. This duplicated the main batch-selection decision and added unnecessary controls.
+
+The interface was simplified so **Batch size** now contains:
+
+- 1 product
+- 3 products
+- 5 products
+- 10 products
+- 25 products
+- **Continuous**
+
+The single **RUN RESEARCH** button now starts whichever mode is selected:
+
+- a numbered value runs that batch;
+- **Continuous** starts automatic catalogue continuation.
+
+Switching back to a numbered batch and pressing **RUN RESEARCH** automatically ends continuous mode, clears waiting jobs, and starts the selected batch. This keeps the workflow in one place and removes the separate continuous-control panel.
+
+---
+
 ## 17B. Research control buttons — clarified
 
 The AI Research Centre uses different controls for different purposes. These must not be treated as interchangeable.
