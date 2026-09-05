@@ -1080,3 +1080,42 @@ Roadmaps will be added progressively as systems are inspected:
 11. Authentication and customer accounts
 
 The eventual aim is that a developer can open the Human / Developer Handbook, identify the broken website area, and immediately see the route through the repository, Supabase and any connected services.
+
+
+---
+
+## 17C. 5 September 2026 — Amazon UK Only manual-run scope repair
+
+### Fault observed
+
+The dashboard could visibly select **Amazon UK Only** and the Edge Function received `evidence_scope = amazon_uk`, but the local Research PC still logged searches against Bright Tangerine, DJI Retail and other non-Amazon sources.
+
+### First failure identified
+
+The failure was in the Supabase RPC `ai_research_create_run_filtered(...)`.
+
+**Path:**
+
+1. `admin-ai-research.html` → Amazon UK Only control.
+2. `admin-ai-research.js` → sends `evidence_scope: 'amazon_uk'`.
+3. Supabase Edge Function `quote-catalog-ai-worker` → forwards `p_evidence_scope: evidenceScope`.
+4. `ai_research_create_run_filtered(...)` → previously accepted the parameter but only preserved `new_uk`, `used_uk` and `overseas`; `amazon_uk` was incorrectly converted to `all`.
+5. `quote_catalog_ai_research_runs.evidence_scope` therefore stored `all`.
+6. `tools/gear-ai-local-agent/agent.mjs` correctly reads the stored run scope, so it legitimately searched all enabled sources.
+
+### Repair
+
+Supabase migration `supabase/migrations/20260905162500_fix_amazon_uk_manual_research_run_scope.sql` now preserves `amazon_uk` as a valid manual-run scope.
+
+### Diagnostic lesson
+
+For source-filter faults, do not stop at the front-end selection or request payload. Verify the persisted value in `quote_catalog_ai_research_runs.evidence_scope`.
+
+The worker follows that database value. A correct UI label with an incorrect persisted run scope will still produce the wrong searches.
+
+### Verification status
+
+- Root cause: verified in live Supabase function definition.
+- Database repair: applied.
+- Repository migration: committed.
+- End-to-end Research PC retest: required next.
