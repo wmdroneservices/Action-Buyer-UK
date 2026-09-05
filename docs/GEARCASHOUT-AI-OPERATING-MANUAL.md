@@ -615,3 +615,14 @@ The per-finding **COMPARE HERE WITH CATALOGUE** workflow is now deliberately ver
 5. The full catalogue editor remains available in a separate tab for deeper catalogue work.
 
 This corrects the previous usability problem where the editor could render below a long comparison panel and appear not to open.
+
+
+---
+
+# 19. Removal of Duplicate Research Memory Dashboard Section — 5 September 2026
+
+The visible **RESEARCH MEMORY → Accepted and denied decisions** table was removed from the AI Research Centre because it duplicated the accepted/rejected evidence audit workflow and unnecessarily lengthened the page.
+
+The removal does **not** remove Gemma's learning data. Manual review feedback and structured learning continue to be stored in Supabase, including `quote_catalog_ai_learning` entries created by `record_ai_candidate_manual_review(...)`.
+
+The remaining user-facing audit path is the evidence review area, including the existing accepted and rejected sections. The structured learning table is now treated as backend operational memory rather than a second dashboard section.
