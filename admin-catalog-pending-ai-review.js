@@ -176,6 +176,7 @@ function openProduct(id){
 }
 
 document.addEventListener('click',e=>{
+ const catalogueEdit=e.target.closest('.edit-product');if(catalogueEdit){setTimeout(renderCurrentProductPending,80);}
  const product=e.target.closest('[data-pending-product]');if(product){openProduct(product.dataset.pendingProduct);return;}
  if(e.target.closest('[data-pending-open-all]')){document.querySelector('.catalog-pending-ai-dropdown')?.setAttribute('open','');document.getElementById('catalog-pending-ai-warning')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
  const accept=e.target.closest('[data-pending-accept]');if(accept){reviewCandidate(accept.dataset.pendingAccept,'accepted',accept);return;}
