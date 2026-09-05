@@ -294,7 +294,8 @@ async function loadContinuousResearch(){
  const status=$('continuous-research-status');if(!status)return;
  const {data,error}=await sb.rpc('ai_research_get_continuous');if(error)throw error;
  const c=data||{}; const on=!!c.enabled;
- status.textContent=on?'CONTINUOUS RESEARCH RUNNING · '+(c.mode==='oldest_checked'?'oldest evidence timestamps first':'lowest evidence first')+' · '+(c.evidence_scope||'all'):'CONTINUOUS RESEARCH STOPPED';
+ const scopeLabel={all:'ALL MARKETS',new_uk:'NEW UK',used_uk:'USED UK',overseas:'OVERSEAS',amazon_uk:'AMAZON UK ONLY'}[c.evidence_scope]||String(c.evidence_scope||'ALL').toUpperCase();
+ status.textContent=on?'CONTINUOUS RESEARCH RUNNING · '+(c.mode==='oldest_checked'?'oldest evidence timestamps first':'lowest evidence first')+' · '+scopeLabel:'CONTINUOUS RESEARCH STOPPED';
  status.className='form-message '+(on?'success':'');
  const start=$('start-continuous-research'),stop=$('stop-continuous-research');
  if(start)start.disabled=on;if(stop)stop.disabled=!on;
