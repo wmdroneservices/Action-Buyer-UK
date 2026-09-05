@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260905-grouped-product-review-2" defer></script><style>
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260905-grouped-product-review-catalogue-context-1" defer></script><style>
 .ai-review-grid{display:grid;gap:16px}
 .ai-empty-state{padding:24px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#5b6470}
 .ai-review-card{display:grid;grid-template-columns:auto minmax(240px,1fr) minmax(360px,1.6fr) auto;gap:18px;align-items:stretch;padding:18px;border:1px solid #d8dde3;border-left:4px solid #c97921;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -110,6 +110,25 @@
 .ai-group-evidence-entry .ai-manual-review{margin-bottom:0}
 .ai-product-evidence-current .ai-comparison-table-wrap{max-height:none;overflow-x:auto}
 @media(max-width:760px){.ai-product-review-details summary,.ai-product-evidence-block-head,.ai-group-evidence-entry-head{display:block}.ai-product-review-details summary>.ai-decision-toggle,.ai-product-evidence-block-head .btn{display:inline-flex;margin-top:12px}.ai-group-evidence-meta{grid-template-columns:1fr}.ai-product-review-content{padding:0 12px 12px}.ai-product-evidence-block{padding:14px}}
+
+
+/* Grouped review catalogue context: mirror the useful pricing/evidence context from Quote Catalogue. */
+.ai-product-review-summary{min-width:0;flex:1}
+.ai-catalogue-snapshot{display:grid;gap:14px;margin:0 0 16px}
+.ai-catalogue-snapshot-compact{margin:14px 0 0}
+.ai-catalogue-snapshot-group{padding:12px;border:1px solid #e1e5ea;border-radius:8px;background:#fff}
+.ai-catalogue-snapshot-group>.section-kicker{margin:0 0 8px;font-size:10px}
+.ai-catalogue-price-grid,.ai-catalogue-stat-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.ai-catalogue-stat-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.ai-catalogue-price-grid span,.ai-catalogue-stat-grid span{display:block;padding:9px;border:1px solid #edf0f3;border-radius:6px;background:#fbfcfd;color:#667085;font-size:11px;line-height:1.35}
+.ai-catalogue-price-grid strong,.ai-catalogue-stat-grid strong{display:block;margin-bottom:4px;color:#233d59;font-size:12px;letter-spacing:.03em}
+.ai-catalogue-price-grid strong{font-size:10px;letter-spacing:.06em}
+.ai-product-review-summary .ai-catalogue-snapshot-group{background:#f8fafb}
+.ai-product-review-summary .ai-catalogue-snapshot{margin-bottom:0}
+.ai-catalogue-evidence-table td small{display:block;max-width:240px;word-break:break-all;color:#667085;margin-top:4px}
+@media(max-width:1050px){.ai-catalogue-price-grid,.ai-catalogue-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.ai-catalogue-price-grid,.ai-catalogue-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ai-product-review-summary .ai-catalogue-snapshot{margin-top:12px}}
+@media(max-width:480px){.ai-catalogue-price-grid,.ai-catalogue-stat-grid{grid-template-columns:1fr}}
 
 </style></head><body><header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav></nav></div></header><main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF · AI</p><h1>AI Research Centre</h1><p>Research is collected as proposed evidence first. Every entry can be checked, edited, accepted or denied before anything reaches the live evidence base.</p></div><a class="btn btn-secondary" href="admin-research-pricing.html">RESEARCH &amp; PRICING</a></div><section class="account-panel"><div class="section-heading"><p class="section-kicker">REVIEW-FIRST WORKFLOW</p><h2>No automatic database population</h2><p>AI findings remain pending until manually reviewed. Accepted findings can then be applied individually to the live evidence table.</p></div><section class="ai-market-scope" aria-labelledby="market-scope-heading">
 <p class="section-kicker">STEP 1 · CHOOSE WHAT THE AI SEARCHES FOR</p>
