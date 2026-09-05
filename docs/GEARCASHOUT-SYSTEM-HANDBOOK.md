@@ -347,6 +347,25 @@ This is a central design principle for future development.
 
 ---
 
+# 8A. Condition Rules for Comparison Evidence
+
+GearCashOut does not operate a separate **Refurbished** buy-in category.
+
+For comparison research:
+
+| Listing condition | Evidence category | Condition retained |
+|---|---|---|
+| New | New UK | new |
+| Used | Used UK | used |
+| Open-box / returned stock | Used UK where appropriate | used/open-box |
+| Refurbished / Renewed | Used UK | **refurbished** |
+
+Refurbished/Renewed findings are **comparison evidence only**. They do not imply that GearCashOut buys refurbished stock.
+
+The AI must preserve the distinction in the finding's condition so a reviewer can see that a price came from refurbished stock, while keeping the evidence within the existing Used comparison section.
+
+---
+
 # 9. Important Database / Workflow Separation
 
 The system contains several distinct layers that must not be casually merged:
