@@ -83,7 +83,7 @@ The evidence table deduplicates by product, retailer, condition, price and sourc
 
 Therefore two genuine MPB units with the same condition and same price must retain SKU-level source identity. The worker uses:
 
-https://www.mpb.com/en-uk/product/model#mpb-sku-1234567
+https://www.mpb.com/en-uk/product/model
 
 The canonical MPB model URL remains visible in notes.
 
