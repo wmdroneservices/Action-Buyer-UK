@@ -116,24 +116,25 @@ function renderCandidateCard(c){
        +'<span class="ai-finding-toggle">VIEW</span>'
      +'</summary>'
      +'<div class="ai-finding-content">'
-       +'<div class="ai-finding-body">'
-         +'<div class="ai-review-product"><p class="section-kicker">CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta)+'</p></div>'
-         +'<div class="ai-review-evidence">'
-           +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
-           +'<h3>'+esc(title)+'</h3>'
-           +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
-           +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
-           +(c.decision_reason?'<p class="ai-review-notes"><strong>Review reason / learning:</strong> '+esc(c.decision_reason)+'</p>':'')
-           +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
+       +(String(comparingCandidateId)===String(c.id)
+         ?comparisonPanelMarkup(c,p)
+         :'<div class="ai-finding-body">'
+           +'<div class="ai-review-product"><p class="section-kicker">CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta)+'</p></div>'
+           +'<div class="ai-review-evidence">'
+             +'<div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(decision)+'</span></div>'
+             +'<h3>'+esc(title)+'</h3>'
+             +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
+             +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
+             +(c.decision_reason?'<p class="ai-review-notes"><strong>Review reason / learning:</strong> '+esc(c.decision_reason)+'</p>':'')
+             +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
+           +'</div>'
+           +'<div class="ai-review-actions">'
+             +(p&&c.catalog_product_id?'<button type="button" class="btn btn-primary ai-compare-catalogue" data-id="'+esc(c.id)+'">COMPARE HERE WITH CATALOGUE</button>':'')
+             +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button>'
+           +'</div>'
+           +manualReviewMarkup(c,false)
          +'</div>'
-         +'<div class="ai-review-actions">'
-           +(p&&c.catalog_product_id?'<button type="button" class="btn btn-primary ai-compare-catalogue" data-id="'+esc(c.id)+'">COMPARE HERE WITH CATALOGUE</button>':'')
-           +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button>'
-         +'</div>'
-         +(String(comparingCandidateId)!==String(c.id)?manualReviewMarkup(c,false):'')
-       +'</div>'
-       +(String(comparingCandidateId)===String(c.id)?comparisonPanelMarkup(c,p):'')
-       +(editingId===c.id&&String(comparingCandidateId)!==String(c.id)?editorMarkup(c):'')
+         +(editingId===c.id?editorMarkup(c):''))
      +'</div>'
    +'</details>'
  +'</article>';
