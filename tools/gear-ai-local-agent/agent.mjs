@@ -881,7 +881,7 @@ async function learnSharedSource(sourceUrl, sourceName, sourceKind='other', scop
 async function getRunEvidenceScope(runId){
   const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
   if(error)throw error;
-  return ['all','new_uk','used_uk','overseas'].includes(data?.evidence_scope)?data.evidence_scope:'all';
+  return ['all','new_uk','used_uk','overseas','amazon_uk'].includes(data?.evidence_scope)?data.evidence_scope:'all';
 }
 
 async function recordRawDiscoveries(context={},discoveries=[]){
@@ -952,6 +952,9 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       }
       const host=hostOf(r.url);
       if(!host)continue;
+      // Amazon-only means the actual result URL must be Amazon UK, not merely
+      // a search result that mentions Amazon in its title or snippet.
+      if(amazonOnly && !/^(?:www\.)?amazon\.co\.uk$/i.test(host))continue;
       const key=String(r.url).split('#')[0];
       if(!seen.has(key))seen.set(key,{...r,url:key,query:q,host,scope_hint:scope});
     }
@@ -996,17 +999,19 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       for(const q of amazonUkQueries(names[1]))await addResults(q,scope);
     }
 
-    // Always give the approved registry a chance in each requested market.
-    // Search engines often return new retail pages while missing used dealers.
-    const direct=await discoverFromKnownSources(product,priority,scope);
-    if(direct.length)log('Approved-source fallback',scope,'returned',direct.length,'result(s)');
-    for(const r of direct){
-      if(!isDiscoveryRelevant(product,r)){
-        log('Rejected irrelevant approved-source result before evidence fetch:',r.title||r.url);
-        continue;
+    // Amazon-only mode must not fall back to the general approved-source registry.
+    // For all other modes, give the registry a chance in each requested market.
+    if(!amazonOnly){
+      const direct=await discoverFromKnownSources(product,priority,scope);
+      if(direct.length)log('Approved-source fallback',scope,'returned',direct.length,'result(s)');
+      for(const r of direct){
+        if(!isDiscoveryRelevant(product,r)){
+          log('Rejected irrelevant approved-source result before evidence fetch:',r.title||r.url);
+          continue;
+        }
+        const key=String(r.url).split('#')[0];
+        if(!seen.has(key))seen.set(key,{...r,url:key,host:hostOf(r.url),scope_hint:scope});
       }
-      const key=String(r.url).split('#')[0];
-      if(!seen.has(key))seen.set(key,{...r,url:key,host:hostOf(r.url),scope_hint:scope});
     }
   }
 
