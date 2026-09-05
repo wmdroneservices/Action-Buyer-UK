@@ -680,3 +680,25 @@ Current behaviour:
 - no Supabase schema or evidence workflow was changed.
 
 This is a UI-state repair only. Save, submit and deny behaviour remains unchanged.
+
+
+### Grouped review catalogue context — 5 September 2026
+
+Live usability feedback showed that the grouped product review was structurally correct but the **matched catalogue product** information was too sparse. The reviewer could see the product name and evidence count, but not enough of the existing Quote Catalogue context to make a quick comparison.
+
+The grouped review now loads and displays the same decision-relevant catalogue information directly in the review:
+
+- automatic buying prices: Factory Sealed, Opened/Unused, Excellent, Good and Fair;
+- UK New evidence count;
+- lowest and highest qualifying UK New selling prices;
+- UK used/other reference count;
+- total current evidence count;
+- the full linked evidence list with retailer, type, condition, sell price, buy price, availability, buy method, region, exact source URL, notes and checked timestamp.
+
+This information appears in the product review context and again in the **CURRENT CATALOGUE EVIDENCE** block. The separate full catalogue editor remains available for deeper changes, but routine evidence decisions should not require leaving the grouped review.
+
+Data flow remains unchanged:
+
+quote_catalog_products + quote_catalog_retailer_prices → admin-ai-research.js grouped review.
+
+No Supabase schema, pricing rule or evidence-application workflow was changed.
