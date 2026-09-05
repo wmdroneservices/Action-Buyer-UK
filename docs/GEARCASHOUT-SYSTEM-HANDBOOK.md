@@ -1406,3 +1406,21 @@ This is a **UI simplification only**:
 - `quote_catalog_ai_learning` is still used by the research workflow and has not been deleted or disabled.
 
 The learning data is backend operational memory rather than a second on-page review queue.
+
+
+### Full-width comparison correction — 5 September 2026
+
+Live browser feedback showed that the comparison still appeared column-based because the normal expanded finding body remained visible above the comparison panel. That created a left catalogue-product column, centre evidence column and right action column before the vertical comparison.
+
+The comparison state now replaces that normal multi-column finding body entirely.
+
+When **COMPARE HERE WITH CATALOGUE** is active, the expanded finding shows one full-width workflow only:
+
+1. **NEW AI FINDING — EDITABLE** as a full-width block across the page.
+2. The editable fields immediately inside that block.
+3. **CURRENT CATALOGUE EVIDENCE** as a second full-width block directly underneath.
+4. Manual review feedback and accept/deny actions underneath.
+
+The old three-column summary is not rendered while comparison mode is active.
+
+The JavaScript asset version was also changed to force browsers to load the corrected implementation rather than continue using a cached script.
