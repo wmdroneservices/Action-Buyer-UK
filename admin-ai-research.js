@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,comparingCandidateId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -95,7 +95,7 @@ function renderCandidateCard(c){
  const source=url?(()=>{try{return new URL(url).hostname.replace(/^www\\./,'')}catch{return url}})():'—';
  const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable';
  const productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'Product ID '+String(c.catalog_product_id||'—');
- const open=editingId===c.id?' open':'';
+ const open=(editingId===c.id||String(comparingCandidateId)===String(c.id))?' open':'';
  return '<article class="ai-review-card ai-finding-card">'
    +'<div class="ai-review-select"><input type="checkbox" class="candidate-check" value="'+esc(c.id)+'"'+(selectedCandidateIds.has(String(c.id))?' checked':'')+' aria-label="Select this finding"></div>'
    +'<details class="ai-finding-details"'+open+'>'
@@ -120,14 +120,99 @@ function renderCandidateCard(c){
            +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
          +'</div>'
          +'<div class="ai-review-actions">'
-           +(p&&c.catalog_product_id?'<a class="btn btn-primary ai-compare-catalogue" href="admin-catalog.html?product='+encodeURIComponent(c.catalog_product_id)+'">COMPARE WITH CATALOGUE PRODUCT</a>':'')
+           +(p&&c.catalog_product_id?'<button type="button" class="btn btn-primary ai-compare-catalogue" data-id="'+esc(c.id)+'">COMPARE HERE WITH CATALOGUE</button>':'')
            +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button>'
          +'</div>'
        +'</div>'
+       +(String(comparingCandidateId)===String(c.id)?comparisonPanelMarkup(c,p):'')
        +(editingId===c.id?editorMarkup(c):'')
      +'</div>'
    +'</details>'
  +'</article>';
+}
+const comparisonMoney=v=>v===null||v===undefined||v===''?'—':'£'+Number(v).toFixed(2);
+function effectiveCandidateValue(c,edited,original,fallback='—'){const v=c?.[edited]??c?.[original]??fallback;return v==null||v===''?fallback:v;}
+async function loadComparisonEvidence(productId){
+ const key=String(productId||'');
+ if(!key)return [];
+ const cached=comparisonEvidenceByProduct.get(key);
+ if(cached?.status==='ready')return cached.rows;
+ if(cached?.status==='loading')return cached.rows||[];
+ comparisonEvidenceByProduct.set(key,{status:'loading',rows:[]});
+ const {data,error}=await sb.from('quote_catalog_retailer_prices')
+   .select('id,retailer,price_type,condition,buy_price,sell_price,price_currency,evidence_region,availability_status,source_url,notes,checked_at')
+   .eq('catalog_product_id',productId)
+   .order('checked_at',{ascending:false});
+ if(error){
+   comparisonEvidenceByProduct.set(key,{status:'error',rows:[],error:error.message||String(error)});
+   throw error;
+ }
+ const rows=data||[];
+ comparisonEvidenceByProduct.set(key,{status:'ready',rows});
+ return rows;
+}
+function comparisonPanelMarkup(c,p){
+ const key=String(c.catalog_product_id||'');
+ const state=comparisonEvidenceByProduct.get(key);
+ const loading=!state||state.status==='loading';
+ const failed=state?.status==='error';
+ const rows=state?.rows||[];
+ const title=c.edited_title??c.discovered_title??'—';
+ const price=c.edited_price??c.price;
+ const condition=c.edited_condition??c.condition??'—';
+ const category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified';
+ const sourceKind=c.edited_source_kind??c.source_kind??'—';
+ const url=c.edited_source_url??c.source_url??'';
+ const productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product';
+ const evidenceHtml=loading
+   ?'<div class="ai-comparison-loading">Loading existing catalogue evidence…</div>'
+   :failed
+     ?'<div class="ai-comparison-error">Existing catalogue evidence could not be loaded: '+esc(state.error||'Unknown error')+'</div>'
+     :rows.length
+       ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table"><thead><tr><th>Website / competitor</th><th>Type</th><th>Condition</th><th>Price</th><th>Region</th><th>Availability</th><th>Source</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price??r.buy_price)+'</td><td>'+esc(r.evidence_region||'—')+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a>':'—')+'</td></tr>').join('')+'</tbody></table></div>'
+       :'<div class="ai-comparison-empty">No existing market evidence has been recorded for this catalogue product yet.</div>';
+ return '<section class="ai-inline-comparison" data-comparison-id="'+esc(c.id)+'">'
+   +'<div class="ai-comparison-heading"><div><p class="section-kicker">SIDE-BY-SIDE COMPARISON</p><h3>New evidence beside the current catalogue</h3><p>The proposed finding stays open while you review the existing catalogue evidence. Nothing is added until you explicitly accept and apply it.</p></div><button type="button" class="btn btn-secondary ai-compare-close" data-id="'+esc(c.id)+'">CLOSE COMPARISON</button></div>'
+   +'<div class="ai-comparison-grid">'
+     +'<article class="ai-comparison-column ai-comparison-new"><p class="section-kicker">NEW AI FINDING</p><h4>'+esc(title)+'</h4><div class="ai-comparison-stats"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong>'+esc(condition)+'</span><span><strong>Bucket</strong>'+esc(category)+'</span><span><strong>Source</strong>'+esc(sourceKind)+'</span></div>'+(url?'<p class="ai-comparison-source"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN NEW EVIDENCE PAGE</a></p>':'')+'</article>'
+     +'<article class="ai-comparison-column ai-comparison-existing"><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h4>'+esc(productTitle)+'</h4>'+evidenceHtml+'</article>'
+   +'</div>'
+   +'<div class="ai-comparison-actions">'
+     +'<button type="button" class="btn btn-primary ai-accept-apply-single" data-id="'+esc(c.id)+'">ACCEPT & ADD TO LIVE EVIDENCE</button>'
+     +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">EDIT NEW FINDING</button>'
+     +(p&&c.catalog_product_id?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(c.catalog_product_id)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR (NEW TAB)</a>':'')
+   +'</div>'
+ +'</section>';
+}
+async function openComparison(id){
+ const c=candidates.find(x=>String(x.id)===String(id));
+ if(!c?.catalog_product_id)throw Error('This finding is not linked to a catalogue product.');
+ comparingCandidateId=String(id);
+ render();
+ try{await loadComparisonEvidence(c.catalog_product_id);}catch(e){msg('The finding is open, but existing catalogue evidence could not be loaded: '+(e.message||String(e)),true);}
+ render();
+}
+function closeComparison(id){if(String(comparingCandidateId)===String(id))comparingCandidateId=null;render();}
+async function acceptAndApplySingle(id){
+ const c=candidates.find(x=>String(x.id)===String(id));
+ if(!c)throw Error('Finding is no longer available.');
+ if(c.applied_at){msg('This finding has already been applied to live evidence.');return;}
+ const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';
+ if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');
+ if(c.decision!=='accepted'){
+   const {error}=await sb.from('quote_catalog_ai_candidates').update({
+     decision:'accepted',
+     decision_reason:'Accepted after side-by-side catalogue comparison in AI Research Centre.',
+     reviewed_at:new Date().toISOString()
+   }).eq('id',id);
+   if(error)throw error;
+ }
+ const {error:applyError}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
+ if(applyError)throw applyError;
+ selectedCandidateIds.delete(String(id));
+ comparingCandidateId=null;
+ msg('Finding accepted and added to the live evidence for '+pname(c)+'.');
+ await load();
 }
 function isAmazonFinding(c){
  const url=clean(c.edited_source_url??c.source_url??'').toLowerCase();
@@ -515,7 +600,7 @@ document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(b=>b.a
 $('research-source-filter')?.addEventListener('change',e=>{selectedSourceFilter=e.target.value==='amazon_uk'?'amazon_uk':'all';document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=(x.dataset.sourceFilter||'all')===selectedSourceFilter;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});});
 selectedSourceFilter=clean($('research-source-filter')?.value||'all')==='amazon_uk'?'amazon_uk':'all';
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
-setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
+setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const compare=e.target.closest('.ai-compare-catalogue');if(compare){openComparison(compare.dataset.id).catch(x=>msg(x.message||String(x),true));return}const closeCompare=e.target.closest('.ai-compare-close');if(closeCompare){closeComparison(closeCompare.dataset.id);return}const acceptApply=e.target.closest('.ai-accept-apply-single');if(acceptApply){acceptAndApplySingle(acceptApply.dataset.id).catch(x=>msg(x.message||String(x),true));return}const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
   try{
     if(cmd==='stop_worker'){
       stopCommandPending=true;
