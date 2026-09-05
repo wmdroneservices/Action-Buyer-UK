@@ -750,3 +750,39 @@ The command registry now also accepts **START RESEARCH PC WORKER**, matching the
 Because the Research PC is a manually downloaded/extracted copy rather than a live Git checkout, the local file that must be replaced for this fix is tools/gear-ai-local-agent/agent.mjs.
 
 The dashboard/database changes are already source-controlled and database-enforced; the corrected local agent file is required before the physical PowerShell shutdown fix can take effect on the Research PC.
+
+
+---
+
+## 17E. Confirmed Research PC start/stop regression - 5 September 2026
+
+### Existing design that must be preserved
+
+The Research PC already uses:
+
+Windows startup / desktop shortcut -> Start-GearCashOut-AI.ps1 -> npm start -> agent.mjs
+
+The PowerShell launcher is expected to remain alive and restart the Node worker after an unexpected exit.
+
+### Confirmed fault
+
+A later repository change left Start-GearCashOut-AI.ps1 as a one-shot npm start launcher. Once Node exited, PowerShell exited as well.
+
+Separately, the dashboard START control only writes a start_worker command into Supabase. That command can only be consumed by an already-running agent.mjs. It cannot wake a completely offline Windows process.
+
+Therefore an offline Research PC could show a START confirmation but nothing happened after OK: the command was waiting for the very worker it was supposed to start.
+
+### Correct behaviour
+
+- The existing Windows startup/desktop launcher starts the PowerShell launcher.
+- The PowerShell launcher remains alive and restarts npm start after 10 seconds if the worker exits.
+- Remote STOP and RESTART commands are consumed while the worker is online.
+- The dashboard must not claim that an offline worker has been remotely started when no persistent listener exists.
+
+### Maintenance rule
+
+Before changing Research PC controls, preserve this distinction:
+
+Research queue control is cloud/database state. Research PC process control depends on a running local process.
+
+Do not redesign the established startup chain without checking this handbook and the current local installation first.
