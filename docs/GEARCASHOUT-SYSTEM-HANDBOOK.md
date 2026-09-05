@@ -829,3 +829,33 @@ For this repair, only the local PowerShell launcher file needs replacing:
 `C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1`
 
 Do **not** replace the permanent `.env` file. No full repository download is required for this specific repair.
+
+
+---
+
+## 17G. 5 September 2026 — Remote START fault: circular command architecture repaired
+
+### Confirmed fault
+
+The dashboard button **START RESEARCH PC WORKER** could not start a stopped worker. The frontend explicitly blocked the command when the worker heartbeat was offline, and the underlying architecture was circular: the worker itself was responsible for polling Supabase commands, so once stopped there was nothing alive to receive a START command.
+
+### Repair: persistent Research PC supervisor
+
+The Research PC now has two layers:
+
+`PowerShell launcher → supervisor.mjs (always-on control channel) → agent.mjs (research worker)`
+
+The supervisor remains alive when the research worker is stopped. It polls Supabase for lifecycle commands and can:
+
+- START the research worker remotely;
+- RESTART it remotely;
+- STOP the research worker and emergency-stop research while retaining the control channel;
+- answer status and Ollama checks.
+
+### Dashboard status meanings
+
+- **ONLINE** — supervisor and research worker are running.
+- **READY** — supervisor is online but the worker is stopped; START can be used remotely.
+- **OFFLINE** — the Research PC control channel itself is unavailable.
+
+This removes the previous requirement to walk to the Research PC and manually start PowerShell after using STOP.
