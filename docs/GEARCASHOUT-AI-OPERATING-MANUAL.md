@@ -705,3 +705,44 @@ No Supabase schema, pricing rule or evidence-application workflow was changed.
 
 ### Grouped review catalogue evidence rule — 5 September 2026
 When reviewing AI findings against an existing catalogue product, the current catalogue comparison must expose all evidence classes before a reviewer decides what to do with new evidence. Do not suppress valid rows merely because price_currency is blank. Use the catalogue row's region and evidence classification so UK NEW, UK USED / OTHER and OVERSEAS evidence can all be seen, followed by the complete evidence table.
+
+
+---
+
+# 16. Current AI Review Rule — Full Evidence Before New Findings
+
+**Implemented 5 September 2026; live browser verification pending.**
+
+The grouped AI review must not reduce existing catalogue evidence to summary counters when a reviewer is deciding whether a new finding is duplicate or useful.
+
+For each opened catalogue product:
+
+1. load all quote_catalog_retailer_prices rows for that product;
+2. show automatic buying prices and evidence totals;
+3. show the actual rows split into:
+   - UK NEW;
+   - UK USED / OTHER;
+   - OVERSEAS;
+4. include the full evidence fields needed to compare identity, price, source and status;
+5. place the complete current-evidence comparison **above** the grouped new AI findings.
+
+The previous layout already loaded the full rows, but placed the current-evidence block after the new findings and initially presented only summary information. This made duplicate checking unnecessarily difficult.
+
+Current implementation:
+
+- admin-ai-research.js
+  - loadComparisonEvidence(productId)
+  - catalogueEvidenceBreakdownMarkup(rows)
+  - catalogueEvidenceBucketMarkup(...)
+  - productReviewMarkup(group)
+- admin-ai-research.html
+  - grouped evidence comparison styling.
+
+No Supabase schema or workflow change is required. The source remains quote_catalog_retailer_prices.
+
+Verification still required in the live browser:
+
+- all existing evidence rows appear as individual rows for a matching test product;
+- used and overseas rows appear when present;
+- all new findings remain grouped beneath the current evidence;
+- save, deny and submit/apply flows continue to work.
