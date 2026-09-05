@@ -1203,3 +1203,50 @@ AI finding
 - Preserved the existing review/edit/accept/deny/apply workflow and existing evidence data model.
 
 **Verification status:** Implemented and syntax-checked. Browser/live workflow verification is still required.
+
+---
+
+## AI Research Centre — Inline Catalogue Comparison
+
+### Purpose
+
+A reviewer can compare a proposed AI evidence finding against the current live catalogue evidence without leaving the AI Research Centre.
+
+### User flow
+
+1. Open a pending finding.
+2. Click **COMPARE HERE WITH CATALOGUE**.
+3. The finding remains open.
+4. The page loads the linked product's current `quote_catalog_retailer_prices` records beside the new finding.
+5. Review the new evidence and existing evidence side by side.
+6. Either:
+   - edit the new finding;
+   - open the new evidence source;
+   - open the full catalogue editor in a new tab;
+   - close the comparison; or
+   - click **ACCEPT & ADD TO LIVE EVIDENCE**.
+
+### Data path
+
+**User action**
+AI Research Centre → finding → Compare Here With Catalogue
+
+**Front-end**
+`admin-ai-research.js`
+
+**Existing catalogue evidence**
+`quote_catalog_retailer_prices` filtered by `catalog_product_id`
+
+**New evidence**
+`quote_catalog_ai_candidates`
+
+**Direct accept/apply path**
+`quote_catalog_ai_candidates.decision = accepted` → `apply_accepted_ai_candidate(uuid)` → `quote_catalog_retailer_prices` → candidate receives `applied_at` and `applied_evidence_id`.
+
+### Important rule
+
+The side-by-side comparison does not automatically change a buying price. The reviewer must explicitly use **ACCEPT & ADD TO LIVE EVIDENCE** after comparing the evidence.
+
+### Fallback navigation
+
+The full catalogue editor remains available from the comparison panel and opens in a new tab, preserving the AI finding in the original tab.
