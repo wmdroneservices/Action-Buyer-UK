@@ -1113,3 +1113,8 @@ The controlled retry on worker 1.4.9 proved that exact MPB discovery was now rea
 Worker **1.5.0** keeps the existing direct HTTP collector as the first path. For MPB exact product pages only, an HTTP 403 now falls back to a local Chromium browser session through `playwright-core`, using the installed Chrome/Edge executable. This is deliberately limited to the exact-page validation stage; landing, category and subcategory pages remain discovery-only.
 
 The worker requires `npm install` once after updating to install the new `playwright-core` dependency. If the browser fallback succeeds, normal exact-model validation and MPB SKU/unit extraction continue unchanged. No live evidence is automatically applied.
+
+
+## MPB range evidence rule — 6 September 2026
+
+For MPB UK, do not create one candidate per SKU when a single exact model page aggregates multiple used units. Create one `used_uk` pending candidate for the exact product page with `reference_only=true`, `reference_price_min`, `reference_price_max`, conditions represented, unit count and canonical verification URL. Approval writes one reference-only catalogue evidence row; denial leaves the catalogue unchanged. This evidence never changes automatic pricing.
