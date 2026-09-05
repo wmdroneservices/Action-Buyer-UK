@@ -374,3 +374,60 @@ Expected next live verification:
 - worker logs `Research evidence scope: amazon_uk`;
 - Amazon-only enforcement is active;
 - no non-Amazon source probes occur.
+
+
+---
+
+# 15. Current AI Research Centre Review UI — 5 September 2026
+
+## Current implementation
+
+The AI evidence review page now separates pending findings into two collapsed working groups:
+
+1. **Amazon findings — review, edit and decide**
+2. **Review, edit and decide** for all other pending findings
+
+Accepted, rejected and applied findings remain separate collapsible audit sections.
+
+Do not remove the separation by reintroducing a permanently expanded pending queue unless there is a verified usability reason.
+
+## Amazon classification rule
+
+Amazon findings are identified from the effective evidence source rather than merely from the currently selected dashboard filter.
+
+Check, in order:
+
+- edited source URL;
+- original source URL;
+- Amazon source text where present;
+- Amazon UK hostname.
+
+This prevents stale filter state from incorrectly deciding where a historical finding is displayed.
+
+## Catalogue comparison shortcut
+
+Each AI finding with a resolvable catalogue product now includes:
+
+**COMPARE WITH CATALOGUE PRODUCT**
+
+The target is:
+
+`admin-catalog.html?product=<catalog_product_id>`
+
+The existing catalogue implementation already supports this parameter and opens the matching product through `admin-catalog.js`.
+
+The AI finding remains evidence only. Opening the catalogue does not automatically alter buying prices or apply the finding.
+
+## Mandatory verification still required
+
+Implementation was committed and the updated JavaScript was syntax-checked. A live browser test should confirm:
+
+1. Amazon findings appear in their own collapsed section.
+2. Non-Amazon pending findings appear in the general collapsed section.
+3. Opening either section reveals the correct findings.
+4. A finding's compare CTA opens the exact linked catalogue product.
+5. Existing catalogue evidence is visible for comparison.
+6. Browser Back returns safely to the AI review page.
+7. Edit, accept, deny and apply behaviour remains unchanged.
+
+Current state: **Implemented; awaiting browser/live verification.**
