@@ -251,19 +251,22 @@ async function waitForResearchPcStop(commandId){
 }
 async function loadResearchPcControl(){
  const {data:agents,error}=await sb.from('quote_catalog_ai_agents').select('*').order('updated_at',{ascending:false}).limit(1);
- if(error)return {active:false,agent:null};
+ if(error)return {active:false,controlOnline:false,agent:null};
  const a=agents?.[0]; const now=Date.now(); const fresh=a?.last_heartbeat_at&&now-new Date(a.last_heartbeat_at).getTime()<90000;
- const active=fresh&&['online','working','starting'].includes(String(a?.status||'').toLowerCase());
- const pill=$('rpc-status-pill'); if(pill){pill.textContent=active?'ONLINE':'OFFLINE';pill.className='rpc-status '+(active?'online':'offline');}
- if($('rpc-worker'))$('rpc-worker').textContent=active?(a.status||'ONLINE').toUpperCase():'OFFLINE';
- if($('rpc-ollama'))$('rpc-ollama').textContent=active?'CONNECTED':'CHECK REQUIRED';
+ const metadata=a?.metadata&&typeof a.metadata==='object'?a.metadata:{};
+ const controlOnline=fresh&&metadata.control_online===true;
+ const active=fresh&&['online','working','starting'].includes(String(a?.status||'').toLowerCase())&&(metadata.worker_running!==false);
+ const pill=$('rpc-status-pill'); if(pill){pill.textContent=active?'ONLINE':(controlOnline?'READY':'OFFLINE');pill.className='rpc-status '+(active||controlOnline?'online':'offline');}
+ if($('rpc-worker'))$('rpc-worker').textContent=active?(a.status||'ONLINE').toUpperCase():(controlOnline?'STOPPED — READY TO START':'OFFLINE');
+ if($('rpc-ollama'))$('rpc-ollama').textContent=controlOnline?'CONTROL ONLINE':(active?'CONNECTED':'CHECK REQUIRED');
  if($('rpc-model'))$('rpc-model').textContent=a?.model||'—';
  if($('rpc-error'))$('rpc-error').textContent=a?.last_error||'None reported';
  if(!stopCommandPending){
    if(active)setStopButtonState('STOP ALL RESEARCH & WORKER',false);
-   else setStopButtonState('RESEARCH PC STOPPED',true);
+   else if(controlOnline)setStopButtonState('WORKER STOPPED',true);
+   else setStopButtonState('RESEARCH PC OFFLINE',true);
  }
- return {active,agent:a};
+ return {active,controlOnline,agent:a};
 }
 async function requestResearchPcCommand(command){
  const {data:agents,error:aErr}=await sb.from('quote_catalog_ai_agents')
@@ -272,13 +275,8 @@ async function requestResearchPcCommand(command){
  if(aErr)throw aErr;
  const agentId=agents?.[0]?.agent_id||'gear-local-agent-1';
 
- // A Supabase command can only be consumed by a worker that is already running.
- // Do not pretend that START can wake a fully-offline Windows process.
- const heartbeatAt=agents?.[0]?.last_heartbeat_at?new Date(agents[0].last_heartbeat_at).getTime():0;
- const workerFresh=heartbeatAt&&Date.now()-heartbeatAt<90000;
- if(command==='start_worker'&&!workerFresh){
-   throw Error('The Research PC worker is offline, so it cannot receive a START command. Start it with the existing Windows startup/desktop launcher on the Research PC. Once online, remote RESTART and STOP commands work normally.');
- }
+ // Lifecycle commands are consumed by the persistent Research PC supervisor.
+ // It remains online after STOP, so START can wake the research worker remotely.
 
  const {data,error}=await sb.rpc('ai_agent_request_command',{p_agent_id:agentId,p_command:command});
  if(error)throw error;
