@@ -99,7 +99,7 @@ Current explicit rules:
 - deterministic deep crawl from supplied landing page
 - internal search attempts
 - exact product pages only
-- every live SKU extracted separately using extractMpbUkUnits()
+- all live units extracted with `extractMpbUkUnits()` and aggregated into one reference-only From → To range per exact MPB page
 
 ### DJI
 
