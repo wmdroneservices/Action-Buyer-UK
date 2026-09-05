@@ -11,7 +11,7 @@ Map the MPB UK evidence path so future investigation starts with the first real 
 3. Research PC worker claims queue items.
 4. MPB UK is queried as a UK used-market source.
 5. Exact MPB model pages are collected.
-6. Each live MPB unit becomes separate evidence using its SKU.
+6. All live MPB units on the exact product page are aggregated into one reference-only From → To range with conditions represented, unit count and the canonical page URL.
 7. Staff review or deterministic evidence rules apply the evidence to the catalogue.
 
 ## Front-end / research entry points
@@ -29,7 +29,7 @@ Map the MPB UK evidence path so future investigation starts with the first real 
 - tools/gear-ai-local-agent/agent.mjs
 - Supervisor:
   - tools/gear-ai-local-agent/supervisor.mjs
-- Current repository worker version after this repair: **1.5.0**
+- Current repository worker version after this repair: **1.5.1**
 
 ### MPB-specific path
 
