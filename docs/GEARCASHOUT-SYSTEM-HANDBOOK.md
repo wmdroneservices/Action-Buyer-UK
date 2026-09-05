@@ -1674,3 +1674,18 @@ The official Freefly Astro collection was checked against the current Quote Cata
 - added active structured learning for Gemma: a generic category, collection, review article or broad model page must not be treated as exact price evidence unless the exact catalogue product and displayed price are directly matched.
 
 The generic pending AI candidate was intentionally left in the human review queue so the reviewer can deny it through the normal feedback workflow and add the specific review reason.
+
+
+### 5 September 2026 — Inline decision processing status repair
+
+The grouped AI evidence review's manualReviewAction(...) already changed the clicked button label and wrote a page-level result message, but the review markup did not actually contain the .ai-manual-review-status element that the action code was trying to update.
+
+A dedicated inline live-status region now exists inside every manual review panel. It reports the actual transition in place:
+
+- saving review decision and moving out of Requires Attention;
+- saving denial and moving to Denied;
+- any returned error.
+
+The existing Supabase decision and application authorities are unchanged:
+
+record_ai_candidate_manual_review(...) → decision transition, then optional apply_accepted_ai_candidate(uuid).
