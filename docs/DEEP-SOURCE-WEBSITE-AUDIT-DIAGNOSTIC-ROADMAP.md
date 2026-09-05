@@ -133,3 +133,17 @@ They must never be stored as the sole final product price evidence.
 GitHub repository contains worker 1.4.8.
 
 The Research PC must be updated from 1.4.7 to **1.4.8** before a live Deep Source run.
+
+
+## Catalogue review hand-off
+
+Deep Source output must enter `quote_catalog_ai_candidates` as pending evidence. It is surfaced in the main catalogue by `admin-catalog-pending-ai-review.js`.
+
+The Deep Source worker must never bypass this review layer by writing directly to `quote_catalog_retailer_prices`.
+
+Pending findings:
+
+- receive a red P marker;
+- are grouped into UK NEW, UK USED / OTHER and OVERSEAS;
+- are visible in the catalogue warning dropdown;
+- cannot affect live pricing before `apply_accepted_ai_candidate`.
