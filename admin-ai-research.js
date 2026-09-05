@@ -291,14 +291,14 @@ async function loadRawDiscoveries(){
  }).join('');
 }
 async function loadContinuousResearch(){
- const status=$('continuous-research-status');if(!status)return;
+ const select=$('research-limit');if(!select)return;
  const {data,error}=await sb.rpc('ai_research_get_continuous');if(error)throw error;
  const c=data||{}; const on=!!c.enabled;
- const scopeLabel={all:'ALL MARKETS',new_uk:'NEW UK',used_uk:'USED UK',overseas:'OVERSEAS',amazon_uk:'AMAZON UK ONLY'}[c.evidence_scope]||String(c.evidence_scope||'ALL').toUpperCase();
- status.textContent=on?'CONTINUOUS RESEARCH RUNNING · '+(c.mode==='oldest_checked'?'oldest evidence timestamps first':'lowest evidence first')+' · '+scopeLabel:'CONTINUOUS RESEARCH STOPPED';
- status.className='form-message '+(on?'success':'');
- const start=$('start-continuous-research'),stop=$('stop-continuous-research');
- if(start)start.disabled=on;if(stop)stop.disabled=!on;
+ if(on)select.value='continuous';
+ const help=$('research-run-help');
+ if(help)help.innerHTML=on
+   ?'<strong>Continuous research is active.</strong> Select a numbered batch and press RUN RESEARCH to stop automatic continuation and begin that batch.'
+   :'Choose a batch size above, or select <strong>Continuous</strong> to keep working through the catalogue until you switch back to a numbered batch and run research again.';
 }
 async function clearQueuedResearch(silent=false){
  const {data,error}=await sb.rpc('ai_research_clear_queue');
@@ -324,19 +324,27 @@ async function setContinuousResearch(enabled){
  await loadContinuousResearch();
 }
 async function runResearch(){
- const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='RESEARCHING…'}
+ const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='STARTING…'}
  try{
-   // Never let an earlier test run sit behind the new selection.
+   const limitValue=clean($('research-limit')?.value||'5');
+   if(limitValue==='continuous'){
+     await clearQueuedResearch(true);
+     await setContinuousResearch(true);
+     await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch()]);
+     return;
+   }
+   // Switching from Continuous back to a numbered batch ends automatic continuation first.
+   const {data:continuousState,error:continuousError}=await sb.rpc('ai_research_get_continuous');
+   if(continuousError)throw continuousError;
+   if(continuousState?.enabled)await setContinuousResearch(false);
    await clearQueuedResearch(true);
- const selectedMarket=clean($('research-evidence-scope')?.value||'all');
- // The visible source choice is authoritative. Keep an explicit state value so
- // Amazon UK Only cannot silently fall back to the hidden select's default "all".
- const sourceFilter=selectedSourceFilter==='amazon_uk'?'amazon_uk':clean($('research-source-filter')?.value||'all');
- const evidenceScope=sourceFilter==='amazon_uk'?'amazon_uk':selectedMarket;
- const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:evidenceScope};
- const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
- const evidenceLabel=evidenceScope==='amazon_uk'?'Amazon UK ONLY — enforced source scope':({all:'all markets',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence'}[selectedMarket]||'all evidence types');
- msg('AI research started for '+scope+' · '+evidenceLabel+'. Findings will go to manual review only.');
+   const selectedMarket=clean($('research-evidence-scope')?.value||'all');
+   const sourceFilter=selectedSourceFilter==='amazon_uk'?'amazon_uk':clean($('research-source-filter')?.value||'all');
+   const evidenceScope=sourceFilter==='amazon_uk'?'amazon_uk':selectedMarket;
+   const body={limit:Number(limitValue),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:evidenceScope};
+   const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
+   const evidenceLabel=evidenceScope==='amazon_uk'?'Amazon UK ONLY — enforced source scope':({all:'all markets',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence'}[selectedMarket]||'all evidence types');
+   msg('AI research started for '+scope+' · '+body.limit+' product batch · '+evidenceLabel+'. Findings will go to manual review only.');
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
@@ -349,8 +357,8 @@ async function runResearch(){
    }else{
      msg(r.message||'Research request queued.',false);
    }
-   await Promise.all([load(),loadSources(),loadAgentStatus()]);
- }finally{if(b){b.disabled=false;b.textContent='RUN SELECTED AI RESEARCH'}}
+   await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch()]);
+ }finally{if(b){b.disabled=false;b.textContent='RUN RESEARCH'}}
 }
 function edit(id){editingId=editingId===id?null:id;render();}
 async function saveEdit(id){
@@ -459,7 +467,7 @@ setResearchScope($('research-evidence-scope')?.value||'all');document.addEventLi
   msg(cmd==='start_worker'?'Start command sent. Waiting for the Research PC worker to come online…':'Restart command sent. Waiting for the Research PC worker to come back online…');
   setTimeout(()=>loadResearchPcControl().catch(()=>{}),6000);
   setTimeout(()=>loadResearchPcControl().catch(()=>{}),12000);
-}).catch(x=>msg(x.message,true));return}const continuousStart=e.target.closest('#start-continuous-research');if(continuousStart){setContinuousResearch(true).catch(x=>msg(x.message,true));return}const continuousStop=e.target.closest('#stop-continuous-research');if(continuousStop){setContinuousResearch(false).catch(x=>msg(x.message,true));return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});// Do not allow one slow API call to leave the entire Research Centre permanently on "Checking…".
+}).catch(x=>msg(x.message,true));return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});// Do not allow one slow API call to leave the entire Research Centre permanently on "Checking…".
 const initialLoads=[
   ['review queue',()=>load()],
   ['sources',()=>loadSources()],
