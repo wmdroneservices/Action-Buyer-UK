@@ -131,3 +131,32 @@ Because Gary's Research PC is a manually extracted repository copy, the repaired
 `Start-GearCashOut-AI.ps1`
 
 No whole repository download is required for this specific repair.
+
+
+## Latest repair — launcher running npm in the wrong folder
+
+Live PowerShell output confirmed the desktop launcher was working, but npm was being launched from:
+
+`C:\\GearCashOut-Config`
+
+and therefore repeatedly failed because that configuration folder does not contain `package.json`.
+
+### Exact cause
+
+The PowerShell launcher used its own script directory as the Node working directory. That is wrong in the established installation because the script intentionally lives outside the repository in `C:\\GearCashOut-Config`.
+
+### Repair committed
+
+`tools/gear-ai-local-agent/Start-GearCashOut-AI.ps1` now explicitly uses:
+
+`C:\\gearcashout\\Action-Buyer-UK-main\\tools\\gear-ai-local-agent`
+
+as the default Node project directory, verifies `package.json` before running npm, preserves the 10-second restart loop, and allows a future override through `GEARCASHOUT_AGENT_DIR`.
+
+### Required local action
+
+Replace only:
+
+`C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1`
+
+with the repaired launcher. Keep the existing `C:\\GearCashOut-Config\\.env` unchanged.
