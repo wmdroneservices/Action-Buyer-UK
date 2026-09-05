@@ -431,3 +431,36 @@ Implementation was committed and the updated JavaScript was syntax-checked. A li
 7. Edit, accept, deny and apply behaviour remains unchanged.
 
 Current state: **Implemented; awaiting browser/live verification.**
+
+---
+
+# 16. Current AI Review Workflow — Inline Side-by-Side Comparison
+
+On 5 September 2026, the per-finding catalogue comparison was changed from a same-page navigation shortcut into an in-place comparison workflow.
+
+## Current behaviour
+
+**COMPARE HERE WITH CATALOGUE**:
+
+1. keeps the AI finding open;
+2. loads current live evidence from `quote_catalog_retailer_prices` for the linked `catalog_product_id`;
+3. displays new evidence and existing catalogue evidence side by side;
+4. allows source links to be opened independently;
+5. retains **EDIT NEW FINDING**;
+6. provides **ACCEPT & ADD TO LIVE EVIDENCE** for the reviewed finding.
+
+The direct action is still explicit. It sets the candidate to accepted when required and then calls the existing live function:
+
+`apply_accepted_ai_candidate(uuid)`
+
+That function remains the authority for writing the final evidence row and mapping the selected evidence category to the live evidence fields.
+
+## Full catalogue editor
+
+A separate **OPEN FULL CATALOGUE EDITOR (NEW TAB)** action remains available for deeper catalogue work without losing the AI review state.
+
+## Verification state
+
+- Implemented
+- JavaScript syntax checked
+- Live browser verification still required
