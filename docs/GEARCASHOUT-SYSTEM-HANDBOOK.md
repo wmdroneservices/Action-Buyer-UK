@@ -1250,3 +1250,14 @@ The side-by-side comparison does not automatically change a buying price. The re
 ### Fallback navigation
 
 The full catalogue editor remains available from the comparison panel and opens in a new tab, preserving the AI finding in the original tab.
+
+
+### Inline comparison regression — 5 September 2026
+
+**Observed behaviour:** Clicking **COMPARE HERE WITH CATALOGUE** appeared to close the review dropdown instead of showing the comparison.
+
+**Root cause:** `admin-ai-research.js` correctly set the active comparison, but `render()` rebuilt the outer review `<details>` sections closed. The active finding was technically reopened inside a collapsed parent section.
+
+**Repair:** `renderSection(...)` now keeps the parent decision section open whenever it contains the active comparison or active editor.
+
+**Verification:** JavaScript syntax check passed. Live browser retest required.
