@@ -464,3 +464,31 @@ A separate **OPEN FULL CATALOGUE EDITOR (NEW TAB)** action remains available for
 - Implemented
 - JavaScript syntax checked
 - Live browser verification still required
+
+
+### 5 September 2026 — Inline comparison dropdown regression and repair
+
+#### Fault observed during live browser testing
+
+Clicking **COMPARE HERE WITH CATALOGUE** opened the comparison state internally but appeared to close the containing review dropdown. The comparison was therefore hidden because `render()` rebuilt the entire queue and the outer `<details class="ai-decision-section">` returned to its default collapsed state.
+
+#### First failure
+
+The issue was not the catalogue lookup or Supabase evidence query. It was the UI re-render in `admin-ai-research.js`:
+
+1. Compare set `comparingCandidateId`.
+2. `render()` rebuilt the review queue.
+3. The finding itself was reopened from comparison state.
+4. Its parent decision section was recreated closed.
+5. The user therefore saw the dropdown close instead of the comparison panel.
+
+#### Repair
+
+`renderSection(...)` now forces the relevant decision section open whenever it contains the active comparison or active editor. This preserves the user's context across the two renders used while catalogue evidence loads.
+
+#### Verification status
+
+- Root cause: confirmed from current code and live browser behaviour.
+- Repair committed to GitHub.
+- JavaScript syntax check: passed.
+- Browser retest: required.
