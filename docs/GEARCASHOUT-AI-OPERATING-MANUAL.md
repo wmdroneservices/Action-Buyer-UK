@@ -903,3 +903,40 @@ The repair adds a live inline status region to every manual review panel. The ex
 5. for direct submission, call apply_accepted_ai_candidate(uuid) and report any separate apply failure.
 
 No schema, RPC, RLS or evidence-application change was made.
+
+
+---
+
+# MPB UK Deep Inventory Learning Rule — 5 September 2026
+
+## Root lesson
+
+A generic MPB category or brand page can reveal that a model exists, but it is not sufficient final evidence for a catalogue product.
+
+The worker previously treated broad discovery paths too much like evidence sources, which contributed to incomplete MPB evidence such as one or two observations where the exact MPB model page contained many individual units.
+
+## Permanent rule
+
+For MPB UK:
+
+1. Use category/brand pages only to discover candidate models.
+2. Continue into the exact `/en-uk/product/...` model page.
+3. Inspect all currently displayed individual units.
+4. Preserve each unit as separate market evidence when relevant.
+5. Capture SKU, price, cosmetic condition, charges when shown, and meaningful included/package details.
+6. Never collapse a multi-unit MPB page to one representative price.
+7. Never store category, brand or search pages as final exact product-price evidence.
+
+## Current database audit state
+
+Initial audit found 1,743 MPB rows, of which 404 used category URLs and 465 used brand URLs. 549 catalogue products had MPB evidence but no exact MPB product-page row.
+
+This means the historical MPB dataset must be treated as requiring replacement/audit rather than assumed correct.
+
+## Gemma learning integration
+
+The local worker was updated to version 1.4.6 so active `quote_catalog_ai_learning` rules are loaded for the researched product/manufacturer and supplied to the Gemma validation prompt.
+
+The MPB source-specific rule is now explicitly present in structured learning and the prompt.
+
+This does not by itself complete the historical MPB audit. It prevents the learning system from treating category/brand pages as final evidence while the existing dataset is audited.
