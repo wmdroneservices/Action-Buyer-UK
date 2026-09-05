@@ -1004,3 +1004,54 @@ Every generic-only product must receive one verified outcome:
 4. package or controller mismatch.
 
 Current generic-only count after verified corrections: **547**.
+
+
+---
+
+# Deep Source / Website Audit — Operating Rules
+
+Use Deep Source Audit when the user wants a specific website or marketplace searched from a landing page through its relevant category structure.
+
+## Required behaviour
+
+The landing page is a map, not evidence.
+
+The worker must continue through relevant:
+
+1. category pages;
+2. subcategory pages;
+3. internal site search where the source rule provides it;
+4. exact product pages.
+
+Final evidence must come from an exact product page.
+
+## Source-specific handling
+
+The deterministic code owns navigation depth and extraction. Gemma may interpret evidence but must not decide that a generic category page represents a completed exact-product search.
+
+### MPB
+
+- exact UK product pages only;
+- expand every live SKU;
+- retain price, cosmetic condition and charges/shutter information where present;
+- preserve package/controller details;
+- preserve duplicate same-price units using SKU-level identity.
+
+### Other sources
+
+A generic Deep Source framework can discover pages, but a source-specific rule should be added when a site has distinctive navigation, pagination or product URL behaviour. Do not invent a rule without inspecting the live source structure.
+
+## Completion outcomes
+
+For each product:
+
+1. exact evidence found;
+2. exact page found but out of stock;
+3. source does not stock the exact product;
+4. package/variant mismatch.
+
+A category page alone is never a completion outcome.
+
+## Deployment
+
+Deep Source requires local worker **1.4.8** or later.
