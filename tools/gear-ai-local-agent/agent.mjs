@@ -1932,7 +1932,7 @@ async function processOne(){
     // ai_research_submit_candidate increments run counters transactionally.
     // Do not increment them again here or every finding is double-counted.
     await finishRunIfComplete(item.run_id);
-    log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB unit-level observation(s)).');
+    log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB reference range finding(s)).');
     return true;
   }catch(e){
     const message=(e?.message||String(e)).slice(0,1000);
