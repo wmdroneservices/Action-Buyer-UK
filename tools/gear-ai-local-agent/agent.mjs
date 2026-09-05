@@ -963,7 +963,7 @@ async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
   catch(firstError){
     if(!/HTTP 403\b/.test(String(firstError?.message||firstError)))throw firstError;
     let chromium;
-    try{{chromium}=await import('playwright-core')}
+    try{({chromium}=await import('playwright-core'))}
     catch(e){
       throw new Error('HTTP 403 and Playwright browser fallback is not installed. Run npm install before retrying. ('+(e.message||String(e))+')');
     }
