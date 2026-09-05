@@ -65,7 +65,7 @@ and routes the request to the Deep Source RPC.
 
 tools/gear-ai-local-agent/agent.mjs
 
-Current repository version: **1.4.8**
+Current repository version: **1.4.9**
 
 Key path:
 
@@ -147,3 +147,19 @@ Pending findings:
 - are grouped into UK NEW, UK USED / OTHER and OVERSEAS;
 - are visible in the catalogue warning dropdown;
 - cannot affect live pricing before `apply_accepted_ai_candidate`.
+
+
+## 6 September 2026 — MPB Deep Source first-run discovery repair
+
+The first live Deep Source test targeted DJI Mavic 3 Enterprise Standard Package using the MPB UK landing page. The 1.4.8 worker correctly claimed and processed the queue item, but returned **No usable web pages were collected for this product**.
+
+This was the first failure: MPB's landing/category/internal search path was not reliably yielding exact links to the raw local crawler, despite the exact MPB UK model page existing.
+
+Repository worker **1.4.9** adds MPB-specific exact-page discovery fallbacks before the generic crawl:
+
+1. deterministic MPB UK product URL derived from the catalogue manufacturer + model identity;
+2. external web discovery constrained to `site:mpb.com/en-uk/product`.
+
+Both are still discovery-only. The worker must fetch and validate the exact MPB page before extracting SKU evidence.
+
+The failed run is retained as audit history; it produced no pending candidates and changed no live evidence.
