@@ -1055,3 +1055,36 @@ A category page alone is never a completion outcome.
 ## Deployment
 
 Deep Source requires local worker **1.4.8** or later.
+
+
+---
+
+# Catalogue-centred Pending Review Rules — 5 September 2026
+
+AI research must submit findings as pending candidates first.
+
+Do not write new research directly into live catalogue evidence.
+
+The catalogue page is now the primary review surface:
+
+- red **P** identifies pending evidence;
+- pending findings appear in the correct UK NEW, UK USED / OTHER or OVERSEAS section;
+- current live evidence remains visible for comparison;
+- every field can be verified/corrected before acceptance;
+- denial leaves the live catalogue exactly as it was.
+
+The AI Research Centre remains a queue/control/checklist surface. The catalogue is the evidence decision workspace.
+
+Required final path:
+
+`pending candidate`
+→ manual verification
+→ accept and apply
+→ `quote_catalog_retailer_prices`
+
+or:
+
+`pending candidate`
+→ deny with reason
+→ rejected history + learning feedback
+→ no live catalogue change.
