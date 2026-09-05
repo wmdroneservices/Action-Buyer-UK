@@ -65,7 +65,7 @@ and routes the request to the Deep Source RPC.
 
 tools/gear-ai-local-agent/agent.mjs
 
-Current repository version: **1.4.9**
+Current repository version: **1.5.0**
 
 Key path:
 
@@ -163,3 +163,12 @@ Repository worker **1.4.9** adds MPB-specific exact-page discovery fallbacks bef
 Both are still discovery-only. The worker must fetch and validate the exact MPB page before extracting SKU evidence.
 
 The failed run is retained as audit history; it produced no pending candidates and changed no live evidence.
+
+
+## 6 September 2026 — MPB HTTP 403 collection repair (worker 1.5.0)
+
+The controlled retry on worker 1.4.9 proved that exact MPB discovery was now reaching the correct deterministic product URL, but the first failure remained at **collection**: direct Node HTTP retrieval of the exact MPB page returned HTTP 403.
+
+Worker **1.5.0** keeps the existing direct HTTP collector as the first path. For MPB exact product pages only, an HTTP 403 now falls back to a local Chromium browser session through `playwright-core`, using the installed Chrome/Edge executable. This is deliberately limited to the exact-page validation stage; landing, category and subcategory pages remain discovery-only.
+
+The worker requires `npm install` once after updating to install the new `playwright-core` dependency. If the browser fallback succeeds, normal exact-model validation and MPB SKU/unit extraction continue unchanged. No live evidence is automatically applied.
