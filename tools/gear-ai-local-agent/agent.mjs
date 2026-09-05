@@ -96,38 +96,50 @@ async function processRemoteCommand(){
       return true;
     }
     if(data.command==='stop_worker'){
+      // Full stop is also enforced in the database so queued work and Continuous
+      // mode cannot silently resume if the Research PC is started again later.
+      let emergencyResult=null;
+      try{
+        const {data:stopData,error:stopError}=await sb.rpc('ai_research_emergency_stop');
+        if(stopError)throw stopError;
+        emergencyResult=stopData||null;
+      }catch(e){
+        log('Emergency database stop warning:',e.message||String(e));
+      }
+
       // Mark the worker offline before terminating anything so the dashboard updates
       // immediately instead of waiting for the heartbeat timeout.
       await heartbeat('offline',null,{remote_stop:true}).catch(()=>{});
       await sb.from('quote_catalog_ai_agent_commands').update({
         status:'completed',
         completed_at:new Date().toISOString(),
-        result:{worker:'stopping',launcher:'terminating',message:'Stopping the PowerShell launcher and its child process tree.'}
+        result:{worker:'stopping',launcher:'terminating',queue:emergencyResult,message:'Stopping the PowerShell launcher and its child process tree.'}
       }).eq('id',data.id);
-      log('Remote dashboard requested PowerShell / AI launcher stop.');
+      log('Remote dashboard requested full Research PC stop.');
 
       // The desktop launcher may be a PowerShell loop or a CMD loop. Exiting
       // only Node (or killing the nearest shell) can therefore trigger another
       // automatic restart. Walk the full ancestry, remember every launcher shell,
       // then terminate the OUTERMOST launcher with its whole child tree.
+      //
+      // IMPORTANT: PowerShell's $PID is a read-only automatic variable. The older
+      // helper used $pid as its traversal variable, which is case-insensitively the
+      // same variable and therefore caused the helper to fail before taskkill ran.
       const nodePid=process.pid;
       const stopScript=[
-        '$pid='+nodePid,
+        '$currentPid='+nodePid,
         '$seen=@{}',
         '$launchers=@()',
-        'while($pid -and -not $seen.ContainsKey($pid)){',
-        '  $seen[$pid]=$true',
-        '  $p=Get-CimInstance Win32_Process -Filter ("ProcessId="+$pid) -ErrorAction SilentlyContinue',
+        'while($currentPid -and -not $seen.ContainsKey($currentPid)){',
+        '  $seen[$currentPid]=$true',
+        '  $p=Get-CimInstance Win32_Process -Filter ("ProcessId="+$currentPid) -ErrorAction SilentlyContinue',
         '  if(!$p){break}',
         '  if($p.Name -match "^(powershell|pwsh|cmd)\\.exe$"){ $launchers += [int]$p.ProcessId }',
-        '  $pid=[int]$p.ParentProcessId',
+        '  $currentPid=[int]$p.ParentProcessId',
         '}',
-        'if($launchers.Count -gt 0){',
-        '  $target=$launchers[$launchers.Count-1]',
-        '  & taskkill.exe /PID $target /T /F | Out-Null',
-        '  exit 0',
-        '}',
-        'exit 1'
+        'if($launchers.Count -gt 0){ $target=$launchers[$launchers.Count-1] } else { $target='+nodePid+' }',
+        '& taskkill.exe /PID $target /T /F | Out-Null',
+        'exit 0'
       ].join('; ');
       try{
         const helper=spawn('powershell.exe',[
