@@ -208,10 +208,10 @@ async function loadAgentStatus(){
 }
 function setResearchScope(scope){
  const select=$('research-evidence-scope');
- const allowed=['all','new_uk','used_uk','overseas','amazon_uk'];
+ const allowed=['all','new_uk','used_uk','overseas'];
  const value=allowed.includes(scope)?scope:'all';
  if(select)select.value=value;
- document.querySelectorAll('.ai-scope-option').forEach(b=>{
+ document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>{
    const selected=b.dataset.scope===value;
    b.classList.toggle('is-selected',selected);
    b.setAttribute('aria-pressed',selected?'true':'false');
@@ -302,16 +302,20 @@ async function loadContinuousResearch(){
 async function setContinuousResearch(enabled){
  const mode=clean($('continuous-research-mode')?.value||'low_evidence');
  const scope=clean($('research-evidence-scope')?.value||'all');
- const {data,error}=await sb.rpc('ai_research_set_continuous',{p_enabled:enabled,p_mode:mode,p_evidence_scope:scope,p_manufacturer:clean($('research-manufacturer')?.value||'' )||null,p_category:clean($('research-category')?.value||'')||null,p_product_type:clean($('research-product-type')?.value||'')||null});
+ const sourceFilter=clean($('research-source-filter')?.value||'all');
+ const workerScope=sourceFilter==='amazon_uk'?'amazon_uk':scope;
+ const {data,error}=await sb.rpc('ai_research_set_continuous',{p_enabled:enabled,p_mode:mode,p_evidence_scope:workerScope,p_manufacturer:clean($('research-manufacturer')?.value||'' )||null,p_category:clean($('research-category')?.value||'')||null,p_product_type:clean($('research-product-type')?.value||'')||null});
  if(error)throw error;
  msg(enabled?'Continuous catalogue research started. The PC will keep taking the next product until you press STOP.':'Continuous catalogue research stopped. The current product may finish, but no further products will be taken.');
  await loadContinuousResearch();
 }
 async function runResearch(){
  const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='RESEARCHING…'}
- const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:clean($('research-evidence-scope')?.value||'all')};
+ const selectedMarket=clean($('research-evidence-scope')?.value||'all');
+ const sourceFilter=clean($('research-source-filter')?.value||'all');
+ const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:sourceFilter==='amazon_uk'?'amazon_uk':selectedMarket};
  const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
- const evidenceLabel={all:'all evidence types',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence',amazon_uk:'Amazon UK discovery only'}[body.evidence_scope]||'all evidence types';
+ const evidenceLabel=(sourceFilter==='amazon_uk'?'Amazon UK only · ': '')+({all:'all markets',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence'}[selectedMarket]||'all evidence types');
  msg('AI research started for '+scope+' · '+evidenceLabel+'. Findings will go to manual review only.');
  try{
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
@@ -417,7 +421,8 @@ async function apply(){
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
 async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
-document.querySelectorAll('.ai-scope-option').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
+document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
+document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(b=>b.addEventListener('click',()=>{const value=b.dataset.sourceFilter||'all';const select=$('research-source-filter');if(select)select.value=value;document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=x===b;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});}));
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
 setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('Stop the PowerShell / AI launcher on the Research PC? This closes the launcher itself so it will not automatically restart the worker.'))return;if(cmd==='start_worker'&&!confirm('Start GearCashOut PowerShell / AI now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the GearCashOut PowerShell / AI worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;requestResearchPcCommand(cmd).then(()=>{
   if(cmd==='stop_worker'){
