@@ -154,6 +154,7 @@ async function saveEdits(card,c){
    edited_evidence_notes:get('edited_evidence_notes')||null,
    reviewed_at:new Date().toISOString()
  };
+ if(payload.edited_reference_price_min!=null&&payload.edited_reference_price_max!=null&&payload.edited_reference_price_max<payload.edited_reference_price_min)throw Error('To price cannot be lower than From price.');
  const {error}=await client.from('quote_catalog_ai_candidates').update(payload).eq('id',c.id);
  if(error)throw error;
  return {...c,...payload};
