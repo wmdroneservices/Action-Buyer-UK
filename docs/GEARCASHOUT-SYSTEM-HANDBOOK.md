@@ -60,6 +60,24 @@ It is responsible for areas including:
 - source registry;
 - workflow RPC/functions.
 
+## Amazon UK continuous research and verified comparison placement
+
+When **Amazon UK Only** is selected and Continuous Catalogue Mode is started:
+
+1. the continuous control stores `amazon_uk` as the research scope;
+2. the local worker preserves that scope when it claims the next product;
+3. discovery queries are restricted to actual Amazon UK URLs;
+4. general retailer searches and approved-source fallbacks are disabled for that run;
+5. results remain candidates until manually verified.
+
+During manual review, the reviewer explicitly chooses the **Verified comparison bucket**:
+
+- **NEW comparison — UK**
+- **USED comparison — UK** (including refurbished comparisons)
+- **OVERSEAS comparison**
+
+Saving does not make evidence live. The reviewer must verify/edit it, accept it, and then explicitly apply it. The live application maps `new_uk` into the new comparison data and `used_uk` into the used comparison data.
+
 ## AI Research Queue Control
 
 The AI queue is intentionally **not a permanent backlog**.
