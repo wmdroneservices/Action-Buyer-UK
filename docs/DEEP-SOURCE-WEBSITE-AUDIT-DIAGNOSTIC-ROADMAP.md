@@ -16,8 +16,8 @@ AI Research Centre:
 4. Edge Function creates a deep_source research run.
 5. Research PC worker claims each product.
 6. Worker crawls from the landing page, follows relevant same-domain category/subcategory links and uses source-specific rules.
-7. Only exact product pages are returned as final evidence candidates.
-8. MPB exact product pages are expanded to separate live SKU observations.
+7. Only exact product pages are returned as final evidence candidates. MPB exact pages become one range candidate rather than one candidate per unit.
+8. MPB exact product pages are aggregated into one reference-only Used UK range: minimum price, maximum price, conditions represented, unit count and canonical verification URL.
 
 ## Front-end
 
