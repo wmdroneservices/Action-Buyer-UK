@@ -134,7 +134,7 @@ function renderCandidateCard(c){
          +(String(comparingCandidateId)!==String(c.id)?manualReviewMarkup(c,false):'')
        +'</div>'
        +(String(comparingCandidateId)===String(c.id)?comparisonPanelMarkup(c,p):'')
-       +(editingId===c.id?editorMarkup(c):'')
+       +(editingId===c.id&&String(comparingCandidateId)!==String(c.id)?editorMarkup(c):'')
      +'</div>'
    +'</details>'
  +'</article>';
@@ -200,13 +200,12 @@ function comparisonPanelMarkup(c,p){
        ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table"><thead><tr><th>Website / competitor</th><th>Type</th><th>Condition</th><th>Price</th><th>Region</th><th>Availability</th><th>Source</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price??r.buy_price)+'</td><td>'+esc(r.evidence_region||'—')+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a>':'—')+'</td></tr>').join('')+'</tbody></table></div>'
        :'<div class="ai-comparison-empty">No existing market evidence has been recorded for this catalogue product yet.</div>';
  return '<section class="ai-inline-comparison" data-comparison-id="'+esc(c.id)+'">'
-   +'<div class="ai-comparison-heading"><div><p class="section-kicker">SIDE-BY-SIDE COMPARISON</p><h3>New evidence beside the current catalogue</h3><p>The proposed finding stays open while you review the existing catalogue evidence. Nothing is added until you explicitly accept and apply it.</p></div><button type="button" class="btn btn-secondary ai-compare-close" data-id="'+esc(c.id)+'">CLOSE COMPARISON</button></div>'
-   +'<div class="ai-comparison-grid">'
-     +'<article class="ai-comparison-column ai-comparison-new"><p class="section-kicker">NEW AI FINDING</p><h4>'+esc(title)+'</h4><div class="ai-comparison-stats"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong>'+esc(condition)+'</span><span><strong>Bucket</strong>'+esc(category)+'</span><span><strong>Source</strong>'+esc(sourceKind)+'</span></div>'+(url?'<p class="ai-comparison-source"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN NEW EVIDENCE PAGE</a></p>':'')+'</article>'
+   +'<div class="ai-comparison-heading"><div><p class="section-kicker">INLINE COMPARISON</p><h3>Review the new AI finding above the current catalogue evidence</h3><p>The proposed finding stays open and editable while you review the existing catalogue evidence below. Nothing is added until you explicitly accept and apply it.</p></div><button type="button" class="btn btn-secondary ai-compare-close" data-id="'+esc(c.id)+'">CLOSE COMPARISON</button></div>'
+   +'<div class="ai-comparison-stack">'
+     +'<article class="ai-comparison-column ai-comparison-new"><p class="section-kicker">NEW AI FINDING — EDITABLE</p><h4>'+esc(title)+'</h4><div class="ai-comparison-stats"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong>'+esc(condition)+'</span><span><strong>Bucket</strong>'+esc(category)+'</span><span><strong>Source</strong>'+esc(sourceKind)+'</span></div>'+(url?'<p class="ai-comparison-source"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN NEW EVIDENCE PAGE</a></p>':'')+editorMarkup(c)+'</article>'
      +'<article class="ai-comparison-column ai-comparison-existing"><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h4>'+esc(productTitle)+'</h4>'+evidenceHtml+'</article>'
    +'</div>'
    +'<div class="ai-comparison-actions">'
-     +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">EDIT NEW FINDING</button>'
      +(p&&c.catalog_product_id?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(c.catalog_product_id)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR (NEW TAB)</a>':'')
    +'</div>'
    +manualReviewMarkup(c,true)
