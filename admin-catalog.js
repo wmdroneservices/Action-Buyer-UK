@@ -33,7 +33,7 @@ function renderUkMarketReference(){
 function renderRetailers(){
   const body=$('retailer-prices-body');if(!body)return;renderUkMarketReference();
   if(!retailerRows.length){body.innerHTML='<tr><td colspan="14">No online comparison evidence recorded yet. Add UK and overseas evidence where it is genuinely useful. Keep direct source links and timestamps.</td></tr>';return;}
-  body.innerHTML=retailerRows.map((r,i)=>{const url=safeUrl(r.source_url);return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''}>
+  body.innerHTML=retailerRows.map((r,i)=>{const url=safeUrl(r.source_url);return `<tr data-index="${i}"${r.id?` data-id="${esc(r.id)}"`:''} data-reference-only="${r.reference_only?'1':'0'}" data-reference-conditions="${esc(r.reference_conditions||'')}" data-reference-units="${r.reference_units_observed??''}">`;
     <td><input class="retailer" value="${esc(r.retailer)}" placeholder="DJI / Amazon UK / MPB / CeX"></td>
     <td><select class="retailer-type"><option value="new" ${r.price_type==='new'?'selected':''}>New</option><option value="new_sale" ${r.price_type==='new_sale'?'selected':''}>New — Sale / Offer</option><option value="refurbished" ${r.price_type==='refurbished'?'selected':''}>Refurbished</option><option value="used" ${r.price_type==='used'?'selected':''}>Used</option><option value="competitor_buying" ${r.price_type==='competitor_buying'?'selected':''}>Competitor Buying</option><option value="completed_sale" ${r.price_type==='completed_sale'?'selected':''}>Completed Sale</option><option value="market" ${r.price_type==='market'?'selected':''}>Market Reference</option></select></td>
     <td><input class="retailer-condition" value="${esc(r.condition)}" placeholder="New / Opened / Excellent / Good / Fair"></td>
@@ -63,6 +63,9 @@ function readRetailers(){
     sell_price:tr.querySelector('.retailer-sell')?.value===''?null:Number(tr.querySelector('.retailer-sell')?.value),
     reference_price_min:tr.querySelector('.retailer-sell')?.value===''?null:Number(tr.querySelector('.retailer-sell')?.value),
     reference_price_max:tr.querySelector('.retailer-sell-max')?.value===''?null:Number(tr.querySelector('.retailer-sell-max')?.value),
+    reference_conditions:tr.dataset.referenceConditions||null,
+    reference_units_observed:tr.dataset.referenceUnits===''?null:Number(tr.dataset.referenceUnits),
+    reference_only:tr.dataset.referenceOnly==='1',
     availability_status:tr.querySelector('.retailer-stock')?.value||'unknown',
     buy_method:tr.querySelector('.retailer-method')?.value.trim()||'',
     source_url:tr.querySelector('.retailer-source')?.value.trim()||'',
