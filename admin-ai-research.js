@@ -27,6 +27,13 @@ function renderProductCandidateCard(c){
   +(c.decision==='catalogue_created'?'<span class="ai-badge">DRAFT CREATED</span>':'')
   +'</div></article>';
 }
+function renderProductCandidateSection(title,description,rows,state,open=false){
+ if(!rows.length)return '';
+ return '<details class="ai-decision-section ai-decision-'+esc(state)+'"'+(open?' open':'')+'>'
+   +'<summary><div><p class="section-kicker">'+esc(state.toUpperCase())+' PRODUCT CANDIDATES</p><h2>'+esc(title)+' <span class="ai-decision-count">'+rows.length+'</span></h2><p>'+esc(description)+'</p></div><span class="ai-decision-toggle">VIEW</span></summary>'
+   +'<div class="ai-decision-section-content">'+rows.map(renderProductCandidateCard).join('')+'</div>'
+ +'</details>';
+}
 function renderProductCandidates(){
  const body=$('ai-product-candidates');if(!body)return;
  if(!productCandidates.length){body.innerHTML='<div class="ai-empty-state">No new product candidates have been found yet.</div>';return}
@@ -34,11 +41,12 @@ function renderProductCandidates(){
  const accepted=productCandidates.filter(c=>c.decision==='accepted');
  const rejected=productCandidates.filter(c=>c.decision==='rejected');
  const created=productCandidates.filter(c=>c.decision==='catalogue_created');
- body.innerHTML='<div class="ai-current-findings"><div class="ai-current-findings-heading"><p class="section-kicker">NEW MODELS</p><h2>New product candidates</h2><p>Nothing here is automatically added to the catalogue. Review duplicates first, then explicitly approve and create a draft product.</p></div>'+pending.map(renderProductCandidateCard).join('')+'</div>'
- +renderSection('Approved product candidates','These are approved for creation as draft catalogue products only.',accepted,'accepted',false).replace(/<article class="ai-review-card">[\s\S]*?<\/article>/g,'')
- +(accepted.length?'<div class="ai-decision-section-content">'+accepted.map(renderProductCandidateCard).join('')+'</div>':'')
- +(rejected.length?'<details class="ai-decision-section ai-decision-rejected"><summary><div><p class="section-kicker">REJECTED</p><h2>Rejected product candidates <span class="ai-decision-count">'+rejected.length+'</span></h2></div><span class="ai-decision-toggle">VIEW</span></summary><div class="ai-decision-section-content">'+rejected.map(renderProductCandidateCard).join('')+'</div></details>':'')
- +(created.length?'<details class="ai-decision-section ai-decision-applied"><summary><div><p class="section-kicker">DRAFTS CREATED</p><h2>Catalogue drafts <span class="ai-decision-count">'+created.length+'</span></h2></div><span class="ai-decision-toggle">VIEW</span></summary><div class="ai-decision-section-content">'+created.map(renderProductCandidateCard).join('')+'</div></details>':'');
+ let html='';
+ html+=renderProductCandidateSection('New models and products found','Open this section to review AI-discovered products. Nothing is automatically added to the catalogue.',pending,'pending',false);
+ html+=renderProductCandidateSection('Approved product candidates','These are approved for creation as draft catalogue products only.',accepted,'accepted',false);
+ html+=renderProductCandidateSection('Rejected product candidates','Rejected product discoveries are retained for audit and can still be reviewed if needed.',rejected,'rejected',false);
+ html+=renderProductCandidateSection('Catalogue drafts','These candidates have already created inactive draft catalogue products.',created,'applied',false);
+ body.innerHTML=html||'<div class="ai-empty-state">No new product candidates have been found yet.</div>';
 }
 async function decideProductCandidate(id,decision){
  const {error}=await sb.from('quote_catalog_ai_product_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).eq('id',id);
@@ -294,6 +302,7 @@ function render(){
 function renderSources(){
  const body=$('ai-sources');if(!body)return;
  const rows=sources.filter(s=>s.discovery_status==='discovered'||s.discovery_status==='blocked'||s.discovered_at||s.monitor_for_opening);
+ const count=$('ai-sources-count');if(count)count.textContent=String(rows.length);
  if(!rows.length){body.innerHTML='<tr><td colspan="8">No newly discovered or monitored sources yet.</td></tr>';return}
  body.innerHTML=rows.map(s=>{
    const opened=s.opened_at?new Date(s.opened_at).toLocaleDateString('en-GB'):null;
