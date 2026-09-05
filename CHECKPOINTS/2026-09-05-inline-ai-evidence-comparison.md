@@ -63,3 +63,24 @@ No buying-price calculation was changed.
 6. Confirm EDIT NEW FINDING still works.
 7. Use ACCEPT & ADD TO LIVE EVIDENCE on a suitable test finding and confirm it appears in the live evidence list.
 8. Confirm the finding moves out of pending review.
+
+
+## Regression discovered during live test
+
+### Symptom
+
+Clicking **COMPARE HERE WITH CATALOGUE** caused the containing review dropdown to collapse, hiding the comparison.
+
+### Root cause
+
+`openComparison()` set `comparingCandidateId` and called `render()`, but `renderSection()` recreated the outer review `<details>` closed by default. The finding was reopened, but inside a hidden parent section.
+
+### Repair
+
+`renderSection()` now detects whether the section contains the active comparison or editor and adds `open` in that case. This keeps the comparison visible through both the initial loading render and the completed evidence render.
+
+### Verification
+
+- GitHub repair commit: `32bbfe8d5633620c8f9bd9b2bdc963d466a157b3`.
+- JavaScript syntax check: passed after the repair.
+- Live browser retest: required now.
