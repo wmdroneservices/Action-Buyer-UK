@@ -564,3 +564,41 @@ Bulk decisions intentionally do not request or invent an individual reason. They
 7. Add a denial reason and confirm the finding moves to Rejected.
 8. Select several findings and bulk deny — there should be no reason prompt.
 9. Confirm existing bulk apply behaviour for accepted findings remains unchanged.
+
+
+---
+
+# 18. AI Research Centre Usability and Startup Guide Audit — 5 September 2026
+
+## Discovery list scalability
+
+The **New models and products found** and **New websites and monitored launches** areas are now collapsed by default because these lists can become large.
+
+This preserves the existing controls inside each section while preventing long discovery queues from forcing the rest of the page far below the fold.
+
+Do not re-expand these lists permanently without a verified usability reason.
+
+## Startup guide correction
+
+The visible bottom-of-page setup/startup/restart guide was compared with the current inspected implementation and checkpoint history.
+
+The previous guide was partly stale because it instructed direct `npm start` use as the normal lifecycle and contained duplicate update steps.
+
+Current truth:
+
+**Windows launcher → Start-GearCashOut-AI.ps1 → supervisor.mjs → agent.mjs**
+
+The guide now distinguishes:
+
+- **OFFLINE**: supervisor unavailable; Windows launcher required.
+- **READY**: supervisor available, worker stopped; remote START can work.
+- **ONLINE**: worker active.
+- dashboard STOP stops the worker but leaves the supervisor available.
+- normal Windows restart does not normally require `npm install`.
+- the permanent configuration remains outside the repository at `C:\GearCashOut-Config\.env`.
+
+Verification state:
+
+- GitHub implementation: completed.
+- JavaScript syntax check: passed.
+- Browser/live verification: pending for the new collapsible discovery sections and revised guide display.
