@@ -1501,3 +1501,15 @@ If a grouped review shows only the product name or incomplete catalogue context,
 4. the live quote_catalog_products row and linked quote_catalog_retailer_prices rows.
 
 Do not reintroduce a separate evidence-view step when the required catalogue context can be shown directly in the grouped review.
+
+### 5 September 2026 — Grouped AI review: full catalogue evidence classification
+The grouped AI review snapshot must mirror the meaningful evidence context from the Quote Catalogue, not only rows that have both a GBP currency code and a UK region. The review now classifies every current quote_catalog_retailer_prices row into:
+
+- UK NEW pricing evidence
+- UK USED / OTHER evidence
+- OVERSEAS comparison evidence
+- Total current evidence records
+
+The exact full evidence table remains underneath the summary, including retailer, type, condition, sell/buy prices, availability, region, exact source, notes and check time. Automatic buying prices remain separate and may legitimately show — where that catalogue product has not yet been priced.
+
+This prevents a valid UK market row with a missing price_currency from being incorrectly shown as “no UK evidence”.
