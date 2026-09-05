@@ -869,3 +869,20 @@ Closing the panel clears `activeProductReviewId`. If the reviewer closes it whil
 - Open one review, close it while catalogue evidence is loading, and confirm it stays closed.
 - Confirm normal and Amazon review groups can still be used without forcing other panels open.
 - Regression-test existing evidence editing, submit to catalogue evidence and deny with reason.
+
+
+---
+
+## 5 September 2026 — Freefly Astro Official Evidence Audit
+
+The official Freefly Astro collection was checked against the current Quote Catalogue after a pending AI candidate used a generic third-party review URL with a $27,000 price.
+
+### Corrections made
+
+- refreshed current official USD evidence for Astro Max, Astro Max NDAA/Blue, Mapping Essentials NDAA/Blue, Flux L1/O1/H1 and LR1 Payload;
+- added the missing **Freefly Astro Max Mapping Essentials** standard bundle at **$37,725 USD**;
+- corrected the **Astro Max NDAA/Blue with LR1** configuration from an incorrect $37,725 reference to the official **$43,725 USD** NDAA Mapping Essentials price;
+- removed an unrelated Canon UK £6,999.99 manufacturer RRP from the legacy Freefly Astro record because the official current collection does not publish a standalone legacy Astro price;
+- added active structured learning for Gemma: a generic category, collection, review article or broad model page must not be treated as exact price evidence unless the exact catalogue product and displayed price are directly matched.
+
+The generic pending AI candidate was intentionally left in the human review queue so the reviewer can deny it through the normal feedback workflow and add the specific review reason.
