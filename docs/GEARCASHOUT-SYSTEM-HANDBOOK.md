@@ -1513,3 +1513,45 @@ The grouped AI review snapshot must mirror the meaningful evidence context from 
 The exact full evidence table remains underneath the summary, including retailer, type, condition, sell/buy prices, availability, region, exact source, notes and check time. Automatic buying prices remain separate and may legitimately show — where that catalogue product has not yet been priced.
 
 This prevents a valid UK market row with a missing price_currency from being incorrectly shown as “no UK evidence”.
+
+
+---
+
+## AI Research Review — Full Current Evidence Comparison
+
+The grouped product review is deliberately **product-centred**.
+
+When staff open a matched catalogue product, the review must show the complete current catalogue context **before** the new AI findings so the reviewer can identify duplicates or already-recorded evidence without opening another page.
+
+The current catalogue comparison block includes:
+
+1. automatic buying prices:
+   - factory sealed;
+   - opened / unused;
+   - excellent;
+   - good;
+   - fair;
+2. evidence summary counts;
+3. **UK — NEW PRICING EVIDENCE**;
+4. **UK — USED / OTHER EVIDENCE**;
+5. **OVERSEAS COMPARISON (NON-GBP)**.
+
+Each evidence row exposes the catalogue evidence details needed for duplicate checking:
+
+- retailer;
+- evidence type;
+- condition;
+- selling price;
+- buying price;
+- availability;
+- buy method;
+- region;
+- exact source URL;
+- notes;
+- checked date.
+
+All new AI findings linked to that catalogue product remain grouped together underneath this complete current-evidence block.
+
+The intended review order is therefore:
+
+**Matched product → full current catalogue evidence → all new AI evidence → edit/review feedback → submit to catalogue or deny.**
