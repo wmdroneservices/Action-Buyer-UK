@@ -41,7 +41,7 @@ quote_catalog_ai_sources → MPB UK source row
 
 → extractMpbUkUnits(page)
 
-→ one candidate per MPB SKU
+→ aggregate all live units into one reference-only range candidate
 
 → ai_research_submit_candidate(...)
 
@@ -89,15 +89,15 @@ The canonical MPB model URL remains visible in notes.
 
 ## Required evidence fields
 
-For every MPB live unit where available:
+For every exact MPB product page:
 
-- SKU
-- selling price
-- cosmetic condition
-- charges or shutter count
-- relevant included/package details
+- From price (minimum visible live price)
+- To price (maximum visible live price)
+- cosmetic conditions represented
+- units observed
 - exact MPB UK model page
 - timestamp
+- reference-only flag
 
 ## Failure points / checks
 
