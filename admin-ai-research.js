@@ -65,12 +65,12 @@ function editorMarkup(c){
  const sourceKind=c.edited_source_kind??c.source_kind??'';
  const notes=c.edited_evidence_notes??c.evidence_notes??'';
  return '<section class="ai-inline-editor" data-editor-id="'+esc(c.id)+'">'
-   +'<div class="ai-editor-heading"><div><p class="section-kicker">CATALOGUE-STYLE EDITOR</p><h3>Edit finding before approval</h3><p>Correct the evidence, add your comparison price and keep the exact product page before accepting it.</p></div></div>'
+   +'<div class="ai-editor-heading"><div><p class="section-kicker">CATALOGUE-STYLE EDITOR</p><h3>Edit finding before approval</h3><p>Verify the listing, set the comparison price, choose NEW or USED comparison, and keep the exact product page before accepting it.</p></div></div>'
    +'<div class="ai-editor-grid">'
    +'<label>Listing title<input class="ai-field" data-field="edited_title" value="'+esc(title)+'"></label>'
    +'<label>Comparison price<input class="ai-field" data-field="edited_price" type="number" min="0" step="0.01" value="'+esc(price)+'"></label>'
    +'<label>Condition<input class="ai-field" data-field="edited_condition" value="'+esc(condition)+'" placeholder="New, Used, Refurbished…"></label>'
-   +'<label>Evidence category<select class="ai-field" data-field="edited_evidence_category"><option value="">Select category</option>'+['new_uk','used_uk','overseas','retail','marketplace'].map(v=>'<option value="'+v+'"'+(String(category)===v?' selected':'')+'>'+v.replaceAll('_',' ').toUpperCase()+'</option>').join('')+'</select></label>'
+   +'<label>Verified comparison bucket<select class="ai-field" data-field="edited_evidence_category"><option value="">Choose where this verified comparison belongs</option><option value="new_uk"'+(String(category)==='new_uk'?' selected':'')+'>NEW comparison — UK</option><option value="used_uk"'+(String(category)==='used_uk'?' selected':'')+'>USED comparison — UK (refurbished goes here)</option><option value="overseas"'+(String(category)==='overseas'?' selected':'')+'>OVERSEAS comparison</option></select><small>Choose this manually after verifying the listing. Nothing is added to live comparisons until you accept and apply it.</small></label>'
    +'<label>Availability<input class="ai-field" data-field="edited_availability_status" value="'+esc(availability)+'"></label>'
    +'<label>Package match<input class="ai-field" data-field="edited_package_match" value="'+esc(packageMatch)+'"></label>'
    +'<label>Variant match<input class="ai-field" data-field="edited_variant_match" value="'+esc(variantMatch)+'"></label>'
@@ -149,7 +149,7 @@ function render(){
  }else{
    html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
  }
- html+=renderSection('Accepted findings','Accepted evidence is kept separate here until you apply it to the live evidence catalogue.',accepted,'accepted',false);
+ html+=renderSection('Accepted findings','Accepted evidence is kept separate here until you apply it to the verified NEW, USED or overseas comparison bucket.',accepted,'accepted',false);
  html+=renderSection('Rejected findings','Rejected evidence is retained separately for audit and can still be opened and reviewed if needed.',rejected,'rejected',false);
  if(applied.length)html+=renderSection('Applied to live evidence','These accepted findings have already been applied to the live evidence catalogue.',applied,'applied',false);
  body.innerHTML=html;
@@ -390,7 +390,7 @@ async function saveEdit(id){
    if(syncError)throw syncError;
    msg('Applied finding and live evidence updated.');
  }else{
-   msg('Finding saved. You can now accept it and apply it to the live evidence catalogue.');
+   msg('Finding saved. After verification, accept it and apply it to the selected NEW or USED live comparison.');
  }
  editingId=null;
  await load();
@@ -428,7 +428,7 @@ async function apply(){
      done++;
    }
    ids.forEach(id=>selectedCandidateIds.delete(String(id)));
-   msg(done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to live evidence.');
+   msg(done+' accepted evidence entr'+(done===1?'y has':'ies have')+' been applied to the verified live comparison bucket.');
    await load();
  }finally{
    if(button){button.disabled=false;button.textContent='APPLY ACCEPTED TO LIVE EVIDENCE';}
