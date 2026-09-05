@@ -277,7 +277,7 @@ function catalogueEvidenceStats(rows){
  const type=r=>String(r.price_type||'').trim().toLowerCase();
  const condition=r=>String(r.condition||'').trim().toLowerCase();
  const isUk=r=>region(r)==='UK'||(!region(r)&&String(r.price_currency||'').trim().toUpperCase()==='GBP');
- const isNew=r=>['new','new_sale'].includes(type(r))||/^new\\b/.test(condition(r));
+ const isNew=r=>['new','new_sale'].includes(type(r))||/^new\b/.test(condition(r));
  const ukNew=all.filter(r=>isUk(r)&&isNew(r));
  const ukOther=all.filter(r=>isUk(r)&&!isNew(r));
  const overseas=all.filter(r=>!isUk(r));
