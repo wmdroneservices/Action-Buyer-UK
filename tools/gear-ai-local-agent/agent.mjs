@@ -1708,6 +1708,9 @@ async function main(){
   log('Ready. Polling every',cfg.pollSeconds,'seconds.');
 
   setInterval(()=>heartbeat('online',null,{}).catch(e=>log('Heartbeat error',e.message)),30000);
+
+  // Process remote controls immediately after startup as well as between products.
+  // This keeps CHECK/RESTART/STOP responsive when the worker is idle.
   setInterval(()=>processRemoteCommand().catch(e=>log('Remote command error',e.message)),3000);
 
   while(true){
