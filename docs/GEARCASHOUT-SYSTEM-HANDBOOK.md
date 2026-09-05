@@ -1453,3 +1453,51 @@ Current behaviour:
 - no Supabase schema or evidence workflow was changed.
 
 This is a UI-state repair only. Save, submit and deny behaviour remains unchanged.
+
+
+---
+
+# AI Research Centre — Grouped Review Catalogue Context (5 September 2026)
+
+## Purpose
+
+A grouped AI review must show enough of the linked Quote Catalogue product to make a decision without repeatedly opening another page.
+
+## Inspected data flow
+
+**User action:** open a grouped catalogue-product review in admin-ai-research.html.
+
+**Front end:** admin-ai-research.js → productReviewMarkup(group).
+
+**Catalogue product data:** quote_catalog_products:
+
+- manufacturer/model/package;
+- category/product type;
+- factory sealed price;
+- opened-unused price;
+- excellent price;
+- good price;
+- fair price;
+- active/customer-visible/pricing metadata where loaded.
+
+**Current evidence:** loadComparisonEvidence(productId) → quote_catalog_retailer_prices.
+
+The grouped review now mirrors the useful Quote Catalogue context:
+
+1. automatic buying-price ladder;
+2. UK New evidence count;
+3. lowest and highest qualifying UK New selling prices;
+4. UK used/other reference count;
+5. total current evidence count;
+6. full current evidence table including retailer, type, condition, sell price, buy price, availability, buy method, region, exact source URL, notes and checked timestamp.
+
+## Diagnostic rule
+
+If a grouped review shows only the product name or incomplete catalogue context, inspect:
+
+1. load() product field selection in admin-ai-research.js;
+2. loadComparisonEvidence() field selection;
+3. catalogueSnapshotMarkup() / productReviewMarkup();
+4. the live quote_catalog_products row and linked quote_catalog_retailer_prices rows.
+
+Do not reintroduce a separate evidence-view step when the required catalogue context can be shown directly in the grouped review.
