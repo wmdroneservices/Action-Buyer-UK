@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 function loadEnvFile(file){
@@ -78,8 +79,10 @@ function startWorker(){
   if(workerRunning())return false;
   stopping=false;
   const file=new URL('./agent.mjs',import.meta.url);
-  worker=spawn(process.execPath,[file.pathname],{
-    cwd:new URL('.',import.meta.url).pathname,
+  const agentPath=fileURLToPath(file);
+  const agentDir=fileURLToPath(new URL('.',import.meta.url));
+  worker=spawn(process.execPath,[agentPath],{
+    cwd:agentDir,
     stdio:'inherit',
     windowsHide:false
   });
