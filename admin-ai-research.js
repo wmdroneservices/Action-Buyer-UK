@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,comparingCandidateId=null,activeProductReviewId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,editingExistingEvidenceId=null,comparingCandidateId=null,activeProductReviewId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -229,34 +229,23 @@ async function manualReviewAction(id,decision,applyDirect,button){
  if(c.applied_at)throw Error('This finding has already been applied to live evidence.');
  const panel=button?.closest?.('[data-review-id="'+CSS.escape(String(id))+'"]')||document.querySelector('[data-review-id="'+CSS.escape(String(id))+'"]');
  if(!panel)throw Error('Manual review panel not found.');
- const fieldOutcomes={};
- panel.querySelectorAll('[data-review-outcome]').forEach(x=>{const value=clean(x.value);if(value)fieldOutcomes[String(x.dataset.reviewOutcome)]=value;});
+ const fieldOutcomes={};panel.querySelectorAll('[data-review-outcome]').forEach(x=>{const value=clean(x.value);if(value)fieldOutcomes[String(x.dataset.reviewOutcome)]=value;});
  const reason=clean(panel.querySelector('[data-review-reason]')?.value||'');
  if(decision==='rejected'&&!reason)throw Error('Please explain why you are denying this finding so Gemma can learn from the review.');
- if(decision==='accepted'&&applyDirect){
-   const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';
-   if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');
- }
- const {data,error}=await sb.rpc('record_ai_candidate_manual_review',{
-   p_candidate_id:id,
-   p_decision:decision,
-   p_reason:reason||null,
-   p_reviewed_fields:fieldOutcomes
- });
- if(error)throw error;
- if(decision==='accepted'&&applyDirect){
-   const {error:applyError}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
-   if(applyError)throw applyError;
-   comparingCandidateId=null;
-   msg('Finding accepted, exact review outcomes and any corrections saved for Gemma, and live evidence added for '+pname(c)+'.');
- }else if(decision==='accepted'){
-   msg('Finding accepted and exact review outcomes saved for Gemma. It remains in Accepted findings until you apply it to live evidence.');
- }else{
-   comparingCandidateId=null;
-   msg('Finding denied and the exact review outcomes and reason have been recorded for Gemma.');
- }
- selectedCandidateIds.delete(String(id));
- await load();
+ if(decision==='accepted'&&applyDirect){const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');}
+ const originalLabel=button?.textContent||'';if(button){button.disabled=true;button.textContent=decision==='accepted'?'SAVING & APPLYING…':'DENYING…';}
+ let applyError=null;
+ try{
+   const {error}=await sb.rpc('record_ai_candidate_manual_review',{p_candidate_id:id,p_decision:decision,p_reason:reason||null,p_reviewed_fields:fieldOutcomes});
+   if(error)throw error;
+   selectedCandidateIds.delete(String(id));
+   if(decision==='accepted'&&applyDirect){if(button)button.textContent='ADDING TO LIVE EVIDENCE…';const result=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});if(result.error)applyError=result.error;}
+   comparingCandidateId=null;editingId=null;await load();
+   if(applyError)throw Error('Review was saved and moved out of Requires Attention, but the live evidence apply step failed: '+(applyError.message||String(applyError)));
+   if(decision==='accepted'&&applyDirect)msg('Finding accepted, exact review outcomes and any corrections saved for Gemma, and live evidence added for '+pname(c)+'. It has moved out of Requires Attention.');
+   else if(decision==='accepted')msg('Finding accepted and moved to Accepted findings. Exact review outcomes were saved for Gemma.');
+   else msg('Finding denied and moved to Denied findings. The exact review outcomes and reason were recorded for Gemma.');
+ }finally{if(button){button.disabled=false;button.textContent=originalLabel;}}
 }
 function isAmazonFinding(c){
  const url=clean(c.edited_source_url??c.source_url??'').toLowerCase();
@@ -303,12 +292,30 @@ function catalogueSnapshotMarkup(p,rows,compact=false){
    +'</div></div></div>';
 }
 function catalogueEvidenceRowMarkup(r){
- return '<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>';
+ const editing=String(editingExistingEvidenceId)===String(r.id);
+ const row='<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td><td><button type="button" class="btn btn-secondary ai-existing-evidence-edit" data-id="'+esc(r.id)+'">'+(editing?'EDITING':'EDIT')+'</button></td></tr>';
+ return row+(editing?existingEvidenceEditorRowMarkup(r):'');
+}
+function existingEvidenceEditorRowMarkup(r){
+ const val=v=>esc(v??'');
+ const selected=v=>String(r.price_type||'').toLowerCase()===v?' selected':'';
+ return '<tr class="ai-existing-evidence-editor-row"><td colspan="12"><section class="ai-existing-evidence-editor" data-existing-evidence-editor="'+esc(r.id)+'" data-product-id="'+esc(r.catalog_product_id)+'"><div><p class="section-kicker">EDIT CURRENT CATALOGUE EVIDENCE</p><h4>Correct this saved evidence without leaving the review</h4><p>Use this for existing catalogue evidence that is already wrong. Save the correction, then continue comparing the new AI findings against the corrected row.</p></div><div class="ai-editor-grid">'
+   +'<label>Retailer<input class="ai-existing-evidence-field" data-field="retailer" value="'+val(r.retailer)+'"></label>'
+   +'<label>Type<select class="ai-existing-evidence-field" data-field="price_type"><option value="new"'+selected('new')+'>NEW</option><option value="new_sale"'+selected('new_sale')+'>NEW SALE</option><option value="used"'+selected('used')+'>USED</option><option value="market"'+selected('market')+'>MARKETPLACE / MARKET</option><option value="refurbished"'+selected('refurbished')+'>REFURBISHED</option><option value="manufacturer_rrp"'+selected('manufacturer_rrp')+'>MANUFACTURER RRP</option><option value="completed_sale"'+selected('completed_sale')+'>COMPLETED SALE</option></select></label>'
+   +'<label>Condition<input class="ai-existing-evidence-field" data-field="condition" value="'+val(r.condition)+'"></label>'
+   +'<label>Sell price<input class="ai-existing-evidence-field" data-field="sell_price" type="number" min="0" step="0.01" value="'+val(r.sell_price)+'"></label>'
+   +'<label>Buy price<input class="ai-existing-evidence-field" data-field="buy_price" type="number" min="0" step="0.01" value="'+val(r.buy_price)+'"></label>'
+   +'<label>Availability<input class="ai-existing-evidence-field" data-field="availability_status" value="'+val(r.availability_status)+'"></label>'
+   +'<label>Buy method<input class="ai-existing-evidence-field" data-field="buy_method" value="'+val(r.buy_method)+'"></label>'
+   +'<label>Evidence region<input class="ai-existing-evidence-field" data-field="evidence_region" value="'+val(r.evidence_region||r.price_region)+'"></label>'
+   +'<label class="ai-editor-wide">Exact source URL<input class="ai-existing-evidence-field" data-field="source_url" type="url" value="'+val(r.source_url)+'"></label>'
+   +'<label class="ai-editor-wide">Notes<textarea class="ai-existing-evidence-field" data-field="notes" rows="4">'+val(r.notes)+'</textarea></label>'
+ +'</div><div class="ai-editor-actions"><button type="button" class="btn btn-primary ai-existing-evidence-save" data-id="'+esc(r.id)+'">SAVE CATALOGUE EVIDENCE</button><button type="button" class="btn btn-secondary ai-existing-evidence-cancel" data-id="'+esc(r.id)+'">CANCEL</button></div></section></td></tr>';
 }
 function catalogueEvidenceBucketMarkup(title,description,rows,affectsOnline){
  return '<section class="ai-catalogue-evidence-bucket"><div class="ai-catalogue-evidence-bucket-head"><div><h4>'+esc(title)+'</h4><p>'+esc(description)+'</p></div><span class="ai-badge'+(affectsOnline?'':' ai-badge-muted')+'">'+(affectsOnline?'AFFECTS ONLINE COMPARISON':'REFERENCE ONLY')+'</span></div>'
    +(rows.length
-     ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table ai-catalogue-evidence-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Sell price</th><th>Buy price</th><th>Availability</th><th>Buy method</th><th>Region</th><th>Exact source</th><th>Notes</th><th>Checked</th></tr></thead><tbody>'+rows.map(catalogueEvidenceRowMarkup).join('')+'</tbody></table></div>'
+     ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table ai-catalogue-evidence-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Sell price</th><th>Buy price</th><th>Availability</th><th>Buy method</th><th>Region</th><th>Exact source</th><th>Notes</th><th>Checked</th><th>Action</th></tr></thead><tbody>'+rows.map(catalogueEvidenceRowMarkup).join('')+'</tbody></table></div>'
      :'<div class="ai-comparison-empty">No evidence is recorded in this section.</div>')
  +'</section>';
 }
@@ -682,6 +689,22 @@ async function saveEdit(id){
  editingId=null;
  await load();
 }
+function editExistingEvidence(id){editingExistingEvidenceId=String(editingExistingEvidenceId)===String(id)?null:String(id);render();}
+async function saveExistingEvidence(id){
+ const editor=document.querySelector('[data-existing-evidence-editor="'+CSS.escape(String(id))+'"]');
+ if(!editor)throw Error('Catalogue evidence editor not found.');
+ const productId=String(editor.dataset.productId||'');
+ const value=name=>clean(editor.querySelector('[data-field="'+name+'"]')?.value||'');
+ const numberOrNull=name=>{const raw=value(name);if(raw==='')return null;const n=Number(raw);if(!Number.isFinite(n)||n<0)throw Error(name.replaceAll('_',' ')+' must be a valid non-negative number.');return n;};
+ const url=value('source_url');if(url){try{new URL(url)}catch{throw Error('Please enter a valid exact source URL.');}}
+ const payload={retailer:value('retailer')||null,price_type:value('price_type')||null,condition:value('condition')||null,sell_price:numberOrNull('sell_price'),buy_price:numberOrNull('buy_price'),availability_status:value('availability_status')||null,buy_method:value('buy_method')||null,evidence_region:value('evidence_region')||null,price_region:value('evidence_region')||null,source_url:url||null,notes:value('notes')||null,checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ const {error}=await sb.from('quote_catalog_retailer_prices').update(payload).eq('id',id);
+ if(error)throw error;
+ comparisonEvidenceByProduct.delete(productId);
+ if(productId)await loadComparisonEvidence(productId);
+ editingExistingEvidenceId=null;render();
+ msg('Existing catalogue evidence corrected and refreshed. Continue reviewing the new AI evidence against the updated row.');
+}
 async function decide(decision){
  rememberSelection();
  const ids=checked();
@@ -734,7 +757,7 @@ $('research-source-filter')?.addEventListener('change',e=>{selectedSourceFilter=
 selectedSourceFilter=clean($('research-source-filter')?.value||'all')==='amazon_uk'?'amazon_uk':'all';
 document.addEventListener('toggle',e=>{const d=e.target;if(!(d instanceof HTMLDetailsElement)||!d.classList.contains('ai-product-review-details'))return;const key=String(d.dataset.productReviewId||'');if(d.open){if(String(activeProductReviewId)!==key)openProductReview(key).catch(x=>msg(x.message||String(x),true));}else if(String(activeProductReviewId)===key){activeProductReviewId=null;}},true);
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
-setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const compare=e.target.closest('.ai-compare-catalogue');if(compare){openComparison(compare.dataset.id).catch(x=>msg(x.message||String(x),true));return}const closeCompare=e.target.closest('.ai-compare-close');if(closeCompare){closeComparison(closeCompare.dataset.id);return}const manualAccept=e.target.closest('.ai-manual-accept');if(manualAccept){manualReviewAction(manualAccept.dataset.id,'accepted',manualAccept.dataset.apply==='true',manualAccept).catch(x=>msg(x.message||String(x),true));return}const manualDeny=e.target.closest('.ai-manual-deny');if(manualDeny){manualReviewAction(manualDeny.dataset.id,'rejected',false,manualDeny).catch(x=>msg(x.message||String(x),true));return}const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
+setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const compare=e.target.closest('.ai-compare-catalogue');if(compare){openComparison(compare.dataset.id).catch(x=>msg(x.message||String(x),true));return}const closeCompare=e.target.closest('.ai-compare-close');if(closeCompare){closeComparison(closeCompare.dataset.id);return}const manualAccept=e.target.closest('.ai-manual-accept');if(manualAccept){manualReviewAction(manualAccept.dataset.id,'accepted',manualAccept.dataset.apply==='true',manualAccept).catch(x=>msg(x.message||String(x),true));return}const manualDeny=e.target.closest('.ai-manual-deny');if(manualDeny){manualReviewAction(manualDeny.dataset.id,'rejected',false,manualDeny).catch(x=>msg(x.message||String(x),true));return}const existingEdit=e.target.closest('.ai-existing-evidence-edit');if(existingEdit){editExistingEvidence(existingEdit.dataset.id);return}const existingSave=e.target.closest('.ai-existing-evidence-save');if(existingSave){const b=existingSave;b.disabled=true;const label=b.textContent;b.textContent='SAVING…';saveExistingEvidence(existingSave.dataset.id).catch(x=>msg(x.message||String(x),true)).finally(()=>{b.disabled=false;b.textContent=label});return}const existingCancel=e.target.closest('.ai-existing-evidence-cancel');if(existingCancel){editingExistingEvidenceId=null;render();return}const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
   try{
     if(cmd==='stop_worker'){
       stopCommandPending=true;
