@@ -1119,3 +1119,87 @@ The worker follows that database value. A correct UI label with an incorrect per
 - Database repair: applied.
 - Repository migration: committed.
 - End-to-end Research PC retest: required next.
+
+
+---
+
+# 20. AI Research Centre — Review Queue and Catalogue Comparison
+
+**Roadmap status: Verified from current code and Supabase state on 5 September 2026.**
+
+## What the staff user does
+
+A staff user opens a proposed AI finding in **AI Research Centre**, checks the evidence page, edits the evidence if required, and can now use **COMPARE WITH CATALOGUE PRODUCT** to open the exact linked catalogue product.
+
+## Expected result
+
+### Pending review layout
+
+Pending findings are no longer rendered as one permanently expanded list.
+
+- **Amazon findings — review, edit and decide** contains Amazon findings separately.
+- **Review, edit and decide** contains the remaining pending findings.
+- Both sections are collapsed by default.
+- Accepted, rejected and applied findings remain separate collapsible sections.
+
+Amazon classification is based on the finding's effective source information, including the edited/original source URL and Amazon source text where available.
+
+### Compare CTA
+
+Each finding linked to a loaded catalogue product now includes:
+
+**COMPARE WITH CATALOGUE PRODUCT**
+
+The CTA opens:
+
+`admin-catalog.html?product=<catalog_product_id>`
+
+The catalogue page already reads the `product` URL parameter, loads the exact `quote_catalog_products` record, opens the editor and loads its associated `quote_catalog_retailer_prices` evidence rows.
+
+## Developer diagnostic route
+
+**User action**
+
+AI finding → open finding → compare CTA.
+
+**Front end**
+
+1. `admin-ai-research.html` — AI Research Centre page and review styles.
+2. `admin-ai-research.js` — `renderCandidateCard(c)`, pending grouping in `render()`, and `isAmazonFinding(c)`.
+3. CTA target: `admin-catalog.html?product=<catalog_product_id>`.
+4. `admin-catalog.js` — `load()` reads the requested product ID and `loadProduct(p)` opens the exact catalogue editor.
+
+**Supabase**
+
+- `quote_catalog_ai_candidates.catalog_product_id` links a finding to its catalogue product.
+- `quote_catalog_products.id` is the target product.
+- `quote_catalog_retailer_prices.catalog_product_id` supplies the existing comparison evidence shown in the catalogue editor.
+
+## Expected data path
+
+AI finding
+→ `catalog_product_id`
+→ compare CTA
+→ `admin-catalog.html?product=...`
+→ catalogue `load()`
+→ matching `quote_catalog_products` record
+→ `loadProduct()`
+→ retailer/evidence rows loaded.
+
+## Failure checkpoints
+
+1. If the CTA is absent, check whether the finding has a resolvable `catalog_product_id` and the product was loaded into the review page.
+2. If the CTA opens the catalogue but no product editor appears, check the URL `product` parameter and whether the ID exists in `quote_catalog_products`.
+3. If the product opens but comparison rows are missing, inspect `quote_catalog_retailer_prices` for that `catalog_product_id`.
+4. If an Amazon finding appears in the general queue, inspect its effective source URL/source fields first; do not classify by the dashboard filter alone.
+
+## Change history
+
+**5 September 2026 — Implemented**
+
+- Added a separate collapsible Amazon findings review section.
+- Made the general pending review queue collapsible.
+- Added per-finding catalogue comparison CTA.
+- Preserved the existing review/edit/accept/deny/apply workflow and existing evidence data model.
+
+**Verification status:** Implemented and syntax-checked. Browser/live workflow verification is still required.
