@@ -1114,3 +1114,19 @@ The worker requires `npm install` once after updating to install the new `playwr
 ## MPB range evidence rule — 6 September 2026
 
 For MPB UK, do not create one candidate per SKU when a single exact model page aggregates multiple used units. Create one `used_uk` pending candidate for the exact product page with `reference_only=true`, `reference_price_min`, `reference_price_max`, conditions represented, unit count and canonical verification URL. Approval writes one reference-only catalogue evidence row; denial leaves the catalogue unchanged. This evidence never changes automatic pricing.
+
+
+---
+
+# 6 September 2026 — AI Research Completed-Decision Audit Simplification
+
+The active **Review, edit and decide** evidence area in the AI Research Centre is no longer the primary review workspace.
+
+Current routing:
+
+- pending evidence remains in Supabase and is reviewed from the **Automatic Quote Catalogue**;
+- **Rejected findings** remain visible in the AI Research Centre for audit and Gemma learning;
+- successful accepted findings appear in **Applied to live evidence**;
+- an accepted finding that cannot be applied is retained in a visible **Live application issues** recovery section so an application failure cannot disappear silently.
+
+No database schema, RLS, review-feedback RPC or live-evidence application RPC was changed.
