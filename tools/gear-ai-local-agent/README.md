@@ -191,3 +191,18 @@ The agent now supports two official Google discovery modes:
 2. **Existing Google Programmable Search — compatibility mode.** If you already have a valid existing search engine ID, the agent can use `GOOGLE_CSE_ID`.
 
 If neither Google configuration is present, the agent continues automatically with Bing, DuckDuckGo, Mojeek and the GearCashOut approved-source registry. A blocked provider is cooled down temporarily rather than repeatedly slowing every catalogue product.
+
+
+## Research PC launcher location
+
+The established Windows installation deliberately keeps the launcher/configuration outside the extracted repository:
+
+`C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1`
+
+That launcher must explicitly start npm from the extracted agent folder:
+
+`C:\\gearcashout\\Action-Buyer-UK-main\\tools\\gear-ai-local-agent`
+
+Do not run `npm start` from `C:\\GearCashOut-Config`; that folder contains configuration, not `package.json`.
+
+If the extracted repository is moved, set `GEARCASHOUT_AGENT_DIR` to the new `tools\\gear-ai-local-agent` folder.
