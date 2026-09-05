@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.5',
+    version:'1.4.6',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -815,6 +815,24 @@ async function getSharedSources(scope='all'){
   return (data||[]).map(s=>({...s,enabled:s.enabled!==false}));
 }
 
+async function getActiveLearningForProduct(product,evidenceScope='all'){
+  const manufacturer=String(product?.manufacturer||'').trim();
+  const productType=String(product?.product_type||'').trim();
+  const {data,error}=await sb.from('quote_catalog_ai_learning')
+    .select('manufacturer,product_type,evidence_category,learning_type,learning_key,learning_value,confidence')
+    .eq('active',true)
+    .or('manufacturer.is.null,manufacturer.eq.'+manufacturer)
+    .order('updated_at',{ascending:false})
+    .limit(100);
+  if(error){log('AI learning load warning:',error.message);return [];}
+  return (data||[]).filter(l=>{
+    const type=String(l.product_type||'').trim();
+    const category=String(l.evidence_category||'').trim().toLowerCase();
+    return (!type||!productType||type.toLowerCase()===productType.toLowerCase()) &&
+      (!category||category==='all'||evidenceScope==='all'||category===evidenceScope||category==='used_uk');
+  });
+}
+
 async function learnSharedSource(sourceUrl, sourceName, sourceKind='other', scope='discovered', notes=null){
   if(!sourceUrl||!/^https?:\/\//i.test(sourceUrl))return;
   const {error}=await sb.rpc('gearcashout_learn_research_source',{
@@ -1073,7 +1091,7 @@ const schema={
   required:['candidates','discovered_sources']
 };
 
-async function analyse(product,sources,pages,evidenceScope='all'){
+async function analyse(product,sources,pages,evidenceScope='all',learning=[]){
   const known=sources.map(s=>({id:s.id,name:s.source_name,domain:s.domain,country:s.country_code,kind:s.source_kind,scope:s.research_scope}));
   const evidence=pages.map((p,i)=>({id:i+1,url:p.url,title:p.title,snippet:p.snippet,price:p.discovered_price??null,currency:p.discovered_currency??null,availability:p.discovered_availability??null,structured_product:p.structured_product===true,text:p.text}));
   const prompt=`You are the validation layer for a GearCashOut resale catalogue.
@@ -1084,6 +1102,9 @@ ${JSON.stringify(product)}
 KNOWN SOURCE REGISTRY:
 ${JSON.stringify(known)}
 
+ACTIVE HUMAN LEARNING / SOURCE-SPECIFIC RULES:
+${JSON.stringify(learning)}
+
 COLLECTED WEB EVIDENCE:
 ${JSON.stringify(evidence)}
 
@@ -1091,6 +1112,8 @@ RESEARCH MODE: ${evidenceScope}
 
 Rules:
 - Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
+- ACTIVE HUMAN LEARNING / SOURCE-SPECIFIC RULES are operational instructions from reviewed mistakes. Apply them before returning candidates.
+- For MPB UK specifically: category pages, brand pages and search pages are discovery-only and must not be returned as final price evidence. Continue to the exact MPB /en-uk/product/... model page. If that page exposes multiple individual live units, preserve separate unit-level observations rather than collapsing the page to one representative price.
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, title, price or availability. Prefer collected evidence title and price fields when present.
 - Exact model matching is mandatory. A true variant/generation mismatch must be rejected.
 - Package labels require special handling: catalogue labels such as "Standard Item",
@@ -1427,7 +1450,8 @@ async function processOne(){
       if(!existing || (s.priority||999)<(existing.priority||999))sourceByDomain.set(domain,{...existing,...s,enabled:s.enabled!==false});
     }
     const sources=[...sourceByDomain.values()];
-    log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry.');
+    const learning=await getActiveLearningForProduct(product,evidenceScope);
+    log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry and',learning.length,'active learning rule(s).');
 
     const pages=await collectEvidence(product,sources,evidenceScope,{
       runId:item.run_id,
@@ -1469,7 +1493,7 @@ async function processOne(){
     // still submits the collected evidence as clearly marked manual-review findings.
     let research;
     try{
-      research=await analyse(product,latestSources||sources||[],pages,evidenceScope);
+      research=await analyse(product,latestSources||sources||[],pages,evidenceScope,learning);
     }catch(e){
       log('Ollama analysis warning; continuing with manual-review preservation:',e.message||String(e));
       research={candidates:[],discovered_sources:[]};
