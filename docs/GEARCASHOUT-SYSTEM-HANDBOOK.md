@@ -1831,3 +1831,8 @@ Pending evidence cannot affect live comparison or automatic pricing before appro
 Implementation file:
 
 - `admin-catalog-pending-ai-review.js`
+
+
+## 6 September 2026 — MPB used-market reference ranges
+
+MPB UK is now treated as **Used / Other Evidence — Reference Only**. The exact MPB product page is the evidence identity. Multiple live units on that page are aggregated into one pending range: **From price**, **To price**, conditions represented and units observed. The direct canonical MPB product URL is retained so staff can verify the latest stock and manually refresh stale evidence. MPB evidence does not alter automatic buying prices.
