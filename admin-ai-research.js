@@ -181,6 +181,7 @@ function manualReviewMarkup(c,applyDirect=false){
    +fields.map(([field,label])=>'<label class="ai-review-outcome"><span>'+esc(label)+'</span><select data-review-outcome="'+esc(field)+'">'+options+'</select></label>').join('')
    +'</div>'
    +'<label class="ai-manual-review-reason">Reason / correction notes for Gemma<textarea data-review-reason rows="4" placeholder="Explain why the AI was wrong or why you adjusted it. Example: Price changed from £339 to £553 because the original price was for the wrong package. Source changed from unknown to Amazon after checking the exact product page."></textarea></label>'
+   +'<div class="ai-manual-review-status" role="status" aria-live="polite"></div>'
    +'<div class="ai-manual-review-actions"><button type="button" class="btn btn-primary ai-manual-accept" data-id="'+esc(c.id)+'" data-apply="'+applyAttr+'">'+acceptLabel+'</button><button type="button" class="btn btn-secondary ai-manual-deny" data-id="'+esc(c.id)+'">DENY WITH REASON</button></div>'
  +'</section>';
 }
