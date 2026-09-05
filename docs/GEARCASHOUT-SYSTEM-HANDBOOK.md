@@ -610,6 +610,49 @@ Both documents should grow alongside the software.
 
 ---
 
+## 17A. 5 September 2026 — AI research hardening pass
+
+A live testing pass was carried out on the local Research PC after the worker, dashboard controls and source filters had been restored.
+
+### What was observed
+
+The tests confirmed that:
+
+- the local PowerShell launcher can start the worker and the dashboard can see the Research PC;
+- normal **All Sources** research can search multiple source types;
+- Amazon-only mode required stronger defensive enforcement and clearer operational separation;
+- related models and accessories could still consume search effort when product identity overlap was weak.
+
+### Changes made
+
+The local worker was tightened so that:
+
+1. **Exact model identity is required** before a discovery result enters the evidence collection pool.
+2. **Manufacturer identity is also required** when the catalogue product specifies a manufacturer.
+3. Main-product searches reject common accessory/spare-part results unless the catalogue product itself is an accessory.
+4. Recognised manufacturer bundles/combos/kits remain eligible.
+5. **Amazon UK Only** remains a hard source boundary:
+   - only Amazon-targeted queries are issued;
+   - general web-market searches are not used;
+   - approved-source/direct probes are disabled;
+   - only actual `amazon.co.uk` result URLs can enter the pool;
+   - the source-registry scope helper also refuses non-Amazon sources as a defensive fallback barrier.
+6. A legitimate Amazon-only run may finish with zero findings rather than relaxing the source restriction.
+
+### Operational rule
+
+When testing a new source filter, first allow the currently processing product to finish or clear/stop the previous run as appropriate. The dashboard can change the next queued work while a product already claimed by the Research PC continues safely. Logs from that in-progress product therefore belong to its original run scope.
+
+### Files changed in this hardening pass
+
+- `tools/gear-ai-local-agent/agent.mjs`
+- `tools/gear-ai-local-agent/README.md`
+- `docs/GEARCASHOUT-SYSTEM-HANDBOOK.md`
+
+This section is part of the persistent project record and should be read together with the AI research workflow rules above.
+
+---
+
 ## Current baseline
 
 This handbook records the system state and design direction as understood from the current repository and recent development work in September 2026. It should be expanded through a systematic repository and Supabase audit rather than relying indefinitely on conversational recollection alone.
