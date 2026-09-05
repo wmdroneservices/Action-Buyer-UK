@@ -1689,3 +1689,55 @@ A dedicated inline live-status region now exists inside every manual review pane
 The existing Supabase decision and application authorities are unchanged:
 
 record_ai_candidate_manual_review(...) → decision transition, then optional apply_accepted_ai_candidate(uuid).
+
+
+---
+
+## MPB UK evidence rule and audit — 5 September 2026
+
+### Source-specific evidence rule
+
+MPB category pages and brand pages are **discovery pages**, not final exact-price evidence.
+
+Required route:
+
+Catalogue product
+→ MPB category/brand discovery if useful
+→ exact MPB `/en-uk/product/...` model page
+→ inspect every live individual unit
+→ store each relevant unit separately.
+
+MPB model pages can expose multiple live units with separate:
+
+- SKU;
+- selling price;
+- cosmetic condition;
+- charges where shown;
+- included accessories/controller/package details.
+
+These must not be collapsed into one representative price.
+
+### Audit finding
+
+The existing database contained **1,743 MPB evidence rows**:
+
+- 759 exact MPB product-page rows;
+- 404 category-page rows;
+- 465 brand-page rows.
+
+Across 1,176 products with MPB evidence:
+
+- 549 had **only generic MPB evidence** and no exact product-page evidence;
+- 352 had only one exact MPB row;
+- 109 had multiple exact MPB rows;
+- 629 products contained at least one generic MPB row.
+
+Generic category/brand evidence is therefore not reliable enough to treat as final exact product evidence and requires replacement through exact MPB model-page auditing.
+
+### Verified example — DJI Mavic 3
+
+The exact current MPB Mavic 3 page exposed **7 live individual units**, from £744 to £1,279. The previous catalogue representation had only two MPB observations, including a generic category-page record.
+
+The generic/category evidence was removed for the DJI Mavic 3 Standard Package and replaced with seven separate exact MPB inventory observations, retaining individual SKU, price, Excellent cosmetic condition, charges and controller details where shown.
+
+**Verification source:** exact MPB Mavic 3 model page.
