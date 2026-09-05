@@ -88,14 +88,20 @@ function annotateCatalogue(){
 
 function candidateMarkup(c,index){
  const id=esc(c.id),title=effective(c,'edited_title','discovered_title'),price=effective(c,'edited_price','price'),condition=effective(c,'edited_condition','condition'),url=effective(c,'edited_source_url','source_url');
+ const refMin=effective(c,'edited_reference_price_min','reference_price_min')||price;
+ const refMax=effective(c,'edited_reference_price_max','reference_price_max');
+ const observedConditions=effective(c,'edited_observed_conditions','observed_conditions')||condition;
+ const rangeText=refMax!==''&&refMax!=null&&Number(refMax)!==Number(refMin)?money(refMin,c.edited_currency??c.currency)+' → '+money(refMax,c.edited_currency??c.currency):money(refMin,c.edited_currency??c.currency);
  const selected=(field,value)=>String(effective(c,'edited_'+field,field))===value?' selected':'';
  const outcome='<option value="">NOT CHECKED</option><option value="correct">AI WAS RIGHT</option><option value="wrong">AI WAS WRONG</option><option value="adjusted">ADJUSTED</option>';
  return '<article class="catalog-pending-evidence-card" data-pending-candidate="'+id+'">'
- +'<div class="catalog-pending-evidence-head"><span class="catalog-pending-ai-icon">P</span><div><p>PENDING EVIDENCE '+(index+1)+' · '+esc(categoryLabel(c))+'</p><h4>'+esc(title||'Unnamed evidence')+'</h4><div class="catalog-pending-evidence-meta"><span>'+esc(money(price,c.edited_currency??c.currency))+'</span><span>'+esc(condition||'Unknown condition')+'</span><span>'+esc(sourceHost(c))+'</span></div></div></div>'
+ +'<div class="catalog-pending-evidence-head"><span class="catalog-pending-ai-icon">P</span><div><p>PENDING EVIDENCE '+(index+1)+' · '+esc(categoryLabel(c))+(c.reference_only?' · REFERENCE ONLY':'')+'</p><h4>'+esc(title||'Unnamed evidence')+'</h4><div class="catalog-pending-evidence-meta"><span><strong>FROM → TO:</strong> '+esc(rangeText)+'</span><span>'+esc(observedConditions||'Unknown conditions')+'</span><span>'+esc(sourceHost(c))+'</span>'+(c.observed_units_count?'<span>'+esc(c.observed_units_count)+' units observed</span>':'')+(c.reference_only?'<span><strong>REFERENCE ONLY</strong></span>':'')+'</div></div></div>'
  +'<div class="catalog-pending-editor-grid">'
  +'<label>Exact product title<input data-field="edited_title" value="'+esc(title)+'"></label>'
- +'<label>Price<input data-field="edited_price" type="number" min="0" step="0.01" value="'+esc(price)+'"></label>'
- +'<label>Condition<input data-field="edited_condition" value="'+esc(condition)+'"></label>'
+ +'<label>From price<input data-field="edited_reference_price_min" type="number" min="0" step="0.01" value="'+esc(refMin)+'"></label>'
+ +'<label>To price<input data-field="edited_reference_price_max" type="number" min="0" step="0.01" value="'+esc(refMax)+'"></label>'
+ +'<label>Conditions observed<input data-field="edited_observed_conditions" value="'+esc(observedConditions)+'"></label>'
+ +'<label>Condition label<input data-field="edited_condition" value="'+esc(condition)+'"></label>'
  +'<label>Evidence category<select data-field="edited_evidence_category"><option value="new_uk"'+(categoryOf(c)==='new_uk'?' selected':'')+'>UK — NEW</option><option value="used_uk"'+(categoryOf(c)==='used_uk'?' selected':'')+'>UK — USED / OTHER</option><option value="overseas"'+(categoryOf(c)==='overseas'?' selected':'')+'>OVERSEAS</option></select></label>'
  +'<label>Availability<select data-field="edited_availability_status"><option value="in_stock"'+selected('availability_status','in_stock')+'>In stock</option><option value="out_of_stock"'+selected('availability_status','out_of_stock')+'>Out of stock</option><option value="unknown"'+selected('availability_status','unknown')+'>Unknown</option></select></label>'
  +'<label>Package match<select data-field="edited_package_match"><option value="exact"'+selected('package_match','exact')+'>Exact</option><option value="compatible"'+selected('package_match','compatible')+'>Compatible</option><option value="uncertain"'+selected('package_match','uncertain')+'>Uncertain</option><option value="mismatch"'+selected('package_match','mismatch')+'>Mismatch</option></select></label>'
@@ -104,16 +110,15 @@ function candidateMarkup(c,index){
  +'<label class="catalog-pending-wide">Evidence notes<textarea data-field="edited_evidence_notes" rows="2">'+esc(effective(c,'edited_evidence_notes','evidence_notes'))+'</textarea></label>'
  +'</div>'
  +'<div class="catalog-pending-checks"><strong>VERIFY EACH FIELD</strong>'
- +[['price','PRICE'],['product_match','PRODUCT / MODEL / PACKAGE'],['url','EXACT PRODUCT PAGE URL'],['condition','CONDITION'],['availability','AVAILABILITY'],['source','SOURCE / RETAILER'],['evidence_bucket','EVIDENCE CATEGORY']].map(([k,label])=>'<label>'+label+'<select data-review-outcome="'+k+'">'+outcome+'</select></label>').join('')
+ +[['price','FROM / TO PRICE RANGE'],['product_match','PRODUCT / MODEL / PACKAGE'],['url','EXACT PRODUCT PAGE URL'],['condition','CONDITIONS REPRESENTED'],['availability','AVAILABILITY'],['source','SOURCE / RETAILER'],['evidence_bucket','EVIDENCE CATEGORY']].map(([k,label])=>'<label>'+label+'<select data-review-outcome="'+k+'">'+outcome+'</select></label>').join('')
  +'</div>'
  +'<label class="catalog-pending-wide">Review reason / correction reason<textarea data-review-reason rows="3" placeholder="Required when denying. Also explain any corrections so Gemma can learn."></textarea></label>'
- +'<div class="catalog-pending-actions">'+(url?'<a class="btn btn-secondary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">OPEN EXACT SOURCE</a>':'')
+ +'<div class="catalog-pending-actions">'+(url?'<a class="btn btn-secondary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">VERIFY LATEST MPB PRICES</a>':'')
  +'<button type="button" class="btn btn-primary" data-pending-accept="'+id+'">ACCEPT & ADD TO CATALOGUE</button>'
  +'<button type="button" class="btn btn-secondary catalog-pending-deny" data-pending-deny="'+id+'">DENY — KEEP CATALOGUE AS IS</button>'
  +'<span class="catalog-pending-status" aria-live="polite"></span></div>'
  +'</article>';
 }
-
 function renderCurrentProductPending(){
  const id=currentProductId();
  let section=document.getElementById('catalog-pending-evidence-section');
@@ -136,7 +141,10 @@ async function saveEdits(card,c){
  const url=get('edited_source_url');if(url){try{new URL(url);}catch{throw Error('Please enter a valid exact source URL.');}}
  const payload={
    edited_title:get('edited_title')||null,
-   edited_price:number('edited_price'),
+   edited_price:number('edited_reference_price_min'),
+   edited_reference_price_min:number('edited_reference_price_min'),
+   edited_reference_price_max:number('edited_reference_price_max'),
+   edited_observed_conditions:get('edited_observed_conditions')||null,
    edited_condition:get('edited_condition')||null,
    edited_source_url:url||null,
    edited_evidence_category:get('edited_evidence_category')||null,
