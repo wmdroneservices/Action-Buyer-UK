@@ -492,3 +492,75 @@ The issue was not the catalogue lookup or Supabase evidence query. It was the UI
 - Repair committed to GitHub.
 - JavaScript syntax check: passed.
 - Browser retest: required.
+
+
+---
+
+# 17. Manual Review Feedback for Gemma — 5 September 2026
+
+The AI Research Centre now distinguishes between **bulk decisions** and **individual manual review**.
+
+## Individual manual review
+
+Each individual finding can be manually reviewed with structured checkboxes for:
+
+- price;
+- URL / exact product link;
+- condition;
+- product/model match;
+- package/variant;
+- evidence bucket;
+- availability;
+- source/retailer.
+
+The reviewer can enter a reason explaining what was wrong or why a correction was made.
+
+### Mandatory rules
+
+- If evidence values were changed, a reason is required before manual acceptance.
+- Manual denial requires a reason.
+- Original and effective edited values are compared automatically.
+- Before/after values, reviewed fields, changed fields and the reviewer are retained in Supabase.
+
+The database function `record_ai_candidate_manual_review(...)` also creates/update structured `quote_catalog_ai_learning` entries so future Gemma research can use recurring human review feedback.
+
+## Direct manual acceptance
+
+When reviewing side-by-side with the existing catalogue, the manual action can:
+
+1. record the human review feedback;
+2. mark the candidate accepted;
+3. call `apply_accepted_ai_candidate(uuid)`;
+4. add the accepted evidence to the live comparison.
+
+The feedback write and the live evidence write remain separate responsibilities.
+
+## Manual denial
+
+Each individual finding has **DENY WITH REASON**.
+
+The denial is retained with the reason and reviewed evidence areas so Gemma can distinguish, for example:
+
+- incorrect price;
+- wrong or category-level URL;
+- incorrect condition;
+- wrong product or variant;
+- incorrect evidence bucket.
+
+## Bulk decisions
+
+**ACCEPT SELECTED** and **DENY SELECTED** remain available for speed.
+
+Bulk decisions intentionally do not request or invent an individual reason. They must not be treated as detailed training feedback.
+
+## Verification checklist
+
+1. Open an individual finding.
+2. Tick one or more reviewed fields.
+3. Edit a value and try accepting without a reason — it should be blocked.
+4. Add a reason and accept — the decision should save.
+5. Check the candidate review feedback row and generated AI learning.
+6. Manually deny another finding without a reason — it should be blocked.
+7. Add a denial reason and confirm the finding moves to Rejected.
+8. Select several findings and bulk deny — there should be no reason prompt.
+9. Confirm existing bulk apply behaviour for accepted findings remains unchanged.
