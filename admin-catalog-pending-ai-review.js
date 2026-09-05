@@ -9,6 +9,7 @@ const clean=v=>String(v??'').trim();
 const effective=(c,a,b)=>c[a]??c[b]??'';
 let pending=[];
 let pendingByProduct=new Map();
+let productById=new Map();
 let refreshTimer=null;
 
 function sb(){return window.actionBuyerAuth?.supabase;}
@@ -22,6 +23,13 @@ async function loadPending(){
  const {data,error}=await client.from('quote_catalog_ai_candidates').select('*').eq('decision','pending').is('applied_at',null).order('created_at',{ascending:false}).limit(5000);
  if(error){console.error('Pending AI evidence load failed',error);return;}
  pending=data||[];
+ productById=new Map();
+ const ids=[...new Set(pending.map(c=>c.catalog_product_id).filter(Boolean))];
+ if(ids.length){
+   const {data:products,error:productError}=await client.from('quote_catalog_products').select('id,manufacturer,model,package_name,package_key,category').in('id',ids);
+   if(productError)console.error('Pending product lookup failed',productError);
+   (products||[]).forEach(p=>productById.set(String(p.id),p));
+ }
  pendingByProduct=new Map();
  for(const c of pending){
    if(!c.catalog_product_id)continue;
@@ -51,7 +59,7 @@ function renderWarning(){
  const productCount=pendingByProduct.size;
  const manufacturers=new Map();
  for(const [pid,items] of pendingByProduct){
-   const p=(window.products||[]).find(x=>String(x.id)===pid);
+   const p=productById.get(String(pid));
    const name=clean(p?.manufacturer)||'Other / unavailable';
    if(!manufacturers.has(name))manufacturers.set(name,[]);
    manufacturers.get(name).push({pid,items,p});
