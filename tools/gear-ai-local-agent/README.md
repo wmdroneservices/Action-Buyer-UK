@@ -134,14 +134,16 @@ For each queued catalogue product the agent:
 
 1. Builds an exact product search query.
 2. Searches the wider web through Google's current Web Search Service when configured, with compatibility support for an existing Google Programmable Search engine, alongside Bing, DuckDuckGo and Mojeek fallbacks.
-3. Automatically cools down providers that return blocking/rate-limit responses so repeated failures do not hold up the catalogue.
-4. Directly probes approved GearCashOut sources for each requested market/condition.
-5. Collects result URLs and page excerpts.
-6. Sends only collected evidence to the local Ollama model.
-7. Requires structured JSON output.
-8. Rejects mismatched variants and weak matches.
-9. Submits valid findings to the existing manual review queue.
-10. Registers genuinely new domains in the Source Registry.
+3. Explicitly searches Amazon UK for every New UK research pass using indexed discovery queries.
+4. If Amazon blocks direct automated page retrieval, preserves an exact-model Amazon UK search discovery for manual review only; no price is invented and nothing is automatically accepted.
+5. Automatically cools down providers that return blocking/rate-limit responses so repeated failures do not hold up the catalogue.
+6. Directly probes approved GearCashOut sources for each requested market/condition.
+7. Collects result URLs and page excerpts.
+8. Sends only collected evidence to the local Ollama model.
+9. Requires structured JSON output.
+10. Rejects mismatched variants and weak matches.
+11. Submits findings to the existing manual review queue.
+12. Registers genuinely new domains in the Source Registry.
 
 No finding is automatically applied to live evidence.
 
