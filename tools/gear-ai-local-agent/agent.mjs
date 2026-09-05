@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.6',
+    version:'1.4.7',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -756,6 +756,35 @@ function isAmazonUkHost(host){
   return x==='amazon.co.uk';
 }
 
+function isMpbUkProductPage(url){
+  try{
+    const u=new URL(url);
+    const host=hostOf(url);
+    return host==='mpb.com'&&/^\/en-uk\/product\//i.test(u.pathname);
+  }catch{return false}
+}
+
+function extractMpbUkUnits(page){
+  if(!page?.url||!isMpbUkProductPage(page.url))return [];
+  const text=String(page.text||'').replace(/\s+/g,' ').trim();
+  if(!text)return [];
+  const out=[],seen=new Set();
+  const re=/SKU:\s*(\d+)\s*£\s*([0-9][0-9,]*(?:\.\d{2})?)\s*Cosmetic condition:\s*(Like new|Excellent|Good|Well used|Heavily used)(?:\s*(Charges|Shutter count):\s*([0-9,]+))?(?:\s*What's included\s*([\s\S]*?))?(?=\s*SKU:|\s*That's all of our available options|\s*If none of these are suitable|\s*Model Overview|$)/gi;
+  let m;
+  while((m=re.exec(text))){
+    const sku=String(m[1]||'').trim();
+    const price=Number(String(m[2]||'').replace(/,/g,''));
+    const condition=String(m[3]||'').trim();
+    const metric=String(m[4]||'').trim();
+    const metricValue=String(m[5]||'').replace(/,/g,'').trim();
+    const included=String(m[6]||'').replace(/\s+/g,' ').trim().slice(0,900);
+    if(!sku||!Number.isFinite(price)||price<=0||seen.has(sku))continue;
+    seen.add(sku);
+    out.push({sku,price,condition,metric,metricValue,included});
+  }
+  return out;
+}
+
 function sourceFitsScope(source,scope){
   if(scope==='all')return true;
   const domain=String(source?.domain||'').replace(/^www\./i,'').toLowerCase();
@@ -1349,7 +1378,8 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
     p_source_url:c.source_url,
     p_discovered_title:c.discovered_title||null,
     p_discovered_model_number:c.discovered_model_number||null,
-    p_identifier_type:null,p_identifier_value:null,
+    p_identifier_type:c.discovered_identifier_type||null,
+    p_identifier_value:c.discovered_identifier_value||null,
     p_price:c.price??null,
     p_currency:actualCurrency,
     p_price_type:actualCategory,
@@ -1500,6 +1530,51 @@ async function processOne(){
     }
 
     const sourceMap=new Map((latestSources||[]).map(s=>[String(s.domain||'').replace(/^www\\./,'').toLowerCase(),s]));
+
+    // MPB UK is handled deterministically before Ollama. A single exact MPB model
+    // page can contain many separate live units, each with its own SKU, price,
+    // cosmetic condition and charge/shutter information. One URL must therefore
+    // produce multiple SKU-level evidence candidates instead of being collapsed to
+    // one representative price.
+    let mpbSubmitted=0;
+    const mpbSubmittedPageUrls=new Set();
+    for(const page of pages){
+      const units=extractMpbUkUnits(page);
+      if(!units.length)continue;
+      const knownMpbSource=sourceMap.get('mpb.com');
+      for(const unit of units){
+        const metricNote=unit.metric&&unit.metricValue?unit.metric+': '+unit.metricValue+'. ':'';
+        const includedNote=unit.included?('Included details: '+unit.included):'';
+        const candidate={
+          source_url:page.url,
+          discovered_title:page.title||productName(product),
+          discovered_model_number:product?.model||null,
+          discovered_identifier_type:'MPB SKU',
+          discovered_identifier_value:unit.sku,
+          price:unit.price,
+          currency:'GBP',
+          condition:unit.condition,
+          availability_status:'in_stock',
+          match_confidence:0.99,
+          source_name:knownMpbSource?.source_name||'MPB UK',
+          source_country_code:'GB',
+          source_kind:'used_dealer',
+          evidence_category:'used_uk',
+          market_region:'UK',
+          package_match:'uncertain',
+          variant_match:'uncertain',
+          evidence_notes:'Exact MPB UK live inventory unit. SKU '+unit.sku+'. Cosmetic condition: '+unit.condition+'. '+metricNote+includedNote,
+          _evidence_title:page.title,
+          _evidence_text:page.text
+        };
+        if(await submitCandidate(item.run_id,item.catalog_product_id,product,candidate,sourceMap)){
+          mpbSubmitted++;
+        }
+      }
+      mpbSubmittedPageUrls.add(String(page.url||'').split('#')[0]);
+    }
+    if(mpbSubmitted>0)log('Preserved',mpbSubmitted,'separate MPB UK live inventory unit(s) from',mpbSubmittedPageUrls.size,'exact model page(s).');
+
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
         try{
@@ -1516,7 +1591,7 @@ async function processOne(){
     }
 
     let submitted=0;
-    const seenCandidateUrls=new Set();
+    const seenCandidateUrls=new Set(mpbSubmittedPageUrls);
     for(const raw of (research.candidates||[]).slice(0,25)){
       const evidenceId=Math.trunc(Number(raw.evidence_id));
       let page=Number.isInteger(evidenceId)&&evidenceId>=1&&evidenceId<=pages.length
@@ -1594,6 +1669,9 @@ async function processOne(){
     if(doneError)throw doneError;
 
     const {data:runRow}=await sb.from('quote_catalog_ai_research_runs').select('candidates_found,flagged_for_review').eq('id',item.run_id).single();
+    // submitCandidate increments these counters itself. The historical manual
+    // increment below is retained only for compatibility with older paths and now
+    // counts non-MPB candidates once; MPB units were already counted individually.
     await sb.from('quote_catalog_ai_research_runs')
       .update({
         candidates_found:Number(runRow?.candidates_found||0)+submitted,
@@ -1602,7 +1680,7 @@ async function processOne(){
       .eq('id',item.run_id);
 
     await finishRunIfComplete(item.run_id);
-    log('Completed product:',submitted,'findings');
+    log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB unit-level observation(s)).');
     return true;
   }catch(e){
     const message=(e?.message||String(e)).slice(0,1000);
