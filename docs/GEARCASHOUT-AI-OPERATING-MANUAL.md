@@ -747,3 +747,44 @@ Verification still required in the live browser:
 - all new findings remain grouped beneath the current evidence;
 - save, deny and submit/apply flows continue to work.
 \n---\n\n# 20. Manual Review Feedback — Right / Wrong / Adjusted Outcomes\n\nIndividual AI evidence reviews no longer use plain “checked” boxes as the only structured signal.\n\nFor each reviewed area, the reviewer can choose:\n\n- **NOT CHECKED**\n- **AI WAS RIGHT**\n- **AI WAS WRONG**\n- **ADJUSTED**\n\nThe review areas are:\n\n1. Price\n2. Product / model / package match\n3. Exact URL / product page\n4. Condition\n5. Availability\n6. Source / retailer\n7. Evidence category\n\n## Correction rule\n\nSaved edits are compared against the original candidate automatically. Any actual saved change is mapped to the relevant review area and recorded as **adjusted**, including changed price, exact URL, condition, availability, source/retailer, evidence category, and title/package/variant/product-match details.\n\nTherefore Gemma receives both the reviewer’s explicit judgement and the factual before/after correction.\n\n## Data flow\n\nUser review outcome → `admin-ai-research.js` → `record_ai_candidate_manual_review(...)` → `quote_catalog_ai_candidate_review_feedback.field_outcomes` + before/after values → `quote_catalog_ai_learning`.\n\nThe learning record contains:\n\n- decision: accepted or rejected;\n- reviewed field;\n- outcome: correct / wrong / adjusted;\n- reviewer reason;\n- exact before value;\n- exact after value;\n- candidate and feedback IDs.\n\nLearning keys include the outcome so opposite lessons are not collapsed into one record.\n\n## Acceptance and denial\n\nThe same structured outcomes are recorded regardless of whether the reviewer submits corrected evidence to live catalogue evidence or denies the finding.\n\nThe existing accepted-evidence application function remains unchanged: `apply_accepted_ai_candidate(uuid)`.\n\nNo automatic buying-price workflow was introduced.
+
+---
+
+## AI Evidence Review — Immediate Decision Movement and Inline Correction of Existing Evidence
+
+The grouped AI evidence review now supports two additional workflow rules:
+
+### 1. Manual submit/deny must visibly complete the workflow
+
+When **SUBMIT TO CATALOGUE EVIDENCE** or **DENY WITH REASON** is pressed:
+
+- the button immediately shows a processing state;
+- the manual review is saved first;
+- the queue is reloaded immediately afterwards;
+- denied evidence leaves **Requires Attention** and appears in the denied/rejected audit area;
+- accepted evidence leaves **Requires Attention**;
+- if live application succeeds, it is applied to the catalogue evidence;
+- if live application fails after the review itself was saved, the reviewer is explicitly told that the review moved out of Requires Attention but the live apply step failed.
+
+The UI must never silently leave a reviewer uncertain whether a click was processed.
+
+### 2. Existing catalogue evidence is editable inside the comparison
+
+Each current catalogue evidence row now has an **EDIT** action inside the grouped review.
+
+The reviewer can correct saved evidence without leaving the AI Research Centre, including:
+
+- retailer;
+- evidence type;
+- condition;
+- sell price;
+- buy price;
+- availability;
+- buy method;
+- evidence region;
+- exact source URL;
+- notes.
+
+Saving updates the existing `quote_catalog_retailer_prices` row, refreshes the comparison cache, and redraws the grouped review so the new AI evidence is immediately compared against the corrected catalogue evidence.
+
+No new evidence row is created by this correction workflow, and no automatic buying-price logic is changed.
