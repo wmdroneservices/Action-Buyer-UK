@@ -1668,17 +1668,8 @@ async function processOne(){
     });
     if(doneError)throw doneError;
 
-    const {data:runRow}=await sb.from('quote_catalog_ai_research_runs').select('candidates_found,flagged_for_review').eq('id',item.run_id).single();
-    // submitCandidate increments these counters itself. The historical manual
-    // increment below is retained only for compatibility with older paths and now
-    // counts non-MPB candidates once; MPB units were already counted individually.
-    await sb.from('quote_catalog_ai_research_runs')
-      .update({
-        candidates_found:Number(runRow?.candidates_found||0)+submitted,
-        flagged_for_review:Number(runRow?.flagged_for_review||0)+submitted
-      })
-      .eq('id',item.run_id);
-
+    // ai_research_submit_candidate increments run counters transactionally.
+    // Do not increment them again here or every finding is double-counted.
     await finishRunIfComplete(item.run_id);
     log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB unit-level observation(s)).');
     return true;
