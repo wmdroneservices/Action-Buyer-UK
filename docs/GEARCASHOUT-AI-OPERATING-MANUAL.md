@@ -665,3 +665,18 @@ For each evidence item:
 - **DENY WITH REASON** records the rejection reason and reviewed fields for Gemma learning.
 
 The grouped layout is especially intended for products with multiple findings, such as the DJI Mini 3 product currently carrying several pending evidence candidates.
+
+
+### Grouped review panel close behaviour — 5 September 2026
+
+The product-centred review uses native collapsible panels. A previous state-retention handler remembered the active product when it was opened but did not clear that state when the panel was closed. After a render, this could force the same review section back open and make it difficult to move to the next grouped review, including Amazon findings.
+
+Current behaviour:
+
+- opening a product loads its grouped new evidence and current catalogue evidence;
+- closing that product review clears the active review state and keeps it closed;
+- the reviewer can then collapse the surrounding section or open another product normally;
+- opening another product switches the active grouped review without requiring an edit or decision;
+- no Supabase schema or evidence workflow was changed.
+
+This is a UI-state repair only. Save, submit and deny behaviour remains unchanged.
