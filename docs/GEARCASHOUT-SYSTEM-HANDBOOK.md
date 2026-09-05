@@ -1245,7 +1245,7 @@ AI Research Centre → finding → Compare Here With Catalogue
 
 ### Important rule
 
-The side-by-side comparison does not automatically change a buying price. The reviewer must explicitly use **ACCEPT & ADD TO LIVE EVIDENCE** after comparing the evidence.
+The inline vertical comparison does not automatically change a buying price. The reviewer must explicitly use **ACCEPT & ADD TO LIVE EVIDENCE** after comparing the evidence.
 
 ### Fallback navigation
 
@@ -1375,3 +1375,16 @@ Important distinctions:
 - `npm install` is needed after a fresh repository extraction or when dependencies are missing/changed.
 - Do not run `npm start` from `C:\GearCashOut-Config`; it is a configuration folder and does not contain `package.json`.
 - Permanent secrets remain in `C:\GearCashOut-Config\.env` and must not be overwritten by repository updates.
+
+
+### Current comparison layout correction — 5 September 2026
+
+The per-finding **COMPARE HERE WITH CATALOGUE** workflow is now deliberately vertical rather than two columns:
+
+1. **NEW AI FINDING — EDITABLE** appears first.
+2. The full finding editor is visible inside that comparison section, including price and exact product URL.
+3. **CURRENT CATALOGUE EVIDENCE** appears directly underneath for comparison.
+4. Saving the finding keeps the comparison open and refreshes the edited evidence.
+5. The full catalogue editor remains available in a separate tab for deeper catalogue work.
+
+This corrects the previous usability problem where the editor could render below a long comparison panel and appear not to open.
