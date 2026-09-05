@@ -73,3 +73,19 @@ After meaningful GitHub, database, UI or workflow changes:
 ## Consolidation
 
 Raw history is retained for audit. Current truth should be concise. Superseded decisions and obsolete entries must be marked rather than silently deleted.
+
+
+## Two-manual documentation architecture
+
+GearCashOut documentation is maintained in two connected layers:
+
+1. **Human/Developer System Handbook** — docs/GEARCASHOUT-SYSTEM-HANDBOOK.md
+2. **AI Operating Manual** — docs/GEARCASHOUT-AI-OPERATING-MANUAL.md
+
+The Human/Developer Handbook documents operational and technical workflows for staff and future developers. Its target traceability chain is:
+
+**User action → page → front-end controller → Supabase call → database object → trigger/function → status change → visible result.**
+
+The AI Operating Manual records continuity information for future AI work: current truth, decisions, non-negotiable rules, architecture, faults, lessons, limitations, workarounds, verification status and current stopping point.
+
+For material changes, update the relevant handbook/manual and capture the event/checkpoint in the structured Supabase project-memory layer. Documentation must be based on current inspected GitHub and Supabase state, not assumed architecture.
