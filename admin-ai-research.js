@@ -140,6 +140,8 @@ function renderCandidateCard(c){
  +'</article>';
 }
 const comparisonMoney=v=>v===null||v===undefined||v===''?'—':'£'+Number(v).toFixed(2);
+const evidenceMoney=(v,currency='')=>{if(v===null||v===undefined||v==='')return '—';const n=Number(v);const text=Number.isFinite(n)?n.toFixed(2):String(v);const code=String(currency||'').trim().toUpperCase();return (!code||code==='GBP')?'£'+text:code+' '+text;};
+const externalEvidenceLink=(url,label='OPEN / VERIFY SOURCE')=>{const raw=String(url??'').trim();if(!raw)return '—';let href=raw;if(!/^https?:\/\//i.test(href))href='https://'+href.replace(/^\/+/, '');try{new URL(href);}catch{return '<span>'+esc(raw)+'</span>';}return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a><br><a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer" class="ai-source-url">'+esc(raw)+'</a>';};
 function effectiveCandidateValue(c,edited,original,fallback='—'){const v=c?.[edited]??c?.[original]??fallback;return v==null||v===''?fallback:v;}
 async function loadComparisonEvidence(productId){
  const key=String(productId||'');
@@ -229,23 +231,36 @@ async function manualReviewAction(id,decision,applyDirect,button){
  if(c.applied_at)throw Error('This finding has already been applied to live evidence.');
  const panel=button?.closest?.('[data-review-id="'+CSS.escape(String(id))+'"]')||document.querySelector('[data-review-id="'+CSS.escape(String(id))+'"]');
  if(!panel)throw Error('Manual review panel not found.');
+ const status=panel.querySelector('.ai-manual-review-status');
+ const setStatus=(text,error=false)=>{if(status){status.textContent=text;status.className='ai-manual-review-status '+(error?'error':'success');}};
  const fieldOutcomes={};panel.querySelectorAll('[data-review-outcome]').forEach(x=>{const value=clean(x.value);if(value)fieldOutcomes[String(x.dataset.reviewOutcome)]=value;});
  const reason=clean(panel.querySelector('[data-review-reason]')?.value||'');
  if(decision==='rejected'&&!reason)throw Error('Please explain why you are denying this finding so Gemma can learn from the review.');
  if(decision==='accepted'&&applyDirect){const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');}
- const originalLabel=button?.textContent||'';if(button){button.disabled=true;button.textContent=decision==='accepted'?'SAVING & APPLYING…':'DENYING…';}
- let applyError=null;
+ const originalLabel=button?.textContent||'';
+ if(button){button.disabled=true;button.textContent=decision==='accepted'?'SAVING DECISION…':'DENYING…';}
+ setStatus(decision==='accepted'?'Saving review decision and moving this evidence out of Requires Attention…':'Saving denial and moving this evidence to Denied…');
  try{
    const {error}=await sb.rpc('record_ai_candidate_manual_review',{p_candidate_id:id,p_decision:decision,p_reason:reason||null,p_reviewed_fields:fieldOutcomes});
    if(error)throw error;
    selectedCandidateIds.delete(String(id));
-   if(decision==='accepted'&&applyDirect){if(button)button.textContent='ADDING TO LIVE EVIDENCE…';const result=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});if(result.error)applyError=result.error;}
-   comparingCandidateId=null;editingId=null;await load();
-   if(applyError)throw Error('Review was saved and moved out of Requires Attention, but the live evidence apply step failed: '+(applyError.message||String(applyError)));
-   if(decision==='accepted'&&applyDirect)msg('Finding accepted, exact review outcomes and any corrections saved for Gemma, and live evidence added for '+pname(c)+'. It has moved out of Requires Attention.');
-   else if(decision==='accepted')msg('Finding accepted and moved to Accepted findings. Exact review outcomes were saved for Gemma.');
-   else msg('Finding denied and moved to Denied findings. The exact review outcomes and reason were recorded for Gemma.');
- }finally{if(button){button.disabled=false;button.textContent=originalLabel;}}
+   c.decision=decision;c.decision_reason=reason||c.decision_reason||null;c.reviewed_at=new Date().toISOString();
+   await load();
+   if(decision==='rejected'){msg('Finding denied and moved to Denied findings. The exact review outcomes and reason were recorded for Gemma.');return;}
+   if(!applyDirect){msg('Finding accepted and moved to Accepted findings. Exact review outcomes were saved for Gemma.');return;}
+   try{
+     if(button)button.textContent='ADDING TO LIVE EVIDENCE…';
+     const {error:applyError}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
+     if(applyError)throw applyError;
+     comparisonEvidenceByProduct.delete(String(c.catalog_product_id||''));
+     await load();
+     msg('Finding accepted, moved out of Requires Attention, and added to live catalogue evidence for '+pname(c)+'.');
+   }catch(applyError){
+     await load().catch(()=>{});
+     msg('The review was saved and moved out of Requires Attention, but adding it to live evidence failed: '+(applyError?.message||String(applyError)),true);
+   }
+ }catch(err){setStatus(err.message||String(err),true);throw err;}
+ finally{if(button&&document.contains(button)){button.disabled=false;button.textContent=originalLabel;}}
 }
 function isAmazonFinding(c){
  const url=clean(c.edited_source_url??c.source_url??'').toLowerCase();
@@ -262,7 +277,7 @@ function groupPendingByProduct(rows){
 }
 function productEvidenceEntryMarkup(c,index,total){
  const title=c.edited_title??c.discovered_title??'Unnamed evidence',price=c.edited_price??c.price??'—',category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified',url=c.edited_source_url??c.source_url??'';
- return '<article class="ai-group-evidence-entry" data-candidate-id="'+esc(c.id)+'"><div class="ai-group-evidence-entry-head"><div><p class="section-kicker">EVIDENCE '+(index+1)+' OF '+total+'</p><h4>'+esc(title)+'</h4></div><div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(c.decision||'pending')+'</span></div></div><div class="ai-group-evidence-meta"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price)+'</span><span><strong>Source</strong>'+esc(c.edited_source_kind??c.source_kind??'—')+'</span><span><strong>Condition</strong>'+esc(c.edited_condition??c.condition??'—')+'</span></div>'+(url?'<p class="ai-group-evidence-link"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a></p>':'')+editorMarkup(c)+manualReviewMarkup(c,true)+'</article>';
+ return '<article class="ai-group-evidence-entry" data-candidate-id="'+esc(c.id)+'"><div class="ai-group-evidence-entry-head"><div><p class="section-kicker">EVIDENCE '+(index+1)+' OF '+total+'</p><h4>'+esc(title)+'</h4></div><div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(c.decision||'pending')+'</span></div></div><div class="ai-group-evidence-meta"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price)+'</span><span><strong>Source</strong>'+esc(c.edited_source_kind??c.source_kind??'—')+'</span><span><strong>Condition</strong>'+esc(c.edited_condition??c.condition??'—')+'</span></div>'+(url?'<p class="ai-group-evidence-link">'+externalEvidenceLink(url,'OPEN / VERIFY EXACT PRODUCT PAGE')+'</p>':'')+editorMarkup(c)+manualReviewMarkup(c,true)+'</article>';
 }
 function catalogueEvidenceStats(rows){
  const all=rows||[];
@@ -293,21 +308,26 @@ function catalogueSnapshotMarkup(p,rows,compact=false){
 }
 function catalogueEvidenceRowMarkup(r){
  const editing=String(editingExistingEvidenceId)===String(r.id);
- const row='<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td><td><button type="button" class="btn btn-secondary ai-existing-evidence-edit" data-id="'+esc(r.id)+'">'+(editing?'EDITING':'EDIT')+'</button></td></tr>';
+ const row='<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+evidenceMoney(r.sell_price,r.price_currency)+'</td><td>'+evidenceMoney(r.buy_price,r.price_currency)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+externalEvidenceLink(r.source_url,'OPEN / VERIFY')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td><td><button type="button" class="btn btn-secondary ai-existing-evidence-edit" data-id="'+esc(r.id)+'">'+(editing?'EDITING':'EDIT')+'</button></td></tr>';
  return row+(editing?existingEvidenceEditorRowMarkup(r):'');
 }
 function existingEvidenceEditorRowMarkup(r){
- const val=v=>esc(v??'');
- const selected=v=>String(r.price_type||'').toLowerCase()===v?' selected':'';
- return '<tr class="ai-existing-evidence-editor-row"><td colspan="12"><section class="ai-existing-evidence-editor" data-existing-evidence-editor="'+esc(r.id)+'" data-product-id="'+esc(r.catalog_product_id)+'"><div><p class="section-kicker">EDIT CURRENT CATALOGUE EVIDENCE</p><h4>Correct this saved evidence without leaving the review</h4><p>Use this for existing catalogue evidence that is already wrong. Save the correction, then continue comparing the new AI findings against the corrected row.</p></div><div class="ai-editor-grid">'
+ const val=v=>esc(v??''),selected=v=>String(r.price_type||'').toLowerCase()===v?' selected':'';
+ const checkedValue=r.checked_at?new Date(r.checked_at).toISOString().slice(0,16):'';
+ return '<tr class="ai-existing-evidence-editor-row"><td colspan="12"><section class="ai-existing-evidence-editor" data-existing-evidence-editor="'+esc(r.id)+'" data-product-id="'+esc(r.catalog_product_id)+'"><div><p class="section-kicker">EDIT CURRENT CATALOGUE EVIDENCE</p><h4>Correct and verify this saved evidence without leaving the review</h4><p>Every objective evidence field shown here can be checked, corrected and saved. Use OPEN / VERIFY to visit the live source first.</p></div><div class="ai-editor-grid">'
    +'<label>Retailer<input class="ai-existing-evidence-field" data-field="retailer" value="'+val(r.retailer)+'"></label>'
    +'<label>Type<select class="ai-existing-evidence-field" data-field="price_type"><option value="new"'+selected('new')+'>NEW</option><option value="new_sale"'+selected('new_sale')+'>NEW SALE</option><option value="used"'+selected('used')+'>USED</option><option value="market"'+selected('market')+'>MARKETPLACE / MARKET</option><option value="refurbished"'+selected('refurbished')+'>REFURBISHED</option><option value="manufacturer_rrp"'+selected('manufacturer_rrp')+'>MANUFACTURER RRP</option><option value="completed_sale"'+selected('completed_sale')+'>COMPLETED SALE</option></select></label>'
    +'<label>Condition<input class="ai-existing-evidence-field" data-field="condition" value="'+val(r.condition)+'"></label>'
    +'<label>Sell price<input class="ai-existing-evidence-field" data-field="sell_price" type="number" min="0" step="0.01" value="'+val(r.sell_price)+'"></label>'
    +'<label>Buy price<input class="ai-existing-evidence-field" data-field="buy_price" type="number" min="0" step="0.01" value="'+val(r.buy_price)+'"></label>'
+   +'<label>Currency<input class="ai-existing-evidence-field" data-field="price_currency" value="'+val(r.price_currency)+'" placeholder="GBP, USD, EUR…"></label>'
+   +'<label>Original selling price<input class="ai-existing-evidence-field" data-field="original_sell_price" type="number" min="0" step="0.01" value="'+val(r.original_sell_price)+'"></label>'
+   +'<label>VAT basis<input class="ai-existing-evidence-field" data-field="sell_price_vat_basis" value="'+val(r.sell_price_vat_basis)+'"></label>'
+   +'<label>VAT rate %<input class="ai-existing-evidence-field" data-field="vat_rate" type="number" min="0" step="0.01" value="'+val(r.vat_rate)+'"></label>'
    +'<label>Availability<input class="ai-existing-evidence-field" data-field="availability_status" value="'+val(r.availability_status)+'"></label>'
    +'<label>Buy method<input class="ai-existing-evidence-field" data-field="buy_method" value="'+val(r.buy_method)+'"></label>'
    +'<label>Evidence region<input class="ai-existing-evidence-field" data-field="evidence_region" value="'+val(r.evidence_region||r.price_region)+'"></label>'
+   +'<label>Checked at<input class="ai-existing-evidence-field" data-field="checked_at" type="datetime-local" value="'+val(checkedValue)+'"></label>'
    +'<label class="ai-editor-wide">Exact source URL<input class="ai-existing-evidence-field" data-field="source_url" type="url" value="'+val(r.source_url)+'"></label>'
    +'<label class="ai-editor-wide">Notes<textarea class="ai-existing-evidence-field" data-field="notes" rows="4">'+val(r.notes)+'</textarea></label>'
  +'</div><div class="ai-editor-actions"><button type="button" class="btn btn-primary ai-existing-evidence-save" data-id="'+esc(r.id)+'">SAVE CATALOGUE EVIDENCE</button><button type="button" class="btn btn-secondary ai-existing-evidence-cancel" data-id="'+esc(r.id)+'">CANCEL</button></div></section></td></tr>';
@@ -697,7 +717,9 @@ async function saveExistingEvidence(id){
  const value=name=>clean(editor.querySelector('[data-field="'+name+'"]')?.value||'');
  const numberOrNull=name=>{const raw=value(name);if(raw==='')return null;const n=Number(raw);if(!Number.isFinite(n)||n<0)throw Error(name.replaceAll('_',' ')+' must be a valid non-negative number.');return n;};
  const url=value('source_url');if(url){try{new URL(url)}catch{throw Error('Please enter a valid exact source URL.');}}
- const payload={retailer:value('retailer')||null,price_type:value('price_type')||null,condition:value('condition')||null,sell_price:numberOrNull('sell_price'),buy_price:numberOrNull('buy_price'),availability_status:value('availability_status')||null,buy_method:value('buy_method')||null,evidence_region:value('evidence_region')||null,price_region:value('evidence_region')||null,source_url:url||null,notes:value('notes')||null,checked_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ const checkedText=value('checked_at');const checkedAt=checkedText?new Date(checkedText):new Date();
+ if(Number.isNaN(checkedAt.getTime()))throw Error('Checked at must be a valid date and time.');
+ const payload={retailer:value('retailer')||null,price_type:value('price_type')||null,condition:value('condition')||null,sell_price:numberOrNull('sell_price'),buy_price:numberOrNull('buy_price'),price_currency:value('price_currency')||null,original_sell_price:numberOrNull('original_sell_price'),sell_price_vat_basis:value('sell_price_vat_basis')||null,vat_rate:numberOrNull('vat_rate'),availability_status:value('availability_status')||null,buy_method:value('buy_method')||null,evidence_region:value('evidence_region')||null,price_region:value('evidence_region')||null,source_url:url||null,notes:value('notes')||null,checked_at:checkedAt.toISOString(),updated_at:new Date().toISOString()};
  const {error}=await sb.from('quote_catalog_retailer_prices').update(payload).eq('id',id);
  if(error)throw error;
  comparisonEvidenceByProduct.delete(productId);
