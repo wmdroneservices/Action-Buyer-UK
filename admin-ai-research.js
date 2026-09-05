@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,selectedCandidateIds=new Set();
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,selectedCandidateIds=new Set(),decisionReasonDraft='';
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -116,6 +116,7 @@ function renderCandidateCard(c){
            +'<h3>'+esc(title)+'</h3>'
            +'<div class="ai-review-details"><span><strong>Price</strong> '+esc(c.currency||'GBP')+' '+esc(price??'—')+'</span><span><strong>Condition</strong> '+esc(condition)+'</span><span><strong>Availability</strong> '+esc(c.availability_status||'—')+'</span><span><strong>Match</strong> '+esc(match)+'</span><span><strong>Package</strong> '+esc(c.package_match||'—')+'</span><span><strong>Variant</strong> '+esc(c.variant_match||'—')+'</span></div>'
            +((c.edited_evidence_notes??c.evidence_notes)?'<p class="ai-review-notes">'+esc(c.edited_evidence_notes??c.evidence_notes)+'</p>':'')
+           +(c.decision_reason?'<p class="ai-review-notes"><strong>Review reason / learning:</strong> '+esc(c.decision_reason)+'</p>':'')
            +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
          +'</div>'
          +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button></div>'
@@ -207,7 +208,7 @@ async function loadAgentStatus(){
 }
 function setResearchScope(scope){
  const select=$('research-evidence-scope');
- const allowed=['all','new_uk','used_uk','overseas'];
+ const allowed=['all','new_uk','used_uk','overseas','amazon_uk'];
  const value=allowed.includes(scope)?scope:'all';
  if(select)select.value=value;
  document.querySelectorAll('.ai-scope-option').forEach(b=>{
@@ -310,7 +311,7 @@ async function runResearch(){
  const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='RESEARCHING…'}
  const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:clean($('research-evidence-scope')?.value||'all')};
  const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
- const evidenceLabel={all:'all evidence types',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence'}[body.evidence_scope]||'all evidence types';
+ const evidenceLabel={all:'all evidence types',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence',amazon_uk:'Amazon UK discovery only'}[body.evidence_scope]||'all evidence types';
  msg('AI research started for '+scope+' · '+evidenceLabel+'. Findings will go to manual review only.');
  try{
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
@@ -375,7 +376,20 @@ async function saveEdit(id){
  editingId=null;
  await load();
 }
-async function decide(decision){rememberSelection();const ids=checked();if(!ids.length)throw Error('Select at least one evidence entry first.');const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:'Manual review in AI Research Centre',reviewed_at:new Date().toISOString()}).in('id',ids);if(error)throw error;ids.forEach(id=>selectedCandidateIds.delete(String(id)));msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+'.');await load()}
+async function decide(decision){
+ rememberSelection();
+ const ids=checked();
+ if(!ids.length)throw Error('Select at least one evidence entry first.');
+ const label=decision==='accepted'?'accepting':'denying';
+ const reason=prompt('Reason for '+label+' '+ids.length+' selected finding(s). This is saved as learning for Gemma. Examples: missing price, missing/broken link, wrong variant, or accepted after correcting price/link.','');
+ if(reason===null)return;
+ const cleanReason=String(reason||'').trim()||'Manual review decision — no additional reason supplied.';
+ const {error}=await sb.from('quote_catalog_ai_candidates').update({decision,decision_reason:cleanReason,reviewed_at:new Date().toISOString()}).in('id',ids);
+ if(error)throw error;
+ ids.forEach(id=>selectedCandidateIds.delete(String(id)));
+ msg(ids.length+' evidence entr'+(ids.length===1?'y':'ies')+' marked '+decision+' and the review reason was saved for research learning.');
+ await load();
+}
 async function apply(){
  rememberSelection();
  // "APPLY ACCEPTED TO LIVE EVIDENCE" should do exactly that. If specific accepted
