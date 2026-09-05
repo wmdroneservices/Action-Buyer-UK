@@ -60,6 +60,19 @@ It is responsible for areas including:
 - source registry;
 - workflow RPC/functions.
 
+## AI Research Queue Control
+
+The AI queue is intentionally **not a permanent backlog**.
+
+Operational rule:
+
+- a new manual research run clears any older waiting jobs before adding the newly selected products;
+- **CLEAR ALL QUEUED RESEARCH** removes all waiting jobs without interrupting the product currently being processed;
+- stopping Continuous Catalogue Mode disables the continuous loop and clears waiting jobs, so old test products cannot continue into a later run;
+- a product already physically being researched may finish safely unless the Research PC itself is stopped from the Remote Controls panel.
+
+This prevents a testing sequence such as “run, stop, change filters, run again” from leaving older products hidden in the queue and processing later.
+
 ## The research brain
 The Research PC runs a local Node.js worker and Ollama/Gemma.
 
