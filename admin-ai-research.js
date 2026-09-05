@@ -407,20 +407,16 @@ function renderSection(title,description,rows,state,open){
 function render(){
  const body=$('ai-candidates');if(!body)return;
  if(!candidates.length){body.innerHTML='<div class="ai-empty-state">No proposed AI findings yet.</div>';return}
- const pending=candidates.filter(c=>!c.applied_at&&(c.decision||'pending')==='pending');
- const accepted=candidates.filter(c=>!c.applied_at&&c.decision==='accepted');
  const rejected=candidates.filter(c=>c.decision==='rejected');
  const applied=candidates.filter(c=>c.applied_at);
- const groups=groupPendingByProduct(pending);
- const amazonGroups=groups.filter(g=>g.items.some(isAmazonFinding));
- const otherGroups=groups.filter(g=>!g.items.some(isAmazonFinding));
+ const acceptedUnapplied=candidates.filter(c=>!c.applied_at&&c.decision==='accepted');
  let html='';
- if(amazonGroups.length)html+=renderGroupedPendingSection('Amazon findings — grouped by catalogue product','Open one product and every new evidence item linked to it appears together above the current catalogue evidence. No separate comparison or evidence page is required.',amazonGroups,'amazon');
- if(otherGroups.length)html+=renderGroupedPendingSection('Review, edit and decide — grouped by catalogue product','Each matched catalogue product opens as one complete review page: all new editable evidence first, then the current catalogue evidence underneath.',otherGroups,'pending');
- if(!pending.length)html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
- html+=renderSection('Accepted findings','Accepted evidence is retained separately until applied to the verified live comparison bucket.',accepted,'accepted',false);
+ // Active pending evidence is reviewed in the Automatic Quote Catalogue. Keep this
+ // page as the completed-decision audit only, as agreed.
+ if(acceptedUnapplied.length)html+=renderSection('Live application issues','These findings were accepted but are not yet applied to live evidence. They are retained here so an application failure cannot disappear silently.',acceptedUnapplied,'accepted',false);
  html+=renderSection('Rejected findings','Rejected evidence is retained for audit and Gemma learning.',rejected,'rejected',false);
  if(applied.length)html+=renderSection('Applied to live evidence','These accepted findings have already been applied to the live evidence catalogue.',applied,'applied',false);
+ if(!html)html='<div class="ai-empty-state">No rejected findings or applied live evidence yet.</div>';
  body.innerHTML=html;
 }
 function renderSources(){
