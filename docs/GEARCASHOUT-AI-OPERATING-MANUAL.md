@@ -977,11 +977,7 @@ Each SKU is submitted separately. The worker does not ask Gemma to decide how ma
 
 ### Duplicate same-price units
 
-quote_catalog_retailer_prices deduplicates on product, retailer, condition, price and source URL.
-
-MPB can have two different SKUs with identical price and condition. To preserve both observations, the source identity is stored as:
-
-canonical MPB model URL#mpb-sku-SKU_NUMBER
+MPB exact pages are represented as one reference-only market range. The canonical MPB model URL is the verification identity, with minimum and maximum observed prices, conditions represented and unit count stored alongside it.
 
 The canonical URL is also retained in the evidence notes.
 
