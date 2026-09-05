@@ -1,8 +1,9 @@
-# GearCashOut System Handbook and Developer Memory
+# GearCashOut Human / Developer System Handbook
 
 **Status:** Living document  
-**Purpose:** Human-readable operating and development reference for GearCashOut / Action-Buyer UK.  
-**Audience:** Gary, future developers, administrators and AI assistants working on the system.
+**Purpose:** Human-readable operating, developer and technical reference for GearCashOut / Action-Buyer UK.  
+**Audience:** Gary, staff, administrators and future developers.  
+**AI continuity companion:** docs/GEARCASHOUT-AI-OPERATING-MANUAL.md
 
 > This document is intentionally a living system memory. It should be updated whenever a material workflow, database rule, integration or user-facing process changes. It is not a substitute for the source code or Supabase migrations; where they differ, the deployed code/database must be checked and this handbook corrected.
 
