@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,comparingCandidateId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,comparingCandidateId=null,activeProductReviewId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -162,7 +162,7 @@ async function loadComparisonEvidence(productId){
 }
 function manualReviewMarkup(c,applyDirect=false){
  const applyAttr=applyDirect?'true':'false';
- const acceptLabel=applyDirect?'ACCEPT & ADD TO LIVE EVIDENCE':'ACCEPT WITH REVIEW NOTES';
+ const acceptLabel=applyDirect?'SUBMIT TO CATALOGUE EVIDENCE':'ACCEPT WITH REVIEW NOTES';
  return '<section class="ai-manual-review" data-review-id="'+esc(c.id)+'" data-review-apply="'+applyAttr+'">'
    +'<div class="ai-manual-review-heading"><div><p class="section-kicker">MANUAL REVIEW FEEDBACK FOR GEMMA</p><h4>Tell the AI what you checked and why you changed or rejected anything</h4><p>Tick the parts you reviewed. If you corrected evidence, explain why. A manual denial always requires a reason. Bulk decisions remain reason-free.</p></div></div>'
    +'<div class="ai-review-checks">'
@@ -262,6 +262,30 @@ function isAmazonFinding(c){
  try{const host=new URL(url).hostname.toLowerCase();if(host==='amazon.co.uk'||host.endsWith('.amazon.co.uk'))return true;}catch{}
  return /(^|[^a-z])amazon(?:\.co\.uk)?([^a-z]|$)/.test(url);
 }
+function groupPendingByProduct(rows){
+ const groups=new Map();
+ rows.forEach(c=>{const key=c.catalog_product_id?String(c.catalog_product_id):'candidate:'+String(c.id);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(c);});
+ return [...groups.entries()].map(([key,items])=>({key,productId:items[0]?.catalog_product_id?String(items[0].catalog_product_id):null,items})).sort((a,b)=>new Date(b.items[0]?.created_at||0)-new Date(a.items[0]?.created_at||0));
+}
+function productEvidenceEntryMarkup(c,index,total){
+ const title=c.edited_title??c.discovered_title??'Unnamed evidence',price=c.edited_price??c.price??'—',category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified',url=c.edited_source_url??c.source_url??'';
+ return '<article class="ai-group-evidence-entry" data-candidate-id="'+esc(c.id)+'"><div class="ai-group-evidence-entry-head"><div><p class="section-kicker">EVIDENCE '+(index+1)+' OF '+total+'</p><h4>'+esc(title)+'</h4></div><div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(c.decision||'pending')+'</span></div></div><div class="ai-group-evidence-meta"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price)+'</span><span><strong>Source</strong>'+esc(c.edited_source_kind??c.source_kind??'—')+'</span><span><strong>Condition</strong>'+esc(c.edited_condition??c.condition??'—')+'</span></div>'+(url?'<p class="ai-group-evidence-link"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a></p>':'')+editorMarkup(c)+manualReviewMarkup(c,true)+'</article>';
+}
+function productReviewMarkup(group){
+ const productId=group.productId,p=group.items.map(productFor).find(Boolean)||null,productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable',productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'',state=productId?comparisonEvidenceByProduct.get(String(productId)):null,loading=!!productId&&(!state||state.status==='loading'),failed=state?.status==='error',rows=state?.rows||[];
+ const evidenceHtml=!productId?'<div class="ai-comparison-empty">These findings are not linked to a catalogue product yet.</div>':loading?'<div class="ai-comparison-loading">Loading current catalogue evidence…</div>':failed?'<div class="ai-comparison-error">Current catalogue evidence could not be loaded: '+esc(state.error||'Unknown error')+'</div>':rows.length?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Price</th><th>Region</th><th>Availability</th><th>Exact source</th><th>Checked</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price??r.buy_price)+'</td><td>'+esc(r.evidence_region||'—')+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a>':'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>':'<div class="ai-comparison-empty">No current catalogue evidence is recorded for this product.</div>';
+ const key=productId||group.key;
+ return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h3>'+esc(productTitle)+'</h3><p>This is the evidence already attached to the matched catalogue product.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section></div></details></article>';
+}
+async function openProductReview(productId){
+ const key=String(productId||'');activeProductReviewId=key;render();if(!productId)return;
+ try{await loadComparisonEvidence(productId);}catch(e){msg('The product review opened, but current catalogue evidence could not be loaded: '+(e.message||String(e)),true);}render();
+}
+function renderGroupedPendingSection(title,description,groups,state){
+ if(!groups.length)return '';
+ const keepsOpen=groups.some(g=>String(activeProductReviewId)===String(g.productId||g.key));
+ return '<details class="ai-decision-section ai-decision-'+esc(state)+'"'+(keepsOpen?' open':'')+'><summary><div><p class="section-kicker">'+esc(state.toUpperCase())+' PRODUCT REVIEWS</p><h2>'+esc(title)+' <span class="ai-decision-count">'+groups.length+'</span></h2><p>'+esc(description)+'</p></div><span class="ai-decision-toggle">VIEW</span></summary><div class="ai-decision-section-content">'+groups.map(productReviewMarkup).join('')+'</div></details>';
+}
 function renderSection(title,description,rows,state,open){
  if(!rows.length)return '';
  // render() rebuilds the queue after Compare/Edit actions. Keep the containing
@@ -281,20 +305,15 @@ function render(){
  const accepted=candidates.filter(c=>!c.applied_at&&c.decision==='accepted');
  const rejected=candidates.filter(c=>c.decision==='rejected');
  const applied=candidates.filter(c=>c.applied_at);
- const amazonPending=pending.filter(isAmazonFinding);
- const otherPending=pending.filter(c=>!isAmazonFinding(c));
+ const groups=groupPendingByProduct(pending);
+ const amazonGroups=groups.filter(g=>g.items.some(isAmazonFinding));
+ const otherGroups=groups.filter(g=>!g.items.some(isAmazonFinding));
  let html='';
- if(amazonPending.length){
-   html+=renderSection('Amazon findings — review, edit and decide','Amazon UK findings are kept in their own review section. Open this section to review, edit, compare, accept or reject the Amazon evidence.',amazonPending,'amazon',false);
- }
- if(otherPending.length){
-   html+=renderSection('Review, edit and decide','Open this section when you are ready to work through the remaining findings. It stays collapsed until needed so a large queue does not create a long page.',otherPending,'pending',false);
- }
- if(!pending.length){
-   html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
- }
- html+=renderSection('Accepted findings','Accepted evidence is kept separate here until you apply it to the verified NEW, USED or overseas comparison bucket.',accepted,'accepted',false);
- html+=renderSection('Rejected findings','Rejected evidence is retained separately for audit and can still be opened and reviewed if needed.',rejected,'rejected',false);
+ if(amazonGroups.length)html+=renderGroupedPendingSection('Amazon findings — grouped by catalogue product','Open one product and every new evidence item linked to it appears together above the current catalogue evidence. No separate comparison or evidence page is required.',amazonGroups,'amazon');
+ if(otherGroups.length)html+=renderGroupedPendingSection('Review, edit and decide — grouped by catalogue product','Each matched catalogue product opens as one complete review page: all new editable evidence first, then the current catalogue evidence underneath.',otherGroups,'pending');
+ if(!pending.length)html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
+ html+=renderSection('Accepted findings','Accepted evidence is retained separately until applied to the verified live comparison bucket.',accepted,'accepted',false);
+ html+=renderSection('Rejected findings','Rejected evidence is retained for audit and Gemma learning.',rejected,'rejected',false);
  if(applied.length)html+=renderSection('Applied to live evidence','These accepted findings have already been applied to the live evidence catalogue.',applied,'applied',false);
  body.innerHTML=html;
 }
@@ -647,6 +666,7 @@ document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventL
 document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(b=>b.addEventListener('click',()=>{const value=b.dataset.sourceFilter==='amazon_uk'?'amazon_uk':'all';selectedSourceFilter=value;const select=$('research-source-filter');if(select)select.value=value;document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=(x.dataset.sourceFilter||'all')===value;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});}));
 $('research-source-filter')?.addEventListener('change',e=>{selectedSourceFilter=e.target.value==='amazon_uk'?'amazon_uk':'all';document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=(x.dataset.sourceFilter||'all')===selectedSourceFilter;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});});
 selectedSourceFilter=clean($('research-source-filter')?.value||'all')==='amazon_uk'?'amazon_uk':'all';
+document.addEventListener('toggle',e=>{const d=e.target.closest?.('.ai-product-review-details');if(d&&d.open)openProductReview(d.dataset.productReviewId).catch(x=>msg(x.message||String(x),true));},true);
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
 setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const compare=e.target.closest('.ai-compare-catalogue');if(compare){openComparison(compare.dataset.id).catch(x=>msg(x.message||String(x),true));return}const closeCompare=e.target.closest('.ai-compare-close');if(closeCompare){closeComparison(closeCompare.dataset.id);return}const manualAccept=e.target.closest('.ai-manual-accept');if(manualAccept){manualReviewAction(manualAccept.dataset.id,'accepted',manualAccept.dataset.apply==='true',manualAccept).catch(x=>msg(x.message||String(x),true));return}const manualDeny=e.target.closest('.ai-manual-deny');if(manualDeny){manualReviewAction(manualDeny.dataset.id,'rejected',false,manualDeny).catch(x=>msg(x.message||String(x),true));return}const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
   try{
