@@ -1661,7 +1661,9 @@ async function main(){
       const did=await processOne();
       if(!did)await sleep(cfg.pollSeconds*1000);
     }catch(e){
-      await heartbeat('error',e.message||String(e),{}).catch(()=>{});
+      const message=e?.message||String(e);
+      log('Worker loop error:',message);
+      await heartbeat('error',message,{}).catch(()=>{});
       await sleep(cfg.pollSeconds*1000);
       await heartbeat('online',null,{}).catch(()=>{});
     }
