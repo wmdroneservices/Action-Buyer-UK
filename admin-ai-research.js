@@ -298,6 +298,32 @@ function catalogueSnapshotMarkup(p,rows,compact=false){
      +'<span><strong>'+esc(stats.total)+'</strong>Total current evidence records</span>'
    +'</div></div></div>';
 }
+function catalogueEvidenceRowMarkup(r){
+ return '<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>';
+}
+function catalogueEvidenceBucketMarkup(title,description,rows,affectsOnline){
+ return '<section class="ai-catalogue-evidence-bucket"><div class="ai-catalogue-evidence-bucket-head"><div><h4>'+esc(title)+'</h4><p>'+esc(description)+'</p></div><span class="ai-badge'+(affectsOnline?'':' ai-badge-muted')+'">'+(affectsOnline?'AFFECTS ONLINE COMPARISON':'REFERENCE ONLY')+'</span></div>'
+   +(rows.length
+     ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table ai-catalogue-evidence-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Sell price</th><th>Buy price</th><th>Availability</th><th>Buy method</th><th>Region</th><th>Exact source</th><th>Notes</th><th>Checked</th></tr></thead><tbody>'+rows.map(catalogueEvidenceRowMarkup).join('')+'</tbody></table></div>'
+     :'<div class="ai-comparison-empty">No evidence is recorded in this section.</div>')
+ +'</section>';
+}
+function catalogueEvidenceBreakdownMarkup(rows){
+ const all=rows||[];
+ const region=r=>String(r.evidence_region||r.price_region||'').trim().toUpperCase();
+ const type=r=>String(r.price_type||'').trim().toLowerCase();
+ const condition=r=>String(r.condition||'').trim().toLowerCase();
+ const isUk=r=>region(r)==='UK'||(!region(r)&&String(r.price_currency||'').trim().toUpperCase()==='GBP');
+ const isNew=r=>['new','new_sale'].includes(type(r))||/^new\b/.test(condition(r));
+ const ukNew=all.filter(r=>isUk(r)&&isNew(r));
+ const ukOther=all.filter(r=>isUk(r)&&!isNew(r));
+ const overseas=all.filter(r=>!isUk(r));
+ return '<div class="ai-catalogue-evidence-breakdown">'
+   +catalogueEvidenceBucketMarkup('UK — NEW PRICING EVIDENCE','Only UK new / new-sale evidence is shown here. This is the live new-market comparison context.',ukNew,true)
+   +catalogueEvidenceBucketMarkup('UK — USED / OTHER EVIDENCE','UK used, marketplace and other reference evidence retained for comparison.',ukOther,false)
+   +catalogueEvidenceBucketMarkup('OVERSEAS COMPARISON (NON-GBP)','Overseas evidence remains visible for comparison and duplicate checking but is kept separate from UK online pricing.',overseas,false)
+ +'</div>';
+}
 function productReviewMarkup(group){
  const productId=group.productId,p=group.items.map(productFor).find(Boolean)||null,productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable',productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'',state=productId?comparisonEvidenceByProduct.get(String(productId)):null,loading=!!productId&&(!state||state.status==='loading'),failed=state?.status==='error',rows=state?.rows||[];
  const evidenceHtml=!productId
@@ -308,10 +334,10 @@ function productReviewMarkup(group){
        ?'<div class="ai-comparison-error">Current catalogue evidence could not be loaded: '+esc(state.error||'Unknown error')+'</div>'
        :'<div class="ai-catalogue-current-summary">'+catalogueSnapshotMarkup(p,rows,false)+'</div>'
          +(rows.length
-           ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table ai-catalogue-evidence-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Sell price</th><th>Buy price</th><th>Availability</th><th>Buy method</th><th>Region</th><th>Exact source</th><th>Notes</th><th>Checked</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'
+           ?catalogueEvidenceBreakdownMarkup(rows)
            :'<div class="ai-comparison-empty">No current catalogue evidence is recorded for this product.</div>');
  const key=productId||group.key;
- return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div class="ai-product-review-summary"><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div>'+catalogueSnapshotMarkup(p,rows,true)+'</div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h3>'+esc(productTitle)+'</h3><p>This mirrors the relevant Quote Catalogue context: automatic buying prices, online comparison summary and the full current evidence list.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section></div></details></article>';
+ return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div class="ai-product-review-summary"><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div>'+catalogueSnapshotMarkup(p,rows,true)+'</div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE — FULL COMPARISON</p><h3>'+esc(productTitle)+'</h3><p>Everything currently recorded for this product is shown here first, split exactly into UK NEW, UK USED / OTHER and OVERSEAS evidence so duplicate entries can be checked before any new finding is accepted or denied.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section></div></details></article>';
 }
 async function openProductReview(productId){
  const key=String(productId||'');activeProductReviewId=key;render();if(!productId)return;
