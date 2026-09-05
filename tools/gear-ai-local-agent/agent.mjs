@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.7',
+    version:'1.4.8',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -874,11 +874,176 @@ async function learnSharedSource(sourceUrl, sourceName, sourceKind='other', scop
   if(error)log('Shared source learning warning:',error.message);
 }
 
-async function getRunEvidenceScope(runId){
-  const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
+const deepSourceRules={
+  'mpb.com':{
+    exactPath:/^\/en-uk\/product\//i,
+    searchAttempts:(root,q)=>[
+      root+'/en-uk/search?q='+encodeURIComponent(q),
+      root+'/en-uk/search?query='+encodeURIComponent(q),
+      root+'/en-uk?search='+encodeURIComponent(q)
+    ],
+    maxDepth:3,maxPages:70
+  },
+  'dji.com':{
+    exactPath:/\/(product|products)\//i,
+    searchAttempts:(root,q)=>[
+      root+'/search?q='+encodeURIComponent(q),
+      root+'/search?keyword='+encodeURIComponent(q)
+    ],
+    maxDepth:3,maxPages:70
+  }
+};
+
+function deepSourceRuleFor(url){
+  const host=hostOf(url);
+  return deepSourceRules[host]||{exactPath:null,searchAttempts:(root,q)=>[
+    root+'/search?q='+encodeURIComponent(q),
+    root+'/search?query='+encodeURIComponent(q),
+    root+'/?s='+encodeURIComponent(q)
+  ],maxDepth:3,maxPages:60};
+}
+
+function extractAllSameDomainLinks(html,baseUrl,domain){
+  const out=[],seen=new Set();
+  const re=/<a\b[^>]*href\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while((m=re.exec(String(html||'')))){
+    const href=String(m[2]||'').trim();
+    if(!href||href.startsWith('#')||/^(mailto:|tel:|javascript:)/i.test(href))continue;
+    let u;
+    try{u=new URL(href,baseUrl)}catch{continue}
+    const host=hostOf(u.href);
+    if(host!==domain)continue;
+    u.hash='';
+    const key=u.href;
+    if(seen.has(key))continue;
+    seen.add(key);
+    const label=String(m[3]||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    out.push({url:key,title:label});
+  }
+  return out;
+}
+
+function deepLinkScore(product,link,rule,depth){
+  const hay=normaliseIdentityText([link?.title,link?.url].filter(Boolean).join(' '));
+  const model=normaliseIdentityText(product?.model);
+  const manufacturer=normaliseIdentityText(product?.manufacturer);
+  let score=0;
+  if(model&&hay.includes(model))score+=100;
+  if(manufacturer&&hay.includes(manufacturer))score+=25;
+  if(rule?.exactPath&&rule.exactPath.test(new URL(link.url).pathname))score+=60;
+  if(/\b(category|categories|shop|products|cameras|drones|lenses|photo|video|used|new|brand|collection|page)\b/.test(hay))score+=10;
+  score-=depth*2;
+  return score;
+}
+
+async function collectDeepSourceEvidence(product,sources,config,context={}){
+  const landing=String(config?.deep_source_url||'').trim();
+  if(!landing)throw new Error('Deep Source Audit has no landing page.');
+  const domain=hostOf(landing);
+  if(!domain)throw new Error('Deep Source landing page URL is invalid.');
+  const rule=deepSourceRuleFor(landing);
+  const names=productSearchNames(product);
+  const query=names[0]||productName(product);
+  const terms=productTerms(product);
+  const queue=[{url:landing,depth:0,from:'landing'}];
+  const seen=new Set(),candidates=new Map(),discovered=[];
+  const maxDepth=Math.max(1,Number(rule.maxDepth||3));
+  const maxPages=Math.max(20,Number(rule.maxPages||60));
+
+  const addCandidate=(x,from)=>{
+    if(!x?.url||hostOf(x.url)!==domain)return;
+    const key=String(x.url).split('#')[0];
+    if(!candidates.has(key))candidates.set(key,{...x,url:key,host:domain,query:'deep:'+from,scope_hint:'deep_source'});
+  };
+
+  // First use the site's own search routes when known. The landing page remains
+  // the root of the audit, but internal search is a fast path to deep exact pages.
+  for(const u of rule.searchAttempts('https://'+domain,query)){
+    try{
+      const {url:finalUrl,html}=await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
+      for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
+        const score=deepLinkScore(product,link,rule,1);
+        if(score>=60)addCandidate(link,'internal-search');
+        else if(score>=8)queue.push({url:link.url,depth:1,from:'internal-search'});
+      }
+    }catch(e){log('Deep Source internal search unavailable:',u,e.message||String(e))}
+  }
+
+  // Breadth-first crawl from the supplied landing page through category and
+  // subcategory links. Category/landing pages are discovery-only and never
+  // become final evidence.
+  while(queue.length&&seen.size<maxPages){
+    queue.sort((a,b)=>deepLinkScore(product,{url:a.url,title:a.title||''},rule,a.depth)-deepLinkScore(product,{url:b.url,title:b.title||''},rule,b.depth));
+    const node=queue.pop();
+    const key=String(node.url).split('#')[0];
+    if(seen.has(key)||hostOf(key)!==domain)continue;
+    seen.add(key);
+    try{
+      const {url:finalUrl,html}=await fetchText(key,Math.min(cfg.requestTimeoutMs,7000));
+      const links=extractAllSameDomainLinks(html,finalUrl,domain);
+      for(const link of links){
+        let score=0;
+        try{score=deepLinkScore(product,link,rule,node.depth+1)}catch{continue}
+        const path=new URL(link.url).pathname;
+        const exact=rule.exactPath?rule.exactPath.test(path):false;
+        if(exact&&score>=60){addCandidate(link,'deep-crawl');continue;}
+        if(node.depth<maxDepth&&score>=8){
+          queue.push({url:link.url,title:link.title,depth:node.depth+1,from:'deep-crawl'});
+        }
+      }
+    }catch(e){log('Deep Source crawl page unavailable:',key,e.message||String(e))}
+  }
+
+  // Final validation fetches exact candidate pages only. Generic landing,
+  // category and subcategory pages are explicitly excluded from final evidence.
+  const pages=[];
+  for(const r of [...candidates.values()].sort((a,b)=>deepLinkScore(product,b,rule,1)-deepLinkScore(product,a,rule,1)).slice(0,cfg.maxResults)){
+    try{
+      const {url,html}=await fetchText(r.url);
+      const meta=extractStructuredPageData(html,url);
+      const finalUrl=meta.url||url;
+      const finalPath=new URL(finalUrl).pathname;
+      if(rule.exactPath&&!rule.exactPath.test(finalPath))continue;
+      const text=stripHtml(html).slice(0,18000);
+      const title=meta.title||r.title||'';
+      if(looksGenericTitle(title)||pageLooksLikeError(text,title))continue;
+      if(!hasExactModelEvidence(product,title,text,finalUrl))continue;
+      discovered.push({...r,url:finalUrl,title});
+      const source=[...sources].find(x=>String(x.domain||'').replace(/^www\./,'').toLowerCase()===domain);
+      // MPB exact model pages can legitimately contain multiple inventory units
+      // even when a single structured price is absent.
+      if(!isMpbUkProductPage(finalUrl)&&String(source?.source_kind||'').toLowerCase()!=='manufacturer'&&meta.price===null)continue;
+      pages.push({...r,url:finalUrl,title,text,
+        discovered_price:meta.price,
+        discovered_currency:meta.currency||null,
+        discovered_availability:meta.availability||null,
+        structured_product:meta.product===true,
+        deep_source:true
+      });
+    }catch(e){log('Deep Source exact page unavailable:',r.url,e.message||String(e))}
+  }
+
+  await recordRawDiscoveries({...context,evidenceScope:'deep_source'},[...candidates.values()]);
+  log('Deep Source Audit',domain,'crawled',seen.size,'landing/category/subcategory page(s) and found',pages.length,'exact product page(s) for',productName(product));
+  return pages;
+}
+
+async function getRunResearchConfig(runId){
+  const {data,error}=await sb.from('quote_catalog_ai_research_runs')
+    .select('evidence_scope,deep_source_url,deep_source_domain')
+    .eq('id',runId).single();
   if(error)throw error;
   const scope=String(data?.evidence_scope||'all').trim().toLowerCase();
-  return ['all','new_uk','used_uk','overseas','amazon_uk'].includes(scope)?scope:'all';
+  return {
+    evidence_scope:['all','new_uk','used_uk','overseas','amazon_uk','deep_source'].includes(scope)?scope:'all',
+    deep_source_url:data?.deep_source_url||null,
+    deep_source_domain:data?.deep_source_domain||null
+  };
+}
+
+async function getRunEvidenceScope(runId){
+  return (await getRunResearchConfig(runId)).evidence_scope;
 }
 
 async function recordRawDiscoveries(context={},discoveries=[]){
@@ -1463,8 +1628,9 @@ async function processOne(){
     ]);
     if(pErr)throw pErr;if(sErr)throw sErr;
 
-    const evidenceScope=await getRunEvidenceScope(item.run_id);
-    log('Research evidence scope:',evidenceScope);
+    const runConfig=await getRunResearchConfig(item.run_id);
+    const evidenceScope=runConfig.evidence_scope;
+    log('Research evidence scope:',evidenceScope,runConfig.deep_source_url?('· Deep Source '+runConfig.deep_source_url):'');
 
     // Dynamic source loading: project memory is primary. The legacy AI-source
     // table remains a compatibility fallback while the page backend is migrated.
@@ -1483,12 +1649,19 @@ async function processOne(){
     const learning=await getActiveLearningForProduct(product,evidenceScope);
     log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry and',learning.length,'active learning rule(s).');
 
-    const pages=await collectEvidence(product,sources,evidenceScope,{
-      runId:item.run_id,
-      productId:item.catalog_product_id,
-      queueId:item.queue_id,
-      evidenceScope
-    });
+    const pages=evidenceScope==='deep_source'
+      ?await collectDeepSourceEvidence(product,sources,runConfig,{
+          runId:item.run_id,
+          productId:item.catalog_product_id,
+          queueId:item.queue_id,
+          evidenceScope
+        })
+      :await collectEvidence(product,sources,evidenceScope,{
+          runId:item.run_id,
+          productId:item.catalog_product_id,
+          queueId:item.queue_id,
+          evidenceScope
+        });
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
     // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
