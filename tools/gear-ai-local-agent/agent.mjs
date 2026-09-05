@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.9',
+    version:'1.5.0',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -947,6 +947,53 @@ function deepLinkScore(product,link,rule,depth){
   return score;
 }
 
+let mpbBrowserFallbackWarned=false;
+function mpbBrowserExecutableCandidates(){
+  const envPath=String(process.env.MPB_BROWSER_PATH||'').trim();
+  return [
+    envPath,
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+  ].filter(Boolean);
+}
+async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
+  try{return await fetchText(url,timeoutMs)}
+  catch(firstError){
+    if(!/HTTP 403\b/.test(String(firstError?.message||firstError)))throw firstError;
+    let chromium;
+    try{{chromium}=await import('playwright-core')}
+    catch(e){
+      throw new Error('HTTP 403 and Playwright browser fallback is not installed. Run npm install before retrying. ('+(e.message||String(e))+')');
+    }
+    const executablePath=mpbBrowserExecutableCandidates().find(p=>fs.existsSync(p));
+    if(!executablePath)throw new Error('HTTP 403 and no local Chrome/Edge executable was found for MPB browser fallback.');
+    let browser;
+    try{
+      browser=await chromium.launch({
+        executablePath,
+        headless:true,
+        args:['--disable-blink-features=AutomationControlled']
+      });
+      const context=await browser.newContext({
+        locale:'en-GB',
+        userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+        extraHTTPHeaders:{'Accept-Language':'en-GB,en;q=0.9'}
+      });
+      const page=await context.newPage();
+      await page.goto(url,{waitUntil:'domcontentloaded',timeout:timeoutMs});
+      await page.waitForTimeout(Math.min(2500,Math.max(500,timeoutMs/4)));
+      const finalUrl=page.url();
+      const html=await page.content();
+      await context.close();
+      return {url:finalUrl,html};
+    }finally{
+      if(browser)await browser.close().catch(()=>{});
+    }
+  }
+}
+
 async function collectDeepSourceEvidence(product,sources,config,context={}){
   const landing=String(config?.deep_source_url||'').trim();
   if(!landing)throw new Error('Deep Source Audit has no landing page.');
@@ -1032,7 +1079,9 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   const pages=[];
   for(const r of [...candidates.values()].sort((a,b)=>deepLinkScore(product,b,rule,1)-deepLinkScore(product,a,rule,1)).slice(0,cfg.maxResults)){
     try{
-      const {url,html}=await fetchText(r.url);
+      const {url,html}=domain==='mpb.com'
+        ?await fetchMpbExactPage(r.url)
+        :await fetchText(r.url);
       const meta=extractStructuredPageData(html,url);
       const finalUrl=meta.url||url;
       const finalPath=new URL(finalUrl).pathname;
