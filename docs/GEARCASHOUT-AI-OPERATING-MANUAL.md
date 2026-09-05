@@ -788,3 +788,52 @@ The reviewer can correct saved evidence without leaving the AI Research Centre, 
 Saving updates the existing `quote_catalog_retailer_prices` row, refreshes the comparison cache, and redraws the grouped review so the new AI evidence is immediately compared against the corrected catalogue evidence.
 
 No new evidence row is created by this correction workflow, and no automatic buying-price logic is changed.
+
+
+---
+
+## AI Evidence Review — Verify Sources, Edit All Objective Evidence and Immediate Decision Movement
+
+Current operating rule:
+
+1. Open the grouped product review.
+2. Review **CURRENT CATALOGUE EVIDENCE** first.
+3. Use **OPEN / VERIFY** on any saved source row to visit the live website.
+4. Use **EDIT** on the row to correct objective saved information without leaving the review.
+5. Compare all new AI findings underneath.
+6. Record right/wrong/adjusted outcomes and a reason where required.
+7. Submit or deny.
+
+### Existing evidence editor
+
+The grouped review supports direct correction of:
+
+- retailer;
+- evidence type;
+- condition;
+- sell price;
+- buy price;
+- currency;
+- original selling price;
+- VAT basis and VAT rate;
+- availability;
+- buy method;
+- evidence region;
+- exact source URL;
+- checked timestamp;
+- notes.
+
+### Decision behaviour
+
+A manual decision is treated as complete as soon as `record_ai_candidate_manual_review(...)` succeeds.
+
+- **DENY WITH REASON** immediately moves the finding out of Requires Attention into Denied.
+- **SUBMIT TO CATALOGUE EVIDENCE** immediately moves the finding out of Requires Attention into Accepted, then runs the existing live application step.
+- If `apply_accepted_ai_candidate(...)` fails, the review decision is retained and the UI explicitly reports the apply failure.
+
+The page now shows a visible inline processing/result status during manual actions.
+
+### Currency rule
+
+Existing overseas/non-GBP evidence must retain and display its stored currency. Do not present non-GBP evidence as a GBP price merely because it is displayed inside the UK staff review interface.
+
