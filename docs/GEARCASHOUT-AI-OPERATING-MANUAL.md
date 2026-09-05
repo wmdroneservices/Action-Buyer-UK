@@ -837,3 +837,35 @@ The page now shows a visible inline processing/result status during manual actio
 
 Existing overseas/non-GBP evidence must retain and display its stored currency. Do not present non-GBP evidence as a GBP price merely because it is displayed inside the UK staff review interface.
 
+
+
+---
+
+# 18. Current AI Review UI Regression — Collapsible Product Panels
+
+## Fault observed during live browser testing
+
+After the latest evidence verification/editing changes, opened grouped product reviews could become effectively stuck open. Opening several reviews made the page unnecessarily long because the reviewer could not reliably collapse a panel again.
+
+## First failure identified
+
+The grouped review uses native `<details>` panels. The review-opening path was forcing a full `render()` immediately while the native panel was changing state, then rendering again after the asynchronous catalogue-evidence load. That created a race between the browser's close/open state and the application state, allowing a panel to be recreated open after the reviewer tried to close it.
+
+## Repair
+
+`openProductReview(...)` now:
+
+1. records the active review;
+2. loads catalogue evidence only when it is not already cached;
+3. does **not** synchronously rebuild the review queue while the native `<details>` panel is opening;
+4. only renders after loading if that same review is still active/open.
+
+Closing the panel clears `activeProductReviewId`. If the reviewer closes it while evidence is still loading, the delayed load can no longer reopen it.
+
+## Required live verification
+
+- Open one grouped product review and close it immediately.
+- Open two or three different reviews and close each independently.
+- Open one review, close it while catalogue evidence is loading, and confirm it stays closed.
+- Confirm normal and Amazon review groups can still be used without forcing other panels open.
+- Regression-test existing evidence editing, submit to catalogue evidence and deny with reason.
