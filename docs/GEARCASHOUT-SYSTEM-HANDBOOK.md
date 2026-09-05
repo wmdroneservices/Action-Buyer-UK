@@ -1800,3 +1800,34 @@ Repository worker version is now 1.4.8. The Research PC must be updated from 1.4
 Current explicit source rules include MPB UK and a DJI framework rule. MPB exact pages remain deterministic: every live SKU is preserved separately.
 
 Category, manufacturer, brand and search pages are discovery-only and must never be accepted as final product price evidence.
+
+
+### Catalogue-centred Pending AI Evidence Review — 5 September 2026
+
+Pending AI findings now have a first-class review surface inside `admin-catalog.html`.
+
+The live/pending separation is unchanged:
+
+- `quote_catalog_ai_candidates` with `decision='pending'` = proposed evidence only.
+- `quote_catalog_retailer_prices` = verified live catalogue evidence.
+
+Pending evidence is displayed beside the relevant product under a prominent red **P** and **PENDING EVIDENCE — NOT LIVE** heading. It is grouped into:
+
+- UK — NEW
+- UK — USED / OTHER
+- OVERSEAS
+
+The main catalogue has a top warning bar showing total pending evidence and affected products, grouped by manufacturer with a product dropdown. Product cards with pending findings receive a red PENDING badge.
+
+Review flow:
+
+1. Verify/edit the proposed evidence on the catalogue product.
+2. Record field-by-field outcomes and a reason when denying or correcting.
+3. Accept → `record_ai_candidate_manual_review` → `apply_accepted_ai_candidate` → live evidence row.
+4. Deny → candidate becomes rejected; existing live catalogue remains unchanged.
+
+Pending evidence cannot affect live comparison or automatic pricing before approval.
+
+Implementation file:
+
+- `admin-catalog-pending-ai-review.js`
