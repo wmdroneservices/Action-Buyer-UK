@@ -1741,3 +1741,30 @@ The exact current MPB Mavic 3 page exposed **7 live individual units**, from £7
 The generic/category evidence was removed for the DJI Mavic 3 Standard Package and replaced with seven separate exact MPB inventory observations, retaining individual SKU, price, Excellent cosmetic condition, charges and controller details where shown.
 
 **Verification source:** exact MPB Mavic 3 model page.
+
+
+### MPB UK audit architecture repair — 5 September 2026
+
+The MPB sweep exposed two additional first-failure points that had to be corrected before a historical audit could be trusted:
+
+1. **MPB UK was not present in the active AI source registry**, so the local worker could not deliberately probe MPB as a UK used-market source.
+2. **The generic candidate model treated one URL as one observation**, but an exact MPB model page can contain many live SKUs.
+
+MPB UK is now registered as an enabled used_dealer source with used_uk scope and priority 5.
+
+Worker version 1.4.7 adds deterministic MPB UK extraction from exact /en-uk/product/... pages. Each live SKU becomes a separate evidence candidate with its own price, cosmetic condition and charges/shutter metric where present.
+
+The evidence table's uniqueness rule also required SKU-level source identity because two genuine MPB units can share the same condition and price. MPB unit URLs therefore use a #mpb-sku-... fragment while retaining the canonical model URL in notes.
+
+A dedicated roadmap now exists at:
+
+docs/MPB-UK-EVIDENCE-AUDIT-DIAGNOSTIC-ROADMAP.md
+
+Live verification also refreshed:
+
+- DJI Air 3 Standard Package (DJI RC-N2): one exact live MPB unit at £584.
+- DJI Mini 4 Pro Standard Package: four exact live MPB units from £444 to £639.
+
+The generic-only audit count moved from 549 to **547**.
+
+The historical sweep remains in progress; it must not be marked complete until every remaining generic-only product has an exact, out-of-stock, not-stocked, or explicit package-mismatch outcome.
