@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.2',
+    version:'1.4.3',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -881,7 +881,8 @@ async function learnSharedSource(sourceUrl, sourceName, sourceKind='other', scop
 async function getRunEvidenceScope(runId){
   const {data,error}=await sb.from('quote_catalog_ai_research_runs').select('evidence_scope').eq('id',runId).single();
   if(error)throw error;
-  return ['all','new_uk','used_uk','overseas','amazon_uk'].includes(data?.evidence_scope)?data.evidence_scope:'all';
+  const scope=String(data?.evidence_scope||'all').trim().toLowerCase();
+  return ['all','new_uk','used_uk','overseas','amazon_uk'].includes(scope)?scope:'all';
 }
 
 async function recordRawDiscoveries(context={},discoveries=[]){
@@ -918,6 +919,9 @@ async function recordRawDiscoveries(context={},discoveries=[]){
 
 
 async function collectEvidence(product,sources,evidenceScope='all',context={}){
+  // Normalise once at the boundary. Amazon-only is a hard source restriction,
+  // so it must never depend on whitespace/case or on later fallback logic.
+  evidenceScope=String(evidenceScope||'all').trim().toLowerCase();
   const names=productSearchNames(product);
   const name=names[0];
   if(!name)throw new Error('Catalogue product has no usable manufacturer/model name.');
@@ -927,6 +931,7 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
   // UK and overseas evidence for the same exact product.
   const amazonOnly=evidenceScope==='amazon_uk';
   const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:(amazonOnly?['new_uk']:[evidenceScope]);
+  if(amazonOnly)log('Amazon-only enforcement: ON. General retailer searches and direct source probes are disabled.');
   const seen=new Map();
 
   // Amazon UK is a mandatory discovery route for every new-UK comparison pass.
@@ -968,8 +973,11 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       .slice(0,Math.max(4,Math.ceil(cfg.sourceProbeLimit/2)));
 
     let foundForScope=0;
-    // Amazon-only mode deliberately skips general retailer searches.
-    if(!amazonOnly){
+    // Amazon-only mode is a hard stop: no general retailer query may be
+    // handed to a search engine in this branch.
+    if(amazonOnly){
+      log('Amazon-only: skipping general search plan for',name);
+    }else{
       // Always search the canonical manufacturer + model identity first.
       for(const q of queriesFor(name,scope)){
         foundForScope+=await addResults(q,scope);
@@ -1000,8 +1008,11 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
     }
 
     // Amazon-only mode must not fall back to the general approved-source registry.
-    // For all other modes, give the registry a chance in each requested market.
-    if(!amazonOnly){
+    // This is intentionally guarded twice: even if a future search-plan change
+    // adds more branches above, direct probes cannot run while Amazon-only is set.
+    if(amazonOnly){
+      log('Amazon-only: approved-source fallback disabled.');
+    }else{
       const direct=await discoverFromKnownSources(product,priority,scope);
       if(direct.length)log('Approved-source fallback',scope,'returned',direct.length,'result(s)');
       for(const r of direct){
