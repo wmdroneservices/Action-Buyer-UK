@@ -167,6 +167,18 @@
 </div>
 <label class="ai-scope-select-fallback">Source filter<select id="research-source-filter"><option value="all" selected>All sources</option><option value="amazon_uk">Amazon UK only</option></select></label>
 </section>
+<section class="ai-market-scope" aria-labelledby="deep-source-heading">
+<p class="section-kicker">DEEP SOURCE AUDIT · LANDING PAGE TO EXACT PRODUCT</p>
+<h2 id="deep-source-heading">Deep Source / Website Audit</h2>
+<p class="ai-market-scope-help">Paste a website or marketplace landing page. The landing page is used only as the starting map: the Research PC follows relevant categories and subcategories, uses source-specific deep-search rules where available, and only returns exact product pages as final evidence. Category, brand and search pages are discovery-only.</p>
+<div class="research-controls" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px;margin:16px 0">
+<label>Landing page URL<input id="deep-source-url" type="url" placeholder="https://www.mpb.com/en-uk/ or another approved source landing page"></label>
+<label>Deep audit batch size<select id="deep-source-limit"><option value="1">1 product</option><option value="3">3 products</option><option value="5" selected>5 products</option><option value="10">10 products</option><option value="25">25 products</option></select></label>
+</div>
+<div class="ai-actions"><button id="run-deep-source-audit" class="btn btn-primary" type="button">RUN DEEP SOURCE AUDIT</button></div>
+<div id="deep-source-message" class="form-message"></div>
+<p class="form-help">MPB UK is currently configured for deterministic exact <code>/en-uk/product/</code> page handling and SKU-level inventory extraction. The framework also supports source-specific rules for other sites, while generic sources are kept review-first.</p>
+</section>
 <div class="research-controls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0">
 <label>Manufacturer<select id="research-manufacturer"><option value="">Any manufacturer</option></select></label>
 <label>Model / search term<input id="research-model" type="text" placeholder="Exact model or part of model"></label>
