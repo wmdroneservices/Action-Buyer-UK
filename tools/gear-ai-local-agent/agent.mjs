@@ -928,15 +928,18 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
   const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:[evidenceScope];
   const seen=new Map();
 
-  // Amazon UK is a mandatory discovery route for new-UK comparison research.
-  // Amazon often blocks direct automated page retrieval, so we search for its
-  // indexed listings explicitly and preserve an exact-model Amazon discovery for
-  // manual review even when the product page itself cannot be fetched.
+  // Amazon UK is a mandatory discovery route for every new-UK comparison pass.
+  // Keep these separate from the normal query list so the ordinary "enough results"
+  // early-stop rule can never skip Amazon entirely.
   const queriesFor=(searchName,scope)=>scope==='new_uk'
-    ? ['"'+searchName+'" UK price','"'+searchName+'" new UK retailer','"'+searchName+'" buy UK','"'+searchName+'" site:amazon.co.uk','"'+searchName+'" Amazon UK']
+    ? ['"'+searchName+'" UK price','"'+searchName+'" new UK retailer','"'+searchName+'" buy UK']
     : scope==='used_uk'
       ? ['"'+searchName+'" used UK','"'+searchName+'" second hand UK','"'+searchName+'" eBay UK']
       : ['"'+searchName+'" price international','"'+searchName+'" overseas retailer','"'+searchName+'" international buy'];
+  const amazonUkQueries=searchName=>[
+    '"'+searchName+'" site:amazon.co.uk',
+    '"'+searchName+'" Amazon UK'
+  ];
 
   async function addResults(q,scope){
     const results=await searchWeb(q);
@@ -967,6 +970,12 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       if(foundForScope>=8)break;
     }
 
+    // Mandatory Amazon UK discovery for every New UK pass. Amazon queries run
+    // even when other retailers have already produced plenty of results.
+    if(scope==='new_uk'){
+      for(const q of amazonUkQueries(name))await addResults(q,scope);
+    }
+
     // If the catalogue has a specific commercial package name, search it as an
     // additional discovery route. Its absence on a retailer page never counts as
     // a rejection: package assignment is for the manual review stage when unclear.
@@ -975,6 +984,12 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
         foundForScope+=await addResults(q,scope);
         if(foundForScope>=8)break;
       }
+    }
+
+    // A specific commercial package can have its own Amazon listing/ASIN, so it
+    // also receives the mandatory Amazon UK discovery pass when present.
+    if(scope==='new_uk'&&names[1]){
+      for(const q of amazonUkQueries(names[1]))await addResults(q,scope);
     }
 
     // Always give the approved registry a chance in each requested market.
