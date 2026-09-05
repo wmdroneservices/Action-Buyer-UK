@@ -147,6 +147,30 @@ For each queued catalogue product the agent:
 
 No finding is automatically applied to live evidence.
 
+## Amazon UK Only — hard restriction
+
+When the dashboard source filter is set to **Amazon UK Only**, the worker now treats that as a hard source boundary:
+
+- only Amazon UK discovery queries are issued;
+- general UK retailer, used-marketplace and overseas queries are not run;
+- approved-source/direct probes are disabled;
+- a result must resolve to the actual `amazon.co.uk` domain before it can enter the evidence pool;
+- a future fallback through the source registry is also blocked unless the source itself is Amazon UK.
+
+This mode can still produce **zero findings**. That is a valid result when Amazon has no usable indexed exact-model listing or blocks retrieval.
+
+## Relevance hardening
+
+Before a search result is collected for evidence, the worker now requires:
+
+1. the exact catalogue model to be identifiable;
+2. the manufacturer to be identifiable when the catalogue product has one;
+3. the result not to look like an error/help/navigation page;
+4. the result not to be an accessory or spare part for a main product, unless the catalogue product itself is an accessory;
+5. manufacturer bundles such as recognised combo/kit packages to remain eligible.
+
+This deliberately prefers a smaller number of strong candidates over unrelated models, accessories and weak keyword matches.
+
 ## Evidence buckets
 
 - **1** New UK retail.
