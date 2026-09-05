@@ -266,9 +266,20 @@ async function loadResearchPcControl(){
  return {active,agent:a};
 }
 async function requestResearchPcCommand(command){
- const {data:agents,error:aErr}=await sb.from('quote_catalog_ai_agents').select('agent_id').order('updated_at',{ascending:false}).limit(1);
+ const {data:agents,error:aErr}=await sb.from('quote_catalog_ai_agents')
+   .select('agent_id,status,last_heartbeat_at')
+   .order('updated_at',{ascending:false}).limit(1);
  if(aErr)throw aErr;
  const agentId=agents?.[0]?.agent_id||'gear-local-agent-1';
+
+ // A Supabase command can only be consumed by a worker that is already running.
+ // Do not pretend that START can wake a fully-offline Windows process.
+ const heartbeatAt=agents?.[0]?.last_heartbeat_at?new Date(agents[0].last_heartbeat_at).getTime():0;
+ const workerFresh=heartbeatAt&&Date.now()-heartbeatAt<90000;
+ if(command==='start_worker'&&!workerFresh){
+   throw Error('The Research PC worker is offline, so it cannot receive a START command. Start it with the existing Windows startup/desktop launcher on the Research PC. Once online, remote RESTART and STOP commands work normally.');
+ }
+
  const {data,error}=await sb.rpc('ai_agent_request_command',{p_agent_id:agentId,p_command:command});
  if(error)throw error;
  msg('Research PC command sent: '+command.replace(/_/g,' ')+'.');
