@@ -1597,3 +1597,26 @@ The reviewer can correct saved evidence without leaving the AI Research Centre, 
 Saving updates the existing `quote_catalog_retailer_prices` row, refreshes the comparison cache, and redraws the grouped review so the new AI evidence is immediately compared against the corrected catalogue evidence.
 
 No new evidence row is created by this correction workflow, and no automatic buying-price logic is changed.
+
+
+### AI evidence review — verification links, full objective editing and immediate queue movement (5 September 2026)
+
+The grouped AI evidence review is the working comparison surface for existing catalogue evidence and new AI findings.
+
+Current rules:
+
+- every current catalogue evidence row exposes an **OPEN / VERIFY** source link;
+- the exact saved source URL remains visible and directly clickable;
+- existing evidence can be edited in place without leaving the AI Research Centre;
+- editable objective fields include retailer, type, condition, sell price, buy price, currency, original selling price, VAT basis, VAT rate, availability, buy method, evidence region, exact source URL, checked timestamp and notes;
+- overseas/non-GBP evidence displays its stored currency rather than being misleadingly shown as GBP;
+- **DENY WITH REASON** saves the decision first and immediately removes the finding from Requires Attention into Denied;
+- **SUBMIT TO CATALOGUE EVIDENCE** saves acceptance first and immediately removes the finding from Requires Attention before the live apply step runs;
+- if live application fails, the accepted review remains accepted and the UI reports that only the apply step failed;
+- an inline processing/status message is shown so a reviewer is not left unsure whether a click worked.
+
+Data flow remains:
+
+`quote_catalog_ai_candidates` → `record_ai_candidate_manual_review(...)` → Accepted/Rejected audit state → optional `apply_accepted_ai_candidate(...)` → `quote_catalog_retailer_prices`.
+
+No automatic buying-price logic was changed.
