@@ -222,6 +222,10 @@ async function manualReviewAction(id,decision,applyDirect,button){
  const reviewedFields=[...panel.querySelectorAll('[data-review-field]:checked')].map(x=>String(x.dataset.reviewField));
  const reason=clean(panel.querySelector('[data-review-reason]')?.value||'');
  if(decision==='rejected'&&!reason)throw Error('Please explain why you are denying this finding so Gemma can learn from the review.');
+ if(decision==='accepted'&&applyDirect){
+   const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';
+   if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');
+ }
  const {data,error}=await sb.rpc('record_ai_candidate_manual_review',{
    p_candidate_id:id,
    p_decision:decision,
@@ -230,8 +234,6 @@ async function manualReviewAction(id,decision,applyDirect,button){
  });
  if(error)throw error;
  if(decision==='accepted'&&applyDirect){
-   const category=c.edited_evidence_category??c.evidence_category??c.price_type??'';
-   if(!category)throw Error('Choose the verified comparison bucket first by editing the finding.');
    const {error:applyError}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
    if(applyError)throw applyError;
    comparingCandidateId=null;
