@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.0',
+    version:'1.5.1',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -1388,7 +1388,7 @@ RESEARCH MODE: ${evidenceScope}
 Rules:
 - Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
 - ACTIVE HUMAN LEARNING / SOURCE-SPECIFIC RULES are operational instructions from reviewed mistakes. Apply them before returning candidates.
-- For MPB UK specifically: category pages, brand pages and search pages are discovery-only and must not be returned as final price evidence. Continue to the exact MPB /en-uk/product/... model page. If that page exposes multiple individual live units, preserve separate unit-level observations rather than collapsing the page to one representative price.
+- For MPB UK specifically: category pages, brand pages and search pages are discovery-only and must not be returned as final price evidence. Continue to the exact MPB /en-uk/product/... model page. If that page exposes multiple individual live units, aggregate them into one reference-only Used UK range for that exact product page: minimum price, maximum price, conditions represented, unit count and the canonical verification URL.
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, title, price or availability. Prefer collected evidence title and price fields when present.
 - Exact model matching is mandatory. A true variant/generation mismatch must be rejected.
 - Package labels require special handling: catalogue labels such as "Standard Item",
@@ -1639,7 +1639,12 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
     p_source_kind:c.source_kind||source?.source_kind||'other',
     p_package_match:c.package_match||'uncertain',
     p_variant_match:c.variant_match||'uncertain',
-    p_evidence_notes:c.evidence_notes||null
+    p_evidence_notes:c.evidence_notes||null,
+    p_reference_price_min:c.reference_price_min??null,
+    p_reference_price_max:c.reference_price_max??null,
+    p_observed_conditions:c.observed_conditions||null,
+    p_observed_units_count:c.observed_units_count??null,
+    p_reference_only:c.reference_only===true
   });
   if(error)throw error;
   return true;
@@ -1785,53 +1790,51 @@ async function processOne(){
 
     const sourceMap=new Map((latestSources||[]).map(s=>[String(s.domain||'').replace(/^www\\./,'').toLowerCase(),s]));
 
-    // MPB UK is handled deterministically before Ollama. A single exact MPB model
-    // page can contain many separate live units, each with its own SKU, price,
-    // cosmetic condition and charge/shutter information. One URL must therefore
-    // produce multiple SKU-level evidence candidates instead of being collapsed to
-    // one representative price.
+    // MPB UK is a used-market reference source. One exact MPB model page can
+    // aggregate several live units and conditions, so preserve the page as ONE
+    // reference-only pending finding with a From → To range and the direct page
+    // link for later staff verification. It never changes automatic pricing.
     let mpbSubmitted=0;
     const mpbSubmittedPageUrls=new Set();
     for(const page of pages){
       const units=extractMpbUkUnits(page);
       if(!units.length)continue;
       const knownMpbSource=sourceMap.get('mpb.com');
-      for(const unit of units){
-        const metricNote=unit.metric&&unit.metricValue?unit.metric+': '+unit.metricValue+'. ':'';
-        const includedNote=unit.included?('Included details: '+unit.included):'';
-        const candidate={
-          // quote_catalog_retailer_prices deduplicates by product, retailer,
-          // condition, price and source URL. MPB can legitimately have two units
-          // with the same condition and price, so preserve the canonical model page
-          // plus a harmless SKU fragment as the unit-level source identity.
-          source_url:page.url+'#mpb-sku-'+unit.sku,
-          discovered_title:page.title||productName(product),
-          discovered_model_number:product?.model||null,
-          discovered_identifier_type:'MPB SKU',
-          discovered_identifier_value:unit.sku,
-          price:unit.price,
-          currency:'GBP',
-          condition:unit.condition,
-          availability_status:'in_stock',
-          match_confidence:0.99,
-          source_name:knownMpbSource?.source_name||'MPB UK',
-          source_country_code:'GB',
-          source_kind:'used_dealer',
-          evidence_category:'used_uk',
-          market_region:'UK',
-          package_match:'uncertain',
-          variant_match:'uncertain',
-          evidence_notes:'Exact MPB UK live inventory unit. SKU '+unit.sku+'. Cosmetic condition: '+unit.condition+'. '+metricNote+includedNote,
-          _evidence_title:page.title,
-          _evidence_text:page.text
-        };
-        if(await submitCandidate(item.run_id,item.catalog_product_id,product,candidate,sourceMap)){
-          mpbSubmitted++;
-        }
-      }
+      const prices=units.map(u=>Number(u.price)).filter(Number.isFinite);
+      if(!prices.length)continue;
+      const from=Math.min(...prices),to=Math.max(...prices);
+      const conditions=[...new Set(units.map(u=>String(u.condition||'').trim()).filter(Boolean))];
+      const candidate={
+        source_url:String(page.url||'').split('#')[0],
+        discovered_title:page.title||productName(product),
+        discovered_model_number:product?.model||null,
+        discovered_identifier_type:'MPB product page',
+        discovered_identifier_value:null,
+        price:from,
+        reference_price_min:from,
+        reference_price_max:to,
+        observed_conditions:conditions.join(', '),
+        observed_units_count:units.length,
+        reference_only:true,
+        currency:'GBP',
+        condition:conditions.length?conditions.join(', '):'Multiple used conditions',
+        availability_status:'in_stock',
+        match_confidence:0.99,
+        source_name:knownMpbSource?.source_name||'MPB UK',
+        source_country_code:'GB',
+        source_kind:'used_dealer',
+        evidence_category:'used_uk',
+        market_region:'UK',
+        package_match:'uncertain',
+        variant_match:'uncertain',
+        evidence_notes:'Exact MPB UK product page. Used-market reference only. '+units.length+' live unit(s) observed. From £'+from.toFixed(2)+' to £'+to.toFixed(2)+'. Conditions: '+(conditions.join(', ')||'not extracted')+'. Verify latest stock and prices from the direct MPB page before manually refreshing stale evidence.',
+        _evidence_title:page.title,
+        _evidence_text:page.text
+      };
+      if(await submitCandidate(item.run_id,item.catalog_product_id,product,candidate,sourceMap))mpbSubmitted++;
       mpbSubmittedPageUrls.add(String(page.url||'').split('#')[0]);
     }
-    if(mpbSubmitted>0)log('Preserved',mpbSubmitted,'separate MPB UK live inventory unit(s) from',mpbSubmittedPageUrls.size,'exact model page(s).');
+    if(mpbSubmitted>0)log('Created',mpbSubmitted,'MPB UK reference-only range finding(s) from',mpbSubmittedPageUrls.size,'exact model page(s).');
 
     for(const s of research.discovered_sources||[]){
       if(s.source_url&&!sourceMap.has(hostOf(s.source_url))){
