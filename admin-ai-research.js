@@ -163,19 +163,22 @@ async function loadComparisonEvidence(productId){
 function manualReviewMarkup(c,applyDirect=false){
  const applyAttr=applyDirect?'true':'false';
  const acceptLabel=applyDirect?'SUBMIT TO CATALOGUE EVIDENCE':'ACCEPT WITH REVIEW NOTES';
+ const fields=[
+   ['price','PRICE'],
+   ['product_match','PRODUCT / MODEL / PACKAGE MATCH'],
+   ['url','EXACT URL / PRODUCT PAGE'],
+   ['condition','CONDITION'],
+   ['availability','AVAILABILITY'],
+   ['source','SOURCE / RETAILER'],
+   ['evidence_bucket','EVIDENCE CATEGORY']
+ ];
+ const options='<option value="">NOT CHECKED</option><option value="correct">AI WAS RIGHT</option><option value="wrong">AI WAS WRONG</option><option value="adjusted">ADJUSTED</option>';
  return '<section class="ai-manual-review" data-review-id="'+esc(c.id)+'" data-review-apply="'+applyAttr+'">'
-   +'<div class="ai-manual-review-heading"><div><p class="section-kicker">MANUAL REVIEW FEEDBACK FOR GEMMA</p><h4>Tell the AI what you checked and why you changed or rejected anything</h4><p>Tick the parts you reviewed. If you corrected evidence, explain why. A manual denial always requires a reason. Bulk decisions remain reason-free.</p></div></div>'
-   +'<div class="ai-review-checks">'
-     +'<label><input type="checkbox" data-review-field="price"> PRICE CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="url"> URL / EXACT PRODUCT LINK CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="condition"> CONDITION CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="product_match"> PRODUCT / MODEL MATCH CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="package_variant"> PACKAGE / VARIANT CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="evidence_bucket"> EVIDENCE BUCKET CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="availability"> AVAILABILITY CHECKED</label>'
-     +'<label><input type="checkbox" data-review-field="source"> SOURCE / RETAILER CHECKED</label>'
+   +'<div class="ai-manual-review-heading"><div><p class="section-kicker">MANUAL REVIEW FEEDBACK FOR GEMMA</p><h4>Tell Gemma what was right, wrong or adjusted</h4><p>For each area you review, choose AI WAS RIGHT, AI WAS WRONG or ADJUSTED. Saved edits are automatically recorded as adjusted with their before and after values, so Gemma receives the exact correction whether you submit the evidence to the catalogue or deny it.</p></div></div>'
+   +'<div class="ai-review-outcomes">'
+   +fields.map(([field,label])=>'<label class="ai-review-outcome"><span>'+esc(label)+'</span><select data-review-outcome="'+esc(field)+'">'+options+'</select></label>').join('')
    +'</div>'
-   +'<label class="ai-manual-review-reason">Reason / correction notes for Gemma<textarea data-review-reason rows="4" placeholder="For example: Price corrected because the page showed a different package. URL replaced because the original link went to a category page, not the exact product."></textarea></label>'
+   +'<label class="ai-manual-review-reason">Reason / correction notes for Gemma<textarea data-review-reason rows="4" placeholder="Explain why the AI was wrong or why you adjusted it. Example: Price changed from £339 to £553 because the original price was for the wrong package. Source changed from unknown to Amazon after checking the exact product page."></textarea></label>'
    +'<div class="ai-manual-review-actions"><button type="button" class="btn btn-primary ai-manual-accept" data-id="'+esc(c.id)+'" data-apply="'+applyAttr+'">'+acceptLabel+'</button><button type="button" class="btn btn-secondary ai-manual-deny" data-id="'+esc(c.id)+'">DENY WITH REASON</button></div>'
  +'</section>';
 }
@@ -226,7 +229,8 @@ async function manualReviewAction(id,decision,applyDirect,button){
  if(c.applied_at)throw Error('This finding has already been applied to live evidence.');
  const panel=button?.closest?.('[data-review-id="'+CSS.escape(String(id))+'"]')||document.querySelector('[data-review-id="'+CSS.escape(String(id))+'"]');
  if(!panel)throw Error('Manual review panel not found.');
- const reviewedFields=[...panel.querySelectorAll('[data-review-field]:checked')].map(x=>String(x.dataset.reviewField));
+ const fieldOutcomes={};
+ panel.querySelectorAll('[data-review-outcome]').forEach(x=>{const value=clean(x.value);if(value)fieldOutcomes[String(x.dataset.reviewOutcome)]=value;});
  const reason=clean(panel.querySelector('[data-review-reason]')?.value||'');
  if(decision==='rejected'&&!reason)throw Error('Please explain why you are denying this finding so Gemma can learn from the review.');
  if(decision==='accepted'&&applyDirect){
@@ -237,19 +241,19 @@ async function manualReviewAction(id,decision,applyDirect,button){
    p_candidate_id:id,
    p_decision:decision,
    p_reason:reason||null,
-   p_reviewed_fields:reviewedFields
+   p_reviewed_fields:fieldOutcomes
  });
  if(error)throw error;
  if(decision==='accepted'&&applyDirect){
    const {error:applyError}=await sb.rpc('apply_accepted_ai_candidate',{p_candidate_id:id});
    if(applyError)throw applyError;
    comparingCandidateId=null;
-   msg('Finding accepted, review feedback saved for Gemma, and live evidence added for '+pname(c)+'.');
+   msg('Finding accepted, exact review outcomes and any corrections saved for Gemma, and live evidence added for '+pname(c)+'.');
  }else if(decision==='accepted'){
-   msg('Finding accepted and manual review feedback saved for Gemma. It remains in Accepted findings until you apply it to live evidence.');
+   msg('Finding accepted and exact review outcomes saved for Gemma. It remains in Accepted findings until you apply it to live evidence.');
  }else{
    comparingCandidateId=null;
-   msg('Finding denied and the reason has been recorded for Gemma.');
+   msg('Finding denied and the exact review outcomes and reason have been recorded for Gemma.');
  }
  selectedCandidateIds.delete(String(id));
  await load();
