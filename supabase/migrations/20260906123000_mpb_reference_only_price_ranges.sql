@@ -98,8 +98,24 @@ begin
   v_reference_only:=coalesce(c.reference_only,false);
   v_price:=coalesce(v_ref_min,c.edited_price,c.price);
   v_currency:=upper(coalesce(nullif(c.edited_currency,''),nullif(c.currency,''),'GBP'));
-  v_region:=case when v_category in ('new_uk','used_uk') then 'UK' else 'International' end;
-  v_price_type:=case when v_category='new_uk' then 'new' when v_category='used_uk' then 'used' else 'market' end;
+  v_region:=case
+    when v_category in ('new_uk','used_uk') then 'UK'
+    when upper(coalesce(c.market_region,'')) in ('UK','GB') or upper(coalesce(c.source_country_code,'')) in ('UK','GB') then 'UK'
+    when upper(coalesce(c.market_region,''))='EU'
+      or upper(coalesce(c.source_country_code,'')) in ('AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE') then 'EU'
+    when upper(coalesce(c.market_region,'')) in ('USA','US') or upper(coalesce(c.source_country_code,''))='US' then 'USA'
+    else 'International'
+  end;
+  v_price_type:=case
+    when v_category='new_uk' then 'new'
+    when v_category='used_uk' then 'used'
+    when v_category='overseas' then 'market'
+    when v_category='retail' and lower(v_condition) like 'new%' then 'new'
+    when v_category='retail' then 'used'
+    when v_category in ('marketplace','market') then 'market'
+    when lower(v_category) in ('new','new_sale','used','market','refurbished','manufacturer_rrp','competitor_buying','completed_sale') then lower(v_category)
+    else 'market'
+  end;
   v_availability:=case lower(replace(coalesce(c.edited_availability_status,c.availability_status,''),' ','_'))
     when 'in_stock' then 'in_stock' when 'instock' then 'in_stock' when 'out_of_stock' then 'out_of_stock'
     when 'outofstock' then 'out_of_stock' when '' then 'unknown' else 'unknown' end;
@@ -109,6 +125,8 @@ begin
     case when v_ref_max is not null then ' | To: '||v_ref_max else '' end,
     case when v_ref_conditions is not null then ' | Conditions: '||v_ref_conditions else '' end,
     case when v_ref_units is not null then ' | Units observed: '||v_ref_units else '' end,
+    case when coalesce(c.edited_package_match,c.package_match) is not null then ' | Package: '||coalesce(c.edited_package_match,c.package_match) else '' end,
+    case when coalesce(c.edited_variant_match,c.variant_match) is not null then ' | Variant: '||coalesce(c.edited_variant_match,c.variant_match) else '' end,
     case when coalesce(c.edited_evidence_notes,c.evidence_notes) is not null then ' | Notes: '||coalesce(c.edited_evidence_notes,c.evidence_notes) else '' end);
   insert into public.quote_catalog_retailer_prices
     (catalog_product_id,retailer,condition,sell_price,checked_at,source_url,notes,price_type,availability_status,price_currency,price_region,evidence_region,reference_price_min,reference_price_max,reference_conditions,reference_units_observed,reference_only)
