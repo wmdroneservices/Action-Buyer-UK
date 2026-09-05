@@ -125,12 +125,12 @@ They must never be stored as the sole final product price evidence.
 3. Old Research PC worker → Deep Source runs are claimed but old code cannot process them correctly.
 4. Crawl stops on landing/category page → check collectDeepSourceEvidence.
 5. Exact model page found but package differs → do not auto-apply.
-6. MPB exact page has multiple SKUs → verify every SKU is preserved.
-7. Same price/condition duplicate → preserve SKU source identity.
+6. MPB exact page has multiple units → verify minimum, maximum, conditions and unit count are extracted.
+7. Preserve the canonical product URL as the single verification link.
 
 ## Deployment state
 
-GitHub repository contains worker 1.4.8.
+GitHub repository contains worker 1.5.1.
 
 The Research PC must be updated from 1.4.7 to **1.4.8** before a live Deep Source run.
 
