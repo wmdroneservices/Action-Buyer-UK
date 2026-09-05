@@ -653,6 +653,44 @@ This section is part of the persistent project record and should be read togethe
 
 ---
 
+## 17B. Research control buttons — clarified
+
+The AI Research Centre uses different controls for different purposes. These must not be treated as interchangeable.
+
+### CLEAR WAITING QUEUE
+
+Removes only products that are still waiting to be claimed by the local worker.
+
+It **does not interrupt a product already being researched**.
+
+### STOP CONTINUOUS RESEARCH
+
+Stops automatic catalogue continuation.
+
+It is used only for Continuous Catalogue Mode and is **not** a general stop button.
+
+### STOP ALL RESEARCH & WORKER
+
+This is the full emergency stop.
+
+It shuts down the local Research PC worker/launcher so the current processing loop cannot continue. The worker must be started again before new local research can run.
+
+### START RESEARCH PC WORKER
+
+Starts the local PowerShell/AI worker.
+
+### RESTART RESEARCH PC WORKER
+
+Stops and relaunches the local worker.
+
+### Operational lesson
+
+A batch can contain products already claimed by the worker and products still waiting in the queue. Clearing the queue only affects waiting products. If immediate interruption is required, use the full worker stop control.
+
+The dashboard labels and confirmation messages were updated on 5 September 2026 to make this distinction explicit.
+
+---
+
 ## Current baseline
 
 This handbook records the system state and design direction as understood from the current repository and recent development work in September 2026. It should be expanded through a systematic repository and Supabase audit rather than relying indefinitely on conversational recollection alone.
