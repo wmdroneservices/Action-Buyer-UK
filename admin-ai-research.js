@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all';
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -217,9 +217,41 @@ function setResearchScope(scope){
    b.setAttribute('aria-pressed',selected?'true':'false');
  });
 }
+async function emergencyStopResearch(){
+ const {data,error}=await sb.rpc('ai_research_emergency_stop');
+ if(error)throw error;
+ return data||{};
+}
+function setStopButtonState(text,disabled){
+ const b=$('rpc-stop-worker');if(!b)return;
+ b.textContent=text;b.disabled=!!disabled;
+}
+async function waitForResearchPcStop(commandId){
+ const deadline=Date.now()+30000;
+ while(Date.now()<deadline){
+   const [{data:command,error:commandError},state]=await Promise.all([
+     sb.from('quote_catalog_ai_agent_commands').select('status,error,result').eq('id',commandId).maybeSingle(),
+     loadResearchPcControl()
+   ]);
+   if(commandError)throw commandError;
+   if(command?.status==='failed')throw Error(command.error||'The Research PC rejected the stop command.');
+   if(command?.status==='completed'&&!state?.active){
+     stopCommandPending=false;stopCommandId=null;
+     setStopButtonState('RESEARCH PC STOPPED',true);
+     msg('All queued research has been stopped and the Research PC worker is offline. Use START RESEARCH PC WORKER when you are ready to run research again.');
+     return true;
+   }
+   await new Promise(resolve=>setTimeout(resolve,1500));
+ }
+ stopCommandPending=false;stopCommandId=null;
+ const state=await loadResearchPcControl().catch(()=>null);
+ if(state?.active)setStopButtonState('STOP ALL RESEARCH & WORKER',false);
+ else setStopButtonState('RESEARCH PC STOPPED',true);
+ throw Error('The stop command was sent, but the Research PC did not confirm shutdown within 30 seconds. The button has been released so it is not left permanently on STOPPING.');
+}
 async function loadResearchPcControl(){
  const {data:agents,error}=await sb.from('quote_catalog_ai_agents').select('*').order('updated_at',{ascending:false}).limit(1);
- if(error)return;
+ if(error)return {active:false,agent:null};
  const a=agents?.[0]; const now=Date.now(); const fresh=a?.last_heartbeat_at&&now-new Date(a.last_heartbeat_at).getTime()<90000;
  const active=fresh&&['online','working','starting'].includes(String(a?.status||'').toLowerCase());
  const pill=$('rpc-status-pill'); if(pill){pill.textContent=active?'ONLINE':'OFFLINE';pill.className='rpc-status '+(active?'online':'offline');}
@@ -227,6 +259,11 @@ async function loadResearchPcControl(){
  if($('rpc-ollama'))$('rpc-ollama').textContent=active?'CONNECTED':'CHECK REQUIRED';
  if($('rpc-model'))$('rpc-model').textContent=a?.model||'—';
  if($('rpc-error'))$('rpc-error').textContent=a?.last_error||'None reported';
+ if(!stopCommandPending){
+   if(active)setStopButtonState('STOP ALL RESEARCH & WORKER',false);
+   else setStopButtonState('RESEARCH PC STOPPED',true);
+ }
+ return {active,agent:a};
 }
 async function requestResearchPcCommand(command){
  const {data:agents,error:aErr}=await sb.from('quote_catalog_ai_agents').select('agent_id').order('updated_at',{ascending:false}).limit(1);
@@ -455,19 +492,34 @@ document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(b=>b.a
 $('research-source-filter')?.addEventListener('change',e=>{selectedSourceFilter=e.target.value==='amazon_uk'?'amazon_uk':'all';document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=(x.dataset.sourceFilter||'all')===selectedSourceFilter;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});});
 selectedSourceFilter=clean($('research-source-filter')?.value||'all')==='amazon_uk'?'amazon_uk':'all';
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
-setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;requestResearchPcCommand(cmd).then(()=>{
-  if(cmd==='stop_worker'){
-    const stopButton=$('rpc-stop-worker');
-    if(stopButton){stopButton.disabled=true;stopButton.textContent='STOPPING ALL RESEARCH…';}
-    msg('Full stop command sent. Closing the Research PC worker and its launcher so the automatic restart loop also stops.');
-    setTimeout(()=>loadResearchPcControl().catch(()=>{}),1500);
-    setTimeout(()=>loadResearchPcControl().catch(()=>{}),6000);
-    return;
+setResearchScope($('research-evidence-scope')?.value||'all');document.addEventListener('change',e=>{const box=e.target.closest?.('.candidate-check');if(!box)return;if(box.checked)selectedCandidateIds.add(String(box.value));else selectedCandidateIds.delete(String(box.value));});$('refresh-ai')?.addEventListener('click',()=>load().then(()=>msg('Review queue refreshed.')).catch(e=>msg(e.message,true)));$('refresh-sources')?.addEventListener('click',()=>loadSources().then(()=>sourceMsg('Research sources refreshed.')).catch(e=>sourceMsg(e.message,true)));$('accept-selected')?.addEventListener('click',()=>decide('accepted').catch(e=>msg(e.message,true)));$('deny-selected')?.addEventListener('click',()=>decide('rejected').catch(e=>msg(e.message,true)));$('apply-selected')?.addEventListener('click',()=>apply().catch(e=>msg(e.message,true)));document.addEventListener('click',e=>{const b=e.target.closest('.ai-edit');if(b){edit(b.dataset.id);return}const save=e.target.closest('.ai-save-edit');if(save){saveEdit(save.dataset.id).catch(x=>msg(x.message,true));return}const cancel=e.target.closest('.ai-cancel-edit');if(cancel){editingId=null;render();return}const pcAccept=e.target.closest('.ai-product-candidate-accept');if(pcAccept){decideProductCandidate(pcAccept.dataset.id,'accepted').catch(x=>msg(x.message,true));return}const pcReject=e.target.closest('.ai-product-candidate-reject');if(pcReject){decideProductCandidate(pcReject.dataset.id,'rejected').catch(x=>msg(x.message,true));return}const pcCreate=e.target.closest('.ai-product-candidate-create');if(pcCreate){createCatalogueDraft(pcCreate.dataset.id).catch(x=>msg(x.message,true));return}const rpc=e.target.closest('[id^="rpc-"]');if(rpc&&['rpc-check-status','rpc-check-ollama','rpc-start-worker','rpc-restart-worker','rpc-stop-worker'].includes(rpc.id)){const cmd={'rpc-check-status':'check_status','rpc-check-ollama':'check_ollama','rpc-start-worker':'start_worker','rpc-restart-worker':'restart_worker','rpc-stop-worker':'stop_worker'}[rpc.id];if(cmd==='stop_worker'&&!confirm('STOP EVERYTHING? This shuts down the local Research PC worker and stops the current research process. Waiting jobs should be cleared separately if you do not want them processed after the worker is started again.'))return;if(cmd==='start_worker'&&!confirm('Start the local GearCashOut Research PC worker now using Start-GearCashOut-AI.ps1?'))return;if(cmd==='restart_worker'&&!confirm('Restart the local Research PC worker now? The current worker will close and Start-GearCashOut-AI.ps1 will launch it again.'))return;(async()=>{
+  try{
+    if(cmd==='stop_worker'){
+      stopCommandPending=true;
+      setStopButtonState('STOPPING ALL RESEARCH…',true);
+      const stopped=await emergencyStopResearch();
+      msg('Emergency stop applied to '+Number(stopped.queue_items_stopped||0)+' active/waiting queue item(s). Sending the shutdown command to the Research PC…');
+      const command=await requestResearchPcCommand(cmd);
+      stopCommandId=command?.id||null;
+      if(!stopCommandId)throw Error('The Research PC stop command did not return an ID.');
+      await waitForResearchPcStop(stopCommandId);
+      await Promise.all([loadLiveResearch(),loadContinuousResearch()]);
+      return;
+    }
+    await requestResearchPcCommand(cmd);
+    msg(cmd==='start_worker'?'Start command sent. Waiting for the Research PC worker to come online…':cmd==='restart_worker'?'Restart command sent. Waiting for the Research PC worker to come back online…':'Research PC check command sent.');
+    setTimeout(()=>loadResearchPcControl().catch(()=>{}),3000);
+    setTimeout(()=>loadResearchPcControl().catch(()=>{}),9000);
+  }catch(x){
+    if(cmd==='stop_worker'){
+      stopCommandPending=false;stopCommandId=null;
+      const state=await loadResearchPcControl().catch(()=>null);
+      if(state?.active)setStopButtonState('STOP ALL RESEARCH & WORKER',false);
+      else setStopButtonState('RESEARCH PC STOPPED',true);
+    }
+    msg(x.message||String(x),true);
   }
-  msg(cmd==='start_worker'?'Start command sent. Waiting for the Research PC worker to come online…':'Restart command sent. Waiting for the Research PC worker to come back online…');
-  setTimeout(()=>loadResearchPcControl().catch(()=>{}),6000);
-  setTimeout(()=>loadResearchPcControl().catch(()=>{}),12000);
-}).catch(x=>msg(x.message,true));return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});// Do not allow one slow API call to leave the entire Research Centre permanently on "Checking…".
+})();return}const s=e.target.closest('.source-action');if(s)updateSource(s.dataset.id,s.dataset.status).catch(x=>sourceMsg(x.message,true))});// Do not allow one slow API call to leave the entire Research Centre permanently on "Checking…".
 const initialLoads=[
   ['review queue',()=>load()],
   ['sources',()=>loadSources()],
