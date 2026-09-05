@@ -352,3 +352,25 @@ The documentation should allow a future AI or developer to answer quickly:
 > **“This part is broken — which files, database objects and connected systems should I inspect first?”**
 
 The manuals are therefore part of the system's maintenance infrastructure, not merely explanatory documentation.
+
+
+---
+
+# 14. Current Diagnostic Lesson — Amazon UK Only Must Be Verified at the Run Record
+
+On 5 September 2026, Amazon UK Only appeared selected in the dashboard and was passed correctly by `admin-ai-research.js` and the live `quote-catalog-ai-worker` Edge Function, yet the Research PC still searched non-Amazon sources.
+
+The first actual failure was the persisted run scope. The live Supabase RPC `ai_research_create_run_filtered(...)` accepted `p_evidence_scope` but only preserved `new_uk`, `used_uk` and `overseas`; `amazon_uk` silently became `all`.
+
+The local worker correctly uses `quote_catalog_ai_research_runs.evidence_scope` through `getRunEvidenceScope(...)`, so it widened the search because the database had already lost the Amazon-only instruction.
+
+Repair: `supabase/migrations/20260905162500_fix_amazon_uk_manual_research_run_scope.sql`.
+
+Before diagnosing worker search logic again, always verify the latest run row itself. For an Amazon-only test it must store `evidence_scope = 'amazon_uk'`.
+
+Expected next live verification:
+
+- fresh run record stores `amazon_uk`;
+- worker logs `Research evidence scope: amazon_uk`;
+- Amazon-only enforcement is active;
+- no non-Amazon source probes occur.
