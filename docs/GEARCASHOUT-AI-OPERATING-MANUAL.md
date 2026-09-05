@@ -702,3 +702,6 @@ Data flow remains unchanged:
 quote_catalog_products + quote_catalog_retailer_prices → admin-ai-research.js grouped review.
 
 No Supabase schema, pricing rule or evidence-application workflow was changed.
+
+### Grouped review catalogue evidence rule — 5 September 2026
+When reviewing AI findings against an existing catalogue product, the current catalogue comparison must expose all evidence classes before a reviewer decides what to do with new evidence. Do not suppress valid rows merely because price_currency is blank. Use the catalogue row's region and evidence classification so UK NEW, UK USED / OTHER and OVERSEAS evidence can all be seen, followed by the complete evidence table.
