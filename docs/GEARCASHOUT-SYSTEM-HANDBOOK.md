@@ -960,3 +960,123 @@ For each system:
 6. mark the documentation with its verification state.
 
 This handbook therefore becomes the living technical map for humans, while the AI Operating Manual and Supabase memory provide continuity for future AI work.
+
+
+---
+
+# 19. Developer Diagnostic Roadmaps
+
+## Purpose
+
+The Human / Developer System Handbook is not intended to duplicate the repository's source code.
+
+Instead, every major visible website area and action should progressively receive a **Developer Diagnostic Roadmap**.
+
+The purpose is to let a developer answer:
+
+> **“This feature is not working. Where do I start checking?”**
+
+The roadmap points to the relevant parts of the real system without copying large amounts of code into the manual.
+
+## Required roadmap format
+
+Each documented feature should contain:
+
+### What the user does
+The visible page, control or action.
+
+### Expected result
+What the user should see happen.
+
+### Diagnostic route
+
+**Website / Front end**
+- relevant page;
+- relevant JavaScript/module/component;
+- relevant handler or function where known.
+
+**Supabase**
+- relevant table(s);
+- relevant fields/status values;
+- RPC/database function(s);
+- trigger(s), RLS or permissions where relevant;
+- Edge Function(s), where used.
+
+**External / local systems**
+- email service or email function;
+- Research PC;
+- local worker;
+- Ollama;
+- other integration where relevant.
+
+### Failure checkpoints
+
+A short ordered checklist showing where the action can fail.
+
+### Expected data path
+
+A simple roadmap such as:
+
+User action
+→ front-end handler
+→ Supabase/API call
+→ database record/function
+→ external or local worker if applicable
+→ status/result returned to website.
+
+### Known issue history
+
+Where relevant, link to or summarise:
+
+- previous faults;
+- fixes attempted;
+- approaches that failed;
+- current verified behaviour.
+
+## Important rule
+
+The roadmap must contain **real inspected paths and objects**. It must not invent filenames, tables or functions merely to complete a template.
+
+If a feature has not yet been fully traced, it should be marked:
+
+**Roadmap status: Not yet audited**
+
+rather than guessing.
+
+## Example
+
+### Research & Pricing → Amazon UK Only
+
+**User action:** Select Amazon UK Only and start research.
+
+**Expected result:** Only Amazon UK research routes should be generated and accepted.
+
+**Developer diagnostic route:**
+
+1. Check the Research & Pricing source-filter front-end control.
+2. Check the command/request created from that selection.
+3. Check the Supabase record storing the selected research scope.
+4. Check the local Research PC worker path in `tools/gear-ai-local-agent/agent.mjs`.
+5. Check the source-routing logic before search queries are generated.
+6. Check the final evidence/domain allowlist.
+7. Check logs to identify the first point at which a non-Amazon route appears.
+
+This is a diagnostic roadmap, not a copy of the code.
+
+## Documentation rollout
+
+Roadmaps will be added progressively as systems are inspected:
+
+1. Quote and valuation flow
+2. Customer acceptance/rejection
+3. Purchasing, receipt, refusal and returns
+4. Staff management and permissions
+5. Quote Catalogue
+6. Evidence and comparison pricing
+7. AI Research Centre
+8. Research PC and local worker
+9. Email and notifications
+10. Sales and completed transactions
+11. Authentication and customer accounts
+
+The eventual aim is that a developer can open the Human / Developer Handbook, identify the broken website area, and immediately see the route through the repository, Supabase and any connected services.
