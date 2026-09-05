@@ -1438,3 +1438,18 @@ When a staff user opens a matched catalogue product, the page shows one complete
 The reviewer no longer needs to open a separate comparison, click View Evidence, or move between pages to compare the matched product. Each evidence item can still be individually saved, submitted through `record_ai_candidate_manual_review(...)` and `apply_accepted_ai_candidate(...)`, or denied with a required reason for Gemma learning.
 
 This preserves the existing separation between proposed evidence, manual acceptance and live evidence while changing the review UI from per-finding navigation to a product-centred evidence workspace.
+
+
+### Grouped review panel close behaviour — 5 September 2026
+
+The product-centred review uses native collapsible panels. A previous state-retention handler remembered the active product when it was opened but did not clear that state when the panel was closed. After a render, this could force the same review section back open and make it difficult to move to the next grouped review, including Amazon findings.
+
+Current behaviour:
+
+- opening a product loads its grouped new evidence and current catalogue evidence;
+- closing that product review clears the active review state and keeps it closed;
+- the reviewer can then collapse the surrounding section or open another product normally;
+- opening another product switches the active grouped review without requiring an edit or decision;
+- no Supabase schema or evidence workflow was changed.
+
+This is a UI-state repair only. Save, submit and deny behaviour remains unchanged.
