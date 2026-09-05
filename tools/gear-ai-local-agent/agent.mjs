@@ -925,7 +925,8 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
   // In ALL mode we deliberately research each market independently. A healthy
   // new-retail search must never stop the worker before it has looked for used
   // UK and overseas evidence for the same exact product.
-  const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:[evidenceScope];
+  const amazonOnly=evidenceScope==='amazon_uk';
+  const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:(amazonOnly?['new_uk']:[evidenceScope]);
   const seen=new Map();
 
   // Amazon UK is a mandatory discovery route for every new-UK comparison pass.
@@ -964,10 +965,13 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       .slice(0,Math.max(4,Math.ceil(cfg.sourceProbeLimit/2)));
 
     let foundForScope=0;
-    // Always search the canonical manufacturer + model identity first.
-    for(const q of queriesFor(name,scope)){
-      foundForScope+=await addResults(q,scope);
-      if(foundForScope>=8)break;
+    // Amazon-only mode deliberately skips general retailer searches.
+    if(!amazonOnly){
+      // Always search the canonical manufacturer + model identity first.
+      for(const q of queriesFor(name,scope)){
+        foundForScope+=await addResults(q,scope);
+        if(foundForScope>=8)break;
+      }
     }
 
     // Mandatory Amazon UK discovery for every New UK pass. Amazon queries run
@@ -979,7 +983,7 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
     // If the catalogue has a specific commercial package name, search it as an
     // additional discovery route. Its absence on a retailer page never counts as
     // a rejection: package assignment is for the manual review stage when unclear.
-    if(foundForScope<8&&names[1]){
+    if(!amazonOnly&&foundForScope<8&&names[1]){
       for(const q of queriesFor(names[1],scope)){
         foundForScope+=await addResults(q,scope);
         if(foundForScope>=8)break;
@@ -1247,7 +1251,11 @@ function buildManualReviewFallback(product,page,knownSource,evidenceScope='all')
       ['new_uk','used_uk'].includes(String(page.scope_hint||'').toLowerCase())?'UK':'overseas'
   };
 
-  if(evidenceScope!=='all'&&cls.evidence_category!==evidenceScope)return null;
+  if(evidenceScope==='amazon_uk'){
+    // Amazon-only is a discovery mode, not a separate evidence market. The
+    // resulting evidence remains classified as New UK for downstream pricing.
+    if(hostOf(page.url)!=='amazon.co.uk')return null;
+  }else if(evidenceScope!=='all'&&cls.evidence_category!==evidenceScope)return null;
 
   return {
     source_url:page.url,
