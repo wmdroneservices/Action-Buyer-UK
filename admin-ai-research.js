@@ -149,7 +149,7 @@ async function loadComparisonEvidence(productId){
  if(cached?.status==='loading')return cached.rows||[];
  comparisonEvidenceByProduct.set(key,{status:'loading',rows:[]});
  const {data,error}=await sb.from('quote_catalog_retailer_prices')
-   .select('id,retailer,price_type,condition,buy_price,sell_price,price_currency,evidence_region,availability_status,source_url,notes,checked_at')
+   .select('id,retailer,price_type,condition,buy_price,sell_price,price_currency,evidence_region,availability_status,buy_method,source_url,notes,checked_at,original_sell_price,sell_price_vat_basis,vat_rate,price_region')
    .eq('catalog_product_id',productId)
    .order('checked_at',{ascending:false});
  if(error){
@@ -271,11 +271,46 @@ function productEvidenceEntryMarkup(c,index,total){
  const title=c.edited_title??c.discovered_title??'Unnamed evidence',price=c.edited_price??c.price??'—',category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified',url=c.edited_source_url??c.source_url??'';
  return '<article class="ai-group-evidence-entry" data-candidate-id="'+esc(c.id)+'"><div class="ai-group-evidence-entry-head"><div><p class="section-kicker">EVIDENCE '+(index+1)+' OF '+total+'</p><h4>'+esc(title)+'</h4></div><div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(c.decision||'pending')+'</span></div></div><div class="ai-group-evidence-meta"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price)+'</span><span><strong>Source</strong>'+esc(c.edited_source_kind??c.source_kind??'—')+'</span><span><strong>Condition</strong>'+esc(c.edited_condition??c.condition??'—')+'</span></div>'+(url?'<p class="ai-group-evidence-link"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a></p>':'')+editorMarkup(c)+manualReviewMarkup(c,true)+'</article>';
 }
+function catalogueUkStats(rows){
+ const uk=(rows||[]).filter(r=>String(r.price_currency||'').toUpperCase()==='GBP'&&String(r.evidence_region||'').toUpperCase()==='UK');
+ const newRows=uk.filter(r=>['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
+ const otherRows=uk.filter(r=>!['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
+ const prices=newRows.map(r=>Number(r.sell_price)).filter(Number.isFinite);
+ return {newCount:newRows.length,lowest:prices.length?Math.min(...prices):null,highest:prices.length?Math.max(...prices):null,otherCount:otherRows.length,total:(rows||[]).length};
+}
+function catalogueSnapshotMarkup(p,rows,compact=false){
+ const stats=catalogueUkStats(rows);
+ const automatic=[
+   ['FACTORY SEALED',p?.factory_sealed_price],
+   ['OPENED / UNUSED',p?.opened_unused_price],
+   ['EXCELLENT',p?.excellent_price],
+   ['GOOD',p?.good_price],
+   ['FAIR',p?.fair_price]
+ ];
+ return '<div class="ai-catalogue-snapshot'+(compact?' ai-catalogue-snapshot-compact':'')+'">'
+   +'<div class="ai-catalogue-snapshot-group"><p class="section-kicker">AUTOMATIC BUYING PRICES</p><div class="ai-catalogue-price-grid">'+automatic.map(([label,value])=>'<span><strong>'+esc(label)+'</strong>'+comparisonMoney(value)+'</span>').join('')+'</div></div>'
+   +'<div class="ai-catalogue-snapshot-group"><p class="section-kicker">ONLINE COMPARISON SUMMARY</p><div class="ai-catalogue-stat-grid">'
+     +'<span><strong>'+esc(stats.newCount)+'</strong>UK NEW evidence records</span>'
+     +'<span><strong>'+comparisonMoney(stats.lowest)+'</strong>Lowest UK NEW selling price</span>'
+     +'<span><strong>'+comparisonMoney(stats.highest)+'</strong>Highest UK NEW selling price</span>'
+     +'<span><strong>'+esc(stats.otherCount)+'</strong>UK used / other evidence — reference only</span>'
+     +'<span><strong>'+esc(stats.total)+'</strong>Total current evidence records</span>'
+   +'</div></div></div>';
+}
 function productReviewMarkup(group){
  const productId=group.productId,p=group.items.map(productFor).find(Boolean)||null,productTitle=p?[p.manufacturer,p.model,p.package_name].filter(Boolean).join(' · '):'Catalogue product unavailable',productMeta=p?[p.category,p.product_type].filter(Boolean).join(' · '):'',state=productId?comparisonEvidenceByProduct.get(String(productId)):null,loading=!!productId&&(!state||state.status==='loading'),failed=state?.status==='error',rows=state?.rows||[];
- const evidenceHtml=!productId?'<div class="ai-comparison-empty">These findings are not linked to a catalogue product yet.</div>':loading?'<div class="ai-comparison-loading">Loading current catalogue evidence…</div>':failed?'<div class="ai-comparison-error">Current catalogue evidence could not be loaded: '+esc(state.error||'Unknown error')+'</div>':rows.length?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Price</th><th>Region</th><th>Availability</th><th>Exact source</th><th>Checked</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price??r.buy_price)+'</td><td>'+esc(r.evidence_region||'—')+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a>':'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>':'<div class="ai-comparison-empty">No current catalogue evidence is recorded for this product.</div>';
+ const evidenceHtml=!productId
+   ?'<div class="ai-comparison-empty">These findings are not linked to a catalogue product yet.</div>'
+   :loading
+     ?'<div class="ai-comparison-loading">Loading current catalogue evidence…</div>'
+     :failed
+       ?'<div class="ai-comparison-error">Current catalogue evidence could not be loaded: '+esc(state.error||'Unknown error')+'</div>'
+       :'<div class="ai-catalogue-current-summary">'+catalogueSnapshotMarkup(p,rows,false)+'</div>'
+         +(rows.length
+           ?'<div class="ai-comparison-table-wrap"><table class="ai-comparison-table ai-catalogue-evidence-table"><thead><tr><th>Retailer</th><th>Type</th><th>Condition</th><th>Sell price</th><th>Buy price</th><th>Availability</th><th>Buy method</th><th>Region</th><th>Exact source</th><th>Notes</th><th>Checked</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.retailer||'—')+'</td><td>'+esc(String(r.price_type||'—').replaceAll('_',' '))+'</td><td>'+esc(r.condition||'—')+'</td><td>'+comparisonMoney(r.sell_price)+'</td><td>'+comparisonMoney(r.buy_price)+'</td><td>'+esc(String(r.availability_status||'—').replaceAll('_',' '))+'</td><td>'+esc(r.buy_method||'—')+'</td><td>'+esc(r.evidence_region||r.price_region||'—')+'</td><td>'+(r.source_url?'<a href="'+esc(r.source_url)+'" target="_blank" rel="noopener">OPEN SOURCE</a><br><small>'+esc(r.source_url)+'</small>':'—')+'</td><td>'+esc(r.notes||'—')+'</td><td>'+esc(r.checked_at?new Date(r.checked_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'
+           :'<div class="ai-comparison-empty">No current catalogue evidence is recorded for this product.</div>');
  const key=productId||group.key;
- return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h3>'+esc(productTitle)+'</h3><p>This is the evidence already attached to the matched catalogue product.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section></div></details></article>';
+ return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div class="ai-product-review-summary"><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div>'+catalogueSnapshotMarkup(p,rows,true)+'</div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE</p><h3>'+esc(productTitle)+'</h3><p>This mirrors the relevant Quote Catalogue context: automatic buying prices, online comparison summary and the full current evidence list.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section></div></details></article>';
 }
 async function openProductReview(productId){
  const key=String(productId||'');activeProductReviewId=key;render();if(!productId)return;
@@ -340,7 +375,7 @@ function populateResearchFilters(){fillSelect('research-manufacturer',products.m
 async function load(){
  const [c,allProducts,pc]=await Promise.all([
    sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),
-   sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),
+   sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,pricing_source,active,customer_visible').limit(10000),
    sb.from('quote_catalog_ai_product_candidates').select('*').order('created_at',{ascending:false}).limit(500)
  ]);
  if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(pc.error)throw pc.error;
@@ -350,7 +385,7 @@ async function load(){
  const candidateProductIds=[...new Set(candidates.map(x=>x.catalog_product_id).filter(Boolean))];
  let candidateProducts=[];
  if(candidateProductIds.length){
-   const r=await sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').in('id',candidateProductIds);
+   const r=await sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type,factory_sealed_price,opened_unused_price,excellent_price,good_price,fair_price,pricing_source,active,customer_visible').in('id',candidateProductIds);
    if(r.error)throw r.error;
    candidateProducts=r.data||[];
  }
