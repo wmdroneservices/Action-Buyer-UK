@@ -371,8 +371,18 @@ function productReviewMarkup(group){
  return '<article class="ai-product-review-card"><details class="ai-product-review-details" data-product-review-id="'+esc(key)+'"'+(String(activeProductReviewId)===String(key)?' open':'')+'><summary><div class="ai-product-review-summary"><div><p class="section-kicker">MATCHED CATALOGUE PRODUCT</p><h3>'+esc(productTitle)+'</h3><p>'+esc(productMeta||'Open once to review every new evidence item together with the current catalogue evidence.')+'</p><div class="ai-product-review-count">'+group.items.length+' NEW EVIDENCE ITEM'+(group.items.length===1?'':'S')+' TO REVIEW</div></div>'+catalogueSnapshotMarkup(p,rows,true)+'</div><span class="ai-decision-toggle">OPEN REVIEW</span></summary><div class="ai-product-review-content"><section class="ai-product-evidence-block ai-product-evidence-current"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">CURRENT CATALOGUE EVIDENCE — FULL COMPARISON</p><h3>'+esc(productTitle)+'</h3><p>Everything currently recorded for this product is shown here first, split exactly into UK NEW, UK USED / OTHER and OVERSEAS evidence so duplicate entries can be checked before any new finding is accepted or denied.</p></div>'+(productId?'<a class="btn btn-secondary" href="admin-catalog.html?product='+encodeURIComponent(productId)+'" target="_blank" rel="noopener">OPEN FULL CATALOGUE EDITOR</a>':'')+'</div>'+evidenceHtml+'</section><section class="ai-product-evidence-block ai-product-evidence-new"><div class="ai-product-evidence-block-head"><div><p class="section-kicker">NEW AI EVIDENCE — EDITABLE</p><h3>All new evidence found for this product</h3><p>Every proposed evidence item for this catalogue product is shown here together. Edit each item, record why you changed it, then submit it to live catalogue evidence or deny it.</p></div></div>'+group.items.map((c,i)=>productEvidenceEntryMarkup(c,i,group.items.length)).join('')+'</section></div></details></article>';
 }
 async function openProductReview(productId){
- const key=String(productId||'');activeProductReviewId=key;render();if(!productId)return;
- try{await loadComparisonEvidence(productId);}catch(e){msg('The product review opened, but current catalogue evidence could not be loaded: '+(e.message||String(e)),true);}render();
+ const key=String(productId||'');
+ activeProductReviewId=key;
+ if(!productId)return;
+ try{
+   if(!comparisonEvidenceByProduct.has(key))await loadComparisonEvidence(productId);
+ }catch(e){
+   msg('The product review opened, but current catalogue evidence could not be loaded: '+(e.message||String(e)),true);
+ }
+ // Do not force a render while the native <details> control is being opened.
+ // A delayed render is allowed only while this review is still the active/open one,
+ // so closing it during evidence loading cannot make it spring back open.
+ if(String(activeProductReviewId)===key)render();
 }
 function renderGroupedPendingSection(title,description,groups,state){
  if(!groups.length)return '';
