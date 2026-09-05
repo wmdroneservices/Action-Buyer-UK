@@ -175,3 +175,30 @@ Repair committed:
 - START is no longer blocked merely because the research worker is stopped.
 
 The Windows launcher/supervisor remains alive after STOP, allowing START from the dashboard, including from another authorised staff computer.
+
+
+## Root cause confirmed — Amazon UK Only manual research widening
+
+### Symptom
+
+Amazon UK Only was visibly selected and the run notes recorded `evidence=amazon_uk`, but recent live research-run rows still stored `evidence_scope = all`.
+
+The Research PC therefore searched non-Amazon sources despite the worker hardening already being present.
+
+### First failure
+
+The live Edge Function `quote-catalog-ai-worker` correctly passed `p_evidence_scope='amazon_uk'` into `ai_research_create_run_filtered(...)`.
+
+The database RPC was the failure point: its validation case only accepted `new_uk`, `used_uk` and `overseas`, silently converting Amazon UK Only to `all`.
+
+### Repair
+
+- Applied live Supabase migration: `fix_amazon_uk_manual_research_run_scope`.
+- Added repository migration: `supabase/migrations/20260905162500_fix_amazon_uk_manual_research_run_scope.sql`.
+- The repaired RPC now accepts `all`, `new_uk`, `used_uk`, `overseas` and `amazon_uk`.
+
+### Current status
+
+**Implemented and database definition verified.**
+
+Next required test: start one fresh Amazon UK Only batch and confirm the new run row stores `amazon_uk` and the Research PC logs no non-Amazon source routes.
