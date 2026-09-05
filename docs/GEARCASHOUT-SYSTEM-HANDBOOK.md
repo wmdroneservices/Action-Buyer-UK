@@ -1328,3 +1328,50 @@ If this workflow fails:
 6. Check `quote_catalog_ai_learning` for generated field learning.
 7. For direct acceptance, then check `apply_accepted_ai_candidate(uuid)` and `quote_catalog_retailer_prices`.
 8. Do not alter the existing apply function merely to repair feedback capture; identify the first failed step.
+
+
+---
+
+# AI Research Centre — Collapsible Discovery Lists and Current Startup Guide
+
+## Discovery lists
+
+The following large lists are intentionally collapsed by default:
+
+- **New models and products found**
+- **New websites and monitored launches**
+
+Opening either section reveals the existing review controls and records. This is a usability change only: no product, source or approval workflow is automatically changed.
+
+The source list retains:
+
+- refresh;
+- approve/block controls;
+- monitored-opening status;
+- source counts.
+
+The product-discovery list retains:
+
+- duplicate review;
+- approve/reject;
+- draft catalogue creation.
+
+## Research PC setup, startup and restart instructions
+
+The bottom-of-page guide was audited against the current Research PC architecture and corrected.
+
+Current architecture:
+
+**Windows desktop/startup launcher → C:\GearCashOut-Config\Start-GearCashOut-AI.ps1 → persistent supervisor.mjs → agent.mjs**
+
+Important distinctions:
+
+- **OFFLINE** means the Research PC supervisor/control channel is unavailable. Start the Windows launcher.
+- **READY** means the supervisor is online but the research worker can be stopped.
+- **ONLINE** means the research worker is active.
+- **START RESEARCH PC WORKER** starts the worker through the persistent supervisor.
+- **STOP ALL RESEARCH & WORKER** stops the worker/research but leaves the supervisor available for a later remote start.
+- A normal Windows restart does not normally require `npm install`.
+- `npm install` is needed after a fresh repository extraction or when dependencies are missing/changed.
+- Do not run `npm start` from `C:\GearCashOut-Config`; it is a configuration folder and does not contain `package.json`.
+- Permanent secrets remain in `C:\GearCashOut-Config\.env` and must not be overwritten by repository updates.
