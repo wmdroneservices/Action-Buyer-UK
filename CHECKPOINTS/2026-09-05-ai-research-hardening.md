@@ -84,3 +84,50 @@ The PowerShell stop helper used $pid, which collides with PowerShell's read-only
 The Research PC is **not a live Git checkout**. The updated agent.mjs must be downloaded and manually replaced in the extracted local repository before the PowerShell process-tree shutdown fix can be tested.
 
 The database emergency stop has already been applied to production, and the active queue was stopped during the incident.
+
+
+## Root cause confirmed — 5 September 2026, Research PC start/stop regression
+
+### What changed
+
+The local PowerShell launcher was reduced to a one-shot:
+
+`npm start`
+
+instead of retaining the previously working restart loop. This removed the behaviour Gary had configured yesterday: when the worker exited, PowerShell stayed available and relaunched the worker after a delay.
+
+### Why the dashboard START button could not work
+
+The dashboard START button writes a `start_worker` command into Supabase. Commands are consumed by `agent.mjs`. Therefore, when the worker is genuinely offline there is no running process available to read the START command. The command remains queued indefinitely.
+
+This explains the observed sequence exactly:
+
+- dashboard reports the Research PC offline;
+- Gary clicks OK to start it;
+- a `start_worker` command is written;
+- no worker is running to consume it;
+- PowerShell never opens.
+
+This was not a Windows or browser failure.
+
+### Repairs
+
+1. Restored the persistent PowerShell launcher loop in:
+   `tools/gear-ai-local-agent/Start-GearCashOut-AI.ps1`
+2. The launcher now:
+   - starts the worker;
+   - detects exit/crash;
+   - waits 10 seconds;
+   - starts it again automatically.
+3. Dashboard command handling now refuses to pretend that an offline worker can receive a START command and gives an explicit explanation instead.
+4. Stale queued remote-control commands from the incident were marked failed so they cannot execute unexpectedly when the worker returns.
+5. Existing architecture remains unchanged:
+   Windows startup / desktop launcher → Start-GearCashOut-AI.ps1 → npm start → agent.mjs.
+
+### Local installation requirement
+
+Because Gary's Research PC is a manually extracted repository copy, the repaired local launcher file must be replaced on that PC:
+
+`Start-GearCashOut-AI.ps1`
+
+No whole repository download is required for this specific repair.
