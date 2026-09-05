@@ -940,3 +940,67 @@ The local worker was updated to version 1.4.6 so active `quote_catalog_ai_learni
 The MPB source-specific rule is now explicitly present in structured learning and the prompt.
 
 This does not by itself complete the historical MPB audit. It prevents the learning system from treating category/brand pages as final evidence while the existing dataset is audited.
+
+
+---
+
+# MPB Deterministic Deep-Inventory Audit Path — 5 September 2026
+
+The historical MPB audit found that Gemma must not be the authority for expanding a multi-unit MPB model page.
+
+## First failures corrected
+
+### MPB source registration
+
+MPB UK was absent from the active source registry used by the local worker. It is now explicitly registered as:
+
+- source: MPB UK
+- domain: mpb.com
+- country: GB
+- kind: used_dealer
+- scope: used_uk
+- priority: 5
+
+### Multi-unit extraction
+
+Worker version 1.4.7 contains extractMpbUkUnits(page).
+
+For an exact UK MPB product page it extracts repeated live unit records using:
+
+- SKU;
+- price;
+- cosmetic condition;
+- charges or shutter count where present;
+- included details where available.
+
+Each SKU is submitted separately. The worker does not ask Gemma to decide how many units exist.
+
+### Duplicate same-price units
+
+quote_catalog_retailer_prices deduplicates on product, retailer, condition, price and source URL.
+
+MPB can have two different SKUs with identical price and condition. To preserve both observations, the source identity is stored as:
+
+canonical MPB model URL#mpb-sku-SKU_NUMBER
+
+The canonical URL is also retained in the evidence notes.
+
+## Verification
+
+Live exact-page checks were used to replace generic evidence for:
+
+- DJI Air 3 Standard Package (DJI RC-N2): £584, SKU 4135248.
+- DJI Mini 4 Pro Standard Package: four units, £444–£639, SKUs 3974411, 4018929, 4115498 and 4144768.
+
+## Audit completion condition
+
+Do not report the MPB historical sweep complete merely because a worker run finished.
+
+Every generic-only product must receive one verified outcome:
+
+1. exact live unit evidence;
+2. exact MPB model page, currently out of stock;
+3. no exact MPB model/not stocked;
+4. package or controller mismatch.
+
+Current generic-only count after verified corrections: **547**.
