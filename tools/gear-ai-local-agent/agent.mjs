@@ -928,8 +928,12 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
   const scopes=evidenceScope==='all'?['new_uk','used_uk','overseas']:[evidenceScope];
   const seen=new Map();
 
+  // Amazon UK is a mandatory discovery route for new-UK comparison research.
+  // Amazon often blocks direct automated page retrieval, so we search for its
+  // indexed listings explicitly and preserve an exact-model Amazon discovery for
+  // manual review even when the product page itself cannot be fetched.
   const queriesFor=(searchName,scope)=>scope==='new_uk'
-    ? ['"'+searchName+'" UK price','"'+searchName+'" new UK retailer','"'+searchName+'" buy UK']
+    ? ['"'+searchName+'" UK price','"'+searchName+'" new UK retailer','"'+searchName+'" buy UK','"'+searchName+'" site:amazon.co.uk','"'+searchName+'" Amazon UK']
     : scope==='used_uk'
       ? ['"'+searchName+'" used UK','"'+searchName+'" second hand UK','"'+searchName+'" eBay UK']
       : ['"'+searchName+'" price international','"'+searchName+'" overseas retailer','"'+searchName+'" international buy'];
@@ -1041,7 +1045,30 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
         discovered_availability:meta.availability||null,
         structured_product:meta.product===true
       });
-    }catch(e){log('Page fetch blocked/unavailable:',r.host,e.message)}
+    }catch(e){
+      // Amazon commonly blocks non-browser retrieval. If a search engine has
+      // already surfaced an exact-model Amazon UK product result, do not lose it:
+      // preserve it as indexed discovery evidence for manual review only. No
+      // unverified price is invented or auto-applied.
+      const amazonUk=String(r.host||hostOf(r.url)||'').toLowerCase();
+      const indexedText=String(r.snippet||'');
+      if((amazonUk==='amazon.co.uk'||amazonUk.endsWith('.amazon.co.uk'))&&
+         hasExactModelEvidence(product,r.title,indexedText,r.url)&&
+         productIdentityScore(product,r.title,indexedText,r.url)>=6){
+        pages.push({...r,
+          title:r.title||productName(product),
+          text:indexedText,
+          discovered_price:null,
+          discovered_currency:'GBP',
+          discovered_availability:null,
+          structured_product:false,
+          indexed_search_discovery:true
+        });
+        log('Amazon UK indexed discovery preserved for manual review:',r.title||r.url);
+      }else{
+        log('Page fetch blocked/unavailable:',r.host,e.message);
+      }
+    }
   }
 
   const counts={};
@@ -1223,7 +1250,9 @@ function buildManualReviewFallback(product,page,knownSource,evidenceScope='all')
     market_region:cls.market_region,
     package_match:'uncertain',
     variant_match:'uncertain',
-    evidence_notes:'Collected live evidence preserved for manual review because automated validation did not return it as a candidate. Exact/strong product identity was detected, but package, variant, condition or price may require human confirmation. Live URL retained.',
+    evidence_notes:page.indexed_search_discovery
+      ? 'Amazon UK indexed search discovery preserved for manual review after direct automated page retrieval was blocked or unavailable. Product identity came from the search result title/snippet; price and availability are not verified and must be checked manually from the live Amazon listing before acceptance.'
+      : 'Collected live evidence preserved for manual review because automated validation did not return it as a candidate. Exact/strong product identity was detected, but package, variant, condition or price may require human confirmation. Live URL retained.',
     _evidence_title:page.title,
     _evidence_text:page.text,
     _manual_review_fallback:true
