@@ -59,7 +59,6 @@ async function createCatalogueDraft(id){
  await load();
 }
 
-function renderMemory(rows){const el=$('ai-memory');if(!el)return;el.innerHTML=!rows.length?'<p>No review learning has been recorded yet.</p>':'<div style="overflow-x:auto"><table class="ai-table"><thead><tr><th>Type</th><th>Key</th><th>Category</th><th>Confidence</th><th>Updated</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.learning_type)+'</td><td>'+esc(r.learning_key)+'</td><td>'+esc(r.evidence_category||'—')+'</td><td>'+esc(r.confidence??'—')+'</td><td>'+esc(r.updated_at?new Date(r.updated_at).toLocaleString('en-GB'):'—')+'</td></tr>').join('')+'</tbody></table></div>'}
 function editorMarkup(c){
  const title=c.edited_title??c.discovered_title??'';
  const price=c.edited_price??c.price??'';
@@ -319,13 +318,12 @@ function renderSources(){
 function fillSelect(id,values,placeholder){const el=$(id);if(!el)return;const current=el.value;el.innerHTML='<option value="">'+placeholder+'</option>'+[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');el.value=current}
 function populateResearchFilters(){fillSelect('research-manufacturer',products.map(p=>p.manufacturer),'Any manufacturer');fillSelect('research-category',products.map(p=>p.category),'Any category');fillSelect('research-product-type',products.map(p=>p.product_type),'Any product type')}
 async function load(){
- const [c,allProducts,m,pc]=await Promise.all([
+ const [c,allProducts,pc]=await Promise.all([
    sb.from('quote_catalog_ai_candidates').select('*').order('created_at',{ascending:false}).limit(500),
    sb.from('quote_catalog_products').select('id,manufacturer,model,package_name,category,product_type').limit(10000),
-   sb.from('quote_catalog_ai_learning').select('*').eq('active',true).order('updated_at',{ascending:false}).limit(100),
    sb.from('quote_catalog_ai_product_candidates').select('*').order('created_at',{ascending:false}).limit(500)
  ]);
- if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(m.error)throw m.error;if(pc.error)throw pc.error;
+ if(c.error)throw c.error;if(allProducts.error)throw allProducts.error;if(pc.error)throw pc.error;
  productCandidates=pc.data||[];
  candidates=c.data||[];
  selectedCandidateIds=new Set([...selectedCandidateIds].filter(id=>candidates.some(c=>String(c.id)===String(id))));
@@ -339,7 +337,7 @@ async function load(){
  const byId=new Map();
  [...(allProducts.data||[]),...candidateProducts].forEach(p=>byId.set(String(p.id),p));
  products=[...byId.values()];
- populateResearchFilters();render();renderProductCandidates();renderMemory(m.data||[])
+ populateResearchFilters();render();renderProductCandidates();
 }
 async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources()}
 async function loadAgentStatus(){
