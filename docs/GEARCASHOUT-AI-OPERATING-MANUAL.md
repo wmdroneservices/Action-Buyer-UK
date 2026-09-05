@@ -304,3 +304,51 @@ Do not assume remembered summaries are sufficient.
 For significant work:
 
 **Retrieve → inspect current state → trace → change minimally → test → verify → document → capture checkpoint.**
+
+
+---
+
+# 13. Diagnostic Roadmap Requirement
+
+The AI must use the documentation as a troubleshooting map, not merely as a history record.
+
+For each significant website action, the Human / Developer Handbook should progressively contain a **Developer Diagnostic Roadmap** identifying the real inspected route through:
+
+1. visible user action;
+2. page/front-end entry point;
+3. relevant file/module/component;
+4. handler or function where known;
+5. Supabase query/RPC/Edge Function;
+6. relevant database table(s), fields and statuses;
+7. database functions/triggers/RLS where relevant;
+8. external integrations;
+9. local systems such as the Research PC and Ollama;
+10. expected visible result.
+
+## AI troubleshooting procedure
+
+When a feature is reported broken:
+
+1. Retrieve the relevant project memory and current checkpoint.
+2. Open the relevant section of the Human / Developer Handbook.
+3. Follow the Diagnostic Roadmap from the user action forward.
+4. Identify the first layer where actual behaviour differs from expected behaviour.
+5. Inspect current GitHub and Supabase state before changing anything.
+6. Check previous issue history so failed fixes are not blindly repeated.
+7. Apply the smallest appropriate repair.
+8. Test the repair.
+9. Update both manuals and structured project memory.
+
+## No invented roadmaps
+
+A roadmap is only authoritative when based on inspected current code and backend objects.
+
+If the connection has not been verified, mark it as not yet audited rather than guessing.
+
+## Goal
+
+The documentation should allow a future AI or developer to answer quickly:
+
+> **“This part is broken — which files, database objects and connected systems should I inspect first?”**
+
+The manuals are therefore part of the system's maintenance infrastructure, not merely explanatory documentation.
