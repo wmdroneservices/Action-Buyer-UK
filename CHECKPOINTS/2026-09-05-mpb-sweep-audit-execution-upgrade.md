@@ -108,3 +108,19 @@ The remaining 547 products require exact-page verification or an explicit verifi
 Repository worker is now 1.4.7.
 
 The Research PC agent previously reported 1.4.5, so the local checkout/version must be brought up to date before using the new deterministic MPB audit path. Do not run the remaining 547 through the old worker and repeat the previous failure mode.
+
+
+## 6 September 2026 — MPB Deep Source first-run discovery repair
+
+The first live Deep Source test targeted DJI Mavic 3 Enterprise Standard Package using the MPB UK landing page. The 1.4.8 worker correctly claimed and processed the queue item, but returned **No usable web pages were collected for this product**.
+
+This was the first failure: MPB's landing/category/internal search path was not reliably yielding exact links to the raw local crawler, despite the exact MPB UK model page existing.
+
+Repository worker **1.4.9** adds MPB-specific exact-page discovery fallbacks before the generic crawl:
+
+1. deterministic MPB UK product URL derived from the catalogue manufacturer + model identity;
+2. external web discovery constrained to `site:mpb.com/en-uk/product`.
+
+Both are still discovery-only. The worker must fetch and validate the exact MPB page before extracting SKU evidence.
+
+The failed run is retained as audit history; it produced no pending candidates and changed no live evidence.
