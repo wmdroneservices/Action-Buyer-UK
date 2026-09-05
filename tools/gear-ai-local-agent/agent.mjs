@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.3',
+    version:'1.4.4',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -973,38 +973,32 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       .slice(0,Math.max(4,Math.ceil(cfg.sourceProbeLimit/2)));
 
     let foundForScope=0;
-    // Amazon-only mode is a hard stop: no general retailer query may be
-    // handed to a search engine in this branch.
+    // Amazon-only mode is a hard stop: the ONLY queries permitted are
+    // explicitly targeted at amazon.co.uk. Keep this branch structurally separate
+    // so no future fallback can accidentally send generic web queries.
     if(amazonOnly){
-      log('Amazon-only: skipping general search plan for',name);
+      log('Amazon-only: general web search disabled for',name);
+      for(const q of amazonUkQueries(name))await addResults(q,scope);
+      if(names[1])for(const q of amazonUkQueries(names[1]))await addResults(q,scope);
     }else{
       // Always search the canonical manufacturer + model identity first.
       for(const q of queriesFor(name,scope)){
         foundForScope+=await addResults(q,scope);
         if(foundForScope>=8)break;
       }
-    }
-
-    // Mandatory Amazon UK discovery for every New UK pass. Amazon queries run
-    // even when other retailers have already produced plenty of results.
-    if(scope==='new_uk'){
-      for(const q of amazonUkQueries(name))await addResults(q,scope);
-    }
-
-    // If the catalogue has a specific commercial package name, search it as an
-    // additional discovery route. Its absence on a retailer page never counts as
-    // a rejection: package assignment is for the manual review stage when unclear.
-    if(!amazonOnly&&foundForScope<8&&names[1]){
-      for(const q of queriesFor(names[1],scope)){
-        foundForScope+=await addResults(q,scope);
-        if(foundForScope>=8)break;
+      // Mandatory Amazon UK discovery for every normal New UK pass.
+      if(scope==='new_uk'){
+        for(const q of amazonUkQueries(name))await addResults(q,scope);
       }
-    }
-
-    // A specific commercial package can have its own Amazon listing/ASIN, so it
-    // also receives the mandatory Amazon UK discovery pass when present.
-    if(scope==='new_uk'&&names[1]){
-      for(const q of amazonUkQueries(names[1]))await addResults(q,scope);
+      if(foundForScope<8&&names[1]){
+        for(const q of queriesFor(names[1],scope)){
+          foundForScope+=await addResults(q,scope);
+          if(foundForScope>=8)break;
+        }
+      }
+      if(scope==='new_uk'&&names[1]){
+        for(const q of amazonUkQueries(names[1]))await addResults(q,scope);
+      }
     }
 
     // Amazon-only mode must not fall back to the general approved-source registry.
