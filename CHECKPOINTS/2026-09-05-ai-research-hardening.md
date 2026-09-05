@@ -160,3 +160,18 @@ Replace only:
 `C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1`
 
 with the repaired launcher. Keep the existing `C:\\GearCashOut-Config\\.env` unchanged.
+
+
+## Remote START architecture repair
+
+The dashboard START button was found to be intentionally blocked whenever the worker heartbeat was offline. That reflected a circular architecture: the stopped worker was the only process able to consume its own START command.
+
+Repair committed:
+
+- new `tools/gear-ai-local-agent/supervisor.mjs` persistent control process;
+- `agent.mjs` no longer consumes lifecycle commands;
+- `Start-GearCashOut-AI.ps1` launches the supervisor;
+- dashboard distinguishes worker OFFLINE from supervisor READY;
+- START is no longer blocked merely because the research worker is stopped.
+
+The Windows launcher/supervisor remains alive after STOP, allowing START from the dashboard, including from another authorised staff computer.
