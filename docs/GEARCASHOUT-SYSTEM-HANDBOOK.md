@@ -786,3 +786,46 @@ Before changing Research PC controls, preserve this distinction:
 Research queue control is cloud/database state. Research PC process control depends on a running local process.
 
 Do not redesign the established startup chain without checking this handbook and the current local installation first.
+
+
+---
+
+## 17F. 5 September 2026 — Research PC launcher path fault and repair
+
+### Fault confirmed from live PowerShell output
+
+The desktop launcher successfully opened PowerShell, but PowerShell repeatedly reported:
+
+`npm error path C:\\GearCashOut-Config\\package.json`
+
+followed by an `ENOENT` package.json error and the launcher's automatic restart loop.
+
+This established that Windows, the desktop shortcut and the restart loop were all functioning. The fault was the **working directory**: the PowerShell launcher lives in `C:\\GearCashOut-Config`, which is the permanent configuration folder, but the previous launcher treated its own folder as the Node project folder and therefore ran `npm start` in the wrong location.
+
+### Correct architecture
+
+`Desktop shortcut / Windows startup → C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1 → C:\\gearcashout\\Action-Buyer-UK-main\\tools\\gear-ai-local-agent → npm start → agent.mjs`
+
+The configuration folder and the repository folder are deliberately separate:
+
+- `C:\\GearCashOut-Config` holds persistent configuration and the external launcher.
+- `C:\\gearcashout\\Action-Buyer-UK-main\\tools\\gear-ai-local-agent` holds `package.json`, `node_modules`, `agent.mjs` and the Node worker.
+
+### Repair applied
+
+The canonical PowerShell launcher was changed so it:
+
+1. explicitly targets the extracted repository's agent folder instead of using `$PSScriptRoot` as the npm folder;
+2. checks that `package.json` exists before running npm;
+3. reports the exact configuration and agent folders in its startup log;
+4. automatically runs `npm install` only when dependencies are missing;
+5. preserves the established 10-second automatic restart loop;
+6. supports an optional `GEARCASHOUT_AGENT_DIR` environment variable if the extracted repository is moved later.
+
+### Local update required
+
+For this repair, only the local PowerShell launcher file needs replacing:
+
+`C:\\GearCashOut-Config\\Start-GearCashOut-AI.ps1`
+
+Do **not** replace the permanent `.env` file. No full repository download is required for this specific repair.
