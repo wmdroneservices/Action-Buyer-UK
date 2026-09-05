@@ -206,3 +206,15 @@ That launcher must explicitly start npm from the extracted agent folder:
 Do not run `npm start` from `C:\\GearCashOut-Config`; that folder contains configuration, not `package.json`.
 
 If the extracted repository is moved, set `GEARCASHOUT_AGENT_DIR` to the new `tools\\gear-ai-local-agent` folder.
+
+
+## Remote start/stop architecture
+
+`supervisor.mjs` is the persistent Research PC control channel. It starts `agent.mjs` as a child process.
+
+Do not treat the research worker and the supervisor as the same process:
+
+- **START RESEARCH PC WORKER** starts `agent.mjs` through the still-running supervisor.
+- **STOP ALL RESEARCH & WORKER** stops research and `agent.mjs`, but deliberately leaves `supervisor.mjs` alive.
+- This is what makes a later remote START possible.
+- If the dashboard shows **OFFLINE** rather than **READY**, the supervisor/Research PC itself is unavailable and Windows startup or the desktop launcher is required.
