@@ -1736,9 +1736,9 @@ Generic category/brand evidence is therefore not reliable enough to treat as fin
 
 ### Verified example — DJI Mavic 3
 
-The exact current MPB Mavic 3 page exposed **7 live individual units**, from £744 to £1,279. The previous catalogue representation had only two MPB observations, including a generic category-page record.
+The exact current MPB Mavic 3 page exposed multiple live used units. Under the current design, these are aggregated into one reference-only From → To range with a direct verification link instead of separate SKU evidence rows.
 
-The generic/category evidence was removed for the DJI Mavic 3 Standard Package and replaced with seven separate exact MPB inventory observations, retaining individual SKU, price, Excellent cosmetic condition, charges and controller details where shown.
+The generic/category evidence was removed. The current MPB design now represents an exact MPB product page as one reference-only From → To range with conditions represented and a direct verification link, rather than persisting one evidence row per SKU.
 
 **Verification source:** exact MPB Mavic 3 model page.
 
