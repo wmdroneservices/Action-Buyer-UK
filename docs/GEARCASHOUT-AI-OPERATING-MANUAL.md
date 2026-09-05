@@ -434,7 +434,7 @@ Current state: **Implemented; awaiting browser/live verification.**
 
 ---
 
-# 16. Current AI Review Workflow — Inline Side-by-Side Comparison
+# 16. Current AI Review Workflow — Inline Vertical Comparison
 
 On 5 September 2026, the per-finding catalogue comparison was changed from a same-page navigation shortcut into an in-place comparison workflow.
 
@@ -444,7 +444,7 @@ On 5 September 2026, the per-finding catalogue comparison was changed from a sam
 
 1. keeps the AI finding open;
 2. loads current live evidence from `quote_catalog_retailer_prices` for the linked `catalog_product_id`;
-3. displays new evidence and existing catalogue evidence side by side;
+3. displays the editable new AI finding above the existing catalogue evidence;
 4. allows source links to be opened independently;
 5. retains **EDIT NEW FINDING**;
 6. provides **ACCEPT & ADD TO LIVE EVIDENCE** for the reviewed finding.
@@ -602,3 +602,16 @@ Verification state:
 - GitHub implementation: completed.
 - JavaScript syntax check: passed.
 - Browser/live verification: pending for the new collapsible discovery sections and revised guide display.
+
+
+### Current comparison layout correction — 5 September 2026
+
+The per-finding **COMPARE HERE WITH CATALOGUE** workflow is now deliberately vertical rather than two columns:
+
+1. **NEW AI FINDING — EDITABLE** appears first.
+2. The full finding editor is visible inside that comparison section, including price and exact product URL.
+3. **CURRENT CATALOGUE EVIDENCE** appears directly underneath for comparison.
+4. Saving the finding keeps the comparison open and refreshes the edited evidence.
+5. The full catalogue editor remains available in a separate tab for deeper catalogue work.
+
+This corrects the previous usability problem where the editor could render below a long comparison panel and appear not to open.
