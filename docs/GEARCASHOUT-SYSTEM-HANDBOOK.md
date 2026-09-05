@@ -1768,3 +1768,35 @@ Live verification also refreshed:
 The generic-only audit count moved from 549 to **547**.
 
 The historical sweep remains in progress; it must not be marked complete until every remaining generic-only product has an exact, out-of-stock, not-stocked, or explicit package-mismatch outcome.
+
+
+### Deep Source / Website Audit — 5 September 2026
+
+A new research mode was added because normal source searching can find a category or landing page without proving that the exact product was searched deeply enough.
+
+Deep Source Audit works from a user-entered landing page but treats that page as discovery-only.
+
+Flow:
+
+landing page
+→ relevant categories
+→ relevant subcategories
+→ source-specific internal search where available
+→ exact product page
+→ evidence extraction.
+
+Supabase runs now support:
+
+- evidence_scope: deep_source
+- deep_source_url
+- deep_source_domain
+
+The Deep Source run uses the existing secure research queue and Research PC rather than creating a second worker system.
+
+The Edge Function quote-catalog-ai-worker was deployed as version 8 to create Deep Source runs.
+
+Repository worker version is now 1.4.8. The Research PC must be updated from 1.4.7 before live Deep Source work begins.
+
+Current explicit source rules include MPB UK and a DJI framework rule. MPB exact pages remain deterministic: every live SKU is preserved separately.
+
+Category, manufacturer, brand and search pages are discovery-only and must never be accepted as final product price evidence.
