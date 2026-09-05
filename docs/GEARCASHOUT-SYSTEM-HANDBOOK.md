@@ -1388,3 +1388,21 @@ The per-finding **COMPARE HERE WITH CATALOGUE** workflow is now deliberately ver
 5. The full catalogue editor remains available in a separate tab for deeper catalogue work.
 
 This corrects the previous usability problem where the editor could render below a long comparison panel and appear not to open.
+
+
+---
+
+## 19. AI Research Review Audit Views — 5 September 2026
+
+The AI Research Centre previously displayed a separate **Research Memory / Accepted and denied decisions** table. This duplicated information already available through the evidence review audit sections and made the page longer without adding a separate operational action.
+
+The dashboard section was therefore removed.
+
+This is a **UI simplification only**:
+
+- accepted, rejected and applied evidence audit sections remain;
+- individual manual review feedback remains recorded;
+- structured Gemma learning remains stored in Supabase;
+- `quote_catalog_ai_learning` is still used by the research workflow and has not been deleted or disabled.
+
+The learning data is backend operational memory rather than a second on-page review queue.
