@@ -1620,3 +1620,40 @@ Data flow remains:
 `quote_catalog_ai_candidates` → `record_ai_candidate_manual_review(...)` → Accepted/Rejected audit state → optional `apply_accepted_ai_candidate(...)` → `quote_catalog_retailer_prices`.
 
 No automatic buying-price logic was changed.
+
+
+---
+
+## AI Research Centre — Grouped Review Panel Collapse Diagnostic Roadmap
+
+### User action
+Open or close a matched catalogue-product review in **AI Research Centre → Review, edit and decide**.
+
+### Front-end entry point
+- `admin-ai-research.html`
+- Native `<details class="ai-product-review-details">` grouped review panel.
+
+### Controller and state
+- `admin-ai-research.js`
+- `activeProductReviewId`
+- `openProductReview(productId)`
+- document `toggle` handler for `.ai-product-review-details`
+- `comparisonEvidenceByProduct` cache.
+
+### Expected data flow
+1. Opening a native details panel records the active product review.
+2. Current catalogue evidence is loaded from `quote_catalog_retailer_prices` for the linked catalogue product when not already cached.
+3. The panel remains open naturally while evidence loads.
+4. A render after loading is allowed only if the same review is still active.
+5. Closing the panel clears `activeProductReviewId`.
+6. A delayed evidence load must not recreate a panel as open after the reviewer has closed it.
+
+### Failure point / known fix history
+A previous implementation called `render()` immediately during the native details opening transition and again after the asynchronous evidence load. That could race with the browser's close state and make grouped reviews appear impossible to collapse. The repair removes the synchronous opening render and guards the post-load render with the current active review ID.
+
+### Backend impact
+No Supabase schema or workflow change. The existing evidence source remains:
+
+- `quote_catalog_retailer_prices`
+
+The repair is UI state handling only; it must not alter manual review, deny, accept or live-evidence application workflows.
