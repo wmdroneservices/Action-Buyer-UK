@@ -716,3 +716,37 @@ The dashboard labels and confirmation messages were updated on 5 September 2026 
 ## Current baseline
 
 This handbook records the system state and design direction as understood from the current repository and recent development work in September 2026. It should be expanded through a systematic repository and Supabase audit rather than relying indefinitely on conversational recollection alone.
+
+
+---
+
+## 17D. 5 September 2026 — Research PC emergency stop reliability fix
+
+Live testing exposed two separate failures in the full-stop control.
+
+### Root cause
+
+The local worker created a detached PowerShell helper to walk up the process tree and terminate the outer launcher. The helper incorrectly used $pid as a normal variable. PowerShell treats $PID as a read-only automatic variable and variable names are case-insensitive, so the helper could fail before taskkill ran.
+
+At the same time, the dashboard disabled the stop button and changed its label to **STOPPING ALL RESEARCH…** without a reliable completion/timeout path, so the button could remain permanently disabled.
+
+### Fix
+
+The emergency-stop workflow is now three-layered:
+
+1. **Database stop:** Continuous mode is disabled and queued/claimed/processing research items are marked stopped so old work cannot resume later.
+2. **Worker stop:** The local agent uses a corrected $currentPid process-tree traversal variable and falls back to terminating the Node process if no launcher shell is found.
+3. **Dashboard confirmation:** The stop button now waits for command completion plus an offline heartbeat. It reaches a clear stopped state or releases itself after a timeout instead of remaining permanently on **STOPPING**.
+
+The command registry now also accepts **START RESEARCH PC WORKER**, matching the existing dashboard button.
+
+### User operation
+
+- **STOP ALL RESEARCH & WORKER** means exactly that: stop the current run, clear active/waiting queue state, disable Continuous mode and shut down the local worker.
+- When successful, the dashboard shows **RESEARCH PC STOPPED**.
+- To resume later, use **START RESEARCH PC WORKER**.
+- A numbered batch or Continuous research can then be started normally.
+
+Because the Research PC is a manually downloaded/extracted copy rather than a live Git checkout, the local file that must be replaced for this fix is tools/gear-ai-local-agent/agent.mjs.
+
+The dashboard/database changes are already source-controlled and database-enforced; the corrected local agent file is required before the physical PowerShell shutdown fix can take effect on the Research PC.
