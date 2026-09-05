@@ -644,3 +644,24 @@ When **COMPARE HERE WITH CATALOGUE** is active, the expanded finding shows one f
 The old three-column summary is not rendered while comparison mode is active.
 
 The JavaScript asset version was also changed to force browsers to load the corrected implementation rather than continue using a cached script.
+
+
+### Product-centred grouped evidence review — 5 September 2026
+
+The pending review queue is now grouped by `catalog_product_id` before rendering.
+
+Opening a matched product shows a single complete review page:
+
+- **NEW AI EVIDENCE — EDITABLE** first, containing **all pending findings for that catalogue product**;
+- each finding remains individually editable, with its exact product URL and manual Gemma feedback controls;
+- **CURRENT CATALOGUE EVIDENCE** immediately underneath, automatically loaded from `quote_catalog_retailer_prices` for the same product.
+
+There is no separate **COMPARE HERE WITH CATALOGUE** step and no separate **VIEW EVIDENCE** step inside the product review. The user opens the product once and sees the complete evidence context.
+
+For each evidence item:
+
+- **SAVE FINDING** preserves edits;
+- **SUBMIT TO CATALOGUE EVIDENCE** records manual review feedback, accepts the candidate and applies it through the existing `apply_accepted_ai_candidate(uuid)` workflow;
+- **DENY WITH REASON** records the rejection reason and reviewed fields for Gemma learning.
+
+The grouped layout is especially intended for products with multiple findings, such as the DJI Mini 3 product currently carrying several pending evidence candidates.
