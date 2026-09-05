@@ -1424,3 +1424,17 @@ When **COMPARE HERE WITH CATALOGUE** is active, the expanded finding shows one f
 The old three-column summary is not rendered while comparison mode is active.
 
 The JavaScript asset version was also changed to force browsers to load the corrected implementation rather than continue using a cached script.
+
+
+## AI Research Centre — Product-Centred Evidence Review (5 September 2026)
+
+Pending AI evidence is now grouped by the linked `catalog_product_id` for review.
+
+When a staff user opens a matched catalogue product, the page shows one complete review workflow in this order:
+
+1. **NEW AI EVIDENCE — EDITABLE** — every pending finding for that product is displayed together in the same block, with each finding's full editable evidence fields and exact source link.
+2. **CURRENT CATALOGUE EVIDENCE** — all existing `quote_catalog_retailer_prices` for the same product are loaded automatically underneath.
+
+The reviewer no longer needs to open a separate comparison, click View Evidence, or move between pages to compare the matched product. Each evidence item can still be individually saved, submitted through `record_ai_candidate_manual_review(...)` and `apply_accepted_ai_candidate(...)`, or denied with a required reason for Gemma learning.
+
+This preserves the existing separation between proposed evidence, manual acceptance and live evidence while changing the review UI from per-finding navigation to a product-centred evidence workspace.
