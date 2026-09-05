@@ -119,12 +119,23 @@ function renderCandidateCard(c){
            +(c.decision_reason?'<p class="ai-review-notes"><strong>Review reason / learning:</strong> '+esc(c.decision_reason)+'</p>':'')
            +'<div class="ai-review-source"><strong>Source:</strong> '+esc(source)+' · <strong>Type:</strong> '+esc(c.edited_source_kind??c.source_kind??'—')+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a>':'')+(url?'<br><small>'+esc(url)+'</small>':'')+'</div>'
          +'</div>'
-         +'<div class="ai-review-actions"><button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button></div>'
+         +'<div class="ai-review-actions">'
+           +(p&&c.catalog_product_id?'<a class="btn btn-primary ai-compare-catalogue" href="admin-catalog.html?product='+encodeURIComponent(c.catalog_product_id)+'">COMPARE WITH CATALOGUE PRODUCT</a>':'')
+           +'<button type="button" class="btn btn-secondary ai-edit" data-id="'+esc(c.id)+'">'+(editingId===c.id?'CLOSE EDITOR':'EDIT FINDING')+'</button>'
+         +'</div>'
        +'</div>'
        +(editingId===c.id?editorMarkup(c):'')
      +'</div>'
    +'</details>'
  +'</article>';
+}
+function isAmazonFinding(c){
+ const url=clean(c.edited_source_url??c.source_url??'').toLowerCase();
+ const sourceText=clean([c.edited_source_kind,c.source_kind,c.source_name,c.source_provider].filter(Boolean).join(' ')).toLowerCase();
+ if(sourceText.includes('amazon'))return true;
+ if(!url)return false;
+ try{const host=new URL(url).hostname.toLowerCase();if(host==='amazon.co.uk'||host.endsWith('.amazon.co.uk'))return true;}catch{}
+ return /(^|[^a-z])amazon(?:\.co\.uk)?([^a-z]|$)/.test(url);
 }
 function renderSection(title,description,rows,state,open){
  if(!rows.length)return '';
@@ -140,13 +151,16 @@ function render(){
  const accepted=candidates.filter(c=>!c.applied_at&&c.decision==='accepted');
  const rejected=candidates.filter(c=>c.decision==='rejected');
  const applied=candidates.filter(c=>c.applied_at);
+ const amazonPending=pending.filter(isAmazonFinding);
+ const otherPending=pending.filter(c=>!isAmazonFinding(c));
  let html='';
- if(pending.length){
-   html+='<div class="ai-current-findings">'
-     +'<div class="ai-current-findings-heading"><p class="section-kicker">PENDING REVIEW</p><h2>Findings awaiting a decision <span class="ai-decision-count">'+pending.length+'</span></h2><p>These are the active findings currently waiting for you to edit, accept or reject.</p></div>'
-     +pending.map(renderCandidateCard).join('')
-   +'</div>';
- }else{
+ if(amazonPending.length){
+   html+=renderSection('Amazon findings — review, edit and decide','Amazon UK findings are kept in their own review section. Open this section to review, edit, compare, accept or reject the Amazon evidence.',amazonPending,'amazon',false);
+ }
+ if(otherPending.length){
+   html+=renderSection('Review, edit and decide','Open this section when you are ready to work through the remaining findings. It stays collapsed until needed so a large queue does not create a long page.',otherPending,'pending',false);
+ }
+ if(!pending.length){
    html+='<div class="ai-empty-state">No findings are currently awaiting review.</div>';
  }
  html+=renderSection('Accepted findings','Accepted evidence is kept separate here until you apply it to the verified NEW, USED or overseas comparison bucket.',accepted,'accepted',false);
