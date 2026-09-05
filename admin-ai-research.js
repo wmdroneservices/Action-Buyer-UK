@@ -299,6 +299,14 @@ async function loadContinuousResearch(){
  const start=$('start-continuous-research'),stop=$('stop-continuous-research');
  if(start)start.disabled=on;if(stop)stop.disabled=!on;
 }
+async function clearQueuedResearch(silent=false){
+ const {data,error}=await sb.rpc('ai_research_clear_queue');
+ if(error)throw error;
+ const cleared=Number(data?.cleared||0);
+ if(!silent)msg(cleared+' queued research job'+(cleared===1?' was':'s were')+' cleared. The next run will contain only the products you select.');
+ await loadLiveResearch();
+ return cleared;
+}
 async function setContinuousResearch(enabled){
  const mode=clean($('continuous-research-mode')?.value||'low_evidence');
  const scope=clean($('research-evidence-scope')?.value||'all');
@@ -306,18 +314,25 @@ async function setContinuousResearch(enabled){
  const workerScope=sourceFilter==='amazon_uk'?'amazon_uk':scope;
  const {data,error}=await sb.rpc('ai_research_set_continuous',{p_enabled:enabled,p_mode:mode,p_evidence_scope:workerScope,p_manufacturer:clean($('research-manufacturer')?.value||'' )||null,p_category:clean($('research-category')?.value||'')||null,p_product_type:clean($('research-product-type')?.value||'')||null});
  if(error)throw error;
- msg(enabled?'Continuous catalogue research started. The PC will keep taking the next product until you press STOP.':'Continuous catalogue research stopped. The current product may finish, but no further products will be taken.');
+ if(!enabled){
+   const cleared=await clearQueuedResearch(true);
+   msg('Continuous catalogue research stopped and '+cleared+' waiting job'+(cleared===1?' was':'s were')+' cleared. The current product may finish safely, but old queued products will not carry into your next run.');
+ }else{
+   msg('Continuous catalogue research started. The PC will keep taking the next product until you press STOP.');
+ }
  await loadContinuousResearch();
 }
 async function runResearch(){
  const b=$('run-ai-research');if(b){b.disabled=true;b.textContent='RESEARCHING…'}
+ try{
+   // Never let an earlier test run sit behind the new selection.
+   await clearQueuedResearch(true);
  const selectedMarket=clean($('research-evidence-scope')?.value||'all');
  const sourceFilter=clean($('research-source-filter')?.value||'all');
  const body={limit:Number($('research-limit')?.value||5),manufacturer:clean($('research-manufacturer')?.value||''),model:clean($('research-model')?.value||''),category:clean($('research-category')?.value||''),product_type:clean($('research-product-type')?.value||''),evidence_scope:sourceFilter==='amazon_uk'?'amazon_uk':selectedMarket};
  const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
  const evidenceLabel=(sourceFilter==='amazon_uk'?'Amazon UK only · ': '')+({all:'all markets',new_uk:'new UK retail evidence',used_uk:'used UK / UK marketplace evidence',overseas:'overseas evidence'}[selectedMarket]||'all evidence types');
  msg('AI research started for '+scope+' · '+evidenceLabel+'. Findings will go to manual review only.');
- try{
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
@@ -420,7 +435,9 @@ async function apply(){
  }
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
-async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
+async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
+$('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear all waiting AI research jobs? The product currently being processed is not interrupted.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
+$('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
 document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
 document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(b=>b.addEventListener('click',()=>{const value=b.dataset.sourceFilter||'all';const select=$('research-source-filter');if(select)select.value=value;document.querySelectorAll('.ai-scope-option[data-source-filter]').forEach(x=>{const selected=x===b;x.classList.toggle('is-selected',selected);x.setAttribute('aria-pressed',selected?'true':'false');});}));
 $('research-evidence-scope')?.addEventListener('change',e=>setResearchScope(e.target.value));
