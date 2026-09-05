@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.4',
+    version:'1.4.5',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -789,15 +789,44 @@ function productIdentityScore(product,title,text,url=''){
   if(pkg&&pkg.length>=6&&hay.includes(pkg))score+=4;
   return score;
 }
+function productLooksLikeAccessory(product={}){
+  const own=normaliseIdentityText([
+    product?.manufacturer,product?.model,product?.package_name,
+    product?.product_type,product?.category,product?.main_category
+  ].filter(Boolean).join(' '));
+  return /\b(battery|propeller|props|charger|case|bag|cage|filter|gimbal guard|guard|remote|controller|strap|mount|holder|lens hood|landing gear|spare part|replacement)\b/.test(own);
+}
+
+function resultLooksLikeAccessory(product,result){
+  if(productLooksLikeAccessory(product))return false;
+  const hay=normaliseIdentityText([result?.title,result?.snippet,result?.url].filter(Boolean).join(' '));
+  if(!hay)return false;
+  const accessory=/\b(battery|propeller|propellers|props|charger|charging hub|case|bag|cage|filter|gimbal guard|prop guard|guard|remote controller|controller only|strap|mount|holder|lens hood|landing gear|spare part|replacement part)\b/.test(hay);
+  if(!accessory)return false;
+  // Real manufacturer bundles can legitimately mention batteries/accessories.
+  const bundle=/\b(combo|bundle|kit|fly more|creator combo|premium combo|standard combo)\b/.test(hay);
+  return !bundle;
+}
+
 function isDiscoveryRelevant(product,result){
   const title=String(result?.title||'');
   const snippet=String(result?.snippet||'');
   const url=String(result?.url||'');
   if(!title&&!snippet)return false;
   if(pageLooksLikeError(snippet,title)||isSuspiciousEvidenceUrl(url))return false;
-  const exactModel=hasExactModelEvidence(product,title,snippet,url);
-  const score=productIdentityScore(product,title,snippet,url);
-  return exactModel||score>=6;
+  if(resultLooksLikeAccessory(product,result))return false;
+
+  // Pricing evidence must identify the exact catalogue model. Manufacturer/package
+  // word overlap is no longer enough because that allowed related models and
+  // accessories into the collection stage.
+  if(!hasExactModelEvidence(product,title,snippet,url))return false;
+
+  const manufacturer=normaliseIdentityText(product?.manufacturer);
+  if(manufacturer){
+    const hay=normaliseIdentityText([title,snippet,url].filter(Boolean).join(' '));
+    if(!hay.includes(manufacturer))return false;
+  }
+  return true;
 }
 
 function evidenceMatchesProduct(product,candidate){
@@ -811,8 +840,17 @@ function evidenceMatchesProduct(product,candidate){
   return true;
 }
 
+function isAmazonUkHost(host){
+  const x=String(host||'').replace(/^www\./i,'').toLowerCase();
+  return x==='amazon.co.uk';
+}
+
 function sourceFitsScope(source,scope){
   if(scope==='all')return true;
+  const domain=String(source?.domain||'').replace(/^www\./i,'').toLowerCase();
+  // Defensive third guard: even if future code accidentally asks the source
+  // registry for Amazon-only results, only Amazon UK itself can be eligible.
+  if(scope==='amazon_uk')return isAmazonUkHost(domain);
   const kind=String(source?.source_kind||'').toLowerCase();
   const cc=String(source?.country_code||'').toUpperCase();
   const rs=String(source?.research_scope||'').toLowerCase();
@@ -820,7 +858,7 @@ function sourceFitsScope(source,scope){
   if(scope==='new_uk')return cc==='GB'&&['retailer','manufacturer'].includes(kind);
   if(scope==='used_uk')return cc==='GB'&&['marketplace','used_dealer','auction'].includes(kind);
   if(scope==='overseas')return cc&&cc!=='GB';
-  return true;
+  return false;
 }
 
 function normalizeIdentity(value=''){
@@ -959,7 +997,7 @@ async function collectEvidence(product,sources,evidenceScope='all',context={}){
       if(!host)continue;
       // Amazon-only means the actual result URL must be Amazon UK, not merely
       // a search result that mentions Amazon in its title or snippet.
-      if(amazonOnly && !/^(?:www\.)?amazon\.co\.uk$/i.test(host))continue;
+      if(amazonOnly && !isAmazonUkHost(host))continue;
       const key=String(r.url).split('#')[0];
       if(!seen.has(key))seen.set(key,{...r,url:key,query:q,host,scope_hint:scope});
     }
