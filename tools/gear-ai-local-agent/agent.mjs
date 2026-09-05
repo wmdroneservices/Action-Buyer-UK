@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.4.8',
+    version:'1.4.9',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -894,6 +894,16 @@ const deepSourceRules={
   }
 };
 
+function mpbExactProductUrls(product,domain='mpb.com'){
+  const base=String(productName(product)||'').trim().toLowerCase();
+  if(!base)return [];
+  const slug=base
+    .replace(/&/g,' and ')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'');
+  return slug?['https://'+domain+'/en-uk/product/'+slug]:[];
+}
+
 function deepSourceRuleFor(url){
   const host=hostOf(url);
   return deepSourceRules[host]||{exactPath:null,searchAttempts:(root,q)=>[
@@ -956,6 +966,28 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     const key=String(x.url).split('#')[0];
     if(!candidates.has(key))candidates.set(key,{...x,url:key,host:domain,query:'deep:'+from,scope_hint:'deep_source'});
   };
+
+  // MPB's public category/search pages can be incomplete or dynamically rendered.
+  // Add two source-specific discovery fallbacks before the generic crawl:
+  // (1) the deterministic MPB product slug based on the catalogue identity;
+  // (2) external web discovery constrained to exact MPB UK product URLs.
+  // Both remain discovery only until the exact page itself is fetched and validated.
+  if(domain==='mpb.com'){
+    for(const url of mpbExactProductUrls(product,domain)){
+      addCandidate({url,title:productName(product)},'mpb-direct-slug');
+    }
+    try{
+      const results=await searchWeb('site:mpb.com/en-uk/product "'+productName(product)+'"');
+      for(const r of results||[]){
+        try{
+          const u=new URL(r.url);
+          if(hostOf(u.href)!==domain||!rule.exactPath.test(u.pathname))continue;
+          const score=deepLinkScore(product,{url:u.href,title:r.title||''},rule,0);
+          if(score>=60)addCandidate({url:u.href,title:r.title||'',provider:r.provider||'web'},'web-search');
+        }catch{}
+      }
+    }catch(e){log('MPB exact web discovery unavailable:',e.message||String(e));}
+  }
 
   // First use the site's own search routes when known. The landing page remains
   // the root of the audit, but internal search is a fast path to deep exact pages.
