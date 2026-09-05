@@ -1261,3 +1261,70 @@ The full catalogue editor remains available from the comparison panel and opens 
 **Repair:** `renderSection(...)` now keeps the parent decision section open whenever it contains the active comparison or active editor.
 
 **Verification:** JavaScript syntax check passed. Live browser retest required.
+
+
+---
+
+# AI Evidence Review Feedback & Gemma Learning — 5 September 2026
+
+## Purpose
+
+Individual AI evidence decisions now capture structured human feedback so the local Gemma research workflow can learn why evidence was corrected, accepted or rejected.
+
+## Data flow
+
+**User action**  
+Open individual AI finding → tick reviewed evidence areas → enter reason/correction note → manual Accept or Deny.
+
+**Front end**  
+`admin-ai-research.js`
+
+- `manualReviewMarkup(...)` renders field checkboxes and reason input.
+- `manualReviewAction(...)` calls `record_ai_candidate_manual_review(...)`.
+- Direct individual acceptance can then call `apply_accepted_ai_candidate(uuid)`.
+- Bulk Accept / Bulk Deny remain reason-free by design.
+
+**Supabase**
+
+- `quote_catalog_ai_candidates` — current decision and visible decision reason.
+- `quote_catalog_ai_candidate_review_feedback` — immutable-style review audit with reviewed fields, changed fields, before/after snapshots, reason and reviewer.
+- `quote_catalog_ai_learning` — structured learning summaries made available to the local AI worker.
+- `record_ai_candidate_manual_review(uuid,text,text,jsonb)` — authoritative manual decision/feedback write path.
+- `apply_accepted_ai_candidate(uuid)` — existing final live-evidence write path.
+
+## Learning rule
+
+Manual corrections are compared against the original candidate values. Changed fields are recorded automatically. The reviewer also explicitly ticks fields checked, such as:
+
+- price;
+- URL/exact product link;
+- condition;
+- product/model match;
+- package/variant;
+- evidence bucket;
+- availability;
+- source/retailer.
+
+If a value was changed, the reviewer must explain why before manual acceptance. Manual denial always requires a reason.
+
+## Bulk rule
+
+Bulk Accept and Bulk Deny are deliberately separate from manual learning:
+
+- no individual reason prompt;
+- no field-by-field feedback;
+- decision remains auditable on the candidate;
+- Gemma should not infer a specific correction reason from a bulk decision.
+
+## Diagnostic roadmap
+
+If this workflow fails:
+
+1. Confirm the button action in `admin-ai-research.js`.
+2. Confirm the candidate ID and active review panel match.
+3. Check `record_ai_candidate_manual_review(...)` exists in Supabase.
+4. Check `quote_catalog_ai_candidate_review_feedback` for the audit row.
+5. Check `quote_catalog_ai_candidates` for decision/reason/reviewer/timestamp.
+6. Check `quote_catalog_ai_learning` for generated field learning.
+7. For direct acceptance, then check `apply_accepted_ai_candidate(uuid)` and `quote_catalog_retailer_prices`.
+8. Do not alter the existing apply function merely to repair feedback capture; identify the first failed step.
