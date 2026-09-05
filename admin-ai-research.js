@@ -224,7 +224,12 @@ function isAmazonFinding(c){
 }
 function renderSection(title,description,rows,state,open){
  if(!rows.length)return '';
- return '<details class="ai-decision-section ai-decision-'+esc(state)+'"'+(open?' open':'')+'>'
+ // render() rebuilds the queue after Compare/Edit actions. Keep the containing
+ // decision section open whenever it contains the active comparison/editor so
+ // the action does not appear to close the user's dropdown.
+ const keepsActiveFindingOpen=rows.some(c=>String(c.id)===String(comparingCandidateId)||String(c.id)===String(editingId));
+ const isOpen=open||keepsActiveFindingOpen;
+ return '<details class="ai-decision-section ai-decision-'+esc(state)+'"'+(isOpen?' open':'')+'>'
    +'<summary><div><p class="section-kicker">'+esc(state.toUpperCase())+' FINDINGS</p><h2>'+esc(title)+' <span class="ai-decision-count">'+rows.length+'</span></h2><p>'+esc(description)+'</p></div><span class="ai-decision-toggle">VIEW</span></summary>'
    +'<div class="ai-decision-section-content">'+rows.map(renderCandidateCard).join('')+'</div>'
  +'</details>';
