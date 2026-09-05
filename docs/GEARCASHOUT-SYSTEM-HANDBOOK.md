@@ -859,3 +859,103 @@ The supervisor remains alive when the research worker is stopped. It polls Supab
 - **OFFLINE** — the Research PC control channel itself is unavailable.
 
 This removes the previous requirement to walk to the Research PC and manually start PowerShell after using STOP.
+
+
+---
+
+# 18. Documentation Architecture — Two Connected Manuals
+
+GearCashOut now uses two separate but connected documentation layers. They must describe the same system truth, but serve different audiences.
+
+## 18.1 Human / Developer System Handbook
+
+This document remains the staff, administrator and developer-facing handbook and is the manual linked from the Staff Dashboard.
+
+Its required structure is:
+
+1. System overview and architecture
+2. Authentication, staff access and permissions
+3. Customer accounts
+4. Quote and valuation system
+5. Automatic valuation and pricing
+6. Manual valuation and offer management
+7. Customer acceptance, rejection and offer supersession
+8. Purchasing, receipt, inspection, refusal and return workflow
+9. Payment and completed transactions
+10. Quote Catalogue
+11. Evidence and market comparison data
+12. AI Research Centre
+13. Research PC, local worker and Ollama
+14. Emails and notifications
+15. Supabase architecture
+16. GitHub/repository and deployment architecture
+17. Troubleshooting, known faults and recovery
+18. Change log and verification history
+
+### Required traceability standard
+
+For every major workflow, documentation must progressively provide this chain:
+
+**User action → page → front-end controller → Supabase call → database object → trigger/function → status change → visible result.**
+
+| Layer | What must be documented |
+|---|---|
+| User action | What the customer or staff member does |
+| Page | Exact HTML/page entry point |
+| Front end | Exact JavaScript/controller responsible |
+| Backend call | Supabase RPC, query or Edge Function |
+| Database | Tables/records read or written |
+| Database logic | Functions, triggers, constraints and status rules |
+| External services | Email, Ollama, Research PC or other integration |
+| Result | What status changes and what the user sees |
+| Verification | Proposed / Implemented / Tested / Verified Live |
+
+This must be based on inspection of the actual deployed repository and Supabase objects. Documentation must not invent code paths.
+
+## 18.2 AI Operating Manual / Persistent Project Memory
+
+The AI manual is a separate technical continuity document:
+
+docs/GEARCASHOUT-AI-OPERATING-MANUAL.md
+
+Its purpose is to allow a future AI or developer AI to resume safely without rediscovering the project from scratch.
+
+It records:
+
+- current system architecture;
+- authoritative sources of truth;
+- current checkpoint and active work;
+- non-negotiable rules;
+- important architectural decisions;
+- known faults and lessons;
+- operational limitations and workarounds;
+- verification status;
+- documentation obligations after material changes.
+
+The Supabase project-memory layer remains the structured persistent retrieval source. The repository AI manual is its human-readable companion.
+
+## 18.3 Mandatory update rule
+
+A material change to code, Supabase, workflow, integration or operational behaviour is not fully closed until the relevant documentation has been updated.
+
+Where applicable, update:
+
+1. this Human/Developer System Handbook;
+2. the AI Operating Manual;
+3. the Supabase project-memory event/checkpoint layer;
+4. the verification status for the affected feature.
+
+## 18.4 Current documentation build method
+
+The manuals will be completed by auditing one system at a time rather than guessing at the entire architecture.
+
+For each system:
+
+1. inspect the live repository;
+2. inspect the relevant Supabase tables/functions/triggers/RPCs/Edge Functions;
+3. trace the complete workflow end to end;
+4. document the exact connections;
+5. test the workflow where practical;
+6. mark the documentation with its verification state.
+
+This handbook therefore becomes the living technical map for humans, while the AI Operating Manual and Supabase memory provide continuity for future AI work.
