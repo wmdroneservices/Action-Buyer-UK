@@ -271,29 +271,30 @@ function productEvidenceEntryMarkup(c,index,total){
  const title=c.edited_title??c.discovered_title??'Unnamed evidence',price=c.edited_price??c.price??'—',category=c.edited_evidence_category??c.evidence_category??c.price_type??'Unclassified',url=c.edited_source_url??c.source_url??'';
  return '<article class="ai-group-evidence-entry" data-candidate-id="'+esc(c.id)+'"><div class="ai-group-evidence-entry-head"><div><p class="section-kicker">EVIDENCE '+(index+1)+' OF '+total+'</p><h4>'+esc(title)+'</h4></div><div class="ai-review-badges"><span class="ai-badge">'+esc(category)+'</span><span class="ai-badge ai-badge-muted">'+esc(c.decision||'pending')+'</span></div></div><div class="ai-group-evidence-meta"><span><strong>Price</strong>'+esc(c.currency||'GBP')+' '+esc(price)+'</span><span><strong>Source</strong>'+esc(c.edited_source_kind??c.source_kind??'—')+'</span><span><strong>Condition</strong>'+esc(c.edited_condition??c.condition??'—')+'</span></div>'+(url?'<p class="ai-group-evidence-link"><a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN EXACT PRODUCT PAGE</a></p>':'')+editorMarkup(c)+manualReviewMarkup(c,true)+'</article>';
 }
-function catalogueUkStats(rows){
- const uk=(rows||[]).filter(r=>String(r.price_currency||'').toUpperCase()==='GBP'&&String(r.evidence_region||'').toUpperCase()==='UK');
- const newRows=uk.filter(r=>['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
- const otherRows=uk.filter(r=>!['new','new_sale'].includes(String(r.price_type||'').toLowerCase()));
- const prices=newRows.map(r=>Number(r.sell_price)).filter(Number.isFinite);
- return {newCount:newRows.length,lowest:prices.length?Math.min(...prices):null,highest:prices.length?Math.max(...prices):null,otherCount:otherRows.length,total:(rows||[]).length};
+function catalogueEvidenceStats(rows){
+ const all=rows||[];
+ const region=r=>String(r.evidence_region||r.price_region||'').trim().toUpperCase();
+ const type=r=>String(r.price_type||'').trim().toLowerCase();
+ const condition=r=>String(r.condition||'').trim().toLowerCase();
+ const isUk=r=>region(r)==='UK'||(!region(r)&&String(r.price_currency||'').trim().toUpperCase()==='GBP');
+ const isNew=r=>['new','new_sale'].includes(type(r))||/^new\\b/.test(condition(r));
+ const ukNew=all.filter(r=>isUk(r)&&isNew(r));
+ const ukOther=all.filter(r=>isUk(r)&&!isNew(r));
+ const overseas=all.filter(r=>!isUk(r));
+ const prices=ukNew.map(r=>Number(r.sell_price??r.original_sell_price??r.buy_price)).filter(Number.isFinite);
+ return {ukNewCount:ukNew.length,ukOtherCount:ukOther.length,overseasCount:overseas.length,total:all.length,lowestUkNew:prices.length?Math.min(...prices):null,highestUkNew:prices.length?Math.max(...prices):null};
 }
 function catalogueSnapshotMarkup(p,rows,compact=false){
- const stats=catalogueUkStats(rows);
- const automatic=[
-   ['FACTORY SEALED',p?.factory_sealed_price],
-   ['OPENED / UNUSED',p?.opened_unused_price],
-   ['EXCELLENT',p?.excellent_price],
-   ['GOOD',p?.good_price],
-   ['FAIR',p?.fair_price]
- ];
+ const stats=catalogueEvidenceStats(rows);
+ const automatic=[['FACTORY SEALED',p?.factory_sealed_price],['OPENED / UNUSED',p?.opened_unused_price],['EXCELLENT',p?.excellent_price],['GOOD',p?.good_price],['FAIR',p?.fair_price]];
  return '<div class="ai-catalogue-snapshot'+(compact?' ai-catalogue-snapshot-compact':'')+'">'
    +'<div class="ai-catalogue-snapshot-group"><p class="section-kicker">AUTOMATIC BUYING PRICES</p><div class="ai-catalogue-price-grid">'+automatic.map(([label,value])=>'<span><strong>'+esc(label)+'</strong>'+comparisonMoney(value)+'</span>').join('')+'</div></div>'
-   +'<div class="ai-catalogue-snapshot-group"><p class="section-kicker">ONLINE COMPARISON SUMMARY</p><div class="ai-catalogue-stat-grid">'
-     +'<span><strong>'+esc(stats.newCount)+'</strong>UK NEW evidence records</span>'
-     +'<span><strong>'+comparisonMoney(stats.lowest)+'</strong>Lowest UK NEW selling price</span>'
-     +'<span><strong>'+comparisonMoney(stats.highest)+'</strong>Highest UK NEW selling price</span>'
-     +'<span><strong>'+esc(stats.otherCount)+'</strong>UK used / other evidence — reference only</span>'
+   +'<div class="ai-catalogue-snapshot-group"><p class="section-kicker">CURRENT CATALOGUE EVIDENCE SUMMARY</p><div class="ai-catalogue-stat-grid">'
+     +'<span><strong>'+esc(stats.ukNewCount)+'</strong>UK NEW pricing evidence</span>'
+     +'<span><strong>'+esc(stats.ukOtherCount)+'</strong>UK USED / OTHER evidence</span>'
+     +'<span><strong>'+esc(stats.overseasCount)+'</strong>OVERSEAS comparison evidence</span>'
+     +'<span><strong>'+comparisonMoney(stats.lowestUkNew)+'</strong>Lowest UK NEW selling price</span>'
+     +'<span><strong>'+comparisonMoney(stats.highestUkNew)+'</strong>Highest UK NEW selling price</span>'
      +'<span><strong>'+esc(stats.total)+'</strong>Total current evidence records</span>'
    +'</div></div></div>';
 }
