@@ -374,14 +374,16 @@ async function openProductReview(productId){
  const key=String(productId||'');
  activeProductReviewId=key;
  if(!productId)return;
+ const needsLoad=!comparisonEvidenceByProduct.has(key);
+ if(!needsLoad)return;
  try{
-   if(!comparisonEvidenceByProduct.has(key))await loadComparisonEvidence(productId);
+   await loadComparisonEvidence(productId);
  }catch(e){
    msg('The product review opened, but current catalogue evidence could not be loaded: '+(e.message||String(e)),true);
  }
  // Do not force a render while the native <details> control is being opened.
- // A delayed render is allowed only while this review is still the active/open one,
- // so closing it during evidence loading cannot make it spring back open.
+ // Rebuild only after an actual asynchronous load, and only while this same review
+ // is still active, so closing it during loading cannot make it spring back open.
  if(String(activeProductReviewId)===key)render();
 }
 function renderGroupedPendingSection(title,description,groups,state){
