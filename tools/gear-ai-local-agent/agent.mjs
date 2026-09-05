@@ -1546,7 +1546,11 @@ async function processOne(){
         const metricNote=unit.metric&&unit.metricValue?unit.metric+': '+unit.metricValue+'. ':'';
         const includedNote=unit.included?('Included details: '+unit.included):'';
         const candidate={
-          source_url:page.url,
+          // quote_catalog_retailer_prices deduplicates by product, retailer,
+          // condition, price and source URL. MPB can legitimately have two units
+          // with the same condition and price, so preserve the canonical model page
+          // plus a harmless SKU fragment as the unit-level source identity.
+          source_url:page.url+'#mpb-sku-'+unit.sku,
           discovered_title:page.title||productName(product),
           discovered_model_number:product?.model||null,
           discovered_identifier_type:'MPB SKU',
