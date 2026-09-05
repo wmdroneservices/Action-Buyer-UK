@@ -1157,6 +1157,8 @@ Rules:
 - Prefer strong confidence for normal candidates, but do not silently lose collected exact-model evidence: uncertain collected pages can be preserved separately by the worker for manual review.
 - For new domains not present in KNOWN SOURCE REGISTRY, include them in discovered_sources.
 - condition must be new, used, refurbished or unknown.
+- Refurbished/Renewed items are comparison evidence only. GearCashOut does not have a separate refurbished buy-in category.
+- When condition is refurbished, classify the evidence under used_uk while preserving condition exactly as refurbished.
 - source_kind must be manufacturer, retailer, marketplace, used_dealer, auction or other.
 Return JSON only matching the schema.`;
 
@@ -1218,19 +1220,29 @@ Return JSON only matching the schema.`;
   };
   const normaliseCondition=v=>validCondition.has(String(v||'').toLowerCase())?String(v).toLowerCase():'unknown';
   const normaliseKind=v=>validKind.has(String(v||'').toLowerCase())?String(v).toLowerCase():'other';
+  const normaliseEvidenceCategory=(category,condition)=>{
+    // Refurbished/Renewed is comparison evidence, not a separate GearCashOut
+    // buy-in category. Preserve the condition but store it with Used evidence.
+    if(normaliseCondition(condition)==='refurbished')return 'used_uk';
+    return normaliseCategory(category);
+  };
 
   parsed.candidates=Array.isArray(parsed.candidates)?parsed.candidates:[];
   parsed.discovered_sources=Array.isArray(parsed.discovered_sources)?parsed.discovered_sources:[];
-  parsed.candidates=parsed.candidates.map(c=>({
-    ...c,
-    package_match:normaliseMatch(c.package_match),
-    variant_match:normaliseMatch(c.variant_match),
-    condition:normaliseCondition(c.condition),
-    source_kind:normaliseKind(c.source_kind),
-    evidence_category:normaliseCategory(c.evidence_category),
-    market_region:String(c.market_region||'').toUpperCase()==='UK'||normaliseCategory(c.evidence_category)==='new_uk'||normaliseCategory(c.evidence_category)==='used_uk'?'UK':normaliseCategory(c.evidence_category)==='official'?'official':'overseas',
-    match_confidence:Math.max(0,Math.min(1,Number(c.match_confidence||0)))
-  }));
+  parsed.candidates=parsed.candidates.map(c=>{
+    const condition=normaliseCondition(c.condition);
+    const evidence_category=normaliseEvidenceCategory(c.evidence_category,condition);
+    return {
+      ...c,
+      package_match:normaliseMatch(c.package_match),
+      variant_match:normaliseMatch(c.variant_match),
+      condition,
+      source_kind:normaliseKind(c.source_kind),
+      evidence_category,
+      market_region:String(c.market_region||'').toUpperCase()==='UK'||evidence_category==='new_uk'||evidence_category==='used_uk'?'UK':evidence_category==='official'?'official':'overseas',
+      match_confidence:Math.max(0,Math.min(1,Number(c.match_confidence||0)))
+    };
+  });
   return parsed;
 }
 
@@ -1253,7 +1265,7 @@ function buildManualReviewFallback(product,page,knownSource,evidenceScope='all')
 
   if(evidenceScope==='amazon_uk'){
     // Amazon-only is a discovery mode, not a separate evidence market. The
-    // resulting evidence remains classified as New UK for downstream pricing.
+    // Amazon is a source filter. Listing condition determines New/Used evidence; refurbished is stored under Used evidence.
     if(hostOf(page.url)!=='amazon.co.uk')return null;
   }else if(evidenceScope!=='all'&&cls.evidence_category!==evidenceScope)return null;
 
