@@ -324,3 +324,6 @@ Do not convert a positive mismatch into “no evidence found”. A mismatch mean
 
 ### 2026-09-06 Known UI failure fixed
 The reassignment panel originally watched only Package Match / Variant Match metadata. Staff could mark **PRODUCT / MODEL / PACKAGE = AI WAS WRONG** in VERIFY EACH FIELD and see no routing control. The reassignment layer now watches that review outcome directly and refreshes immediately on change.
+
+### 2026-09-06 Reassignment destination search improvement
+The destination selector was a long non-searchable native dropdown and was additionally restricted to the current manufacturer. It now loads all active catalogue products and filters them client-side by manufacturer/model/package keywords, while preserving score-based ordering.
