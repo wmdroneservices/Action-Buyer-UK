@@ -16,7 +16,7 @@ function domMismatch(card){
 function style(){
  if(document.getElementById('ai-reassignment-style'))return;
  const s=document.createElement('style');s.id='ai-reassignment-style';
- s.textContent='.ai-route-panel{margin:8px 0;border:1px solid #c77a2b;background:#fff8ef}.ai-route-panel>summary{cursor:pointer;padding:10px 12px;color:#7a3d12;font-weight:700;list-style:none}.ai-route-panel>summary::-webkit-details-marker{display:none}.ai-route-panel>summary::after{content:"OPEN";float:right;font-size:11px;letter-spacing:.08em}.ai-route-panel[open]>summary::after{content:"CLOSE"}.ai-route-panel-body{padding:0 12px 12px}.ai-route-panel strong{display:block;color:#7a3d12;margin-bottom:5px}.ai-route-panel small{display:block;margin-bottom:9px}.ai-route-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ai-route-search{width:min(520px,100%);padding:8px;border:1px solid #b7b7b7}.ai-route-row select{min-width:360px;max-width:100%;padding:8px}.ai-route-status{display:block;margin-top:7px;font-weight:700}.ai-route-status.error{color:#9d3026}.ai-route-status.ok{color:#2f6d3a}@media(max-width:700px){.ai-route-row select{min-width:100%}}';
+ s.textContent='.ai-route-trigger{margin:8px 0;white-space:normal}.ai-route-panel{margin:8px 0;border:1px solid #c77a2b;background:#fff8ef}.ai-route-panel>summary{cursor:pointer;padding:10px 12px;color:#7a3d12;font-weight:700;list-style:none}.ai-route-panel>summary::-webkit-details-marker{display:none}.ai-route-panel>summary::after{content:"OPEN";float:right;font-size:11px;letter-spacing:.08em}.ai-route-panel[open]>summary::after{content:"CLOSE"}.ai-route-panel-body{padding:0 12px 12px}.ai-route-panel strong{display:block;color:#7a3d12;margin-bottom:5px}.ai-route-panel small{display:block;margin-bottom:9px}.ai-route-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ai-route-search{width:min(520px,100%);padding:8px;border:1px solid #b7b7b7}.ai-route-row select{min-width:360px;max-width:100%;padding:8px}.ai-route-status{display:block;margin-top:7px;font-weight:700}.ai-route-status.error{color:#9d3026}.ai-route-status.ok{color:#2f6d3a}@media(max-width:700px){.ai-route-row select{min-width:100%}}';
  document.head.appendChild(s);
 }
 function score(title,p){
@@ -41,8 +41,16 @@ async function getProducts(client){
   .select('id,manufacturer,model,package_name,package_key,active').eq('active',true).limit(5000);
  if(error)throw error;activeProducts=data||[];return activeProducts;
 }
-async function addPanel(card){
- if(card.querySelector('.ai-route-panel'))return;
+function insertControl(card,el){
+ const actions=card.querySelector('.catalog-pending-actions');
+ if(actions)actions.before(el);
+ else {
+  const checks=card.querySelector('.catalog-pending-checks');
+  if(checks)checks.before(el);else card.querySelector('.catalog-pending-editor-grid')?.after(el);
+ }
+}
+async function openPanel(card){
+ if(card.querySelector('.ai-route-panel')){card.querySelector('.ai-route-panel').open=true;return;}
  const client=sb();if(!client)return;
  const id=card.dataset.pendingCandidate;if(!id)return;
  const c=await getCandidateRouteState(id);
@@ -51,7 +59,7 @@ async function addPanel(card){
  let products=[];try{products=await getProducts(client);}catch{return;}
  const choices=products.filter(p=>String(p.id)!==String(c.catalog_product_id)).map(p=>({p,s:score(title,p)}))
   .sort((a,b)=>b.s-a.s||String(a.p.model).localeCompare(String(b.p.model)));
- const panel=document.createElement('details');panel.className='ai-route-panel';
+ const panel=document.createElement('details');panel.className='ai-route-panel';panel.open=true;
  panel.innerHTML='<summary>VALID EVIDENCE — ROUTE TO AN ALTERNATIVE PRODUCT</summary>'
  +'<div class="ai-route-panel-body"><strong>This evidence is valid, but the current catalogue target is wrong or too specific.</strong>'
  +'<small>Keep the source finding. Search the active catalogue and move it to the exact alternative product. This does not create duplicate live evidence.</small>'
@@ -82,16 +90,24 @@ async function addPanel(card){
    setTimeout(()=>location.reload(),500);
   }catch(e){status.textContent=e.message||String(e);status.className='ai-route-status error';button.disabled=false;}
  });
- const checks=card.querySelector('.catalog-pending-checks');
- if(checks)checks.before(panel);else card.querySelector('.catalog-pending-editor-grid')?.after(panel);
+ const trigger=card.querySelector('.ai-route-trigger');
+ if(trigger)trigger.replaceWith(panel);else insertControl(card,panel);
+}
+function ensureTrigger(card){
+ if(card.querySelector('.ai-route-panel,.ai-route-trigger'))return;
+ const trigger=document.createElement('button');
+ trigger.type='button';trigger.className='btn btn-secondary ai-route-trigger';
+ trigger.textContent='ROUTE TO ALTERNATIVE PRODUCT';
+ trigger.addEventListener('click',()=>openPanel(card));
+ insertControl(card,trigger);
 }
 function refreshCard(card){
- const panel=card.querySelector('.ai-route-panel');
- if(domMismatch(card)){if(!panel)addPanel(card);return;}
+ const control=card.querySelector('.ai-route-panel,.ai-route-trigger');
+ if(domMismatch(card)){if(!control)ensureTrigger(card);return;}
  // Server-backed mismatch remains authoritative if the editable DOM has not caught up yet.
  const id=card.dataset.pendingCandidate;
- if(id&&!panel)getCandidateRouteState(id).then(c=>{if(c?.routeRequired)addPanel(card);}).catch(()=>{});
- else if(panel)panel.remove();
+ if(id&&!control)getCandidateRouteState(id).then(c=>{if(c?.routeRequired)ensureTrigger(card);}).catch(()=>{});
+ else if(control)control.remove();
 }
 function watch(card){
  if(card.dataset.aiRouteWatch)return;card.dataset.aiRouteWatch='1';
