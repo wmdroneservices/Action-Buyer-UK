@@ -1593,3 +1593,20 @@ Coverage is calculated from:
 - the central `inventory_assets` SKU.
 
 A missing outlet means the active registry contains an outlet without a Draft, Ready For Listing, Published or Reserved listing for that SKU. It is a management signal, not an instruction to publish everywhere.
+
+
+### Sales Dashboard management-attention rule
+
+The Sales Dashboard may contain a compact management-only summary of stock strategy, but it must remain a summary and controlled navigation layer.
+
+For the management attention panel:
+
+1. require the authenticated user's own active staff_users record;
+2. display the panel only when can_manage_staff = true;
+3. obtain strategy counts through management_stock_strategy_report();
+4. keep the detailed action workflow in admin-stock-strategy.html and the existing Sales Workbench;
+5. never expose management-only information merely by CSS hiding — the RPC/database permission remains authoritative;
+6. do not introduce automatic listing creation, publishing, repricing, delisting or auction transfer from dashboard summary logic;
+7. refresh the operational pipeline independently from the management summary to avoid unnecessary management-RPC polling.
+
+The current implementation refreshes the normal sales workflow frequently and the management stock summary on a slower interval.
