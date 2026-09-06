@@ -1514,3 +1514,10 @@ Before adding a new owned brand or auction outlet, register it in `sales_outlets
 When retailer wording differs from the catalogue title, Gemma must resolve the underlying identity rather than perform literal title matching. Check manufacturer → model → controller → bundle → included accessories → variant. Record alternative wording with its retailer/domain, supporting evidence, confidence and reason.
 
 Use **confirmed / probable / ambiguous** states. Do not invent aliases or silently promote a guess. A retailer-specific pattern remains source-specific until independently supported elsewhere. Any positive controller or bundle conflict blocks automatic equivalence.
+
+
+### Dynamic Sales Workbench rule — security and outlet registry
+
+Do not restore a hard-coded outlet/channel list in `sales-workbench.js`. Load only active records from `sales_outlets` through the authenticated Supabase client. New listings must persist both the compatibility display channel and the authoritative `outlet_id`.
+
+The client UI may present outlet choices but must not be treated as the security boundary. RLS and staff authorization remain the database boundary, and sold/delist state must continue through the authoritative database workflow. Never expose service-role credentials in any GitHub Pages/public JavaScript.
