@@ -124,3 +124,32 @@ The first failure was the front-end transition branch: only `Failed` inspections
 A repair-required inspection is still a completed inspection. The Sales RPC may accept the latest inspection result `Requires Repair`, legacy `Requires Attention`, or `Failed` only when a completed `inventory_repairs` record exists for the asset. This does **not** bypass technical testing, condition, missing-item or status gates.
 
 Repository migration: `supabase/migrations/20260906214500_allow_repaired_inspection_to_pass_sales_gate.sql`.
+
+## Post-sale fulfilment and customer returns — 6 September 2026
+
+### User action
+Sold item → create/record shipping label → mark collected → mark delivered. If a buyer requests a return, open **Customer Return** from the Sold Item.
+
+### Front-end
+- `sold-items.html` + `sold-after-sales.js`
+- `sales-customer-returns.html` → `sales-customer-returns.js`
+- `staff-navigation.js`
+
+### Supabase
+- sold truth: `inventory_assets`, `resale_listings`, `staff_mark_resale_listing_sold`
+- fulfilment: `sales_fulfillments`, `staff_create_sales_fulfillment`, `staff_update_sales_fulfillment`
+- buyer returns: `sales_customer_returns`, `staff_open_sales_customer_return`, `staff_update_sales_customer_return`
+- separate purchasing returns: `purchase_return_cases`
+
+### Expected flow
+`Sold → Label Created → Ready for Collection (optional) → Collected → Delivered`
+
+`Buyer return → Requested → Approved → Label Created → Collected → Item Received → Returned asset for review → Resolved/Refused`
+
+### Rules
+- non-Sold assets cannot enter fulfilment;
+- label before collection;
+- collection before delivery;
+- one open buyer return per asset;
+- never merge buyer returns with Purchase Returns;
+- preserve sold history when the returned item is received.
