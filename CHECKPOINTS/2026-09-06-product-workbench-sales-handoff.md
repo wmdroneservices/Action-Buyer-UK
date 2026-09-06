@@ -38,7 +38,7 @@ Inspection facts remain available as the historical receiving and technical reco
 ## Verified live state before change
 
 - DJI Neo / TEST-ASSET-006 was live in `Sent to Sales`.
-- It is linked to catalogue product `96961e1-eaac-4dee-b0de-8887ca3191bf`.
+- It is linked to catalogue product `96961e1-aaac-4dee-b0de-8887ca3191bf`.
 - Both `catalog_sales_content` and `inventory_sales_content` existed live but had no content rows.
 - Both tables already have active-staff RLS policies allowing staff CRUD.
 - No new description/image table was created.
