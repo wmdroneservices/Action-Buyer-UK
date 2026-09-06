@@ -58,7 +58,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(error){notice("Could not load Sales Dashboard counts.",false);return;}
     const rows=assets||[];
     const count=s=>rows.filter(a=>a.status===s).length;
-    const inventoryRows=rows.filter(a=>inventoryStates.includes(a.status));
+    // Repair Required is intentionally broken out as its own visible pipeline category.
+    // Inventory means stock still progressing through inspection/testing/resale preparation.
+    const repairs=count("Repair Required");
+    const inventoryRows=rows.filter(a=>inventoryStates.includes(a.status)&&a.status!=="Repair Required");
     const inventoryCount=inventoryRows.length;
     const sent=count("Sent to Sales");
     const listed=count("Listed");
@@ -78,6 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     };
     setPipelineCount("inventory-count",inventoryCount);
+    setPipelineCount("repair-count",repairs);
     setPipelineCount("sent-count",sent);
     setPipelineCount("listed-count",listed);
     setPipelineCount("reserved-count",reserved);
@@ -99,7 +103,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inspection=count("Received");
     const testing=count("Inspection Required");
     const testingInProgress=count("Testing");
-    const repairs=count("Repair Required");
     const readyToSend=count("Ready for Resale");
 
     const inventoryParts=[];
