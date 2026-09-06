@@ -1640,3 +1640,10 @@ Current explicit priority examples:
 - Repair Required inventory → **PRIORITY**.
 
 All other ordinary tasks continue through age-based escalation unless a later verified workflow requirement changes this rule.
+
+
+## Compact mismatch-routing interface — 6 September 2026
+
+A large mismatch batch can contain many valid findings awaiting rerouting. The catalogue therefore uses lazy-open routing controls: show a compact route button first, then load the searchable alternative-product selector only for the evidence item staff chooses to route.
+
+The underlying rule is unchanged: preserve valid evidence, route it to the exact canonical product, record the reassignment, then continue normal review/acceptance. Interface compactness must never be implemented by hiding or discarding the pending candidate.
