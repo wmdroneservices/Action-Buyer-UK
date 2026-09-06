@@ -2374,3 +2374,26 @@ Ordinary sales staff do not receive this management panel. The browser checks ac
 Valid evidence must not disappear merely because its original catalogue target is wrong. Any pending candidate with a package/model/variant mismatch must expose the compact **VALID EVIDENCE — ROUTE TO AN ALTERNATIVE PRODUCT** control. The routing decision is preserved through `reassign_ai_candidate(...)`; the source finding is not recreated and duplicate live evidence is not created.
 
 The UI must not depend solely on transient rendered dropdown values to decide whether the control exists. It checks both the visible review state and the persisted candidate mismatch state, with delayed rescans for asynchronous catalogue rendering. The compact panel remains collapsed by default so large audits do not produce pages of expanded controls.
+
+
+---
+
+## Unified What Needs Doing — Task Intelligence Upgrade — 6 September 2026
+
+The shared **What Needs Doing** board now provides a more explicit operational priority layer across the main Staff Dashboard, Purchasing Dashboard and Sales Dashboard.
+
+It continues to read existing workflow state; it does not create a second task database.
+
+New behaviour:
+
+- **CRITICAL** — immediate action requiring priority treatment, currently including duplicate marketplace listings marked for closure.
+- **PRIORITY** — important operational actions, including confirmed customer payments awaiting recording and repair-required inventory.
+- **OVERDUE** — workflow actions waiting beyond the normal review window.
+- **CURRENT** — newly raised or recent actions.
+- **FOCUS NEXT** — the highest-ranked live task provides a direct handoff into the existing workflow page.
+- **WORK AREA FILTERS** — staff can temporarily filter the live board by Purchasing, Inventory, Sales, Returns and other categories present in the current workload.
+- duplicate task keys are collapsed so the board does not show the same actionable item repeatedly.
+
+The task board remains advisory and navigational. Opening a task takes staff to the existing workflow; it does not automatically change item status, send payments, publish listings, dispatch stock or close marketplace listings.
+
+**Developer investigation map:** [Phase 2 Retail Storefront Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md).
