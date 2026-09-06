@@ -257,3 +257,22 @@ Do not add a second generic batch-size control to the shared product-filter area
 - `deep-source-limit` controls Deep Source Website Audit only.
 
 This prevents one workflow's batch setting from silently overriding the other.
+
+
+## Live-state and cancellation controls — 6 September 2026
+
+### User action
+1. Start RUN DEEP SOURCE AUDIT.
+2. Dashboard detects the created Deep Source run and its active queue rows.
+3. Run button becomes DEEP AUDIT RUNNING · processed/total.
+4. CANCEL DEEP SOURCE AUDIT is available without scrolling to the global worker stop controls.
+
+### Cancellation path
+admin-ai-research.js
+→ ai_research_cancel_run(run_id)
+→ quote_catalog_ai_queue active rows become skipped
+→ quote_catalog_ai_research_runs.status = cancelled
+→ local worker sees cancelled status before further candidate writes.
+
+### Important separation
+Targeted Deep Source cancellation must not call ai_research_emergency_stop(). The emergency stop is intentionally global and stops all active research plus the Research PC workflow; the Deep Source cancel control affects only the selected audit run.
