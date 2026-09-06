@@ -2120,3 +2120,37 @@ For package-heavy families, the worker must treat these as separate identities w
 A family-name match alone is not sufficient to place evidence into a Standard Package.
 
 When the exact identity is already in the catalogue, route evidence there. When it is not, preserve the evidence and surface a new-product candidate/reassignment path. Do not force the evidence into a generic package and do not discard it.
+
+
+---
+
+## 20. 6 September 2026 — DJI package identity normalisation
+
+A live Gemma/MPB regression test exposed that generic **Standard Package** records were too ambiguous for DJI products. A used MPB result titled **DJI Mini 2 with RC-N1 Controller** correctly identified the model but could only be matched against the catalogue's generic **Mini 2 — Standard Package** identity.
+
+### Rule adopted
+
+For DJI drones, a Standard Package should represent a real base package identity, not an undefined aircraft family. Where the controller is part of the identifiable base package, the catalogue package name must include that controller.
+
+Initial MPB-backed normalisation completed:
+
+- Air 2 → **Standard Package (DJI RC-N1)**
+- Air 2S → **Standard Package (DJI RC-N1)**
+- Mavic Air → **Standard Package (Mavic Air Controller)**
+- Mini 2 → **Standard Package (DJI RC-N1)**
+- Mini 4K → **Standard Package (DJI RC-N1)**
+
+The Mini 2 pending MPB candidate remains attached to the same product record and now has a precise package identity instead of relying on the generic word “Standard”.
+
+### Important limitation discovered
+
+Not every DJI model has one unique controller identity in used-market listings. MPB can group several controller configurations under one model page, particularly in the Mavic 3 family. Those products must not be blindly renamed to a single controller configuration. They require either separate controller/package records or explicit human reassignment rules.
+
+### Next verification
+
+Run broader DJI research and check:
+
+1. whether exact controller/package wording improves Gemma matching;
+2. whether Fly More and controller variants remain distinct;
+3. whether generic model pages containing mixed controller configurations are kept in review;
+4. whether ambiguous generic Standard Package records should be split or retired rather than renamed.
