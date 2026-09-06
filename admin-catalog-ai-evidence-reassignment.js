@@ -171,50 +171,21 @@ function refreshCard(card){
   retryRouteState(card);
  }).finally(()=>{delete card.dataset.aiRouteChecking;});
 }
-function watch(card){
- if(card.dataset.aiRouteWatch)return;card.dataset.aiRouteWatch='1';
- card.addEventListener('change',e=>{
-  if(e.target.matches('[data-field="edited_package_match"],[data-field="edited_variant_match"],[data-review-outcome="product_match"]'))refreshCard(card);
- });
-}
-function processCard(card){
- if(!(card instanceof Element))return;
- watch(card);refreshCard(card);
-}
-function scan(root=document){
- style();
- if(root instanceof Element&&root.matches('[data-pending-candidate]'))processCard(root);
- (root.querySelectorAll?root.querySelectorAll('[data-pending-candidate]'):[]).forEach(processCard);
-}
-// Do not rescan the whole document for every DOM mutation. The previous observer did
-// exactly that, including mutations made by this script, which could create a heavy
-// feedback loop while the catalogue was being rendered or virtualised during scrolling.
-let observerQueued=false;
-const pendingRoots=new Set();
-const flushObserver=()=>{
- observerQueued=false;
- const roots=[...pendingRoots];pendingRoots.clear();
- roots.forEach(root=>scan(root));
-};
-const mo=new MutationObserver(records=>{
- for(const record of records){
-  for(const node of record.addedNodes){
-   if(node.nodeType===1)pendingRoots.add(node);
-  }
- }
- if(pendingRoots.size&&!observerQueued){
-  observerQueued=true;
-  requestAnimationFrame(flushObserver);
- }
+// Routing controls are rendered directly by the authoritative pending-card renderer.
+// Keep this script event-driven: no document-wide MutationObserver and no delayed
+// full-page rescans, which previously caused layout shudder and a renderer crash.
+document.addEventListener('click',e=>{
+ const trigger=e.target.closest('.ai-route-trigger');
+ if(!trigger)return;
+ const card=trigger.closest('[data-pending-candidate]');
+ if(card)openPanel(card);
 });
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{
- scan();
- mo.observe(document.body,{childList:true,subtree:true});
- setTimeout(scan,500);setTimeout(scan,1500);
-},{once:true});
-else {
- scan();
- mo.observe(document.body,{childList:true,subtree:true});
- setTimeout(scan,500);setTimeout(scan,1500);
-}
+document.addEventListener('change',e=>{
+ if(!e.target.matches('[data-field="edited_package_match"],[data-field="edited_variant_match"],[data-review-outcome="product_match"]'))return;
+ const card=e.target.closest('[data-pending-candidate]');
+ if(!card)return;
+ if(domMismatch(card))ensureTrigger(card);
+ else card.querySelector('.ai-route-panel,.ai-route-trigger')?.remove();
+});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',style,{once:true});else style();
 })();
