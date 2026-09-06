@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.1',
+    version:'1.5.2',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -895,13 +895,39 @@ const deepSourceRules={
 };
 
 function mpbExactProductUrls(product,domain='mpb.com'){
-  const base=String(productName(product)||'').trim().toLowerCase();
-  if(!base)return [];
-  const slug=base
-    .replace(/&/g,' and ')
-    .replace(/[^a-z0-9]+/g,'-')
-    .replace(/^-+|-+$/g,'');
-  return slug?['https://'+domain+'/en-uk/product/'+slug]:[];
+  // Search every real catalogue identity, not only the base model. This is
+  // important for accessories, kits and named bundles such as ND Filter Kit.
+  const names=productSearchNames(product);
+  const urls=[];
+  for(const name of names){
+    const slug=String(name||'').trim().toLowerCase()
+      .replace(/&/g,' and ')
+      .replace(/[^a-z0-9]+/g,'-')
+      .replace(/^-+|-+$/g,'');
+    if(slug)urls.push('https://'+domain+'/en-uk/product/'+slug);
+  }
+  return [...new Set(urls)];
+}
+
+function deepSourceTargetIdentity(product,title,url){
+  const model=normaliseIdentityText(product?.model);
+  let identity=normaliseIdentityText(title||'');
+  try{identity+=' '+normaliseIdentityText(decodeURIComponent(new URL(url).pathname).replace(/[\/_-]+/g,' '));}catch{}
+  identity=identity.trim();
+
+  if(!model||!identity.includes(model)){
+    return {model_match:false,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model is not present in the page title or canonical product URL.'};
+  }
+
+  const packageName=cleanProductPackageName(product);
+  if(packageName&&!isGenericInternalPackageLabel(packageName)){
+    const packageIdentity=normaliseIdentityText(packageName);
+    if(packageIdentity&&!identity.includes(packageIdentity)){
+      return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model found, but the catalogue package/kit name is not present in the page title or canonical product URL.'};
+    }
+  }
+
+  return {model_match:true,package_match:'match',variant_match:'match',reason:'Exact catalogue identity is present in the page title/canonical URL.'};
 }
 
 function deepSourceRuleFor(url){
@@ -1001,7 +1027,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   if(!domain)throw new Error('Deep Source landing page URL is invalid.');
   const rule=deepSourceRuleFor(landing);
   const names=productSearchNames(product);
-  const query=names[0]||productName(product);
+  const queries=[...new Set((names.length?names:[productName(product)]).filter(Boolean))];
   const terms=productTerms(product);
   const queue=[{url:landing,depth:0,from:'landing'}];
   const seen=new Set(),candidates=new Map(),discovered=[];
@@ -1023,30 +1049,34 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     for(const url of mpbExactProductUrls(product,domain)){
       addCandidate({url,title:productName(product)},'mpb-direct-slug');
     }
-    try{
-      const results=await searchWeb('site:mpb.com/en-uk/product "'+productName(product)+'"');
-      for(const r of results||[]){
-        try{
-          const u=new URL(r.url);
-          if(hostOf(u.href)!==domain||!rule.exactPath.test(u.pathname))continue;
-          const score=deepLinkScore(product,{url:u.href,title:r.title||''},rule,0);
-          if(score>=60)addCandidate({url:u.href,title:r.title||'',provider:r.provider||'web'},'web-search');
-        }catch{}
-      }
-    }catch(e){log('MPB exact web discovery unavailable:',e.message||String(e));}
+    for(const query of queries){
+      try{
+        const results=await searchWeb('site:mpb.com/en-uk/product "'+query+'"');
+        for(const r of results||[]){
+          try{
+            const u=new URL(r.url);
+            if(hostOf(u.href)!==domain||!rule.exactPath.test(u.pathname))continue;
+            const score=deepLinkScore(product,{url:u.href,title:r.title||''},rule,0);
+            if(score>=60)addCandidate({url:u.href,title:r.title||'',provider:r.provider||'web',target_query:query},'web-search');
+          }catch{}
+        }
+      }catch(e){log('MPB exact web discovery unavailable:',query,e.message||String(e));}
+    }
   }
 
   // First use the site's own search routes when known. The landing page remains
   // the root of the audit, but internal search is a fast path to deep exact pages.
-  for(const u of rule.searchAttempts('https://'+domain,query)){
-    try{
-      const {url:finalUrl,html}=await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
-      for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
-        const score=deepLinkScore(product,link,rule,1);
-        if(score>=60)addCandidate(link,'internal-search');
-        else if(score>=8)queue.push({url:link.url,depth:1,from:'internal-search'});
-      }
-    }catch(e){log('Deep Source internal search unavailable:',u,e.message||String(e))}
+  for(const query of queries){
+    for(const u of rule.searchAttempts('https://'+domain,query)){
+      try{
+        const {url:finalUrl,html}=await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
+        for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
+          const score=deepLinkScore(product,link,rule,1);
+          if(score>=60)addCandidate({...link,target_query:query},'internal-search');
+          else if(score>=8)queue.push({url:link.url,title:link.title,depth:1,from:'internal-search',target_query:query});
+        }
+      }catch(e){log('Deep Source internal search unavailable:',u,e.message||String(e))}
+    }
   }
 
   // Breadth-first crawl from the supplied landing page through category and
@@ -1089,8 +1119,12 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
       const text=stripHtml(html).slice(0,18000);
       const title=meta.title||r.title||'';
       if(looksGenericTitle(title)||pageLooksLikeError(text,title))continue;
-      if(!hasExactModelEvidence(product,title,text,finalUrl))continue;
-      discovered.push({...r,url:finalUrl,title});
+      // Related-product sections can mention the target model in the page body.
+      // Final Deep Source identity must therefore come from the title/URL, not
+      // from similar-product recommendations.
+      const targetIdentity=deepSourceTargetIdentity(product,title,finalUrl);
+      if(!targetIdentity.model_match)continue;
+      discovered.push({...r,url:finalUrl,title,target_identity:targetIdentity});
       const source=[...sources].find(x=>String(x.domain||'').replace(/^www\./,'').toLowerCase()===domain);
       // MPB exact model pages can legitimately contain multiple inventory units
       // even when a single structured price is absent.
@@ -1100,7 +1134,8 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
         discovered_currency:meta.currency||null,
         discovered_availability:meta.availability||null,
         structured_product:meta.product===true,
-        deep_source:true
+        deep_source:true,
+        target_identity:targetIdentity
       });
     }catch(e){log('Deep Source exact page unavailable:',r.url,e.message||String(e))}
   }
@@ -1840,15 +1875,15 @@ async function processOne(){
         currency:'GBP',
         condition:conditions.length?conditions.join(', '):'Multiple used conditions',
         availability_status:'in_stock',
-        match_confidence:0.99,
+        match_confidence:page.target_identity?.package_match==='match'?0.99:0.70,
         source_name:knownMpbSource?.source_name||'MPB UK',
         source_country_code:'GB',
         source_kind:'used_dealer',
         evidence_category:'used_uk',
         market_region:'UK',
-        package_match:'uncertain',
-        variant_match:'uncertain',
-        evidence_notes:'Exact MPB UK product page. Used-market reference only. '+units.length+' live unit(s) observed. From £'+from.toFixed(2)+' to £'+to.toFixed(2)+'. Conditions: '+(conditions.join(', ')||'not extracted')+'. Verify latest stock and prices from the direct MPB page before manually refreshing stale evidence.',
+        package_match:page.target_identity?.package_match||'uncertain',
+        variant_match:page.target_identity?.variant_match||'uncertain',
+        evidence_notes:(page.target_identity?.package_match==='mismatch'?'VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED. '+String(page.target_identity?.reason||'')+' ':'')+'Exact MPB UK product page. Used-market reference only. '+units.length+' live unit(s) observed. From £'+from.toFixed(2)+' to £'+to.toFixed(2)+'. Conditions: '+(conditions.join(', ')||'not extracted')+'. Verify latest stock and prices from the direct MPB page before manually refreshing stale evidence.',
         _evidence_title:page.title,
         _evidence_text:page.text
       };
