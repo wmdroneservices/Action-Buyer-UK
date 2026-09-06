@@ -782,8 +782,9 @@ async function runDeepSourceAudit(){
    if(!url)throw Error('Enter the full landing page URL, including https://');
    rememberDeepSourceUrl(url);
    if($('deep-source-url'))$('deep-source-url').value=url;
-   const limit=Number(clean($('deep-source-limit')?.value||'5'));
-   if(!Number.isFinite(limit)||limit<1)throw Error('Choose a valid Deep Source batch size.');
+   const limitValue=clean($('deep-source-limit')?.value||'5');
+   const limit=limitValue==='all'?0:Number(limitValue);
+   if(!Number.isFinite(limit)||limit<0)throw Error('Choose a valid Deep Source batch size.');
    const body={
      limit,
      manufacturer:clean($('research-manufacturer')?.value||''),
@@ -794,7 +795,9 @@ async function runDeepSourceAudit(){
      deep_source_url:url
    };
    const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
-   deepMsg('Starting Deep Source Audit for '+scope+'. The normal Regular AI Research market and All Sources / Amazon UK Only controls are ignored for this run: the selected landing-page domain controls the audit.');
+   if(limit===0&&!body.manufacturer&&!body.model&&!body.category&&!body.product_type)throw Error('ALL matching products requires at least one product filter. Select a manufacturer to audit a whole manufacturer safely.');
+   const batchLabel=limit===0?'ALL matching products':limit+' product(s)';
+   deepMsg('Starting Deep Source Audit for '+scope+' · '+batchLabel+'. The normal Regular AI Research market and All Sources / Amazon UK Only controls are ignored for this run: the selected landing-page domain controls the audit.');
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
@@ -805,7 +808,7 @@ async function runDeepSourceAudit(){
    started=true;
    activeDeepSourceRunId=r.run_id||null;
    deepMsg('Deep Source Audit queued. Waiting for the Research PC to claim the first product…',false);
-   msg('Deep Source Audit queued: '+scope+' · '+limit+' product(s) · '+url);
+   msg('Deep Source Audit queued: '+scope+' · '+batchLabel+' · '+url);
    await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch(),loadDeepSourceAuditState()]);
  }catch(e){
    deepMsg(e.message||String(e),true);
