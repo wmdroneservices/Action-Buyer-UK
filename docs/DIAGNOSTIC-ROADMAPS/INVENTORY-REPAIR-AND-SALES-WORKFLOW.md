@@ -386,3 +386,28 @@ For a physically received buyer return, the assessment screen must show the link
 - item physically received back (`item_received_at`).
 
 These are display-only transaction facts. They must not be re-entered manually during assessment. The existing mandatory closure fields remain the authoritative record of the return outcome and customer financial resolution.
+
+## Follow-up repair — resolved customer-return links and stale actions
+
+Browser testing after completing **CSR-E768FABB1E5B** exposed a second-stage routing problem.
+
+Live state was verified as:
+
+- `sales_customer_returns.status = 'Resolved'`;
+- `inventory_assets.status = 'Returned'`;
+- the return assessment and customer financial details were already completed.
+
+Two stale routes remained:
+
+1. the lower **OPEN RETURNS** CTA on the Sales Dashboard still linked to legacy `returns.html`;
+2. the generic `Returned` asset workflow could still create **Review returned item** and route to the Product Workbench after the customer return was already resolved.
+
+### Repair
+
+- Sales Dashboard lower CTA now opens `sales-customer-returns.html` as **OPEN CUSTOMER RETURNS**.
+- Sales Dashboard return attention counts now use `sales_customer_returns` for active customer-return cases and do not treat a resolved customer-return asset as a fresh generic return review.
+- The generic `Returned` task is suppressed for any asset that has a post-sale `sales_customer_returns` record, preventing the Product Workbench route from reappearing after closure.
+
+### Rule
+
+A completed post-sale customer return must not continue to generate legacy return or generic Product Workbench actions. The authoritative record remains `sales_customer_returns`; once terminal, it is history rather than live work.
