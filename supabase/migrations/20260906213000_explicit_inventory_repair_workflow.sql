@@ -27,7 +27,14 @@ create policy inventory_repairs_staff_insert on public.inventory_repairs for ins
 
 create or replace function public.staff_complete_inventory_repair(p_asset_id uuid,p_fault_description text,p_repair_description text,p_provider_type text default 'Internal',p_provider_name text default null,p_repair_cost numeric default 0,p_repaired_at timestamptz default now(),p_evidence_paths jsonb default '[]'::jsonb)
 returns public.inventory_repairs language plpgsql security definer set search_path=public,auth as $$
-declare a public.inventory_assets%rowtype; r public.inventory_repairs%rowtype; e_id uuid:=null; v_cost numeric:=coalesce(p_repair_cost,0); v_fault text:=nullif(trim(coalesce(p_fault_description,'')),''), v_repair text:=nullif(trim(coalesce(p_repair_description,'')),''), v_provider text:=coalesce(nullif(trim(p_provider_type),''),'Internal');
+declare
+  a public.inventory_assets%rowtype;
+  r public.inventory_repairs%rowtype;
+  e_id uuid:=null;
+  v_cost numeric:=coalesce(p_repair_cost,0);
+  v_fault text:=nullif(trim(coalesce(p_fault_description,'')), '');
+  v_repair text:=nullif(trim(coalesce(p_repair_description,'')), '');
+  v_provider text:=coalesce(nullif(trim(p_provider_type),''),'Internal');
 begin
   if not exists(select 1 from public.staff_users where user_id=auth.uid() and active=true) then raise exception 'Active staff access required'; end if;
   if v_fault is null then raise exception 'Repair fault description is required'; end if;
