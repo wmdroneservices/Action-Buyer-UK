@@ -356,3 +356,19 @@ The task board was reading the legacy `customer_return_requests` table and routi
 ### Rule
 
 The Live Task Board must point at the same authoritative workflow table as the page that performs the action.
+
+
+### Duplicate returned-item task suppression — 7 September 2026
+
+A physically received post-sale customer return sets the linked asset to `Returned`, while the authoritative return case remains open in `sales_customer_returns` with status **Item Received**.
+
+The Live Task Board therefore has two possible sources for the same physical event. The generic asset map must **not** create a second `Review returned item` task for an asset that already has an open customer-return case. Otherwise one task can route to the generic Product Workbench instead of the dedicated return assessment.
+
+Current rule:
+
+- open `sales_customer_returns` case for the asset → only the authoritative **CUSTOMER RETURNS** task is shown;
+- no open customer-return case → the generic `Returned` asset task may remain available for non-customer-return investigation.
+
+**First verified failure:** TEST-ASSET-007 / CSR-E768FABB1E5B produced a correct customer-return task and a second generic asset task. The second CTA could route staff away from the mandatory assessment page.
+
+Repair location: `live-task-board.js`.
