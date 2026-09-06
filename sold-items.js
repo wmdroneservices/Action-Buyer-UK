@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const date=v=>v?new Date(v).toLocaleString('en-GB'):'Not recorded';
   async function signed(records){const paths=records.map(x=>x.file_url).filter(Boolean);if(!paths.length)return[];const {data}=await db.storage.from('quote-photos').createSignedUrls(paths,3600);return(data||[]).map((x,i)=>({...x,record:records[i]})).filter(x=>x.signedUrl);}
   const [{data:assets,error},{data:listings},{data:returns},{data:expenses},{data:testing},{data:evidence}]=await Promise.all([
-    db.from('inventory_assets').select('*').in('status',['Sold','Returned']).order('sold_at',{ascending:false}),
+    db.from('inventory_assets').select('*').in('status',['Sold','Sold - Awaiting Shipping','Sold - Shipped','Returned']).order('sold_at',{ascending:false}),
     db.from('resale_listings').select('*'),
     db.from('customer_return_requests').select('*').order('created_at',{ascending:false}),
     db.from('inventory_expenses').select('*'),
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   delistRows.forEach(l=>{if(!delistAssets.has(l.asset_id))delistAssets.set(l.asset_id,[]);delistAssets.get(l.asset_id).push(l);});
   const delistCount=delistRows.length;
 
-  summary.innerHTML=`<div style="display:flex;gap:2rem;flex-wrap:wrap"><div><strong>${rows.length}</strong><br>sold / returned products</div><div><strong>${money(rows.filter(a=>a.status==='Sold').reduce((s,a)=>s+Number(a.sold_price||0),0))}</strong><br>sold revenue</div><div><strong>${money(rows.reduce((s,a)=>s+Number(a.purchase_price||0),0))}</strong><br>purchase cost</div><div><strong>${money(soldRevenue)}</strong><br>gross sold value</div></div>`;
+  summary.innerHTML=`<div style="display:flex;gap:2rem;flex-wrap:wrap"><div><strong>${rows.length}</strong><br>post-sale / returned products</div><div><strong>${money(rows.filter(a=>a.status==='Sold').reduce((s,a)=>s+Number(a.sold_price||0),0))}</strong><br>sold revenue</div><div><strong>${money(rows.reduce((s,a)=>s+Number(a.purchase_price||0),0))}</strong><br>purchase cost</div><div><strong>${money(soldRevenue)}</strong><br>gross sold value</div></div>`;
 
   if(delistCount){
     const urgent=document.createElement('section');
