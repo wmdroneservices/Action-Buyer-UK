@@ -1770,3 +1770,16 @@ Therefore:
 5. preserve distinct RC-N1 and DJI RC package identities.
 
 The customer valuation page now loads a fresh version of `quote-reverse-basket-v5.js` and `quote-catalog-dropdown-guard.js`, which removes only true duplicate dropdown options while preserving legitimate variants.
+
+
+### Product Workbench repair-state diagnostic rule — 6 September 2026
+
+If **SEND TO SALES** is disabled after inspection/testing appears to pass:
+
+1. inspect the live `inventory_assets.status`;
+2. inspect the latest `inventory_testing` inspection and testing rows;
+3. compare the current status with the state-machine transition branches;
+4. specifically check the `Repair Required` → `Testing` → `Ready for Resale` path;
+5. do not bypass the state machine by directly marking the asset Sent to Sales.
+
+Confirmed fault: the Product Workbench handled `Testing` → `Ready for Resale`, but did not handle a repaired asset whose post-repair testing was saved while still in `Repair Required`. The minimal repair performs the two controlled transitions when the post-repair checks pass.
