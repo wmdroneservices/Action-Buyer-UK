@@ -518,3 +518,17 @@ After the Research PC reports worker 1.5.4, run a small controlled Deep Source t
 ### Worker version
 
 Repository worker is now **1.5.5**. The Research PC must be updated and its heartbeat verified before relying on these new duplicate-check changes.
+
+
+### Package equivalence learning layer
+
+Before treating a differently worded retailer result as a mismatch or duplicate, compare the canonical identity components:
+
+1. manufacturer;
+2. model;
+3. controller;
+4. bundle/package;
+5. included accessories;
+6. variant.
+
+Then consult source-aware aliases and retailer-specific naming patterns. Confirmed aliases may support matching; probable aliases require review; ambiguous descriptions remain unresolved. New wording is captured as a candidate learning pattern only when supported by exact evidence, and promoted after repeated independent evidence or explicit human confirmation.
