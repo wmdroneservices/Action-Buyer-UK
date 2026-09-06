@@ -1851,3 +1851,34 @@ The working model is:
 **Research AI discoveries + sales/inventory changes + human decisions → shared Supabase memory → current GitHub/Supabase verification → both manuals updated where relevant.**
 
 This is the continuity mechanism that allows separate AI workstreams to contribute to one coherent system without relying on private conversation memory.
+
+
+---
+
+# Product Workbench Rule — Repair Completion Marks Tested (6 September 2026)
+
+A user decision changed the previous explicit repair workflow.
+
+Do **not** reintroduce the old path:
+
+`Repair Required → Repair → Testing → manual post-repair test save → Ready for Resale`
+
+Current required path:
+
+`Repair Required → secure repair record + explicit Passed testing record → Ready for Resale`
+
+The authoritative backend is `staff_complete_inventory_repair(...)`.
+
+Before changing this workflow:
+
+1. inspect the current RPC definition;
+2. inspect `inventory_repairs`, `inventory_testing`, `inventory_expenses` and `inventory_assets`;
+3. preserve the active-staff check and `FOR UPDATE` asset lock;
+4. preserve the requirement that the asset is currently `Repair Required`;
+5. preserve transactional repair-cost handling;
+6. create a tracked testing record rather than using an untracked status bypass;
+7. do not auto-send the item to Sales.
+
+Front end owner: `inventory-workbench.js`.
+
+Repository checkpoint: `CHECKPOINTS/2026-09-06-repair-completion-marks-tested.md`.
