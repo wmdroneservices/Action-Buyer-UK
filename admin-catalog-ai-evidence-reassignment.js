@@ -118,58 +118,7 @@ function ensureTrigger(card){
  const trigger=document.createElement('button');
  trigger.type='button';trigger.className='btn btn-secondary ai-route-trigger';
  trigger.textContent='ROUTE TO ALTERNATIVE PRODUCT';
- trigger.addEventListener('click',()=>openPanel(card));
  insertControl(card,trigger);
-}
-function retryRouteState(card){
- const n=Number(card.dataset.aiRouteRetries||0);
- if(n>=6)return;
- if(card.dataset.aiRouteRetryScheduled==='1')return;
- card.dataset.aiRouteRetries=String(n+1);
- card.dataset.aiRouteRetryScheduled='1';
- setTimeout(()=>{
-  delete card.dataset.aiRouteRetryScheduled;
-  refreshCard(card);
- },Math.min(4000,500*(n+1)));
-}
-function refreshCard(card){
- const control=card.querySelector('.ai-route-panel,.ai-route-trigger');
- if(domMismatch(card)){
-  card.dataset.aiRouteState='required';
-  if(!control)ensureTrigger(card);
-  return;
- }
- // Important: do not mark a card "not-required" before Supabase/auth is ready.
- // The previous freeze repair could cache that temporary startup state permanently,
- // which made the alternative-product control disappear even for real DB mismatches.
- const id=card.dataset.pendingCandidate;
- if(!id){if(control)control.remove();return;}
- if(card.dataset.aiRouteState==='required'){
-  if(!control)ensureTrigger(card);
-  return;
- }
- if(!sb()){
-  card.dataset.aiRouteState='unknown';
-  retryRouteState(card);
-  return;
- }
- if(card.dataset.aiRouteState==='not-required')return;
- if(card.dataset.aiRouteChecking==='1')return;
- card.dataset.aiRouteChecking='1';
- getCandidateRouteState(id).then(c=>{
-  if(!c){
-   card.dataset.aiRouteState='unknown';
-   retryRouteState(card);
-   return;
-  }
-  card.dataset.aiRouteState=c.routeRequired?'required':'not-required';
-  if(c.routeRequired){
-   if(!card.querySelector('.ai-route-panel,.ai-route-trigger'))ensureTrigger(card);
-  }else card.querySelector('.ai-route-panel,.ai-route-trigger')?.remove();
- }).catch(()=>{
-  card.dataset.aiRouteState='unknown';
-  retryRouteState(card);
- }).finally(()=>{delete card.dataset.aiRouteChecking;});
 }
 // Routing controls are rendered directly by the authoritative pending-card renderer.
 // Keep this script event-driven: no document-wide MutationObserver and no delayed
