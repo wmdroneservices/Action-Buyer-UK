@@ -2492,3 +2492,28 @@ Removed legacy/unreferenced files:
 - admin-catalog-online-comparison.js
 
 Do not restore dynamic duplicate script injection or the retired route-state rescan path unless a new, tested ownership model is documented first.
+
+
+---
+
+## Duplicate Listing Closure Control — repaired 6 September 2026
+
+The Sales Dashboard urgent warning now opens a dedicated staff page:
+
+`delist-actions.html`
+
+Each outstanding **Delist Required** action shows:
+
+- exact product;
+- SKU;
+- asset reference;
+- the sales channel and listing reference that must be closed;
+- the channel recorded as sold, where available;
+- every other recorded listing/channel for the same physical SKU;
+- an explicit **OPEN SALES WORKBENCH** handoff;
+- an optional live-listing link when one has been recorded;
+- an explicit **CONFIRM LISTING CLOSED** action.
+
+The system does **not** attempt to close a third-party marketplace listing automatically. Staff close it on the marketplace first, then confirm closure in GearCashOut.
+
+The closure RPC now also requires an **active** staff account, not merely a historical staff_users row.
