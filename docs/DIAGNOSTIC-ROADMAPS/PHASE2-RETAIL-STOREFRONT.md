@@ -133,3 +133,29 @@ This is separate from `catalog_product_id`:
 ### Creation routes
 
 Both traced paid-sale inventory creation routes now use the SKU default, and the secondary `staff_create_inventory_from_paid_sale` route was also brought under the exact-only catalogue identity resolver.
+
+
+## Central Outlet → Listing → SKU model — implemented 6 September 2026
+
+### Data flow
+
+`inventory_assets (one physical SKU) → resale_listings (many listings) → sales_outlets (where each listing belongs)`
+
+### Outlet types
+
+- `owned_storefront` — current/future retail or specialist websites;
+- `marketplace` — eBay, Facebook Marketplace, Gumtree and similar;
+- `auction` — reserved for the future auction platform;
+- `other`.
+
+### Critical existing protection preserved
+
+`staff_mark_resale_listing_sold` remains the central sold operation. A sale marks the inventory asset Sold and competing listings Delist Required. The canonical `resale_listing_sold_warning` trigger remains; a duplicate insert warning trigger discovered during inspection was removed to avoid duplicate execution.
+
+### Next investigation points
+
+1. replace the hard-coded channel list in `sales-workbench.js` with the live `sales_outlets` registry;
+2. add owned storefront/auction outlets only through the registry;
+3. build the staff outlet-management view with active/inactive controls;
+4. add stock-age and outlet-strategy reporting without changing sold-state truth;
+5. keep public storefront repositories restricted to their own outlet's published inventory.
