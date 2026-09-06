@@ -1859,3 +1859,19 @@ No database schema, RLS, review-feedback RPC or live-evidence application RPC wa
 The AI Research Centre's **Deep Source / Website Audit** now keeps a persistent dropdown history of recently entered valid landing-page URLs on the staff device/browser. A new valid URL is normalised and saved, duplicates are de-duplicated, and the most recent entry is shown first. The history is capped at 20 URLs.
 
 The saved history does not replace the run configuration: the currently selected/entered URL remains the explicit `deep_source_url` sent to the Deep Source workflow.
+
+
+## Deep Source Audit source isolation and website registry suggestions — 6 September 2026
+
+### Data flow
+admin-ai-research.html Deep Source URL field
+→ admin-ai-research.js registry + local-history datalist
+→ quote_catalog_ai_sources.homepage_url for approved enabled live website suggestions
+→ quote-catalog-ai-worker with evidence_scope=deep_source and explicit deep_source_url
+→ ai_research_create_deep_source_run(...)
+→ quote_catalog_ai_research_runs.deep_source_url/deep_source_domain
+→ Research PC collectDeepSourceEvidence(...).
+
+The normal source selector (all versus amazon_uk) is not included in the Deep Source request and does not alter the Deep Source execution branch.
+
+Failure point to remember: the normal Amazon scope previously widened to all because of an RPC persistence bug. That history applies to normal research runs, not Deep Source runs; the Deep Source path has its own explicit branch and run contract.
