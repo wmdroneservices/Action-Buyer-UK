@@ -4,7 +4,7 @@ const clean=v=>String(v??'').trim();
 const esc=v=>clean(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=v=>clean(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const sb=()=>window.actionBuyerAuth?.supabase;
-function mismatch(card){const p=card.querySelector('[data-field="edited_package_match"]')?.value;const v=card.querySelector('[data-field="edited_variant_match"]')?.value;return p==='mismatch'||v==='mismatch';}
+function mismatch(card){const p=card.querySelector('[data-field="edited_package_match"]')?.value;const v=card.querySelector('[data-field="edited_variant_match"]')?.value;const review=card.querySelector('[data-review-outcome="product_match"]')?.value;return p==='mismatch'||v==='mismatch'||review==='wrong';}
 function style(){
  if(document.getElementById('ai-reassignment-style'))return;
  const s=document.createElement('style');s.id='ai-reassignment-style';
@@ -33,12 +33,14 @@ async function addPanel(card){
  const {data:products,error:pe}=await q;if(pe)return;
  const choices=(products||[]).filter(p=>String(p.id)!==String(c.catalog_product_id)).map(p=>({p,s:score(title,p)})).sort((a,b)=>b.s-a.s||String(a.p.model).localeCompare(String(b.p.model)));
  const panel=document.createElement('section');panel.className='ai-route-panel';
- panel.innerHTML='<strong>VALID EVIDENCE — WRONG TARGET DETECTED</strong><small>This finding is being kept. Move it to the correct catalogue product instead of denying valid research.</small><div class="ai-route-row"><select><option value="">Choose the correct catalogue product…</option>'+choices.map(({p,s})=>'<option value="'+esc(p.id)+'"'+(s>0?' data-score="'+s+'"':'')+'>'+esc([p.manufacturer,p.model,p.package_name||p.package_key].filter(Boolean).join(' · '))+'</option>').join('')+'</select><button type="button" class="btn btn-secondary">MOVE TO CORRECT PRODUCT</button></div><span class="ai-route-status" aria-live="polite"></span>';
+ const reviewWrong=card.querySelector('[data-review-outcome="product_match"]')?.value==='wrong';
+ panel.innerHTML='<strong>VALID EVIDENCE — WRONG TARGET DETECTED</strong><small>'+(reviewWrong?'You marked PRODUCT / MODEL / PACKAGE as AI WAS WRONG. The finding is being kept — choose the correct catalogue product below.':'This finding is being kept. Move it to the correct catalogue product instead of denying valid research.')+'</small><div class="ai-route-row"><select><option value="">Choose the correct catalogue product…</option>'+choices.map(({p,s})=>'<option value="'+esc(p.id)+'"'+(s>0?' data-score="'+s+'"':'')+'>'+esc([p.manufacturer,p.model,p.package_name||p.package_key].filter(Boolean).join(' · '))+'</option>').join('')+'</select><button type="button" class="btn btn-secondary">MOVE TO CORRECT PRODUCT</button></div><span class="ai-route-status" aria-live="polite"></span>';
  const select=panel.querySelector('select'),button=panel.querySelector('button'),status=panel.querySelector('.ai-route-status');
  button.addEventListener('click',async()=>{const target=select.value;if(!target){status.textContent='Choose the correct catalogue product first.';status.className='ai-route-status error';return;}button.disabled=true;status.textContent='Moving valid evidence to the selected product…';status.className='ai-route-status';try{const {error}=await client.rpc('reassign_ai_candidate',{p_candidate_id:id,p_target_catalog_product_id:target,p_reason:'Manual routing of valid evidence from package/model mismatch'});if(error)throw error;status.textContent='Moved. Reloading the pending review queue…';status.className='ai-route-status ok';setTimeout(()=>location.reload(),500);}catch(e){status.textContent=e.message||String(e);status.className='ai-route-status error';button.disabled=false;}});
- card.querySelector('.catalog-pending-editor-grid')?.before(panel);
+ const checks=card.querySelector('.catalog-pending-checks');if(checks)checks.before(panel);else card.querySelector('.catalog-pending-editor-grid')?.after(panel);
 }
-function scan(){style();document.querySelectorAll('[data-pending-candidate]').forEach(card=>addPanel(card));}
+function watch(card){if(card.dataset.aiRouteWatch)return;card.dataset.aiRouteWatch='1';const refresh=()=>{const panel=card.querySelector('.ai-route-panel');if(mismatch(card)){if(!panel)addPanel(card);}else panel?.remove();};card.addEventListener('change',e=>{if(e.target.matches('[data-field="edited_package_match"],[data-field="edited_variant_match"],[data-review-outcome="product_match"]'))refresh();});}
+function scan(){style();document.querySelectorAll('[data-pending-candidate]').forEach(card=>{watch(card);addPanel(card);});}
 const mo=new MutationObserver(()=>scan());mo.observe(document.documentElement,{childList:true,subtree:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scan,{once:true});else scan();
 })();
