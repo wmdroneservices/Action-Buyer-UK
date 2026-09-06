@@ -2945,3 +2945,8 @@ Live Sony auditing proved that deterministic slugs alone were not sufficient. Th
 The first failure was discovery: Node HTTP received MPB 403 responses on internal search and crawl pages, while a deterministic guessed slug could return 404. The previous browser fallback only helped after an exact URL was already known.
 
 The repair extends the existing MPB browser fallback to discovery pages after HTTP 403. Those pages are still only maps; exact evidence remains restricted to validated exact MPB product pages. This prevents a guessed 404 URL from becoming the worker's only route when MPB uses a retailer-specific product suffix.
+
+
+## Customer Returns Record Display — 7 September 2026
+
+Each post-sale customer return on **Customer Returns** is now an individual collapsible record. The collapsed header keeps the product, return status, return reference and SKU visible; expanding it reveals the transaction timeline, reason, customer notes and the relevant workflow or resolved accounting record. Active cases remain open by default so required staff actions are immediately accessible.
