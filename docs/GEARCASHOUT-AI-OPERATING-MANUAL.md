@@ -1945,3 +1945,22 @@ Authoritative flow:
 On physical buyer-return receipt, move the asset to `Returned` for review without deleting the sold history.
 
 Diagnostic entry points: `sold-items.html` + `sold-after-sales.js`, `sales-customer-returns.js`, `purchase-returns.js` and migration `post_sale_fulfilment_and_customer_returns`.
+
+## Product Workbench — Sales Handoff Operating Rule (6 September 2026)
+
+When an asset status is `Sent to Sales`, `Listed`, `Reserved` or `Sold`:
+
+1. do not restart or re-present inspection/testing as an unfinished workflow;
+2. preserve the completed `inventory_testing` history;
+3. preserve original customer photographs as separate evidence;
+4. use `catalog_sales_content` for reusable product/manufacturer content;
+5. use `inventory_sales_content` for the actual physical item's condition, listing notes and hero image;
+6. permit staff-photo management without mixing staff photos with customer evidence;
+7. do not create another sales-description table;
+8. keep the Sales Workbench as the operational channel/listing stage.
+
+Current front-end ownership:
+
+`inventory-detail.html` → `inventory-workbench.js` → `inventory-sales-handoff.js` (handoff statuses only).
+
+Diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
