@@ -2581,3 +2581,18 @@ Before deleting an apparent duplicate from the catalogue, verify the live normal
 from:
 
 **same model + different controller/package key = legitimate package variant**.
+
+
+---
+
+## Repair Required → Testing → Ready for Resale repair — 6 September 2026
+
+The Product Workbench now correctly handles a successful **post-repair test**.
+
+Previously, if an asset was already in **Repair Required**, staff could save passing inspection/testing results, but the transition code only promoted assets when their current status was already **Testing**. The item therefore remained stuck in **Repair Required**, and the Send to Sales control stayed blocked.
+
+The repaired flow is:
+
+`Repair Required` → repair completed → `Testing` → post-repair tests pass → `Ready for Resale` → **Send to Sales**.
+
+The completion panel now also explains the exact blocking reason instead of leaving staff with an apparently unresponsive disabled button.
