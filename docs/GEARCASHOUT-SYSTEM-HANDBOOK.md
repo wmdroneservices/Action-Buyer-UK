@@ -2813,3 +2813,14 @@ Staff entry points:
 - `sales-archive.html` — completed records grouped by UK tax year.
 
 **Developer Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+
+---
+
+## Post-sale status reconciliation — 6 September 2026
+
+A live test record (**TEST-ASSET-007**) exposed a status mismatch: the linked `sales_fulfillments` row was already **Collected**, while `inventory_assets.status` remained **Sold**. The record was reconciled to **Sold - Shipped** without altering the sold listing or fulfilment history.
+
+The current live `staff_update_sales_fulfillment(..., 'collected')` definition was then inspected and confirmed to contain the required asset update to **Sold - Shipped**. The observed mismatch could not be reproduced from the current function definition, so the incident is retained as a data-reconciliation fault rather than attributing an unverified root cause.
+
+Operational check: after marking a parcel collected, verify both the fulfilment status and `inventory_assets.status` before proceeding to delivery.
