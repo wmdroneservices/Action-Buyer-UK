@@ -182,3 +182,28 @@ Authenticated active staff → load inventory asset → load existing `resale_li
 ### Known next step
 
 Build a management-only Outlet Registry interface rather than requiring direct database edits. It must use least privilege and must not allow ordinary sales staff to create arbitrary outlets.
+
+
+## Management-only Outlet Registry — implemented 6 September 2026
+
+### User action
+
+Management staff → central Staff Dashboard → **OUTLET MANAGEMENT**.
+
+### Front-end entry points
+
+- `admin.html` — management-only navigation/card;
+- `admin-outlet-management.html` — registry interface;
+- `admin-outlet-management.js` — authenticated management guard and registry operations.
+
+### Data/security path
+
+Authenticated user → `staff_users` active + `can_manage_staff` check → `sales_outlets` RLS → permitted registry read/write.
+
+### Preserved behaviour
+
+Deactivation removes an outlet from the active Sales Workbench query without deleting historical outlet/listing relationships.
+
+### Next investigation point
+
+Add slow-moving stock and outlet-strategy reporting using inventory age and current listing/outlet coverage, without altering the authoritative sold/delist workflow.
