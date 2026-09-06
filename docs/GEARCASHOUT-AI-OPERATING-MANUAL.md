@@ -2071,3 +2071,23 @@ Status routing includes:
 - Item Received → complete returned-item assessment and financial/replacement closure.
 
 Do not reintroduce `customer_return_requests` as the source for the post-sale customer-return task queue without a deliberate legacy migration plan.
+
+
+## Known Fault and Repair — Duplicate Returned-Item Live Task (7 September 2026)
+
+Before changing Live Task Board return routing, check both sources:
+
+- `sales_customer_returns` for the authoritative buyer-return workflow;
+- `inventory_assets.status='Returned'` for the physical asset state.
+
+A received buyer return can exist in both at the same time. Do not generate two competing CTAs for the same open customer-return case.
+
+Current rule in `live-task-board.js`:
+
+1. build the set of asset IDs with an open `sales_customer_returns` case;
+2. suppress the generic asset `Returned` task for those IDs;
+3. retain the authoritative status-specific customer-return task and route it to `sales-customer-returns.html`.
+
+First verified example: `TEST-ASSET-007` / `CSR-E768FABB1E5B` had **Item Received** in `sales_customer_returns` and **Returned** in `inventory_assets`. The correct return task existed, but the generic duplicate CTA could route to the Product Workbench instead.
+
+Do not fix this by changing the database status or deleting either history record. The two records represent different parts of the same workflow; the repair belongs in task generation.
