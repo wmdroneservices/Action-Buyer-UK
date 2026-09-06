@@ -1252,3 +1252,20 @@ The pending-review **VERIFY EACH FIELD → PRODUCT / MODEL / PACKAGE → AI WAS 
 ### 2026-09-06 searchable reassignment catalogue selector
 
 The **VALID EVIDENCE — WRONG TARGET DETECTED** reassignment control now includes keyword search across all active catalogue products. Staff can search by manufacturer, model, package name, package key, or other matching keywords before selecting the destination product. The destination list is no longer restricted to the currently targeted manufacturer, preventing valid evidence from becoming trapped when the wrong manufacturer/model/package was initially identified.
+
+## 6 September 2026 — Deep Source identity-depth correction
+
+The MPB screenshots exposed that the worker was discovering the correct deep exact product URLs, but its search identity was still too broad in two ways:
+
+1. Deep Source only used the first/base product search name for internal and external discovery, so a specific package/kit identity could be ignored.
+2. Exact-model validation allowed the full page body to prove the model. On MPB, “You might also like” and “Similar products” sections can mention another model/package, creating a false positive even when the page title and canonical URL describe a different product.
+
+Worker **1.5.2** now:
+
+- runs every real catalogue search identity from productSearchNames(...), including specific package/kit names;
+- derives MPB direct exact-page URLs for each identity, not only the base model;
+- repeats MPB web discovery and source-specific internal search for each identity;
+- validates Deep Source identity from the page title and canonical product URL rather than related-product text;
+- marks valid same-model evidence with a package mismatch as **VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED** instead of silently treating it as an exact match.
+
+This keeps the existing preservation/reassignment workflow intact while making the crawler more specific and deeper for named packages and kits.
