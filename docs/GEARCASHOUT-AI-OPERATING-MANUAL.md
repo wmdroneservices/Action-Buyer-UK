@@ -1243,3 +1243,8 @@ Authorities:
 - review UI enhancement: `admin-catalog-ai-evidence-reassignment.js`
 
 Do not solve future package/model mismatches by filtering them out of the database again. Preserve first, route second, verify third.
+
+
+### 2026-09-06 UI clarification fix — marking a wrong target
+
+The pending-review **VERIFY EACH FIELD → PRODUCT / MODEL / PACKAGE → AI WAS WRONG** control is now a direct trigger for the reassignment workflow. Selecting it immediately reveals the **VALID EVIDENCE — WRONG TARGET DETECTED** panel and destination-product selector. Package Match or Variant Match = Mismatch also triggers the same panel. This avoids requiring staff to understand that the verification outcome and package/variant metadata were previously separate controls.
