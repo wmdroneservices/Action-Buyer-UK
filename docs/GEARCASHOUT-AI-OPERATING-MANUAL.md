@@ -1928,3 +1928,20 @@ Allowed search identities:
 The result renderer must show the authoritative current `status` and hand off to the existing Product Workbench detail route. Do not create a duplicate search table or write inventory state from the search UI.
 
 If inventory volume becomes large, review the current client-side search read and replace it with a controlled server-side search/RPC rather than weakening RLS or exposing service credentials.
+
+
+## Operating rule — Post-sale fulfilment and customer returns (6 September 2026)
+
+**Workstream:** Sales / Inventory.
+
+Do not overload `purchase_return_cases`: it is for pre-purchase customer-property returns. Post-sale shipping uses `sales_fulfillments`; buyer returns use `sales_customer_returns`.
+
+Authoritative flow:
+
+- sold truth remains `inventory_assets.status='Sold'` and the existing sold-listing workflow;
+- fulfilment: `Sold → Label Created → Ready for Collection (optional) → Collected → Delivered`;
+- buyer return: `Requested → Approved → Label Created → Collected → Item Received → Resolved/Refused`.
+
+On physical buyer-return receipt, move the asset to `Returned` for review without deleting the sold history.
+
+Diagnostic entry points: `sold-items.html` + `sold-after-sales.js`, `sales-customer-returns.js`, `purchase-returns.js` and migration `post_sale_fulfilment_and_customer_returns`.
