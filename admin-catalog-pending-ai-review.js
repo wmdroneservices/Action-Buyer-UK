@@ -88,6 +88,10 @@ function annotateCatalogue(){
 
 function candidateMarkup(c,index){
  const id=esc(c.id),title=effective(c,'edited_title','discovered_title'),price=effective(c,'edited_price','price'),condition=effective(c,'edited_condition','condition'),url=effective(c,'edited_source_url','source_url');
+ // Persisted mismatch state is already authoritative in this renderer. Render the compact
+ // route trigger synchronously with the card instead of waiting for a second script to
+ // rediscover the same state after startup.
+ const routeRequired=['package_match','variant_match','edited_package_match','edited_variant_match'].some(field=>String(c[field]??'').toLowerCase()==='mismatch');
  const refMin=effective(c,'edited_reference_price_min','reference_price_min')||price;
  const refMax=effective(c,'edited_reference_price_max','reference_price_max');
  const observedConditions=effective(c,'edited_observed_conditions','observed_conditions')||condition;
@@ -114,6 +118,7 @@ function candidateMarkup(c,index){
  +'</div>'
  +'<label class="catalog-pending-wide">Review reason / correction reason<textarea data-review-reason rows="3" placeholder="Required when denying. Also explain any corrections so Gemma can learn."></textarea></label>'
  +'<div class="catalog-pending-actions">'+(url?'<a class="btn btn-secondary" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">OPEN / VERIFY SOURCE PAGE ↗</a>':'')
+ +(routeRequired?'<button type="button" class="btn btn-secondary ai-route-trigger">ROUTE TO ALTERNATIVE PRODUCT</button>':'')
  +'<button type="button" class="btn btn-primary" data-pending-accept="'+id+'">ACCEPT & ADD TO CATALOGUE</button>'
  +'<button type="button" class="btn btn-secondary catalog-pending-deny" data-pending-deny="'+id+'">DENY — KEEP CATALOGUE AS IS</button>'
  +'<span class="catalog-pending-status" aria-live="polite"></span></div>'
@@ -231,9 +236,10 @@ function installObservers(){
 
 async function boot(){
  installObservers();
- // admin-catalog.js may still be loading products; retry the first render briefly.
+ // loadPending() owns the pending-card render. Do not repeatedly replace the whole
+ // pending section after startup: repeated innerHTML renders caused visible layout
+ // shudder and could destroy controls inserted by other scripts.
  await loadPending();
- let attempts=0;const tick=()=>{renderWarning();annotateCatalogue();renderCurrentProductPending();if(++attempts<8)setTimeout(tick,400);};tick();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,100),{once:true});else setTimeout(boot,100);
 })();
