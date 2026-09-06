@@ -78,7 +78,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.5',
+    version:'1.5.6',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -1070,10 +1070,15 @@ function mpbBrowserExecutableCandidates(){
     'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
   ].filter(Boolean);
 }
-async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
+async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
   try{return await fetchText(url,timeoutMs)}
   catch(firstError){
     if(!/HTTP 403\b/.test(String(firstError?.message||firstError)))throw firstError;
+
+    // MPB can block Node HTTP on internal search, landing/category pages and
+    // exact product pages. The browser fallback is allowed here for discovery
+    // as well as validation, but discovery pages remain discovery-only and are
+    // never returned as final evidence.
     let chromium;
     try{({chromium}=await import('playwright-core'))}
     catch(e){
@@ -1081,14 +1086,14 @@ async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
     }
     const executablePath=mpbBrowserExecutableCandidates().find(p=>fs.existsSync(p));
     if(!executablePath)throw new Error('HTTP 403 and no local Chrome/Edge executable was found for MPB browser fallback.');
-    let browser;
+    let browser,context;
     try{
       browser=await chromium.launch({
         executablePath,
         headless:true,
         args:['--disable-blink-features=AutomationControlled']
       });
-      const context=await browser.newContext({
+      context=await browser.newContext({
         locale:'en-GB',
         userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
         extraHTTPHeaders:{'Accept-Language':'en-GB,en;q=0.9'}
@@ -1096,14 +1101,17 @@ async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
       const page=await context.newPage();
       await page.goto(url,{waitUntil:'domcontentloaded',timeout:timeoutMs});
       await page.waitForTimeout(Math.min(2500,Math.max(500,timeoutMs/4)));
-      const finalUrl=page.url();
-      const html=await page.content();
-      await context.close();
-      return {url:finalUrl,html};
+      return {url:page.url(),html:await page.content()};
     }finally{
+      if(context)await context.close().catch(()=>{});
       if(browser)await browser.close().catch(()=>{});
     }
   }
+}
+
+// Kept as a named wrapper so the final-validation rule stays explicit at call sites.
+async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
+  return fetchMpbPage(url,timeoutMs);
 }
 
 async function collectDeepSourceEvidence(product,sources,config,context={}){
@@ -1155,7 +1163,9 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   for(const query of queries){
     for(const u of rule.searchAttempts('https://'+domain,query)){
       try{
-        const {url:finalUrl,html}=await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
+        const {url:finalUrl,html}=domain==='mpb.com'
+          ?await fetchMpbPage(u,Math.min(cfg.requestTimeoutMs,7000))
+          :await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
         for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
           const score=deepLinkScore(product,link,rule,1);
           if(score>=60)addCandidate({...link,target_query:query},'internal-search');
@@ -1175,7 +1185,9 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     if(seen.has(key)||hostOf(key)!==domain)continue;
     seen.add(key);
     try{
-      const {url:finalUrl,html}=await fetchText(key,Math.min(cfg.requestTimeoutMs,7000));
+      const {url:finalUrl,html}=domain==='mpb.com'
+        ?await fetchMpbPage(key,Math.min(cfg.requestTimeoutMs,7000))
+        :await fetchText(key,Math.min(cfg.requestTimeoutMs,7000));
       const links=extractAllSameDomainLinks(html,finalUrl,domain);
       for(const link of links){
         let score=0;
