@@ -1751,3 +1751,22 @@ Use this sequence:
 During consolidation, exact Fly More Combo evidence was moved to **Fly More Combo** and exact DJI RC evidence to **Standard Package (DJI RC)**. Official Drone Only evidence already existed on the correct destination, so redundant duplicate copies were removed. Generic MPB Mavic 3 Classic evidence and exact Fly More Kit accessory evidence were not forced into another drone package.
 
 **Hard learning rule:** ambiguity is a valid outcome. Never manufacture package certainty to keep a record attached to a catalogue row.
+
+
+---
+
+## Current Lesson — Apparent Valuation Dropdown Duplicates — 6 September 2026
+
+A customer-side report of duplicate Mavic 3 Classic packages was checked against live Supabase before any destructive catalogue action.
+
+The live catalogue did **not** contain duplicate normalised Mavic 3 Classic identities. It contained four legitimate package keys: `drone-only`, `fly-more-combo`, `rc-n1`, and `rc`.
+
+Therefore:
+
+1. do not delete controller-specific packages merely because their labels both contain “Standard Package”;
+2. verify duplicate identity using manufacturer + model + package key;
+3. treat browser/client duplication separately from catalogue duplication;
+4. use the valuation dropdown guard as defence-in-depth;
+5. preserve distinct RC-N1 and DJI RC package identities.
+
+The customer valuation page now loads a fresh version of `quote-reverse-basket-v5.js` and `quote-catalog-dropdown-guard.js`, which removes only true duplicate dropdown options while preserving legitimate variants.
