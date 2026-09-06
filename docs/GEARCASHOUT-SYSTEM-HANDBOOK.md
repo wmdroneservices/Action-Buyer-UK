@@ -2789,3 +2789,27 @@ For statuses `Sent to Sales`, `Listed`, `Reserved` and `Sold`, `inventory-sales-
 This deliberately reuses the Phase 2 sales-content tables rather than creating another description or image system.
 
 Developer roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+
+---
+
+## Post-Sale Shipping, Return Window and UK Tax-Year Archive — 6 September 2026
+
+The sales lifecycle is now:
+
+`Listed / Reserved → Sold - Awaiting Shipping → Sold - Shipped → Returned (if applicable) → Archived`
+
+- **Sold - Awaiting Shipping:** the item has sold and requires carrier/tracking and collection.
+- **Sold - Shipped:** the parcel has been collected and remains in the post-sale return-monitoring period.
+- **Delivered:** recorded in `sales_fulfillments`; delivery starts the current **30-day operational return hold**.
+- **Customer return:** starts only from a delivered shipped item and remains separate from Purchase Returns.
+- **Archived:** after the return hold ends, with no open customer return, the item is archived without deleting accounting, inspection, evidence, research or sales history.
+- **UK tax-year archive:** archive records are grouped using the UK tax year, 6 April to 5 April, based on the sale date.
+
+Staff entry points:
+
+- `sold-items.html` — Post-Sale shipping and return-window work.
+- `sales-customer-returns.html` — buyer return cases.
+- `sales-archive.html` — completed records grouped by UK tax year.
+
+**Developer Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
