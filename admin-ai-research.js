@@ -461,7 +461,7 @@ async function load(){
  products=[...byId.values()];
  populateResearchFilters();render();renderProductCandidates();
 }
-async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources()}
+async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources();refreshDeepSourceUrlRegistry()}
 async function loadAgentStatus(){
  const el=$('local-ai-status');if(!el)return;
  const data=await api({action:'agent_status'});const a=(data.agents||[])[0];
@@ -636,6 +636,7 @@ async function setContinuousResearch(enabled){
 }
 const DEEP_SOURCE_URL_HISTORY_KEY='gearCashOutDeepSourceUrlHistory';
 const DEEP_SOURCE_URL_HISTORY_MAX=20;
+let deepSourceRegistryUrls=[];
 function normaliseDeepSourceUrl(value){
  const raw=clean(value||'');
  if(!/^https?:\/\//i.test(raw))return '';
@@ -647,9 +648,22 @@ function loadDeepSourceUrlHistory(){
    return Array.isArray(raw)?[...new Set(raw.map(normaliseDeepSourceUrl).filter(Boolean))].slice(0,DEEP_SOURCE_URL_HISTORY_MAX):[];
  }catch{return [];}
 }
+function approvedDeepSourceRegistryUrls(){
+ return [...new Set((sources||[])
+   .filter(s=>s&&s.enabled!==false&&String(s.discovery_status||'approved').toLowerCase()!=='blocked'&&String(s.site_status||'live').toLowerCase()==='live')
+   .map(s=>normaliseDeepSourceUrl(s.homepage_url))
+   .filter(Boolean))];
+}
 function renderDeepSourceUrlHistory(){
  const list=$('deep-source-url-history');if(!list)return;
- list.innerHTML=loadDeepSourceUrlHistory().map(url=>'<option value="'+esc(url)+'"></option>').join('');
+ const registry=[...deepSourceRegistryUrls];
+ const history=loadDeepSourceUrlHistory();
+ const urls=[...registry,...history.filter(url=>!registry.includes(url))];
+ list.innerHTML=urls.map(url=>'<option value="'+esc(url)+'"></option>').join('');
+}
+function refreshDeepSourceUrlRegistry(){
+ deepSourceRegistryUrls=approvedDeepSourceRegistryUrls();
+ renderDeepSourceUrlHistory();
 }
 function rememberDeepSourceUrl(value){
  const url=normaliseDeepSourceUrl(value);if(!url)return false;
@@ -687,7 +701,7 @@ async function runDeepSourceAudit(){
      deep_source_url:url
    };
    const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
-   deepMsg('Deep Source Audit started for '+scope+'. The landing page is discovery-only; the worker will crawl relevant categories/subcategories and return exact product pages only.');
+   deepMsg('Deep Source Audit started for '+scope+'. The normal All Sources / Amazon UK Only filter is ignored for this run: the worker is locked to the selected Deep Source domain, uses the landing page only for discovery, and returns exact product pages only.');
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
