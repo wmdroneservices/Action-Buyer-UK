@@ -2734,3 +2734,20 @@ Developer investigation map:
 ### Sales handoff after repair
 
 A repaired item whose original inspection outcome was **Requires Repair** is not forced to repeat the original inspection merely to satisfy the Sales handoff. GearCashOut accepts that inspection outcome only after a completed repair record exists. All other Sales requirements remain in force.
+
+---
+
+## Sales Dashboard Quick Stock Search — 6 September 2026
+
+The Sales Dashboard now includes a compact **Search Stock** control for staff.
+
+Search modes:
+
+- **SKU** — physical unit SKU, for example `GCO-2026-100015`;
+- **Transaction number** — the source purchasing/sale transaction;
+- **Product** — manufacturer + model text;
+- **All** — searches all three identifiers together.
+
+Results show the product, SKU, transaction number and current workflow status, with a direct **VIEW ITEM** handoff to `inventory-detail.html?id=<asset_id>`.
+
+This is a read-only convenience search over the existing `inventory_assets` truth. It does not create a separate stock index or change workflow state.
