@@ -2421,3 +2421,8 @@ A follow-up test exposed a browser freeze: pending records whose editable fields
 The freeze repair prevented the MutationObserver loop, but a separate startup race remained. The reassignment script can run before window.actionBuyerAuth.supabase is ready. In that state getCandidateRouteState() returned null, and the previous repair cached the card as not-required. That incorrectly suppressed ROUTE TO ALTERNATIVE PRODUCT for genuine pending database mismatches.
 
 Repair: an unavailable/failed server lookup now leaves the card in unknown, with bounded retries. Only a successful database response may set required or not-required. The existing loop protection remains: required controls are not repeatedly removed/recreated. Cache version: 20260906-alternative-route-6.
+
+
+### Alternative-product search performance fix — 6 September 2026
+
+The routing panel must not preload the full active catalogue into a native select. The catalogue currently contains thousands of active products; injecting them all into the select made the page sluggish and made the search appear inactive. The panel now requires at least 2 search characters, returns a maximum of 100 matches, and reports the match count. The selected reassignment workflow and server-side RPC are unchanged. Cache version: 20260906-alternative-route-7.
