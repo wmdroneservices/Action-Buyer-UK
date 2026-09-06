@@ -1521,3 +1521,21 @@ Use **confirmed / probable / ambiguous** states. Do not invent aliases or silent
 Do not restore a hard-coded outlet/channel list in `sales-workbench.js`. Load only active records from `sales_outlets` through the authenticated Supabase client. New listings must persist both the compatibility display channel and the authoritative `outlet_id`.
 
 The client UI may present outlet choices but must not be treated as the security boundary. RLS and staff authorization remain the database boundary, and sold/delist state must continue through the authoritative database workflow. Never expose service-role credentials in any GitHub Pages/public JavaScript.
+
+
+---
+
+## Package-equivalence learning update — 6 September 2026
+
+Live DJI/MPB review added a practical controller-aware rule to the existing package-equivalence framework:
+
+1. Read the exact product page, including the observed “What’s included” data where available.
+2. Treat a positive controller identity as stronger evidence than a vague catalogue label.
+3. If every observed unit shares one controller, map to that controller package.
+4. If units on one aggregate page have different controllers, do not auto-assign the whole range to one package.
+5. Do not infer Fly More, Plus, Cine, Creator or another bundle from controller identity alone.
+6. Explicit “No RC” maps to Drone Only.
+7. Exact accessory titles must leave the drone family and route to an exact accessory catalogue identity.
+8. When a retailer exposes a real recurring controller configuration missing from the catalogue, create a narrowly named canonical package rather than forcing it into an incorrect existing bundle.
+
+This correction pattern should be stored as explainable learning, not as a loose synonym list.
