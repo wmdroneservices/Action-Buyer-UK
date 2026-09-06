@@ -2312,3 +2312,16 @@ Security and preservation rules:
 - ordinary sales staff can read active outlets for legitimate listing work but cannot create or alter outlets;
 - outlets are deactivated rather than deleted so historical listing relationships remain intact;
 - no service-role credential is present in the browser.
+
+
+## Management-only Outlet Registry — 6 September 2026
+
+Outlet administration is accessed only from the central **GearCashOut Staff Dashboard**, alongside the existing management-facing functions. Management users can open **OUTLET MANAGEMENT** to add an outlet and activate or deactivate it. The registry supports owned websites, marketplaces, auction outlets and other outlets.
+
+Security and preservation rules:
+
+- authenticated active-management check before controls are usable;
+- database RLS separately enforces management-only writes;
+- ordinary sales staff cannot create or alter outlets;
+- outlets are deactivated rather than deleted so historical listing relationships remain intact;
+- no service-role credential is present in browser code.
