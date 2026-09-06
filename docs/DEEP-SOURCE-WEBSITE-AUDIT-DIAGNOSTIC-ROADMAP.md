@@ -446,3 +446,17 @@ The next Deep Source/Gemma test should deliberately use a package-heavy DJI fami
 4. known exact package rows receive the evidence;
 5. missing exact identities create a new-product candidate instead of contaminating Standard Package;
 6. accessories remain separate products.
+
+
+## 6 September 2026 — Large and whole-manufacturer Deep Source audits
+
+The previous **25-product UI ceiling** was not a crawler limitation. It came from the Deep Source dashboard options and an Edge Function clamp. The database RPC separately capped positive requests at 100, creating inconsistent limits across the execution path.
+
+Deep Source now supports:
+
+- 1, 3, 5, 10, 25, 50, 100, 250 or 500 products; and
+- **ALL matching products**.
+
+For safety, ALL matching products requires at least one shared product filter. Selecting a manufacturer therefore provides the intended **whole manufacturer audit** without accidentally queuing the entire catalogue.
+
+The RPC treats `p_limit <= 0` as no SQL limit while retaining the existing manufacturer/model/category/product-type filters. Positive Deep Source limits are capped at 500 by the Edge Function. Regular AI Research retains its existing separate batch behaviour.
