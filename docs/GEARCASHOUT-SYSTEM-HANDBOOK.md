@@ -2029,3 +2029,31 @@ Worker **1.5.2** now:
 - marks valid same-model evidence with a package mismatch as **VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED** instead of silently treating it as an exact match.
 
 This keeps the existing preservation/reassignment workflow intact while making the crawler more specific and deeper for named packages and kits.
+
+
+## Mavic 2 MPB package taxonomy correction — 2026-09-06
+
+The Mavic 2 catalogue must follow evidence at the **exact product/package level**, not collapse MPB's separate product pages into one generic model.
+
+### Current catalogue structure
+
+**DJI Mavic 2 Pro**
+- Standard Package
+- Fly More Combo
+- With DJI Smart Controller
+- Fly More Combo with Smart Controller
+
+**DJI Mavic 2 Zoom**
+- With RC1 Controller (the former generic Standard Package row was corrected to this exact MPB identity)
+- Fly More Combo
+- With Smart Controller
+
+**Separate accessories, not drone packages**
+- DJI Mavic 2 Zoom ND Filter Kit
+- DJI Mavic 2 Pro ND Filters Set
+
+### Evidence routing rule
+
+An aircraft page, controller package, Fly More bundle, or filter kit must never share evidence merely because the base model text is similar. Route evidence to the exact catalogue identity. Filter kits are independent accessory products and must not influence drone-package valuation.
+
+The customer valuation wizard reads active package variants from `quote_catalog_products`. Legacy Mavic 2 battery/package compatibility maps were updated to recognise RC1, Smart Controller and Fly More + Smart Controller variants.
