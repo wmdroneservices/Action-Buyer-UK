@@ -85,3 +85,37 @@ The item does not automatically become `Sent to Sales`.
 - Live migration applied successfully.
 - Existing TEST-ASSET-003 had already completed the previous path and is now Sent to Sales.
 - Next fresh Repair Required browser test should verify the new direct transition.
+
+
+## Inspection outcome → Repair Required routing — 6 September 2026
+
+### User decision
+
+The Product Workbench must not leave a repairable item labelled only **Requires Attention**.
+
+The inspection outcome is now shown as **Requires Repair**.
+
+### Required flow
+
+`Inspection Required → Requires Repair → Repair Required → Complete Repair & Mark Tested → Ready for Resale`
+
+When staff save an inspection with **Requires Repair**:
+
+1. the inspection record is retained as the authoritative inspection outcome;
+2. the workflow records the technical stage as requiring attention rather than a false pass;
+3. the asset transitions through the central browser state machine into `Repair Required`;
+4. the staff member receives the explicit notification:
+
+   **Inspection complete: REQUIRES REPAIR. The item has been moved to Repair Required.**
+
+5. the Product Workbench reloads into the red Repair Required panel with the recorded fault/details visible.
+
+### Legacy compatibility
+
+Existing `Requires Attention` inspection records are treated as equivalent to **Requires Repair** when the Product Workbench reloads or the record is resaved.
+
+### First verified failure
+
+TEST-ASSET-006 / DJI Neo saved an inspection result of `Requires Attention` and a technical row, but remained in `Inspection Required`.
+
+The first failure was the front-end transition branch: only `Failed` inspections were routed to `Repair Required`. `Requires Attention` had no repair-routing branch.
