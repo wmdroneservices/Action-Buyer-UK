@@ -1652,3 +1652,8 @@ The underlying rule is unchanged: preserve valid evidence, route it to the exact
 ### UI stability rule — server-backed mismatch state
 
 Do not repeatedly remove and recreate routing controls when editable UI fields have not yet reflected the server-backed mismatch. Cache the confirmed route-required state for the card and guard concurrent lookups. A MutationObserver must never be allowed to generate an add/remove cycle that freezes the staff page.
+
+
+### Regression rule — never cache startup uncertainty as a negative decision
+
+For server-backed UI state, null because Supabase/auth is not ready is unknown, not not-required. A negative UI state may only be cached after a successful authoritative lookup. When retrying asynchronously, preserve the MutationObserver loop guard: retries may refresh state but must not create repeated add/remove DOM mutations.
