@@ -8,12 +8,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
   const money=v=>v===null||v===undefined||v===''?'Not recorded':'£'+Number(v).toFixed(2);
+  const dateTime=v=>v?new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Not recorded';
   const options=(values,selected='')=>values.map(v=>'<option'+(v===selected?' selected':'')+'>'+esc(v)+'</option>').join('');
 
   async function load(){
     const [{data:rows,error},{data:assets}]=await Promise.all([
       db.from('sales_customer_returns').select('*').order('created_at',{ascending:false}),
-      db.from('inventory_assets').select('id,sku,transaction_number,manufacturer,model')
+      db.from('inventory_assets').select('id,sku,transaction_number,manufacturer,model,sold_at,sold_price,sold_channel')
     ]);
     if(error){list.innerHTML='<p>'+esc(error.message)+'</p>';return;}
     if(!(rows||[]).length){
@@ -42,7 +43,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
         action='<div class="notice"><strong>Return refused</strong><br>'+esc(r.refusal_reason||'No refusal reason recorded')+'</div>';
       }
 
-      return '<article class="valuation-card" style="margin-bottom:1rem"><p class="section-kicker">'+esc(r.status)+'</p><h2>'+esc(product)+'</h2><p>'+esc(r.return_reference)+' · SKU '+esc(a.sku||'Not recorded')+' · '+esc(a.transaction_number||'')+'</p><div class="notice"><strong>Reason</strong><br>'+esc(r.reason)+'<br><br><strong>Customer notes</strong><br>'+esc(r.customer_notes||'None recorded')+'</div><div style="margin-top:1rem">'+action+'</div></article>';
+      const transaction='<div class="notice" style="margin-top:.75rem"><strong>Transaction and return timeline</strong><br><br><strong>Sold:</strong> '+dateTime(a.sold_at)+'<br><strong>Customer paid:</strong> '+money(a.sold_price)+'<br><strong>Sales channel:</strong> '+esc(a.sold_channel||'Not recorded')+'<br><br><strong>Return opened:</strong> '+dateTime(r.created_at)+'<br><strong>Return collected:</strong> '+dateTime(r.collected_at)+'<br><strong>Item returned to GearCashOut:</strong> '+dateTime(r.item_received_at)+'</div>';
+      return '<article class="valuation-card" style="margin-bottom:1rem"><p class="section-kicker">'+esc(r.status)+'</p><h2>'+esc(product)+'</h2><p>'+esc(r.return_reference)+' · SKU '+esc(a.sku||'Not recorded')+' · '+esc(a.transaction_number||'')+'</p>'+transaction+'<div class="notice" style="margin-top:.75rem"><strong>Reason</strong><br>'+esc(r.reason)+'<br><br><strong>Customer notes</strong><br>'+esc(r.customer_notes||'None recorded')+'</div><div style="margin-top:1rem">'+action+'</div></article>';
     }).join('');
 
     bindEvents();
