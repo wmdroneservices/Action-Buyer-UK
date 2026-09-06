@@ -1667,3 +1667,24 @@ Do not preload thousands of records into a native select when the user is expect
 ### DOM observer rule — avoid self-triggering full-page rescans
 
 When an observer is needed for dynamically rendered catalogue cards, never respond to every mutation with a full-document query plus DOM writes. Observe the required container, batch added roots, and process only relevant pending-candidate cards. This avoids feedback loops and scroll/render instability while preserving dynamic-card support.
+
+
+### Controlled test stock rule — 6 September 2026
+
+When production-like inventory is required before genuine stock exists:
+
+- prefer real catalogue-linked inventory_assets over an invented parallel test table;
+- use the production SKU generator;
+- clearly mark every manually created sample record as TEST DATA in its notes/reference fields;
+- do not attach fake customer identities, bank payments or genuine financial events merely to create stock;
+- verify all database CHECK constraints before selecting workflow statuses;
+- create outlet/listing scenarios only with statuses permitted by the live schema;
+- confirm the existing test-data reset function removes downstream resale_listings, resale_transactions and inventory_assets before relying on a sample batch;
+- do not run the destructive reset as a verification step while the batch is still needed.
+
+Current Phase 2 sample batch:
+
+- 8 inventory assets;
+- 4 resale listings;
+- all linked to existing quote_catalog_products;
+- all cleared by the existing management-only reset_test_quote_data() function while test reset remains enabled.
