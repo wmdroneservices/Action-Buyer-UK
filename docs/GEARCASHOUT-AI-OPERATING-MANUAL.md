@@ -1662,3 +1662,8 @@ For server-backed UI state, null because Supabase/auth is not ready is unknown, 
 ### UI search rule — large catalogue selectors
 
 Do not preload thousands of records into a native select when the user is expected to search. Keep the authoritative catalogue query, but render only bounded search results after a meaningful query. This prevents UI lag from being mistaken for a failed or inactive search and does not change matching or reassignment decisions.
+
+
+### DOM observer rule — avoid self-triggering full-page rescans
+
+When an observer is needed for dynamically rendered catalogue cards, never respond to every mutation with a full-document query plus DOM writes. Observe the required container, batch added roots, and process only relevant pending-candidate cards. This avoids feedback loops and scroll/render instability while preserving dynamic-card support.
