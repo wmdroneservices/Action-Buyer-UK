@@ -298,3 +298,25 @@ In the Automatic Quote Catalogue pending-evidence card, the reviewer can open th
 → opens the exact candidate page in a new tab.
 
 The editable Exact source URL field also exposes **OPEN / VERIFY PAGE** for the current stored candidate URL. This is a UI/navigation enhancement only; it does not change Supabase data, review RPCs or application flow.
+
+
+---
+
+## Valid mismatch routing — 6 September 2026
+
+A Deep Source finding that reaches an exact source page but belongs to a different catalogue model/package is no longer discarded.
+
+### Route
+
+Exact page found
+→ candidate submitted with visible mismatch state
+→ pending catalogue review
+→ `admin-catalog-ai-evidence-reassignment.js`
+→ staff selects destination product
+→ `reassign_ai_candidate(...)`
+→ reassignment audit row
+→ normal verify / accept / apply flow.
+
+### Failure-prevention rule
+
+Do not convert a positive mismatch into “no evidence found”. A mismatch means the source page may still contain useful evidence for another catalogue row.
