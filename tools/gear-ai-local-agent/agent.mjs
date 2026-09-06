@@ -1112,15 +1112,27 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
 
 async function getRunResearchConfig(runId){
   const {data,error}=await sb.from('quote_catalog_ai_research_runs')
-    .select('evidence_scope,deep_source_url,deep_source_domain')
+    .select('status,evidence_scope,deep_source_url,deep_source_domain')
     .eq('id',runId).single();
   if(error)throw error;
   const scope=String(data?.evidence_scope||'all').trim().toLowerCase();
   return {
+    status:String(data?.status||'queued').trim().toLowerCase(),
     evidence_scope:['all','new_uk','used_uk','overseas','amazon_uk','deep_source'].includes(scope)?scope:'all',
     deep_source_url:data?.deep_source_url||null,
     deep_source_domain:data?.deep_source_domain||null
   };
+}
+
+async function ensureRunActive(runId){
+  const {data,error}=await sb.from('quote_catalog_ai_research_runs')
+    .select('status').eq('id',runId).maybeSingle();
+  if(error)throw error;
+  const status=String(data?.status||'').toLowerCase();
+  if(['queued','running'].includes(status))return true;
+  const e=new Error('Research run is no longer active ('+(status||'missing')+').');
+  e.code='RUN_CANCELLED';
+  throw e;
 }
 
 async function getRunEvidenceScope(runId){
@@ -1574,6 +1586,10 @@ async function registerSource(c){
 }
 
 async function submitCandidate(runId,productId,product,c,sourceMap){
+  // A dashboard cancellation can happen while the worker is still finishing a
+  // long page crawl. Check the persisted run state before creating any more
+  // candidates so a cancelled Deep Source audit cannot keep feeding review rows.
+  await ensureRunActive(runId);
   const manualFallback=c._manual_review_fallback===true;
   if(!c.source_url||!/^https?:\/\//i.test(c.source_url))return false;
   if(isSearchResultUrl(c.source_url)||isSuspiciousEvidenceUrl(c.source_url)){log('Rejected non-product URL:',c.source_url);return false;}
@@ -1715,6 +1731,11 @@ async function processOne(){
     if(pErr)throw pErr;if(sErr)throw sErr;
 
     const runConfig=await getRunResearchConfig(item.run_id);
+    if(!['queued','running'].includes(runConfig.status)){
+      const cancelled=new Error('Research run is no longer active ('+runConfig.status+').');
+      cancelled.code='RUN_CANCELLED';
+      throw cancelled;
+    }
     const evidenceScope=runConfig.evidence_scope;
     log('Research evidence scope:',evidenceScope,runConfig.deep_source_url?('· Deep Source '+runConfig.deep_source_url):'');
 
@@ -1935,6 +1956,15 @@ async function processOne(){
     log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB reference range finding(s)).');
     return true;
   }catch(e){
+    if(e?.code==='RUN_CANCELLED'){
+      log('Research run cancelled; stopping current queue item without submitting further evidence.');
+      await sb.from('quote_catalog_ai_queue')
+        .update({status:'skipped',updated_at:new Date().toISOString()})
+        .eq('id',item.queue_id)
+        .in('status',['processing','claimed'])
+        .catch?.(()=>{});
+      return true;
+    }
     const message=(e?.message||String(e)).slice(0,1000);
     log('Product failed:',message);
     await sb.rpc('ai_research_complete_queue_item',{p_queue_id:item.queue_id,p_success:false,p_error:message});
