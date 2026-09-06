@@ -483,3 +483,20 @@ TEST-ASSET-003 / GCO-2026-100012 exposed the fault: inspection and testing recor
 **First failure point:** `inventory_expenses` insert inside the secure repair RPC.
 
 **Required contract:** keep `Repair` in `inventory_expenses.category` alongside Collection, Postage, Accessories, Replacement Parts, Cleaning, Testing, Preparation and Other. The repair RPC, expense UI and database constraint must remain aligned.
+
+
+## Sales Pipeline — Repair Required visibility fix (6 September 2026)
+
+### User action
+Staff → Sales Dashboard → Sales Pipeline → see blocked repair stock immediately.
+
+### Front-end path
+- `admin-sales-dashboard.html` → `#repair-count` / `pipeline-stage-repair`
+- `admin-sales-dashboard.js` → `load()` → counts `inventory_assets.status = Repair Required`
+- `style.css` → red blocking-state styling for repair work.
+
+### Data rule
+`Repair Required` is a separate visible pipeline category. The general Inventory count excludes it to avoid hiding repair-held stock inside a broader total.
+
+### Failure history
+The live dashboard previously counted one repair-held item only inside Inventory, so the Sales Pipeline did not expose repair work as its own category. Fixed by adding a dedicated repair card and separate count.
