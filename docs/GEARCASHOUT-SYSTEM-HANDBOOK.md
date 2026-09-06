@@ -2237,3 +2237,8 @@ Current DJI rules teach Gemma that:
 - high-confidence catalogue duplicate checks must compare package identity as well as model identity.
 
 The worker was also updated to **1.5.5**. New Deep Source product candidates now run the existing catalogue duplicate check before creation and store either `likely_duplicate` or `no_high_confidence_duplicate`, with matching catalogue records attached for review. Same-model products with different controller/bundle identities are no longer treated as high-confidence duplicates merely because the base model matches.
+
+
+### Phase 2 catalogue-to-inventory identity propagation
+
+From 6 September 2026, the paid seller-purchase inventory creation path attempts a catalogue link only when manufacturer, model and package identify exactly one `quote_catalog_products` row. Ambiguous or missing matches remain unlinked for staff review; no fuzzy or family-level automatic matching is used. The relevant functions are `resolve_quote_item_catalog_product`, `staff_backfill_inventory_catalog_links` and the updated `staff_mark_sale_paid_and_create_inventory`.
