@@ -2596,3 +2596,16 @@ The repaired flow is:
 `Repair Required` → repair completed → `Testing` → post-repair tests pass → `Ready for Resale` → **Send to Sales**.
 
 The completion panel now also explains the exact blocking reason instead of leaving staff with an apparently unresponsive disabled button.
+
+
+---
+
+## Explicit Repair Required workflow — 6 September 2026
+
+Repair Required is now a dedicated Product Workbench workflow rather than a hidden status. When an asset is in **Repair Required**, staff see a prominent warning with the recorded fault and cannot continue normal inspection/testing by simply saving passing values.
+
+The repair record captures the fault, repair work, repairer type/name, repair cost, completion date and optional evidence. The controlled database function `staff_complete_inventory_repair(...)` requires an **active staff user**, requires the asset to be in **Repair Required**, records the repair, optionally creates a linked `inventory_expenses` Repair cost, and moves the asset to **Testing**.
+
+Workflow: `Repair Required` → **record completed repair** → `Testing` → **post-repair test** → `Ready for Resale` → `Sent to Sales`.
+
+There is deliberately no generic **Clear Repair Required** button.
