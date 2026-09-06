@@ -1882,3 +1882,26 @@ Before changing this workflow:
 Front end owner: `inventory-workbench.js`.
 
 Repository checkpoint: `CHECKPOINTS/2026-09-06-repair-completion-marks-tested.md`.
+
+
+## Product Workbench Rule — Inspection Requires Repair Routing (6 September 2026)
+
+A staff inspection outcome of **Requires Repair** is a completed inspection that routes the item into the repair workflow.
+
+Required path:
+
+`Inspection Required → Requires Repair → Repair Required → Record repair + mark tested → Ready for Resale`
+
+Before changing this area:
+
+1. inspect `inventory-workbench.js`;
+2. inspect `asset-state-machine.js` and confirm the transition is valid;
+3. inspect the live `inventory_assets` and latest `inventory_testing` rows;
+4. preserve the secure `staff_complete_inventory_repair(...)` workflow;
+5. do not leave a repairable item stranded in `Inspection Required`;
+6. do not create a false passing testing result merely because the inspection result was saved;
+7. preserve legacy handling for existing `Requires Attention` records.
+
+The user-facing inspection selector should say **Requires Repair**. The successful routing notification must explicitly confirm that the item has moved to **Repair Required**.
+
+First confirmed failure: TEST-ASSET-006 / DJI Neo saved `Requires Attention` but remained `Inspection Required` because the transition branch handled only `Failed`.
