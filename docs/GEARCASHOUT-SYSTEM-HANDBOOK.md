@@ -2325,3 +2325,12 @@ Security and preservation rules:
 - ordinary sales staff cannot create or alter outlets;
 - outlets are deactivated rather than deleted so historical listing relationships remain intact;
 - no service-role credential is present in browser code.
+
+
+## Slow-Moving Stock & Outlet Strategy — 6 September 2026
+
+Management-only **SLOW-MOVING STOCK** is accessed from the central Staff Dashboard. It reports each unsold physical SKU's age, purchase cost, active listing count, active outlet coverage and an advisory strategy band.
+
+Current advisory thresholds are 30 days (review), 60 days (expand outlets/price review), 90 days (urgent strategy review) and 120 days (auction/exit review). A sales-ready asset with no active listing is separately flagged.
+
+This feature is deliberately read-only/advisory. It never automatically changes a price, moves stock to auction, closes listings or alters inventory status. Management decides any action through the existing controlled workflows.
