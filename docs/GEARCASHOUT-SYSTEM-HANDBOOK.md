@@ -2426,3 +2426,8 @@ Repair: an unavailable/failed server lookup now leaves the card in unknown, with
 ### Alternative-product search performance fix — 6 September 2026
 
 The routing panel must not preload the full active catalogue into a native select. The catalogue currently contains thousands of active products; injecting them all into the select made the page sluggish and made the search appear inactive. The panel now requires at least 2 search characters, returns a maximum of 100 matches, and reports the match count. The selected reassignment workflow and server-side RPC are unchanged. Cache version: 20260906-alternative-route-7.
+
+
+### Catalogue stability fix — 6 September 2026
+
+The alternative-product reassignment script must not rescan the entire document for every DOM mutation. The previous broad MutationObserver watched the full document and called a full catalogue scan on each mutation, including DOM changes made by the reassignment script itself. During rendering/scrolling this could create heavy repeated work and renderer instability. The observer now batches only added DOM roots and processes pending-candidate cards inside those roots. Existing initial scans and field-change handling remain in place. Cache version: 20260906-alternative-route-8.
