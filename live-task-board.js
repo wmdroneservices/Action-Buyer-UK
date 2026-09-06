@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
         db.from("purchase_return_cases").select("id,status,created_at,updated_at,arranged_at,dispatched_at,delivered_at,closed_at"),
         db.from("inventory_assets").select("id,asset_reference,manufacturer,model,status,created_at,updated_at,status_changed_at,transaction_number"),
         db.from("resale_listings").select("id,asset_id,listing_reference,listing_title,status,created_at,updated_at"),
-        db.from("customer_return_requests").select("id,return_reference,status,created_at,updated_at,accepted_at,item_received_at,return_authorised_at")
+        db.from("sales_customer_returns").select("id,return_reference,status,asset_id,created_at,updated_at,item_received_at")
       ]);
 
       const [valuations,sales,shipments,purchaseReturns,assets,listings,customerReturns]=results.map(r=>r.data||[]);
@@ -121,14 +121,16 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       customerReturns.forEach(r=>{
-        const status=String(r.status||"").toLowerCase();
-        if(!["closed","complete","completed","cancelled"].includes(status)){
+        const status=String(r.status||"").trim().toLowerCase().replaceAll("_"," ").replaceAll("-"," ");
+        if(!["resolved","refused","closed","complete","completed","cancelled"].includes(status)){
           let title="Review customer return";
           let detail=(r.return_reference||"Customer return")+" requires staff action.";
-          if(["new","requested","open"].includes(status)){title="Review customer return request";detail=(r.return_reference||"Customer return")+" needs a decision and next action.";}
-          else if(["accepted","authorised","authorized"].includes(status)){title="Arrange customer return";detail=(r.return_reference||"Customer return")+" has been authorised and needs return handling.";}
-          else if(["item_received","received"].includes(status)){title="Inspect returned item";detail=(r.return_reference||"Customer return")+" has been received and needs assessment.";}
-          addTask(tasks,{category:"CUSTOMER RETURNS",title,detail,href:"returns.html",when:r.updated_at||r.created_at,reference:r.return_reference});
+          if(["requested","new","open"].includes(status)){title="Review customer return request";detail=(r.return_reference||"Customer return")+" needs a decision and next action.";}
+          else if(["approved","accepted","authorised","authorized"].includes(status)){title="Arrange customer return";detail=(r.return_reference||"Customer return")+" has been authorised and needs return handling.";}
+          else if(["label created"].includes(status)){title="Arrange return collection";detail=(r.return_reference||"Customer return")+" has a return label and needs collection confirmed.";}
+          else if(["collected"].includes(status)){title="Receive returned item";detail=(r.return_reference||"Customer return")+" is in return transit and needs receipt confirmed.";}
+          else if(["item received","received"].includes(status)){title="Complete returned item assessment";detail=(r.return_reference||"Customer return")+" has been received and now needs assessment, item disposition and customer financial/replacement resolution.";}
+          addTask(tasks,{category:"CUSTOMER RETURNS",title,detail,href:"sales-customer-returns.html",when:r.updated_at||r.item_received_at||r.created_at,reference:r.return_reference});
         }
       });
 
