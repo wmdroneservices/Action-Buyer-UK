@@ -67,7 +67,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.2',
+    version:'1.5.3',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -919,15 +919,65 @@ function deepSourceTargetIdentity(product,title,url){
     return {model_match:false,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model is not present in the page title or canonical product URL.'};
   }
 
+  const modelAt=identity.indexOf(model);
+  const discoveredSuffix=modelAt>=0?identity.slice(modelAt+model.length).trim():'';
+  const hasSpecificSuffix=/\b(with|fly more|combo|bundle|kit|filter|filters|lens|lenses|controller|smart controller|rc1|remote|battery|batteries|charger|case|bag|set)\b/.test(discoveredSuffix);
+
   const packageName=cleanProductPackageName(product);
   if(packageName&&!isGenericInternalPackageLabel(packageName)){
     const packageIdentity=normaliseIdentityText(packageName);
     if(packageIdentity&&!identity.includes(packageIdentity)){
-      return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model found, but the catalogue package/kit name is not present in the page title or canonical product URL.'};
+      return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model found, but the catalogue package/kit name is not present in the page title or canonical product URL.',discovered_suffix:discoveredSuffix};
     }
+  }else if(hasSpecificSuffix){
+    return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact base model found, but the source page identifies a more specific package, bundle, controller or accessory identity than the generic catalogue package.',discovered_suffix:discoveredSuffix};
   }
 
-  return {model_match:true,package_match:'match',variant_match:'match',reason:'Exact catalogue identity is present in the page title/canonical URL.'};
+  return {model_match:true,package_match:'match',variant_match:'match',reason:'Exact catalogue identity is present in the page title/canonical URL.',discovered_suffix:discoveredSuffix};
+}
+
+async function createDeepSourceProductCandidate(runId,product,page){
+  const suffix=String(page?.target_identity?.discovered_suffix||'').trim();
+  if(!suffix)return null;
+  const sourceUrl=String(page?.url||'').split('#')[0];
+  if(!sourceUrl)return null;
+
+  const existing=await sb.from('quote_catalog_ai_product_candidates')
+    .select('id,decision')
+    .eq('discovery_source_url',sourceUrl)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(existing.error)throw existing.error;
+  if(existing.data?.id)return existing.data.id;
+
+  const manufacturer=String(product?.manufacturer||'').trim();
+  const baseModel=String(product?.model||'').trim();
+  const accessory=/\b(filter|filters|lens|lenses|propeller|propellers|battery|batteries|charger|case|bag|cable|gimbal)\b/.test(suffix)
+    && !/\b(controller|smart controller|rc1)\b/.test(suffix);
+
+  const title=String(page?.title||'').replace(/\s+/g,' ').trim();
+  const suggestion=accessory
+    ? {manufacturer,model:title.replace(manufacturer,'').trim()||baseModel+' '+suffix,package_name:null,product_type:'Accessory'}
+    : {manufacturer,model:baseModel,package_name:suffix,product_type:product?.product_type||null};
+
+  const {data,error}=await sb.rpc('ai_research_create_product_candidate',{
+    p_run_id:runId,
+    p_manufacturer:suggestion.manufacturer,
+    p_model:suggestion.model,
+    p_package_name:suggestion.package_name,
+    p_main_category:product?.main_category||product?.category||null,
+    p_product_type:suggestion.product_type,
+    p_proposed_title:title||[suggestion.manufacturer,suggestion.model,suggestion.package_name].filter(Boolean).join(' '),
+    p_duplicate_status:'unchecked',
+    p_duplicate_matches:[],
+    p_discovery_source_url:sourceUrl,
+    p_discovery_source_name:hostOf(sourceUrl)||null,
+    p_evidence_notes:'Deep Source found an exact same-model product identity that differs from the catalogue target. Reason: '+String(page?.target_identity?.reason||'Specific source identity differs from the current catalogue identity.')+'. Exact source title: '+title+'. Review before creating a draft; nothing is automatically added or activated.',
+    p_confidence:0.92
+  });
+  if(error)throw error;
+  return data;
 }
 
 function deepSourceRuleFor(url){
@@ -1644,11 +1694,13 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
     log('Rejected candidate without a usable price:',c.source_url);return false;
   }
 
-  // Package uncertainty must never hide an exact-model listing from manual review.
-  // Only a proven variant mismatch is disqualifying.
-  if(c.variant_match==='mismatch')return false;
-  if(Number(c.match_confidence||0)<(manualFallback?0.45:0.6))c.match_confidence=manualFallback?0.45:0.6;
-  if(c.package_match==='mismatch')c.package_match='uncertain';
+  // A normal proven variant mismatch is rejected. Deep Source can explicitly mark
+  // an exact same-model page as a preserved wrong-target identity so that missing
+  // packages/accessories are not silently discarded.
+  const preserveWrongTarget=c._preserve_wrong_target===true;
+  if(c.variant_match==='mismatch'&&!preserveWrongTarget)return false;
+  if(Number(c.match_confidence||0)<(manualFallback||preserveWrongTarget?0.45:0.6))c.match_confidence=manualFallback||preserveWrongTarget?0.45:0.6;
+  if(c.package_match==='mismatch'&&!preserveWrongTarget)c.package_match='uncertain';
 
   let sourceId;
   const host=hostOf(c.source_url);
@@ -1806,6 +1858,24 @@ async function processOne(){
         });
     if(!pages.length)throw new Error('No usable web pages were collected for this product.');
 
+    // Deep Source must not force every same-model result into a generic Standard
+    // Package. A distinct controller, bundle, kit or accessory identity is kept
+    // for evidence review and also surfaced as a NEW PRODUCT CANDIDATE when the
+    // catalogue does not already provide that exact identity.
+    if(evidenceScope==='deep_source'){
+      for(const page of pages){
+        const identity=page?.target_identity;
+        if(!identity?.model_match||identity.package_match!=='mismatch')continue;
+        page._preserve_wrong_target=true;
+        try{
+          const id=await createDeepSourceProductCandidate(item.run_id,product,page);
+          if(id)log('Deep Source created/retained new product candidate for:',page.title||page.url);
+        }catch(e){
+          log('Deep Source product-candidate warning; evidence will still be preserved:',e.message||String(e));
+        }
+      }
+    }
+
     // Learn newly encountered websites immediately, even if Ollama later rejects their price evidence.
     const sourceMapBefore=new Map((sources||[]).map(s=>[String(s.domain||'').replace(/^www\./,'').toLowerCase(),s]));
     for(const page of pages){
@@ -1883,6 +1953,7 @@ async function processOne(){
         market_region:'UK',
         package_match:page.target_identity?.package_match||'uncertain',
         variant_match:page.target_identity?.variant_match||'uncertain',
+        _preserve_wrong_target:page._preserve_wrong_target===true,
         evidence_notes:(page.target_identity?.package_match==='mismatch'?'VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED. '+String(page.target_identity?.reason||'')+' ':'')+'Exact MPB UK product page. Used-market reference only. '+units.length+' live unit(s) observed. From £'+from.toFixed(2)+' to £'+to.toFixed(2)+'. Conditions: '+(conditions.join(', ')||'not extracted')+'. Verify latest stock and prices from the direct MPB page before manually refreshing stale evidence.',
         _evidence_title:page.title,
         _evidence_text:page.text
@@ -1949,6 +2020,9 @@ async function processOne(){
         source_kind:knownSource?.source_kind||raw.source_kind||'other',
         evidence_category:sourceClass?.evidence_category||raw.evidence_category,
         market_region:sourceClass?.market_region||raw.market_region,
+        package_match:page._preserve_wrong_target? (page.target_identity?.package_match||raw.package_match) : raw.package_match,
+        variant_match:page._preserve_wrong_target? (page.target_identity?.variant_match||raw.variant_match) : raw.variant_match,
+        _preserve_wrong_target:page._preserve_wrong_target===true,
         _evidence_title:page.title,
         _evidence_text:page.text
       };
@@ -1972,6 +2046,12 @@ async function processOne(){
       const knownSource=sourceMap.get(hostOf(page.url));
       const fallback=buildManualReviewFallback(product,page,knownSource,evidenceScope);
       if(!fallback)continue;
+      if(page._preserve_wrong_target===true){
+        fallback.package_match=page.target_identity?.package_match||fallback.package_match;
+        fallback.variant_match=page.target_identity?.variant_match||fallback.variant_match;
+        fallback._preserve_wrong_target=true;
+        fallback.evidence_notes='VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED. '+String(page.target_identity?.reason||'Exact same-model source identity differs from the catalogue target.')+' '+String(fallback.evidence_notes||'');
+      }
       seenCandidateUrls.add(dedupeKey);
       if(await submitCandidate(item.run_id,item.catalog_product_id,product,fallback,sourceMap)){
         submitted++;
