@@ -2346,3 +2346,22 @@ The management-only Slow-Moving Stock page now compares every unsold SKU against
 - a direct handoff into the existing Sales Workbench for that exact SKU.
 
 The strategy page remains advisory. The handoff does not automatically publish, price, close or create listings; it opens the existing controlled Sales Workbench, where staff use the established listing workflow.
+
+
+## Sales Dashboard Management Attention — 6 September 2026
+
+The existing **Sales Dashboard** remains the operational workflow centre. A compact **MANAGEMENT ATTENTION → Stock Strategy** panel is now integrated into that dashboard for authorised management users.
+
+It summarises:
+
+- sales-ready stock with no active listing;
+- stock at 120+ days requiring auction/exit review;
+- stock at 90+ days requiring urgent strategy review;
+- stock at 60+ days requiring outlet, price or presentation review;
+- stock at 30+ days requiring routine review.
+
+The panel links to the detailed **Slow-Moving Stock & Outlet Strategy** page. It does not create listings, publish products, change prices, move stock or close listings.
+
+Ordinary sales staff do not receive this management panel. The browser checks active management permission before displaying it, while the underlying strategy RPC remains database-authorised for management only.
+
+**Developer investigation map:** [Phase 2 Retail Storefront Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md).
