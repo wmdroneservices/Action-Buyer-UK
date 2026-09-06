@@ -1106,7 +1106,15 @@ The failed run is retained as audit history; it produced no pending candidates a
 
 The controlled retry on worker 1.4.9 proved that exact MPB discovery was now reaching the correct deterministic product URL, but the first failure remained at **collection**: direct Node HTTP retrieval of the exact MPB page returned HTTP 403.
 
-Worker **1.5.0** keeps the existing direct HTTP collector as the first path. For MPB exact product pages only, an HTTP 403 now falls back to a local Chromium browser session through `playwright-core`, using the installed Chrome/Edge executable. This is deliberately limited to the exact-page validation stage; landing, category and subcategory pages remain discovery-only.
+Worker **1.5.6** keeps direct HTTP as the first path. When MPB returns HTTP 403, the local Chromium fallback through `playwright-core` is now also used for MPB internal-search and discovery/crawl pages, not just exact product pages. This is a discovery repair only: landing, category, search and subcategory pages remain discovery-only and can never become final evidence. Exact `/en-uk/product/...` pages are still fetched and validated separately before evidence is created.
+
+### 7 September 2026 — MPB Deep Source 403/404 discovery gap
+
+Live Sony auditing proved that deterministic slugs alone were not sufficient. The worker marked products such as Sony PXW-Z190, PXW-Z150 and PMW-200 as completed without candidates even though live MPB pages existed under URLs with retailer-specific suffixes such as `-4k-camcorder` or `-camcorder`.
+
+The first failure was discovery: Node HTTP received MPB 403 responses on internal search and crawl pages, while a deterministic guessed slug could return 404. The previous browser fallback only helped after an exact URL was already known.
+
+The repair extends the existing MPB browser fallback to discovery pages after HTTP 403. Those pages are still only maps; exact evidence remains restricted to validated exact MPB product pages. This prevents a guessed 404 URL from becoming the worker's only route when MPB uses a retailer-specific product suffix.
 
 The worker requires `npm install` once after updating to install the new `playwright-core` dependency. If the browser fallback succeeds, normal exact-model validation and MPB SKU/unit extraction continue unchanged. No live evidence is automatically applied.
 
