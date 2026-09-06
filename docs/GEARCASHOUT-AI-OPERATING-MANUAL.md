@@ -1269,3 +1269,27 @@ Worker **1.5.2** now:
 - marks valid same-model evidence with a package mismatch as **VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED** instead of silently treating it as an exact match.
 
 This keeps the existing preservation/reassignment workflow intact while making the crawler more specific and deeper for named packages and kits.
+
+
+## Mavic 2 package-depth lesson — 2026-09-06
+
+The MPB Deep Source correction must distinguish **model identity** from **catalogue package identity**.
+
+For the Mavic 2 family, accepted catalogue identities now include:
+
+- Mavic 2 Pro — Standard Package
+- Mavic 2 Pro — Fly More Combo
+- Mavic 2 Pro — With DJI Smart Controller
+- Mavic 2 Pro — Fly More Combo with Smart Controller
+- Mavic 2 Zoom — With RC1 Controller
+- Mavic 2 Zoom — Fly More Combo
+- Mavic 2 Zoom — With Smart Controller
+
+The following are separate accessory products:
+
+- Mavic 2 Zoom ND Filter Kit
+- Mavic 2 Pro ND Filters Set
+
+Operational rule: when an exact page proves a different package or accessory, **preserve and route** the evidence to the exact identity. Do not attach it to the base aircraft merely because the model tokens match.
+
+The Mavic 2 Zoom ND Filter Kit finding from the Deep Source run was reassigned from the Zoom aircraft to its new accessory product and applied. The exact RC1 Controller finding was applied to the corrected RC1 package identity. Duplicate discovery of the same RC1 page was reconciled to the same evidence row rather than creating a second live price.
