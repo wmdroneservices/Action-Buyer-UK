@@ -2140,3 +2140,8 @@ Two stale routes remained:
 ### Rule
 
 A completed post-sale customer return must not continue to generate legacy return or generic Product Workbench actions. The authoritative record remains `sales_customer_returns`; once terminal, it is history rather than live work.
+
+
+## Operating Rule — Customer Return Record Presentation (7 September 2026)
+
+When changing `sales-customer-returns.html` / `sales-customer-returns.js`, preserve one independently expandable record per `sales_customer_returns` row. The collapsed header must retain enough identity to distinguish the case without opening it: product, status, return reference and SKU. Do not hide active workflow actions behind a collapsed record by default; active cases may remain expanded while terminal history can be collapsed.
