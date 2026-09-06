@@ -2057,3 +2057,22 @@ The Mavic 2 catalogue must follow evidence at the **exact product/package level*
 An aircraft page, controller package, Fly More bundle, or filter kit must never share evidence merely because the base model text is similar. Route evidence to the exact catalogue identity. Filter kits are independent accessory products and must not influence drone-package valuation.
 
 The customer valuation wizard reads active package variants from `quote_catalog_products`. Legacy Mavic 2 battery/package compatibility maps were updated to recognise RC1, Smart Controller and Fly More + Smart Controller variants.
+
+
+## 6 September 2026 — Deep Source filtering and missing catalogue identities
+
+Deep Source filtering now distinguishes a broad model family from the exact source identity. A generic catalogue package such as **Standard Package** is no longer treated as an exact match merely because the base model appears in the page title.
+
+For an exact same-model source page with a distinct identity (controller, Fly More/Combo, bundle, kit, filter/lens or other accessory), the worker:
+
+1. marks the finding as a preserved wrong-target/package identity;
+2. keeps the exact source URL and evidence for staff review;
+3. creates a pending **NEW PRODUCT CANDIDATE** where that exact identity is not represented by the current catalogue;
+4. never auto-adds or activates the discovered product.
+
+This separates two jobs that must not be conflated:
+
+- **evidence filtering** — do not attach RC1/Smart Controller/kit prices to a generic Standard Package; and
+- **catalogue discovery** — surface missing exact packages and accessories for approval.
+
+Research PC worker version: **1.5.3**.
