@@ -87,3 +87,17 @@ Use the existing **Item Received** customer return and verify:
 3. refund validation works;
 4. replacement reference/asset validation works;
 5. resolved summary displays all retained information.
+
+
+## Follow-up repair — duplicate Live Task Board CTA
+
+Browser testing exposed a second route for the same received return. TEST-ASSET-007 was both:
+
+- `sales_customer_returns.status = 'Item Received'`; and
+- `inventory_assets.status = 'Returned'`.
+
+The authoritative customer-return task correctly opened `sales-customer-returns.html`, but the generic asset workflow could also create a second **Review returned item** CTA pointing to the Product Workbench.
+
+**Repair:** suppress the generic `Returned` asset task whenever that asset has an open `sales_customer_returns` case. The authoritative customer-return task remains the sole CTA for the mandatory assessment.
+
+**No database state was changed.**
