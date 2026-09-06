@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!id) return;
 
   const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
-  const handoffStatuses = new Set(['Sent to Sales','Listed','Reserved','Sold']);
+  const handoffStatuses = new Set(['Sent to Sales','Listed','Reserved','Sold','Sold - Awaiting Shipping','Sold - Shipped','Returned']);
 
   const { data: asset } = await db.from('inventory_assets').select('*').eq('id', id).maybeSingle();
   if (!asset || !handoffStatuses.has(asset.status)) return;
