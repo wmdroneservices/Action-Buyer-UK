@@ -1688,3 +1688,19 @@ Current Phase 2 sample batch:
 - 4 resale listings;
 - all linked to existing quote_catalog_products;
 - all cleared by the existing management-only reset_test_quote_data() function while test reset remains enabled.
+
+
+## Regression repair — pending evidence shudder and missing route control (6 September 2026)
+
+A previous sequence of fixes alternated between two failures: restoring the routing control with repeated scanning eventually destabilised the page, while removing the unstable scanning could leave the control absent.
+
+The permanent rule is to separate state rendering from interaction handling:
+
+1. The pending-review renderer already has the authoritative candidate fields, so it must render the compact route button immediately when persisted package/variant mismatch exists.
+2. The reassignment script must react to that button and direct edits only.
+3. Do not use a document-wide MutationObserver to rediscover every pending card.
+4. Do not repeatedly replace the whole pending evidence section after startup.
+5. Preserve lazy loading of the alternative-product search panel so thousands of catalogue products are never rendered until staff opens a route control.
+6. Server-side reassign_ai_candidate(...) and reassignment audit history remain authoritative.
+
+This is the required baseline for future changes to mismatch routing.
