@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const auth=window.actionBuyerAuth; if(!auth)return;
   const session=await auth.getSession(); if(!session){location.href="login.html?return=admin-sales-dashboard.html";return;}
-  const {data:staff}=await auth.supabase.from("staff_users").select("user_id").eq("user_id",session.user.id).maybeSingle();
-  if(!staff){location.href="account.html";return;}
+  const {data:staff}=await auth.supabase.from("staff_users").select("user_id,active,can_manage_staff").eq("user_id",session.user.id).maybeSingle();
+  if(!staff?.active){location.href="account.html";return;}
+  const isManager=staff.can_manage_staff===true;
   const message=document.getElementById("staff-message");
   const notice=(text,ok=true)=>{if(message){message.textContent=text;message.className="form-message "+(ok?"success":"error");}};
   document.getElementById("staff-welcome").textContent=`Signed in as ${session.user.email}`;
@@ -16,6 +17,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   function setStepNotice(id, html, tone="info"){
     const el=document.getElementById(id); if(!el)return;
     el.innerHTML=`<div style="margin-top:.75rem;padding:.9rem 1rem;${toneStyle(tone)}"><strong>${html}</strong></div>`;
+  }
+
+  async function loadManagementStock(){
+    if(!isManager)return;
+    const panel=document.getElementById("management-stock-attention");
+    const summary=document.getElementById("management-stock-summary");
+    const cards=document.getElementById("management-stock-cards");
+    if(!panel||!summary||!cards)return;
+    panel.hidden=false;
+    try{
+      const {data,error}=await auth.supabase.rpc("management_stock_strategy_report");
+      if(error)throw error;
+      const rows=data||[];
+      const noListing=rows.filter(x=>x.strategy_band==="NO ACTIVE LISTING").length;
+      const exitReview=rows.filter(x=>x.strategy_band==="AUCTION / EXIT REVIEW").length;
+      const urgent=rows.filter(x=>x.strategy_band==="URGENT STRATEGY REVIEW").length;
+      const priceReview=rows.filter(x=>["EXPAND OUTLETS / PRICE REVIEW","PRICE / PRESENTATION REVIEW"].includes(x.strategy_band)).length;
+      const review=rows.filter(x=>x.strategy_band==="REVIEW").length;
+      const attention=noListing+exitReview+urgent+priceReview+review;
+      summary.textContent=rows.length
+        ? attention+" stock item"+(attention===1?"":"s")+" currently require management review. This is advisory only and does not automatically change listings, prices or outlets."
+        : "No live inventory currently requires a management stock strategy review.";
+      const card=(label,count,tone,detail)=>'<div class="management-stock-card '+tone+'"><strong>'+count+'</strong><span>'+label+'</span><small>'+detail+'</small></div>';
+      cards.innerHTML=[
+        card("NO ACTIVE LISTING",noListing,"critical","SKU is in Sales but has no active listing"),
+        card("120+ DAYS",exitReview,"critical","Auction or exit review"),
+        card("90+ DAYS",urgent,"urgent","Urgent strategy review"),
+        card("60+ DAYS",priceReview,"warning","Outlet, price or presentation review"),
+        card("30+ DAYS",review,"review","Routine management review")
+      ].join("");
+    }catch(e){
+      summary.textContent="Stock strategy summary could not be loaded.";
+      cards.innerHTML="";
+    }
   }
 
   async function load(){
@@ -108,5 +143,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return `<article class="valuation-card" style="margin-bottom:.75rem"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap"><div><p class="section-kicker">${esc(a.status)}</p><h3>${esc(name)}</h3><p>Asset: ${esc(a.asset_reference)} · Transaction: ${esc(a.transaction_number||"Not recorded")}</p></div><a class="btn btn-secondary" href="inventory-detail.html?id=${encodeURIComponent(a.id)}">VIEW ITEM</a></div><div style="margin-top:.75rem;padding:.9rem;${toneStyle(action.tone)}"><strong>${esc(action.label)}</strong><br><span>${esc(action.detail)}</span></div></article>`;
     }).join("");
   }
-  await load();setInterval(()=>{if(!document.hidden)load();},5000);
+  await load();
+  await loadManagementStock();
+  setInterval(()=>{if(!document.hidden)load();},5000);
+  setInterval(()=>{if(!document.hidden)loadManagementStock();},60000);
 });
