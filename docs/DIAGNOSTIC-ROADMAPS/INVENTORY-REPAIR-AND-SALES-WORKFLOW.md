@@ -325,3 +325,34 @@ The legacy generic `resolve` action now refuses to close an Item Received return
 ### Accounting principle
 
 The customer-return record is now an operational accounting source record. It does not yet replace a future accounts ledger, but costs, refunds, payment method/provider and references are retained so that a later accounts system can consume them without reconstructing the event from notes.
+
+
+## Live Task Board → Customer Return Assessment Routing — 7 September 2026
+
+### User action
+
+Staff see **CUSTOMER RETURNS** in the shared Live Task Board and click **VIEW**.
+
+### Correct path
+
+`live-task-board.js`
+→ authoritative `sales_customer_returns`
+→ status-specific task
+→ `sales-customer-returns.html`
+→ `sales-customer-returns.js`
+→ for **Item Received**: assessment and accounting closure form.
+
+### First verified failure
+
+The task board was reading the legacy `customer_return_requests` table and routing to `returns.html`. The active post-sale return was stored in `sales_customer_returns`, producing a misleading **No customer return requests** destination.
+
+### Failure checkpoints
+
+1. Task count does not match customer-return records: query `sales_customer_returns` first.
+2. Item Received task opens the wrong page: inspect `live-task-board.js`; destination must be `sales-customer-returns.html`.
+3. Destination shows no records: compare the table queried by the task board with the table queried by the destination page.
+4. Item Received has no closure form: inspect `sales-customer-returns.js` and the dedicated return-resolution RPC.
+
+### Rule
+
+The Live Task Board must point at the same authoritative workflow table as the page that performs the action.
