@@ -14,6 +14,62 @@ document.addEventListener("DOMContentLoaded", async () => {
   const inventoryStates=["Received","Inspection Required","Testing","Repair Required","Ready for Resale"];
   const salesStates=["Sent to Sales","Listed","Reserved","Sold","Returned","Dispatched"];
 
+  const searchForm=document.getElementById("sales-search-form");
+  const searchField=document.getElementById("sales-search-field");
+  const searchInput=document.getElementById("sales-search-input");
+  const searchButton=document.getElementById("sales-search-button");
+  const searchResults=document.getElementById("sales-search-results");
+
+  const normaliseSearch=v=>String(v??"").toLowerCase().trim().replace(/\s+/g," ");
+  const productName=a=>[a.manufacturer,a.model].filter(Boolean).join(" ").trim()||"Unnamed asset";
+
+  function renderSalesSearch(rows,term){
+    if(!searchResults)return;
+    searchResults.hidden=false;
+    if(!rows.length){
+      searchResults.innerHTML='<div class="sales-search-empty">No stock matched <strong>'+esc(term)+'</strong>.</div>';
+      return;
+    }
+    const shown=rows.slice(0,25);
+    const extra=rows.length>shown.length?'<p class="sales-search-limit">Showing the first '+shown.length+' of '+rows.length+' matches. Refine the search to narrow the result.</p>':"";
+    searchResults.innerHTML='<div class="sales-search-summary">'+rows.length+' match'+(rows.length===1?"":"es")+' found</div>'+
+      shown.map(a=>'<article class="sales-search-result"><div><strong>'+esc(productName(a))+'</strong><span>SKU: '+esc(a.sku||"Not recorded")+' · Transaction: '+esc(a.transaction_number||"Not recorded")+' · Status: '+esc(a.status||"Unknown")+'</span></div><a class="btn btn-secondary" href="inventory-detail.html?id='+encodeURIComponent(a.id)+'">VIEW ITEM</a></article>').join("")+extra;
+  }
+
+  async function runSalesSearch(){
+    const term=String(searchInput?.value||"").trim();
+    if(!term){searchResults&&(searchResults.hidden=true);return;}
+    const field=searchField?.value||"all";
+    const needle=normaliseSearch(term);
+    if(searchButton){searchButton.disabled=true;searchButton.textContent="SEARCHING...";}
+    try{
+      const {data,error}=await auth.supabase.from("inventory_assets")
+        .select("id,status,manufacturer,model,asset_reference,transaction_number,sku")
+        .order("status_changed_at",{ascending:false});
+      if(error)throw error;
+      const rows=(data||[]).filter(a=>{
+        const sku=normaliseSearch(a.sku);
+        const transaction=normaliseSearch(a.transaction_number);
+        const product=normaliseSearch(productName(a));
+        if(field==="sku")return sku.includes(needle);
+        if(field==="transaction")return transaction.includes(needle);
+        if(field==="product")return product.includes(needle);
+        return sku.includes(needle)||transaction.includes(needle)||product.includes(needle);
+      });
+      renderSalesSearch(rows,term);
+    }catch(e){
+      if(searchResults){
+        searchResults.hidden=false;
+        searchResults.innerHTML='<div class="sales-search-empty">The stock search could not be completed. Please try again.</div>';
+      }
+      notice(e?.message||"Could not search stock.",false);
+    }finally{
+      if(searchButton){searchButton.disabled=false;searchButton.textContent="SEARCH";}
+    }
+  }
+
+  if(searchForm)searchForm.addEventListener("submit",e=>{e.preventDefault();runSalesSearch();});
+
   function setStepNotice(id, html, tone="info"){
     const el=document.getElementById(id); if(!el)return;
     el.innerHTML=`<div style="margin-top:.75rem;padding:.9rem 1rem;${toneStyle(tone)}"><strong>${html}</strong></div>`;
