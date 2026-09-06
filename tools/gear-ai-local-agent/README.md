@@ -218,3 +218,27 @@ Do not treat the research worker and the supervisor as the same process:
 - **STOP ALL RESEARCH & WORKER** stops research and `agent.mjs`, but deliberately leaves `supervisor.mjs` alive.
 - This is what makes a later remote START possible.
 - If the dashboard shows **OFFLINE** rather than **READY**, the supervisor/Research PC itself is unavailable and Windows startup or the desktop launcher is required.
+
+
+## Deep Source package and missing-product discovery — worker 1.5.3
+
+Deep Source now treats catalogue discovery and evidence collection as separate checks.
+
+When an exact same-model source page exposes a more specific identity than a generic catalogue package, such as:
+
+- **Mavic 2 Zoom with RC1 Controller**
+- **Fly More Combo**
+- **Smart Controller**
+- **ND Filter Kit**
+- other named bundles or accessories
+
+it must not silently be treated as the generic **Standard Package**.
+
+The worker now:
+
+1. preserves the exact same-model finding as a visible wrong-target/package finding;
+2. creates a **NEW PRODUCT CANDIDATE** in the AI Research Centre using the exact source title and URL;
+3. never automatically adds or activates that product;
+4. retains the source page so staff can approve it for creation as an inactive catalogue draft.
+
+This means missing packages and accessories are surfaced instead of being lost or contaminating the generic model price evidence.
