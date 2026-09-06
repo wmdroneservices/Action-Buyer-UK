@@ -2052,3 +2052,22 @@ The dedicated RPCs are:
 The legacy `staff_update_sales_customer_return(..., 'resolve')` path intentionally refuses closure without the detailed record.
 
 Do not automatically move the returned asset into a new resale status merely because the return is closed. `item_disposition` records what happened to the item; downstream inventory routing should remain explicit and auditable.
+
+
+## Known Fault and Repair — Live Task Board Customer Return Routing (7 September 2026)
+
+**Observed failure:** the Live Task Board showed a customer return requiring attention, but its link opened `returns.html`, which reads the legacy `customer_return_requests` table. The active post-sale return existed instead in `sales_customer_returns`, so the destination could show **No customer return requests**.
+
+**First failure:** incorrect source table and destination in `live-task-board.js`.
+
+**Repair:** Live Task Board customer-return tasks now read `sales_customer_returns`, normalise statuses such as `Item Received`, and route to `sales-customer-returns.html`.
+
+Status routing includes:
+
+- Requested → review request;
+- Approved → arrange return;
+- Label Created → arrange collection;
+- Collected → receive returned item;
+- Item Received → complete returned-item assessment and financial/replacement closure.
+
+Do not reintroduce `customer_return_requests` as the source for the post-sale customer-return task queue without a deliberate legacy migration plan.
