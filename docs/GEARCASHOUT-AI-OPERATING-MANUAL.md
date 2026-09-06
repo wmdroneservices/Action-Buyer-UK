@@ -1419,3 +1419,36 @@ This is deliberately a worker-side compatibility repair. The database contract r
 
 ### Required verification
 After the Research PC reports worker 1.5.4, run a small controlled Deep Source test before another large manufacturer audit. Confirm that valid exact MPB candidates no longer fail with Invalid match status.
+
+
+---
+
+## 6 September 2026 — Phase 2 retail storefront infrastructure started
+
+A new Phase 2 backend foundation was added after inspecting current project memory, GitHub sales/inventory code, live Supabase schema, resale functions and RLS.
+
+### Preserve existing architecture
+
+Do not replace the existing multi-channel resale system. The retail website is another channel using the same central inventory truth. Existing `resale_listings`, `handle_resale_listing_sold`, `staff_mark_resale_listing_sold` and inventory sold-state logic remain authoritative.
+
+### Added foundation
+
+- nullable `inventory_assets.catalog_product_id` FK to `quote_catalog_products`;
+- brand-neutral `sales_storefronts` and visibility override infrastructure;
+- reusable master-product sales content separated from physical-item condition content;
+- controlled explicit asset-to-catalogue linking to avoid ambiguous automatic package/model matches;
+- sales-permission-gated read-only evidence RPC for pricing decisions.
+
+### Security rule
+
+Sales evidence access is read-only. Sales staff use evidence to set prices; this infrastructure does not grant evidence editing or live-evidence application rights.
+
+### Next implementation sequence
+
+1. trace and connect the existing inventory creation path to an exact catalogue product where identity is already known;
+2. add staff sales-dashboard UI for explicit catalogue linking and read-only evidence;
+3. define website channel semantics using the existing `resale_listings` workflow;
+4. create the separate branded storefront repository once the name/domain is chosen;
+5. add public storefront read models without exposing internal evidence, purchase costs or customer data.
+
+Roadmap: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
