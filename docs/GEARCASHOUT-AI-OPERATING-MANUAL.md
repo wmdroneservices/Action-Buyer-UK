@@ -1647,3 +1647,8 @@ All other ordinary tasks continue through age-based escalation unless a later ve
 A large mismatch batch can contain many valid findings awaiting rerouting. The catalogue therefore uses lazy-open routing controls: show a compact route button first, then load the searchable alternative-product selector only for the evidence item staff chooses to route.
 
 The underlying rule is unchanged: preserve valid evidence, route it to the exact canonical product, record the reassignment, then continue normal review/acceptance. Interface compactness must never be implemented by hiding or discarding the pending candidate.
+
+
+### UI stability rule — server-backed mismatch state
+
+Do not repeatedly remove and recreate routing controls when editable UI fields have not yet reflected the server-backed mismatch. Cache the confirmed route-required state for the card and guard concurrent lookups. A MutationObserver must never be allowed to generate an add/remove cycle that freezes the staff page.
