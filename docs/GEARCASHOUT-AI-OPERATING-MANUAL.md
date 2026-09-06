@@ -1130,3 +1130,10 @@ Current routing:
 - an accepted finding that cannot be applied is retained in a visible **Live application issues** recovery section so an application failure cannot disappear silently.
 
 No database schema, RLS, review-feedback RPC or live-evidence application RPC was changed.
+
+
+## Deep Source URL history — 6 September 2026
+
+The **Landing page URL** control now remembers previously used valid Deep Source URLs on the staff device/browser and presents them as dropdown suggestions. Entering a new valid full URL adds it to the history; duplicates are moved to the top. The selected URL remains explicit for every run and is still passed as `deep_source_url`.
+
+This history is a convenience layer only. It does not alter source isolation, evidence scope or the exact Deep Source URL selected for the audit.
