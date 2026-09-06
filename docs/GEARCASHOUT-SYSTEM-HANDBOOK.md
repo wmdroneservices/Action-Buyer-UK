@@ -2616,3 +2616,51 @@ There is deliberately no generic **Clear Repair Required** button.
 ### Sales Pipeline repair visibility — 6 September 2026
 
 The Sales Dashboard must show **Repair Required** as a separate blocking pipeline category. Repair-held stock must not disappear inside the general Inventory total: the Inventory card counts non-repair inventory workflow states, while the red Repair Required card counts assets blocked pending a completed repair. See the Phase 2 Retail Storefront Diagnostic Roadmap.
+
+
+---
+
+## Multi-AI Coordination and Shared Project Memory — 6 September 2026
+
+GearCashOut is currently being developed by more than one ChatGPT technical agent working on different parts of the same repository and Supabase project. At present, one stream is concentrating on the **AI research / Gemma / Quote Catalogue** system while another is building the **sales, inventory and resale** side.
+
+These are not separate projects. They share the same live sources of truth:
+
+1. current GitHub repository state;
+2. current Supabase schema and data;
+3. the Human / Developer System Handbook;
+4. the AI Operating Manual;
+5. Supabase structured project memory, decisions, rules, events and checkpoints.
+
+### Mandatory coordination rule
+
+Before making a material change, an AI must check whether another development stream has recently changed the same area or an upstream/downstream dependency.
+
+The safe sequence is:
+
+**Retrieve shared memory → inspect current checkpoint/events → inspect current GitHub → inspect current Supabase → identify ownership/overlap → change minimally → test → document.**
+
+Do not assume the latest current checkpoint represents the only active stream. A sales checkpoint may coexist with active AI research, and active research events may continue while sales development is underway.
+
+### Checkpoints and concurrent work
+
+A checkpoint is a snapshot of a workstream, not exclusive ownership of the entire project. One agent must not overwrite or invalidate another agent's active checkpoint merely to record its own progress.
+
+For concurrent work:
+
+- use **area-specific events** for material changes;
+- add or update checkpoints only for the relevant workstream;
+- preserve other current context unless a genuine system-wide state supersedes it;
+- record affected files, database objects and dependencies;
+- distinguish **Implemented**, **Tested** and **Verified Live**.
+
+### Cross-system protection
+
+Changes in one stream must be checked for effects on the other. Examples include:
+
+- inventory and sales code sharing catalogue product identities;
+- AI research changing catalogue data later used by valuation, purchasing or sales;
+- shared navigation, authentication, staff permissions, RLS and common JavaScript;
+- project-memory events arriving while another agent is working.
+
+The manuals and Supabase memory are therefore the coordination layer between concurrent technical agents, not merely documentation written after the fact.
