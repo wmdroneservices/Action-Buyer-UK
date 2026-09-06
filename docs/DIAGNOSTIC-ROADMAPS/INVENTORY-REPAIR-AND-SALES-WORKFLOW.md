@@ -153,3 +153,46 @@ Sold item → create/record shipping label → mark collected → mark delivered
 - one open buyer return per asset;
 - never merge buyer returns with Purchase Returns;
 - preserve sold history when the returned item is received.
+
+## Product Workbench — Sales handoff mode (6 September 2026)
+
+### Trigger
+`inventory_assets.status` is one of:
+
+- `Sent to Sales`
+- `Listed`
+- `Reserved`
+- `Sold`
+
+### Front end
+- Entry page: `inventory-detail.html`
+- Existing workflow controller: `inventory-workbench.js`
+- Post-handoff controller: `inventory-sales-handoff.js`
+
+### Data flow
+The normal inspection workflow is no longer presented as an active workflow after Sales handoff.
+
+The handoff view loads:
+- historical `inventory_testing` inspection/testing records;
+- original customer photographs;
+- staff `inventory_evidence` photographs;
+- reusable catalogue content from `catalog_sales_content`;
+- physical-item content from `inventory_sales_content`.
+
+### Editing rules
+- inspection history remains visible and is not restarted;
+- factual inspection corrections remain controlled edits;
+- customer supplied photographs remain separate evidence;
+- staff photographs can be added, removed and selected as the individual-item hero;
+- catalogue product description, catalogue hero, manufacturer image and attribution are editable;
+- physical-item condition description, listing notes and hero image are editable.
+
+### Failure checkpoints
+1. Handoff page still shows active inspection workflow: verify the asset status and that `inventory-sales-handoff.js` is loaded after `inventory-workbench.js`.
+2. Sales content will not save: verify active `staff_users` access and the existing ALL policies on both sales-content tables.
+3. Catalogue content disabled: verify `inventory_assets.catalog_product_id`.
+4. Hero selection fails: verify the selected `inventory_evidence.file_url` and storage access.
+5. Customer photos must never be silently mixed with staff resale photographs.
+
+### Expected rule
+**Inspection facts are retained; sales presentation remains editable.**
