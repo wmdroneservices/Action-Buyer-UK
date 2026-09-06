@@ -375,3 +375,34 @@ If no:
 → then route the preserved evidence.
 
 Never use a base-model match to merge controller packages, Fly More bundles or filter kits into a generic aircraft row.
+
+
+## 6 September 2026 — Deep Source filtering vs catalogue-discovery correction (worker 1.5.3)
+
+### First failure identified
+
+The previous identity-depth fix searched more exact pages, but a generic catalogue package could still absorb a more specific source identity. For example, a page for **DJI Mavic 2 Zoom with RC1 Controller** could be treated as the generic **Mavic 2 Zoom Standard Package** simply because the base model matched.
+
+### Corrected path
+
+Landing/category page
+→ deeper exact product-page discovery
+→ exact base-model check
+→ exact package/accessory identity check
+
+Then:
+
+- exact catalogue identity → normal evidence route;
+- same model, wrong/more-specific identity → preserve as wrong-target evidence;
+- same model, exact identity absent from catalogue → create **NEW PRODUCT CANDIDATE** with exact source URL/title;
+- no automatic catalogue activation or live evidence application.
+
+### Examples
+
+- Mavic 2 Zoom with RC1 Controller → separate package candidate if absent.
+- Mavic 2 Zoom Smart Controller → separate package candidate if absent.
+- Mavic 2 Zoom ND Filter Kit → separate accessory product candidate if absent.
+
+### Failure-prevention rule
+
+Never use a generic package label as permission to collapse all same-model source pages into one catalogue identity. Generic rows are broad search starting points, not catch-all evidence destinations.
