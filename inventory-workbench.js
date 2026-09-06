@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const testingRows=(await db.from('inventory_testing').select('*').eq('asset_id',id).order('created_at',{ascending:false})).data || [];
     const evidenceRows=(await db.from('inventory_evidence').select('*').eq('asset_id',id).eq('evidence_type','Photographs').order('created_at',{ascending:true})).data || [];
+    const repairs=(await db.from('inventory_repairs').select('*').eq('asset_id',id).order('repaired_at',{ascending:false})).data || [];
+    const latestRepair=repairs[0] || null;
     const inspection=testingRows.find(x=>x.stage==='inspection') || null;
     const testing=testingRows.find(x=>x.stage==='testing') || null;
     const itemData=quoteItem?.item_data && typeof quoteItem.item_data==='object' ? quoteItem.item_data : {};
@@ -62,6 +64,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const missingResolved=!asset.customer_missing_items || asset.missing_items_resolved;
     const testsPass=testing && ['Passed','Not Applicable'].includes(testing.flight_test||'') && ['Passed','Not Applicable'].includes(testing.camera_test||'') && ['Good','Not Applicable'].includes(testing.battery_health||'');
     const canSend=status==='Ready for Resale' && Boolean(asset.condition_grade) && missingResolved && Boolean(asset.package_name || asset.final_package_contents) && Boolean(testsPass);
+    const repairFault=latestRepair?.fault_description || [
+      asset.status_change_reason, testing?.damage_notes, testing?.notes, inspection?.damage_notes, inspection?.notes
+    ].filter(Boolean).join(' · ') || 'Record the exact fault or defect that requires repair.';
+    const repairHistoryHtml=repairs.length ? repairs.map(r=>`
+      <div class="notice" style="margin-top:.6rem">
+        <strong>Repair completed ${esc(new Date(r.repaired_at||r.created_at).toLocaleString('en-GB'))}</strong><br>
+        Fault: ${esc(r.fault_description)}<br>
+        Repair: ${esc(r.repair_description)}<br>
+        Provider: ${esc(r.provider_type)}${r.provider_name?` · ${esc(r.provider_name)}`:''}<br>
+        Cost: ${money(r.repair_cost)}${Array.isArray(r.evidence_paths)&&r.evidence_paths.length?` · ${r.evidence_paths.length} evidence file(s) attached`:''}
+      </div>`).join('') : '<p>No completed repair has been recorded yet.</p>';
+    const repairPanel=status==='Repair Required'?`
+      <section class="valuation-card" style="margin-top:1rem;border:2px solid #b54708">
+        <p class="section-kicker">ACTION REQUIRED · REPAIR</p>
+        <h2>⚠ This item requires repair before it can be sold</h2>
+        <div class="notice"><strong>Fault currently recorded</strong><p>${esc(repairFault)}</p></div>
+        <p>Record what was repaired. Completing this section does not send the item to Sales: it returns the item to controlled post-repair testing.</p>
+        <form id="repair-form" class="auth-form">
+          <label>Exact fault / defect requiring repair<textarea name="fault_description" rows="4" required>${esc(repairFault)}</textarea></label>
+          <label>What repair was carried out?<textarea name="repair_description" rows="5" required placeholder="Record the actual work completed, parts replaced and any relevant result."></textarea></label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem">
+            <label>Repair carried out by<select name="provider_type"><option>Internal</option><option>External</option><option>Manufacturer / Service Centre</option></select></label>
+            <label>Repairer / company name<input name="provider_name" placeholder="Optional for internal repairs"></label>
+            <label>Repair cost (£)<input name="repair_cost" type="number" min="0" step="0.01" value="0"></label>
+            <label>Repair completed date<input name="repaired_at" type="datetime-local" value="${new Date().toISOString().slice(0,16)}"></label>
+          </div>
+          <label>Repair evidence (optional)<input id="repair-evidence" type="file" multiple accept="image/*,.pdf"></label>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">COMPLETE REPAIR & RETURN TO TESTING</button><p id="repair-message" class="form-message" aria-live="polite"></p></div>
+        </form>
+        <h3 style="margin-top:1.25rem">Repair history</h3>${repairHistoryHtml}
+      </section>`:'';
+    const stepOffset=status==='Repair Required'?1:0;
 
     const quoteCards=[
       ['Customer',customerName],['Quote reference',valuation?.quote_reference||'Not recorded'],['Quote amount',money(valuation?.quote_amount)],
@@ -72,20 +106,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     const staffPhotoHtml=staffPhotos.length?staffPhotos.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener"><img src="${esc(x.url)}" alt="Staff photograph" style="width:100%;height:130px;object-fit:cover;border-radius:8px"></a>`).join(''):'<p>No staff photographs yet.</p>';
 
     root.innerHTML=`
-      <div class="valuation-card"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap"><div><p class="section-kicker">PRODUCT WORKBENCH · ${esc(status)}</p><h2>${esc([asset.manufacturer,asset.model].filter(Boolean).join(' ')||'Unnamed asset')}</h2><p>Asset ${esc(asset.asset_reference)} · Transaction ${esc(asset.transaction_number||'Not recorded')}</p></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="inventory.html">BACK TO INVENTORY</a>${['Sent to Sales','Listed','Reserved'].includes(status)?`<a class="btn btn-primary" href="listing-readiness.html?id=${encodeURIComponent(id)}">OPEN SALES WORKBENCH</a>`:''}</div></div><div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem"><span class="notice"><strong>1</strong> Customer quote</span><span class="notice"><strong>2</strong> Inspection & testing</span><span class="notice"><strong>3</strong> Photos & package</span><span class="notice"><strong>4</strong> Send to Sales</span></div></div>
+      <div class="valuation-card"><div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap"><div><p class="section-kicker">PRODUCT WORKBENCH · ${esc(status)}</p><h2>${esc([asset.manufacturer,asset.model].filter(Boolean).join(' ')||'Unnamed asset')}</h2><p>Asset ${esc(asset.asset_reference)} · Transaction ${esc(asset.transaction_number||'Not recorded')}</p></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="inventory.html">BACK TO INVENTORY</a>${['Sent to Sales','Listed','Reserved'].includes(status)?`<a class="btn btn-primary" href="listing-readiness.html?id=${encodeURIComponent(id)}">OPEN SALES WORKBENCH</a>`:''}</div></div><div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem"><span class="notice"><strong>1</strong> Customer quote</span>${status==='Repair Required'?'<span class="notice"><strong>2</strong> Repair required</span>':''}<span class="notice"><strong>${2+stepOffset}</strong> Inspection & testing</span><span class="notice"><strong>${3+stepOffset}</strong> Photos & package</span><span class="notice"><strong>${4+stepOffset}</strong> Send to Sales</span></div></div>
 
       <section class="valuation-card" style="margin-top:1rem"><h2>1. Customer quote</h2><p>This is the original customer information carried into inventory. It is reference-only and is not overwritten by staff inspection.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem">${quoteCards}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-top:1rem"><div class="notice"><strong>Missing items reported by customer</strong><br>${customerMissing?'YES':'No'}${customerMissingDetails?`<br><small>${esc(customerMissingDetails)}</small>`:''}</div><div class="notice"><strong>Damage reported by customer</strong><br>${customerDamage?'YES':'No'}${customerNotes?`<br><small>${esc(customerNotes)}</small>`:''}</div></div>${customerDescription?`<div class="notice" style="margin-top:1rem"><strong>Customer description</strong><p>${esc(customerDescription)}</p></div>`:''}<h3 style="margin-top:1.25rem">Customer photographs (${customerPhotos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${customerPhotoHtml}</div></section>
 
-      <section class="valuation-card" style="margin-top:1rem"><h2>2. Staff inspection & technical testing</h2><p>Compare the product with the customer quote and complete all checks here. There is no separate testing or product page to open.</p><form id="workbench-form" class="auth-form"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem"><label>Manufacturer<input name="manufacturer" value="${esc(asset.manufacturer||quoteItem?.manufacturer||'')}"></label><label>Model<input name="model" value="${esc(asset.model||quoteItem?.model||'')}"></label><label>Serial number<input name="serial_number" value="${esc(asset.serial_number||itemData.serialNumber||single.serialNumber||'')}"></label><label>Staff condition<select name="condition_grade"><option value="">Not recorded</option>${conditionOptions}</select></label></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem"><label>Expected batteries<input name="expected_battery_count" type="number" min="0" value="${asset.expected_battery_count??''}"></label><label>Actual batteries found<input name="actual_battery_count" type="number" min="0" value="${asset.actual_battery_count??''}"></label><label>Battery health<select name="battery_health"><option>Not Applicable</option><option>Good</option><option>Fair</option><option>Requires Replacement</option></select></label><label>Inspection result<select name="inspection_result"><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem"><label>Flight test<select name="flight_test"><option>Not Applicable</option><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label><label>Camera / main function test<select name="camera_test"><option>Not Applicable</option><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label><label>Verification<span style="display:block;margin-top:.5rem"><input type="checkbox" name="serial_verified"> Serial verified</span><span style="display:block;margin-top:.5rem"><input type="checkbox" name="accessories_verified"> Accessories checked</span></label><label>Missing items<span style="display:block;margin-top:.5rem"><input type="checkbox" name="missing_items_resolved" ${asset.missing_items_resolved?'checked':''}> Resolved / replaced</span></label></div><label>Damage / defects found<textarea name="damage_notes" rows="4">${esc(testing?.damage_notes||inspection?.damage_notes||'')}</textarea></label><label>Items added / replaced<textarea name="items_added_replaced" rows="3" placeholder="Record any missing item, replacement or additional item supplied.">${esc(asset.items_added_replaced||'')}</textarea></label><label>Final package contents<textarea name="final_package_contents" rows="5" placeholder="Record exactly what the buyer will receive.">${esc(asset.final_package_contents||'')}</textarea></label><label>Package / resolution notes<textarea name="package_notes" rows="4">${esc(asset.package_notes||asset.missing_items_resolution||'')}</textarea></label><label>Resale description<textarea name="description" rows="6" placeholder="Improve the description before it reaches Sales.">${esc(asset.description||'')}</textarea></label><label>Technical / inspection notes<textarea name="testing_notes" rows="5">${esc(testing?.notes||inspection?.notes||'')}</textarea></label><div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">SAVE INSPECTION & TESTING</button><p id="workbench-message" class="form-message" aria-live="polite"></p></div></form></section>
+      ${repairPanel}
 
-      <section class="valuation-card" style="margin-top:1rem"><h2>3. Staff photographs</h2><p>Add inspection, damage, package and resale photographs without leaving the product.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:1rem">${staffPhotoHtml}</div><form id="photo-form" class="auth-form"><label>Add / take photographs<input id="workbench-photos" type="file" accept="image/*" capture="environment" multiple></label><button class="btn btn-secondary" type="submit">UPLOAD PHOTOGRAPHS</button><p id="photo-message" class="form-message" aria-live="polite"></p></form></section>
+      <section class="valuation-card" style="margin-top:1rem"><h2>${2+stepOffset}. Staff inspection & technical testing</h2><p>Compare the product with the customer quote and complete all checks here. There is no separate testing or product page to open.</p>${status==='Repair Required'?'<p class="form-message error">Repair must be recorded before this item can continue through post-repair testing.</p>':''}<form id="workbench-form" class="auth-form"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem"><label>Manufacturer<input name="manufacturer" value="${esc(asset.manufacturer||quoteItem?.manufacturer||'')}"></label><label>Model<input name="model" value="${esc(asset.model||quoteItem?.model||'')}"></label><label>Serial number<input name="serial_number" value="${esc(asset.serial_number||itemData.serialNumber||single.serialNumber||'')}"></label><label>Staff condition<select name="condition_grade"><option value="">Not recorded</option>${conditionOptions}</select></label></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem"><label>Expected batteries<input name="expected_battery_count" type="number" min="0" value="${asset.expected_battery_count??''}"></label><label>Actual batteries found<input name="actual_battery_count" type="number" min="0" value="${asset.actual_battery_count??''}"></label><label>Battery health<select name="battery_health"><option>Not Applicable</option><option>Good</option><option>Fair</option><option>Requires Replacement</option></select></label><label>Inspection result<select name="inspection_result"><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem"><label>Flight test<select name="flight_test"><option>Not Applicable</option><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label><label>Camera / main function test<select name="camera_test"><option>Not Applicable</option><option>Passed</option><option>Requires Attention</option><option>Failed</option></select></label><label>Verification<span style="display:block;margin-top:.5rem"><input type="checkbox" name="serial_verified"> Serial verified</span><span style="display:block;margin-top:.5rem"><input type="checkbox" name="accessories_verified"> Accessories checked</span></label><label>Missing items<span style="display:block;margin-top:.5rem"><input type="checkbox" name="missing_items_resolved" ${asset.missing_items_resolved?'checked':''}> Resolved / replaced</span></label></div><label>Damage / defects found<textarea name="damage_notes" rows="4">${esc(testing?.damage_notes||inspection?.damage_notes||'')}</textarea></label><label>Items added / replaced<textarea name="items_added_replaced" rows="3" placeholder="Record any missing item, replacement or additional item supplied.">${esc(asset.items_added_replaced||'')}</textarea></label><label>Final package contents<textarea name="final_package_contents" rows="5" placeholder="Record exactly what the buyer will receive.">${esc(asset.final_package_contents||'')}</textarea></label><label>Package / resolution notes<textarea name="package_notes" rows="4">${esc(asset.package_notes||asset.missing_items_resolution||'')}</textarea></label><label>Resale description<textarea name="description" rows="6" placeholder="Improve the description before it reaches Sales.">${esc(asset.description||'')}</textarea></label><label>Technical / inspection notes<textarea name="testing_notes" rows="5">${esc(testing?.notes||inspection?.notes||'')}</textarea></label><div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit" ${status==='Repair Required'?'disabled':''}>SAVE INSPECTION & TESTING</button><p id="workbench-message" class="form-message" aria-live="polite"></p></div></form></section>
 
-      <section class="valuation-card" style="margin-top:1rem"><h2>4. Complete & send to Sales</h2><div class="notice"><strong>Completion gate</strong><ul><li>Customer quote checked against item received.</li><li>Staff condition recorded.</li><li>Serial and battery counts checked where applicable.</li><li>Missing items resolved and final package contents recorded.</li><li>Technical tests completed.</li><li>Resale description is usable.</li></ul></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem"><a class="btn btn-secondary" href="inventory.html">SAVE & RETURN TO INVENTORY</a>${canSend?'<button id="send-sales" class="btn btn-primary" type="button">SEND TO SALES</button>':'<button class="btn btn-primary" type="button" disabled>SEND TO SALES — COMPLETE WORKFLOW FIRST</button>'}</div>${!canSend?'<p class="form-message error">Blocked: current status is '+esc(status)+'. '+(status==='Repair Required'?'Complete the repair, save the post-repair inspection/testing again, and the workflow will automatically release the item to Ready for Resale when all checks pass.':'Complete the missing inspection, testing, package and condition requirements shown above.')+'</p>':''}<p id="send-message" class="form-message" aria-live="polite"></p></section>`;
+      <section class="valuation-card" style="margin-top:1rem"><h2>${3+stepOffset}. Staff photographs</h2><p>Add inspection, damage, package and resale photographs without leaving the product.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:1rem">${staffPhotoHtml}</div><form id="photo-form" class="auth-form"><label>Add / take photographs<input id="workbench-photos" type="file" accept="image/*" capture="environment" multiple></label><button class="btn btn-secondary" type="submit">UPLOAD PHOTOGRAPHS</button><p id="photo-message" class="form-message" aria-live="polite"></p></form></section>
+
+      <section class="valuation-card" style="margin-top:1rem"><h2>${4+stepOffset}. Complete & send to Sales</h2><div class="notice"><strong>Completion gate</strong><ul><li>Customer quote checked against item received.</li><li>Staff condition recorded.</li><li>Serial and battery counts checked where applicable.</li><li>Missing items resolved and final package contents recorded.</li><li>Technical tests completed.</li><li>Resale description is usable.</li></ul></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem"><a class="btn btn-secondary" href="inventory.html">SAVE & RETURN TO INVENTORY</a>${canSend?'<button id="send-sales" class="btn btn-primary" type="button">SEND TO SALES</button>':'<button class="btn btn-primary" type="button" disabled>SEND TO SALES — COMPLETE WORKFLOW FIRST</button>'}</div>${!canSend?'<p class="form-message error">Blocked: current status is '+esc(status)+'. '+(status==='Repair Required'?'Complete the repair, save the post-repair inspection/testing again, and the workflow will automatically release the item to Ready for Resale when all checks pass.':'Complete the missing inspection, testing, package and condition requirements shown above.')+'</p>':''}<p id="send-message" class="form-message" aria-live="polite"></p></section>`;
 
     const setValue=(name,value)=>{const el=root.querySelector(`[name="${name}"]`);if(el&&value!==null&&value!==undefined&&value!=='')el.value=value;};
     setValue('condition_grade',asset.condition_grade); setValue('battery_health',testing?.battery_health||'Not Applicable'); setValue('inspection_result',inspection?.result||'Passed'); setValue('flight_test',testing?.flight_test||'Not Applicable'); setValue('camera_test',testing?.camera_test||'Not Applicable');
     root.querySelector('[name="serial_verified"]').checked=Boolean(inspection?.serial_verified||testing?.serial_verified);
     root.querySelector('[name="accessories_verified"]').checked=Boolean(inspection?.accessories_verified||testing?.accessories_verified);
+
+    const repairForm=root.querySelector('#repair-form');
+    if(repairForm) repairForm.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const f=e.currentTarget,fd=new FormData(f),b=f.querySelector('button[type="submit"]'),m=root.querySelector('#repair-message');
+      b.disabled=true;m.textContent='Recording repair and returning item to post-repair testing…';m.className='form-message';
+      try{
+        const files=[...root.querySelector('#repair-evidence').files];
+        const evidencePaths=[];
+        for(const file of files){
+          const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');
+          const path=`${session.user.id}/inventory-repairs/${id}/${Date.now()}-${crypto.randomUUID()}-${safe}`;
+          const up=await db.storage.from('quote-photos').upload(path,file,{contentType:file.type||undefined,upsert:false});
+          if(up.error) throw up.error;
+          evidencePaths.push(path);
+        }
+        const repairedAt=fd.get('repaired_at')?new Date(String(fd.get('repaired_at'))).toISOString():new Date().toISOString();
+        const {error}=await db.rpc('staff_complete_inventory_repair',{
+          p_asset_id:id,
+          p_fault_description:String(fd.get('fault_description')||'').trim(),
+          p_repair_description:String(fd.get('repair_description')||'').trim(),
+          p_provider_type:String(fd.get('provider_type')||'Internal'),
+          p_provider_name:String(fd.get('provider_name')||'').trim()||null,
+          p_repair_cost:Number(fd.get('repair_cost')||0),
+          p_repaired_at:repairedAt,
+          p_evidence_paths:evidencePaths
+        });
+        if(error) throw error;
+        m.textContent='Repair recorded. The item is now in Testing and requires post-repair checks before it can be sold.';
+        m.className='form-message success';
+        setTimeout(load,600);
+      }catch(err){
+        m.textContent=err?.message||'Could not record the repair.';
+        m.className='form-message error';
+        b.disabled=false;
+      }
+    });
 
     root.querySelector('#workbench-form').addEventListener('submit',async e=>{
       e.preventDefault(); const f=e.currentTarget,fd=new FormData(f),b=f.querySelector('button[type="submit"]'),m=root.querySelector('#workbench-message'); b.disabled=true;m.textContent='Saving inspection and testing…';m.className='form-message';
@@ -100,16 +173,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       r=await saveRecord({...common,stage:'testing',result:testResult,flight_test:flight,camera_test:camera,battery_health:battery}); if(r.error){m.textContent=r.error.message;m.className='form-message error';b.disabled=false;return;}
       try{
         let current=(await db.from('inventory_assets').select('status').eq('id',id).single()).data?.status;
-        if(inspectResult==='Failed'&&['Received','Inspection Required'].includes(current)) current=(await window.AssetStateActions.transitionAsset(id,'Repair Required','Inspection failed in product workbench')).status;
+        const failureReason=[
+          String(fd.get('damage_notes')||'').trim(),
+          String(fd.get('testing_notes')||'').trim(),
+          inspectResult==='Failed'?'Inspection failed':'',
+          testResult!=='Passed'?`Technical checks require attention: flight=${flight}, camera=${camera}, battery=${battery}`:''
+        ].filter(Boolean).join(' · ');
+        if(inspectResult==='Failed'&&['Received','Inspection Required'].includes(current)) current=(await window.AssetStateActions.transitionAsset(id,'Repair Required',failureReason||'Inspection failed in product workbench')).status;
         else if(inspectResult==='Passed'&&current==='Received') current=(await window.AssetStateActions.transitionAsset(id,'Inspection Required','Inspection completed in product workbench')).status;
+        if(current==='Repair Required') throw new Error('This item is marked Repair Required. Record the completed repair before post-repair testing can continue.');
         if(inspectResult==='Passed'&&current==='Inspection Required') current=(await window.AssetStateActions.transitionAsset(id,'Testing','Technical testing started from product workbench')).status;
-        // A repaired item must re-enter Testing. If the post-repair test saved here passes,
-        // complete both controlled transitions so Repair Required cannot become a dead end.
-        if(inspectResult==='Passed'&&current==='Repair Required'&&testResult==='Passed'){
-          current=(await window.AssetStateActions.transitionAsset(id,'Testing','Repair completed; returning item to post-repair testing')).status;
-        }
         if(testResult==='Passed'&&current==='Testing') await window.AssetStateActions.transitionAsset(id,'Ready for Resale','Inspection and testing completed in product workbench');
-        else if(testResult!=='Passed'&&current==='Testing') await window.AssetStateActions.transitionAsset(id,'Repair Required','Technical testing requires attention');
+        else if(testResult!=='Passed'&&current==='Testing') await window.AssetStateActions.transitionAsset(id,'Repair Required',failureReason||'Technical testing requires attention');
       }catch(err){m.textContent=err.message;m.className='form-message error';b.disabled=false;return;}
       m.textContent='Inspection, testing and product details saved.';m.className='form-message success';b.disabled=false;setTimeout(load,450);
     });
