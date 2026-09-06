@@ -276,3 +276,25 @@ admin-ai-research.js
 
 ### Important separation
 Targeted Deep Source cancellation must not call ai_research_emergency_stop(). The emergency stop is intentionally global and stops all active research plus the Research PC workflow; the Deep Source cancel control affects only the selected audit run.
+
+
+## Catalogue review source-page shortcuts — 6 September 2026
+
+### User action
+In the Automatic Quote Catalogue pending-evidence card, the reviewer can open the canonical candidate page directly while checking:
+
+- price range;
+- product/model/package match;
+- exact product-page URL.
+
+### Front-end path
+
+`admin-catalog-pending-ai-review.js`
+
+→ reads `edited_source_url ?? source_url`
+
+→ renders **OPEN SOURCE PAGE** beside the relevant verification controls
+
+→ opens the exact candidate page in a new tab.
+
+The editable Exact source URL field also exposes **OPEN / VERIFY PAGE** for the current stored candidate URL. This is a UI/navigation enhancement only; it does not change Supabase data, review RPCs or application flow.
