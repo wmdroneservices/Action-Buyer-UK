@@ -253,3 +253,11 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 .ai-guide-grid code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em}
 .ai-guide-grid pre code{font-size:.82rem}
 @media(max-width:640px){.ai-startup-guide summary{align-items:flex-start}.ai-guide-toggle{padding:8px 10px;font-size:.7rem}.ai-guide-grid{grid-template-columns:1fr}}
+
+
+/* Pending AI evidence: source verification links are placed beside the fields being checked so the reviewer does not need to scroll to the action row. */
+.catalog-pending-checks label{position:relative}
+.catalog-pending-verify-link{display:inline-flex;align-items:center;width:max-content;margin:.22rem 0 .38rem;padding:.24rem .46rem;border:1px solid #d88732;border-radius:4px;background:#fff7ec;color:#8a4d13;font-size:.68rem;font-weight:800;letter-spacing:.035em;line-height:1.2;text-decoration:none;text-transform:uppercase}
+.catalog-pending-verify-link:hover,.catalog-pending-verify-link:focus{background:#d88732;color:#fff;text-decoration:none;outline:none}
+.catalog-pending-wide>span{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+@media(max-width:640px){.catalog-pending-verify-link{font-size:.64rem;padding:.22rem .38rem}}
