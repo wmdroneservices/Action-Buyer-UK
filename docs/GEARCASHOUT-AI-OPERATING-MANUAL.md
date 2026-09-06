@@ -1208,3 +1208,10 @@ The canonical candidate source URL can now be opened directly beside:
 4. the editable Exact source URL field.
 
 All shortcuts open the same candidate canonical source URL in a new tab. They are navigation-only controls: they do not save edits, mark a field as checked or change the accept/deny workflow.
+
+
+## Pending evidence review — bulk “AI WAS RIGHT” shortcut — 6 September 2026
+
+When every field on a pending evidence card has been checked and is correct, use **CHECK ALL — AI WAS RIGHT** at the top of **VERIFY EACH FIELD**. This sets every field outcome to AI WAS RIGHT at once. You can still override any individual field afterwards; the checkbox then shows that the review is no longer unanimously correct.
+
+The checkbox does not accept, save or apply the evidence by itself. Finish with the normal **ACCEPT & ADD TO CATALOGUE** action.
