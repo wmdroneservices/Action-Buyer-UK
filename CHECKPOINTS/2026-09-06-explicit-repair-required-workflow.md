@@ -31,3 +31,9 @@ Fixed by adding `Repair` to the live `inventory_expenses_category_check` constra
 ## Test required
 
 Use TEST-ASSET-003 / GCO-2026-100012: open while Repair Required, confirm repair panel, record repair, confirm Testing, save passing post-repair tests, confirm Ready for Resale, then Send to Sales.
+
+## Sales Dashboard visibility fix
+
+Live testing showed that Repair Required stock was included inside the general Sales Pipeline Inventory total but had no dedicated pipeline category. The dashboard now shows **Repair Required** as its own red blocking card. General Inventory excludes Repair Required so the two counts do not overlap.
+
+At the time of verification, live inventory contained 1 Repair Required item and 4 non-repair inventory items.
