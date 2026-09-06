@@ -2334,3 +2334,15 @@ Management-only **SLOW-MOVING STOCK** is accessed from the central Staff Dashboa
 Current advisory thresholds are 30 days (review), 60 days (expand outlets/price review), 90 days (urgent strategy review) and 120 days (auction/exit review). A sales-ready asset with no active listing is separately flagged.
 
 This feature is deliberately read-only/advisory. It never automatically changes a price, moves stock to auction, closes listings or alters inventory status. Management decides any action through the existing controlled workflows.
+
+
+## Outlet Coverage & Controlled Sales Handoff — 6 September 2026
+
+The management-only Slow-Moving Stock page now compares every unsold SKU against the **active central Outlet Registry**. It shows:
+
+- outlets currently carrying an active listing;
+- the number of active registry outlets not currently carrying the SKU;
+- the names of those missing outlets;
+- a direct handoff into the existing Sales Workbench for that exact SKU.
+
+The strategy page remains advisory. The handoff does not automatically publish, price, close or create listings; it opens the existing controlled Sales Workbench, where staff use the established listing workflow.
