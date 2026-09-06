@@ -78,7 +78,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.4',
+    version:'1.5.5',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -814,16 +814,25 @@ function sourceFitsScope(source,scope){
 
 function normalizeIdentity(value=''){
   return String(value).toLowerCase()
-    .replace(/\b(the|camera|drone|digital|professional|standard package)\b/g,' ')
+    .replace(/\b(the|camera|drone|digital|professional)\b/g,' ')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim().replace(/\s+/g,' ');
+}
+
+function normalizePackageIdentity(value=''){
+  return String(value||'').toLowerCase()
     .replace(/[^a-z0-9]+/g,' ')
     .trim().replace(/\s+/g,' ');
 }
 
 async function checkCatalogueDuplicate(candidate={}){
   // Research findings are never allowed to auto-create catalogue products.
-  // This check only helps classify findings for manual review.
+  // This check classifies high-confidence duplicates for manual review.
+  // Package identity is deliberately scored separately: same model is not enough
+  // to call two controller/bundle variants duplicates.
   const manufacturer=normalizeIdentity(candidate.manufacturer||'');
   const model=normalizeIdentity(candidate.model||candidate.discovered_model_number||'');
+  const packageName=normalizePackageIdentity(candidate.package_name||candidate.package||'');
   const title=normalizeIdentity(candidate.title||candidate.discovered_title||'');
 
   const {data:products,error}=await sb.from('quote_catalog_products')
@@ -834,17 +843,24 @@ async function checkCatalogueDuplicate(candidate={}){
   const scored=(products||[]).map(p=>{
     const pm=normalizeIdentity(p.manufacturer);
     const pmodel=normalizeIdentity(p.model);
+    const ppkg=normalizePackageIdentity(p.package_name);
     const pname=normalizeIdentity([p.manufacturer,p.model,p.package_name].filter(Boolean).join(' '));
     let score=0;
-    if(manufacturer&&pm===manufacturer)score+=0.25;
-    if(model&&pmodel===model)score+=0.60;
-    if(title&&pname&&title===pname)score+=0.75;
-    if(model&&pmodel&& (model.includes(pmodel)||pmodel.includes(model)))score=Math.max(score,0.85);
+    if(manufacturer&&pm===manufacturer)score+=0.20;
+    if(model&&pmodel===model)score+=0.55;
+    if(packageName){
+      if(ppkg===packageName)score+=0.25;
+    }else if(title&&pname&&title===pname){
+      score+=0.25;
+    }
     return {...p,duplicate_score:Math.min(score,1)};
   }).filter(p=>p.duplicate_score>=0.75)
     .sort((a,b)=>b.duplicate_score-a.duplicate_score);
 
-  return {is_duplicate:scored.length>0,matches:scored.slice(0,5)};
+  return {
+    is_duplicate:scored.some(p=>p.duplicate_score>=0.99),
+    matches:scored.slice(0,5)
+  };
 }
 
 async function getSharedSources(scope='all'){
@@ -972,6 +988,15 @@ async function createDeepSourceProductCandidate(runId,product,page){
     ? {manufacturer,model:title.replace(manufacturer,'').trim()||baseModel+' '+suffix,package_name:null,product_type:'Accessory'}
     : {manufacturer,model:baseModel,package_name:suffix,product_type:product?.product_type||null};
 
+  const proposedTitle=title||[suggestion.manufacturer,suggestion.model,suggestion.package_name].filter(Boolean).join(' ');
+  const duplicate=await checkCatalogueDuplicate({...suggestion,title:proposedTitle});
+  const duplicateMatches=(duplicate.matches||[]).map(m=>({
+    id:m.id,manufacturer:m.manufacturer,model:m.model,
+    package_key:m.package_key,package_name:m.package_name,
+    product_type:m.product_type,main_category:m.main_category,
+    active:m.active,duplicate_score:m.duplicate_score
+  }));
+
   const {data,error}=await sb.rpc('ai_research_create_product_candidate',{
     p_run_id:runId,
     p_manufacturer:suggestion.manufacturer,
@@ -979,12 +1004,12 @@ async function createDeepSourceProductCandidate(runId,product,page){
     p_package_name:suggestion.package_name,
     p_main_category:product?.main_category||product?.category||null,
     p_product_type:suggestion.product_type,
-    p_proposed_title:title||[suggestion.manufacturer,suggestion.model,suggestion.package_name].filter(Boolean).join(' '),
-    p_duplicate_status:'unchecked',
-    p_duplicate_matches:[],
+    p_proposed_title:proposedTitle,
+    p_duplicate_status:duplicate.is_duplicate?'likely_duplicate':'no_high_confidence_duplicate',
+    p_duplicate_matches:duplicateMatches,
     p_discovery_source_url:sourceUrl,
     p_discovery_source_name:hostOf(sourceUrl)||null,
-    p_evidence_notes:'Deep Source found an exact same-model product identity that differs from the catalogue target. Reason: '+String(page?.target_identity?.reason||'Specific source identity differs from the current catalogue identity.')+'. Exact source title: '+title+'. Review before creating a draft; nothing is automatically added or activated.',
+    p_evidence_notes:'Deep Source found an exact same-model product identity that differs from the catalogue target. Reason: '+String(page?.target_identity?.reason||'Specific source identity differs from the current catalogue identity.')+'. Exact source title: '+title+'. Duplicate check: '+(duplicate.is_duplicate?'high-confidence existing catalogue match found and flagged for review.':'no high-confidence existing catalogue duplicate found. Review before creating a draft; nothing is automatically added or activated.'),
     p_confidence:0.92
   });
   if(error)throw error;
