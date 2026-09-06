@@ -1,4 +1,21 @@
-<!DOCTYPE html><html lang="en-GB"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sales Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260906-task-intelligence-1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js?v=20260903-four-dashboard-3shboard-1" defer></script><script src="asset-state-machine.js" defer></script><script src="admin-sales-dashboard.js?v=20260906-repair-pipeline-1" defer></script><script src="live-task-board.js?v=20260906-task-intelligence-1" defer></script></head><body><header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Sales navigation"></nav></div></header><main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF DASHBOARD</p><h1>Sales Dashboard</h1><p id="staff-welcome">Checking staff access...</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div><div id="staff-message" class="form-message" role="status" aria-live="polite"></div><div id="urgent-delist-actions" style="margin:1rem 0" aria-live="polite"></div><section class="account-panel">
+<!DOCTYPE html><html lang="en-GB"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sales Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260906-sales-search-1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js?v=20260903-four-dashboard-3shboard-1" defer></script><script src="asset-state-machine.js" defer></script><script src="admin-sales-dashboard.js?v=20260906-sales-search-1" defer></script><script src="live-task-board.js?v=20260906-task-intelligence-1" defer></script></head><body><header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Sales navigation"></nav></div></header><main class="account-page"><div class="container"><div class="account-header"><div><p class="section-kicker">STAFF DASHBOARD</p><h1>Sales Dashboard</h1><p id="staff-welcome">Checking staff access...</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div><div id="staff-message" class="form-message" role="status" aria-live="polite"></div><section class="account-panel sales-search-panel" aria-labelledby="sales-search-title">
+  <div class="sales-search-heading">
+    <div><p class="section-kicker">QUICK FIND</p><h2 id="sales-search-title">Search Stock</h2><p>Find an item by SKU, transaction number or product.</p></div>
+  </div>
+  <form id="sales-search-form" class="sales-search-form">
+    <label class="sr-only" for="sales-search-field">Search field</label>
+    <select id="sales-search-field" aria-label="Search by">
+      <option value="all">All</option>
+      <option value="sku">SKU</option>
+      <option value="transaction">Transaction number</option>
+      <option value="product">Product</option>
+    </select>
+    <label class="sr-only" for="sales-search-input">Search stock</label>
+    <input id="sales-search-input" type="search" maxlength="120" autocomplete="off" placeholder="Enter SKU, transaction number or product">
+    <button id="sales-search-button" class="btn btn-primary" type="submit">SEARCH</button>
+  </form>
+  <div id="sales-search-results" class="sales-search-results" hidden aria-live="polite"></div>
+</section><div id="urgent-delist-actions" style="margin:1rem 0" aria-live="polite"></div><section class="account-panel">
   <div class="section-heading">
     <p class="section-kicker">LIVE SALES STATUS</p>
     <h2>Sales Pipeline</h2>
