@@ -1938,3 +1938,16 @@ The completion RPC now only completes queue rows still in processing or claimed,
 
 ### Failure point to check first
 If the dashboard says an audit is running after completion, inspect quote_catalog_ai_research_runs and quote_catalog_ai_queue for the run. Queue state is authoritative for live activity because the current worker can leave the run record as queued while it processes individual items.
+
+
+## Pending evidence source-page verification shortcuts — 6 September 2026
+
+The catalogue-centred pending AI evidence review now places an **OPEN SOURCE PAGE** shortcut directly beside the verification fields where the reviewer needs the underlying page most often:
+
+- FROM / TO PRICE RANGE;
+- PRODUCT / MODEL / PACKAGE;
+- EXACT PRODUCT PAGE URL.
+
+The same exact source URL is also accompanied by an **OPEN / VERIFY PAGE** shortcut in the editable evidence fields. These links open the candidate's canonical `source_url` in a new tab and do not alter the candidate, review outcome, acceptance flow or live evidence.
+
+The existing bottom action remains as a general source-page shortcut, renamed **OPEN / VERIFY SOURCE PAGE** so it is not MPB-specific.
