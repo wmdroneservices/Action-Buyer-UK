@@ -2606,6 +2606,8 @@ Repair Required is now a dedicated Product Workbench workflow rather than a hidd
 
 The repair record captures the fault, repair work, repairer type/name, repair cost, completion date and optional evidence. The controlled database function `staff_complete_inventory_repair(...)` requires an **active staff user**, requires the asset to be in **Repair Required**, records the repair, optionally creates a linked `inventory_expenses` Repair cost, and moves the asset to **Testing**.
 
+**Expense category contract:** `inventory_expenses.category` explicitly includes `Repair`. This must remain aligned with the repair RPC and the inventory cost UI; otherwise a valid repair cost will cause the whole repair transaction to fail.
+
 Workflow: `Repair Required` → **record completed repair** → `Testing` → **post-repair test** → `Ready for Resale` → `Sent to Sales`.
 
 There is deliberately no generic **Clear Repair Required** button.
