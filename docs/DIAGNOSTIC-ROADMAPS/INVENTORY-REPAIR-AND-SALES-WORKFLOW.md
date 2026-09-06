@@ -259,3 +259,14 @@ Archive is a status and organisational view, not a destructive data move. Do not
 ### Return closure compatibility
 
 If a customer return is resolved or refused **before the item is physically received**, restore the linked `sales_fulfillments.status` to `Delivered`. Otherwise the closed return would leave a permanent `Return Open` fulfilment that blocks later archiving. This compatibility repair is implemented in `staff_update_sales_customer_return(...)`.
+
+
+### Live reconciliation incident — TEST-ASSET-007 (6 September 2026)
+
+**Observed first failure:** carrier collection was recorded successfully in `sales_fulfillments` as **Collected**, but the linked asset remained plain **Sold**. This caused the dashboard to continue presenting the item as legacy Sold and prevented the expected post-sale presentation.
+
+**Live inspection:** the current deployed `staff_update_sales_fulfillment(..., 'collected')` definition already contains the required update to `inventory_assets.status='Sold - Shipped'`. No duplicate function signature was present. The exact cause of the earlier partial state could not be proven from the current live system.
+
+**Repair:** TEST-ASSET-007 was reconciled only after confirming the linked fulfilment was genuinely Collected. Its asset status is now **Sold - Shipped**; the fulfilment remains **Collected**.
+
+**Rule:** do not overwrite the current fulfilment RPC based on this incident alone. If repeated, capture the browser RPC call and transaction timing first, then inspect for a reproducible database invariant failure.
