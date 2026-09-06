@@ -1507,3 +1507,10 @@ Treat these as separate layers:
 Do not duplicate inventory records for different websites. Multiple listings may coexist for one SKU. The existing database-level sold/delist workflow remains authoritative. A UI must read listing status from the database and must not independently calculate competing-listing closure state.
 
 Before adding a new owned brand or auction outlet, register it in `sales_outlets`; then connect its listing/publication layer to the same `resale_listings.asset_id`.
+
+
+### Package equivalence learning
+
+When retailer wording differs from the catalogue title, Gemma must resolve the underlying identity rather than perform literal title matching. Check manufacturer → model → controller → bundle → included accessories → variant. Record alternative wording with its retailer/domain, supporting evidence, confidence and reason.
+
+Use **confirmed / probable / ambiguous** states. Do not invent aliases or silently promote a guess. A retailer-specific pattern remains source-specific until independently supported elsewhere. Any positive controller or bundle conflict blocks automatic equivalence.
