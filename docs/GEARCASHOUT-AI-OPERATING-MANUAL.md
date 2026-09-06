@@ -1194,3 +1194,17 @@ The RUN DEEP SOURCE AUDIT button therefore changes to a live progress state such
 Cancellation is targeted: ai_research_cancel_run(uuid) marks only that run as cancelled and changes its queued/claimed/processing items to skipped. It does not stop the Research PC, continuous research or unrelated runs. ai_research_complete_queue_item(...) now refuses to overwrite a skipped item, preventing a worker that finishes moments later from resurrecting cancelled work.
 
 The local Research PC worker now re-checks run state before submitting candidates and recognises RUN_CANCELLED, so a cancellation stops further evidence from being written after the current long page operation reaches a cancellation check.
+
+
+## Pending evidence review — field-level source-page shortcuts — 6 September 2026
+
+When manually checking pending AI evidence in the Automatic Quote Catalogue, the reviewer no longer has to scroll to the bottom action area to open the source page.
+
+The canonical candidate source URL can now be opened directly beside:
+
+1. FROM / TO PRICE RANGE;
+2. PRODUCT / MODEL / PACKAGE;
+3. EXACT PRODUCT PAGE URL;
+4. the editable Exact source URL field.
+
+All shortcuts open the same candidate canonical source URL in a new tab. They are navigation-only controls: they do not save edits, mark a field as checked or change the accept/deny workflow.
