@@ -196,3 +196,61 @@ The handoff view loads:
 
 ### Expected rule
 **Inspection facts are retained; sales presentation remains editable.**
+
+
+## Post-sale shipping states and UK tax-year archive — 6 September 2026
+
+### User decision
+
+A completed marketplace sale is not the end of the operational workflow.
+
+Required lifecycle:
+
+`Listed / Reserved → Sold - Awaiting Shipping → Sold - Shipped → post-sale return hold → Archived`
+
+### Front-end entry points
+
+- `sold-items.html` → `sold-items.js` + `sold-after-sales.js`
+- `sales-customer-returns.html` → buyer return workflow
+- `sales-archive.html` → `sales-archive.js`
+- Shared status presentation: `asset-state-machine.js`, `admin-sales-dashboard.js`, `live-task-board.js`
+
+### Supabase objects
+
+- `inventory_assets.status`
+- `inventory_assets.return_window_ends_at`
+- `inventory_assets.archived_at`
+- `inventory_assets.archive_tax_year`
+- `sales_fulfillments`
+- `sales_customer_returns`
+- `staff_mark_resale_listing_sold(...)`
+- `staff_create_sales_fulfillment(...)`
+- `staff_update_sales_fulfillment(...)`
+- `staff_open_sales_customer_return(...)`
+- `staff_archive_sales_asset(...)`
+
+### Expected data flow
+
+Sale recorded
+→ asset becomes **Sold - Awaiting Shipping**
+→ carrier/tracking label recorded
+→ parcel collected
+→ asset becomes **Sold - Shipped**
+→ delivery recorded
+→ 30-day operational return hold starts
+→ if return requested: `sales_customer_returns`
+→ otherwise, after hold expiry: archive RPC
+→ asset becomes **Archived** with UK tax-year key.
+
+### Failure checkpoints
+
+1. Sale still becomes plain `Sold`: inspect live `staff_mark_resale_listing_sold(...)`.
+2. Shipping form rejects the item: inspect `inventory_assets.status` and `staff_create_sales_fulfillment(...)`.
+3. Mark Collected does not move to **Sold - Shipped**: inspect `staff_update_sales_fulfillment(...)` first.
+4. Return request is offered before delivery: inspect fulfilment status and UI gating.
+5. Archive fails: verify delivery, return-window expiry and no open `sales_customer_returns` case.
+6. Wrong tax-year grouping: inspect `gco_uk_tax_year(...)` and the original `sold_at` timestamp.
+
+### Accounting rule
+
+Archive is a status and organisational view, not a destructive data move. Do not delete the original asset, expenses, evidence, inspections, listings or transaction history when archiving.
