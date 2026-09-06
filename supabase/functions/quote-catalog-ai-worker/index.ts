@@ -23,6 +23,9 @@ Deno.serve(async req=>{
     const requestedLimit=Number(body.limit);
     const manufacturer=String(body.manufacturer||'').trim()||null,model=String(body.model||'').trim()||null,category=String(body.category||'').trim()||null,productType=String(body.product_type||'').trim()||null;
     const requestedScope=String(body.evidence_scope||'all'),deepSourceUrl=String(body.deep_source_url||'').trim()||null,deepSource=requestedScope==='deep_source'||!!deepSourceUrl;
+    const limit=deepSource&&Number.isFinite(requestedLimit)&&requestedLimit===0
+      ?0
+      :Math.max(1,Math.min(deepSource?500:25,Number.isFinite(requestedLimit)?requestedLimit:5));
     let runId:any,scope:string;
     if(deepSource){
       if(!deepSourceUrl||!/^https?:\/\//i.test(deepSourceUrl))throw new Error('A valid Deep Source landing page URL is required.');
