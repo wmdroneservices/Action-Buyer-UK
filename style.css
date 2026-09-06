@@ -286,3 +286,21 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 .management-stock-action{margin:0}
 @media(max-width:900px){.management-stock-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.management-stock-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.management-stock-card{min-height:96px}}
+
+
+/* Unified live task intelligence: explicit critical actions, focus-next handoff and workflow filters. */
+.task-summary-critical{background:#8f1d16;border-color:#5f0f0a;color:#fff}
+.live-task-focus{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.55rem 1rem;align-items:center;margin:1rem 0;padding:1rem 1.1rem;border:2px solid #102f4f;background:#f7f9fb;color:#102f4f;text-decoration:none}
+.live-task-focus span{grid-column:1/-1;font-size:.68rem;font-weight:900;letter-spacing:.12em;color:#667085}
+.live-task-focus strong{font-size:1rem}
+.live-task-focus small{color:#59636d;line-height:1.4}
+.live-task-focus b{font-size:.72rem;letter-spacing:.08em}
+.live-task-focus.task-red{border-color:#b42318;background:#fff5f5}
+.live-task-focus.task-amber{border-color:#b06b00;background:#fff8e8}
+.live-task-focus.task-green{border-color:#18794e;background:#f1fbf5}
+.live-task-filters{display:flex;gap:.45rem;flex-wrap:wrap;padding:.8rem 0}
+.live-task-filter{border:1px solid #b8c4d1;background:#fff;color:#102f4f;padding:.45rem .65rem;font-size:.7rem;font-weight:800;letter-spacing:.045em;cursor:pointer}
+.live-task-filter strong{margin-left:.25rem}
+.live-task-filter:hover,.live-task-filter:focus,.live-task-filter.is-active{background:#102f4f;border-color:#102f4f;color:#fff;outline:none}
+.live-task-item.task-critical{border-left-width:7px;box-shadow:inset 0 0 0 1px rgba(180,35,24,.12)}
+@media(max-width:760px){.live-task-focus{grid-template-columns:1fr auto}.live-task-focus span{grid-column:1/-1}.live-task-focus small{grid-column:1/-1}.live-task-focus b{grid-column:2;grid-row:2}.task-summary-card{min-width:105px}}
