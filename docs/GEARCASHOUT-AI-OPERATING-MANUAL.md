@@ -1711,3 +1711,22 @@ Removed legacy/unreferenced files:
 - admin-catalog-online-comparison.js
 
 Do not restore dynamic duplicate script injection or the retired route-state rescan path unless a new, tested ownership model is documented first.
+
+
+### Duplicate listing closure debugging rule — 6 September 2026
+
+When a dashboard warning says a listing must be closed, do not assume the Sold Items page is sufficient context.
+
+The first diagnostic checks are:
+
+1. query the exact `resale_listings` rows with `status='Delist Required'`;
+2. identify the linked `inventory_assets` SKU;
+3. query **all sibling listings for the same asset_id**;
+4. identify the Sold sibling using `sold_listing_id` or `status='Sold'`;
+5. show the exact listing that must be closed and all other channels;
+6. provide an explicit handoff to `listing-readiness.html?id=<asset_id>`;
+7. never imply that GearCashOut can automatically remove a third-party listing.
+
+Do not filter the closure context only to inventory assets already selected by a Sold Items history query. The authoritative closure queue is `resale_listings.status='Delist Required'`.
+
+Security rule: the closure confirmation RPC must require `staff_users.active=true`.
