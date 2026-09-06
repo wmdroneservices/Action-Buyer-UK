@@ -198,3 +198,62 @@ The Research PC then reads the run configuration and uses deep_source_url / deep
 
 ### URL dropdown
 The landing-page datalist is now populated from approved, enabled, live rows in quote_catalog_ai_sources.homepage_url, then supplemented by the browser previously used Deep Source URLs. The database registry therefore supplies shared approved website suggestions, while local history remains a convenience for manually entered URLs.
+
+
+---
+
+## 6 September 2026 — Shared product filters and independent workflow batch controls
+
+### Dashboard control map
+
+The AI Research Centre now deliberately separates **product identification** from **workflow execution**.
+
+#### Shared product filters
+
+These identify the catalogue products for both workflows:
+
+- Manufacturer
+- Model / search term
+- Category
+- Product type
+
+The same four values are sent by:
+
+- `runResearch()` for Regular AI Research; and
+- `runDeepSourceAudit()` for Deep Source Website Audit.
+
+They are product selectors, not source selectors and not batch controls.
+
+#### Regular AI Research controls
+
+Only the normal workflow uses:
+
+- Market / condition
+- All Sources / Amazon UK Only
+- `research-limit` (Regular research batch size)
+- Continuous mode
+
+#### Deep Source Website Audit controls
+
+Only the Deep Source workflow uses:
+
+- `deep-source-url`
+- `deep-source-limit` (Deep Source audit batch size)
+- `RUN DEEP SOURCE AUDIT`
+
+The normal market/source controls remain isolated from Deep Source. Deep Source still sends:
+
+`evidence_scope: 'deep_source'`
+
+plus the explicit selected:
+
+`deep_source_url`
+
+### Failure-prevention rule
+
+Do not add a second generic batch-size control to the shared product-filter area. The two batch controls are intentionally independent:
+
+- `research-limit` controls Regular AI Research only.
+- `deep-source-limit` controls Deep Source Website Audit only.
+
+This prevents one workflow's batch setting from silently overriding the other.
