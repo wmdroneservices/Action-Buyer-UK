@@ -1657,3 +1657,8 @@ Do not repeatedly remove and recreate routing controls when editable UI fields h
 ### Regression rule — never cache startup uncertainty as a negative decision
 
 For server-backed UI state, null because Supabase/auth is not ready is unknown, not not-required. A negative UI state may only be cached after a successful authoritative lookup. When retrying asynchronously, preserve the MutationObserver loop guard: retries may refresh state but must not create repeated add/remove DOM mutations.
+
+
+### UI search rule — large catalogue selectors
+
+Do not preload thousands of records into a native select when the user is expected to search. Keep the authoritative catalogue query, but render only bounded search results after a meaningful query. This prevents UI lag from being mistaken for a failed or inactive search and does not change matching or reassignment decisions.
