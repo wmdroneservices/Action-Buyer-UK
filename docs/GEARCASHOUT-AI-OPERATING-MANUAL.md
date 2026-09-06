@@ -1482,3 +1482,15 @@ Gemma must still not auto-accept uncertain evidence or silently create catalogue
 ### Phase 2 follow-up — exact catalogue identity propagation
 
 The actual inventory creation path was traced before modification. `staff_mark_sale_paid_and_create_inventory` is the primary path that creates received inventory after payment confirmation; quote items currently store manufacturer/model/package rather than a catalogue UUID. Therefore the repair adds a deterministic resolver using exact normalised manufacturer + model + package and links only when exactly one catalogue row exists. Never broaden this to fuzzy matching without a separate identity review design. Ambiguous results must remain NULL and be resolved by staff.
+
+
+### Inventory identity rule — SKU vs catalogue product ID
+
+Do not confuse the two identities:
+
+- `catalog_product_id`: master catalogue/product identity; multiple physical units can share it.
+- `inventory_assets.sku`: unique immutable identity for one physical purchased unit.
+
+Every newly inserted inventory asset receives its SKU from `next_inventory_sku()`, and the column is NOT NULL with a unique index. Preserve SKU across inspection, warehouse moves, listing and sale. Do not regenerate it when an item changes channel or location.
+
+Warehouse growth uses `inventory_locations` plus append-only `inventory_location_movements`. Do not treat free-text `current_location` as the future audit history; the movement table is the historical record.
