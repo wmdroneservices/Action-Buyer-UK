@@ -1919,3 +1919,22 @@ There must be no ambiguous duplicate batch-size control. The dashboard keeps:
 - **Deep Source audit batch size** for the selected website audit.
 
 Both workflows reuse the shared product filters, so staff select the products once and then choose which research action to run.
+
+
+## Deep Source Audit live-state and targeted cancellation — 6 September 2026
+
+### Dashboard behaviour
+admin-ai-research.js polls the current Deep Source runs and their queue rows. A run is treated as active when its run status is queued/running or any queue row is queued, claimed or processing. The UI shows live progress on RUN DEEP SOURCE AUDIT and reveals CANCEL DEEP SOURCE AUDIT.
+
+### Targeted cancellation data flow
+CANCEL DEEP SOURCE AUDIT
+→ admin-ai-research.js
+→ ai_research_cancel_run(p_run_id)
+→ active queue rows for that run become skipped
+→ run becomes cancelled
+→ Research PC and unrelated research continue.
+
+The completion RPC now only completes queue rows still in processing or claimed, so cancelled/skipped rows cannot be overwritten by a late worker completion. The Research PC worker also checks the persisted run state before writing candidates and exits the current item cleanly when the run has been cancelled.
+
+### Failure point to check first
+If the dashboard says an audit is running after completion, inspect quote_catalog_ai_research_runs and quote_catalog_ai_queue for the run. Queue state is authoritative for live activity because the current worker can leave the run record as queued while it processes individual items.
