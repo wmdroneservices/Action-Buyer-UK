@@ -172,3 +172,16 @@ The controlled retry on worker 1.4.9 proved that exact MPB discovery was now rea
 Worker **1.5.0** keeps the existing direct HTTP collector as the first path. For MPB exact product pages only, an HTTP 403 now falls back to a local Chromium browser session through `playwright-core`, using the installed Chrome/Edge executable. This is deliberately limited to the exact-page validation stage; landing, category and subcategory pages remain discovery-only.
 
 The worker requires `npm install` once after updating to install the new `playwright-core` dependency. If the browser fallback succeeds, normal exact-model validation and MPB SKU/unit extraction continue unchanged. No live evidence is automatically applied.
+
+
+## Persistent landing-page URL history — 6 September 2026
+
+The Deep Source landing-page field now keeps a local persistent history for the staff dashboard:
+
+1. Staff enters a full `http://` or `https://` landing page URL.
+2. A valid URL is normalised and saved when the field is changed/left, and again when an audit is started.
+3. The most recent URL appears first in the **Landing page URL** dropdown suggestions.
+4. Duplicate URLs are de-duplicated and moved to the top.
+5. Up to 20 recent Deep Source URLs are retained on that device/browser.
+
+This is UI history only. The selected URL still remains the explicit `deep_source_url` sent with each Deep Source run, so saved suggestions do not silently change or broaden the audit source.
