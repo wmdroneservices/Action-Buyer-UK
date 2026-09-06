@@ -70,7 +70,8 @@
       ['inventory-sales.html', 'PRE-SALE / CHANNELS'],
       ['active-sales-listings.html', 'ACTIVE LISTINGS'],
       ['sold-items.html', 'SOLD ITEMS'],
-      ['returns.html', 'RETURNS'],
+      ['sales-customer-returns.html', 'CUSTOMER RETURNS'],
+      ['returns.html', 'LEGACY RETURNS'],
       ['return-database.html', 'RETURN DATABASE'],
       ['inventory-finance.html', 'PROFIT & LOSS'],
       ['sales-pricing-guide.html', 'QUOTE CATALOGUE / MARKET CHECK']
