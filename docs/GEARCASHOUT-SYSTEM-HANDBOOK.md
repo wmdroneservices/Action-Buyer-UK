@@ -1852,3 +1852,10 @@ Current routing:
 - an accepted finding that cannot be applied is retained in a visible **Live application issues** recovery section so an application failure cannot disappear silently.
 
 No database schema, RLS, review-feedback RPC or live-evidence application RPC was changed.
+
+
+### Deep Source landing-page history — 6 September 2026
+
+The AI Research Centre's **Deep Source / Website Audit** now keeps a persistent dropdown history of recently entered valid landing-page URLs on the staff device/browser. A new valid URL is normalised and saved, duplicates are de-duplicated, and the most recent entry is shown first. The history is capped at 20 URLs.
+
+The saved history does not replace the run configuration: the currently selected/entered URL remains the explicit `deep_source_url` sent to the Deep Source workflow.
