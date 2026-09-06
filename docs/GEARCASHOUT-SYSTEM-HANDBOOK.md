@@ -2875,3 +2875,12 @@ Where relevant, the return closure can retain:
 This information is retained as part of the customer-return record so the future accounts system has a traceable source record.
 
 **Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+
+## Live Task Board Customer Return Routing — 7 September 2026
+
+The staff **What Needs Doing** board now reads the authoritative post-sale table `sales_customer_returns` for buyer-return actions.
+
+An **Item Received** return opens `sales-customer-returns.html`, where staff complete the assessment, damage/condition, item disposition and customer financial/replacement details before resolution. It must not route to the older `returns.html` page, which uses the separate legacy return workflow and can incorrectly show no requests.
+
+**Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
