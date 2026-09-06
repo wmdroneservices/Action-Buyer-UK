@@ -2824,3 +2824,54 @@ A live test record (**TEST-ASSET-007**) exposed a status mismatch: the linked `s
 The current live `staff_update_sales_fulfillment(..., 'collected')` definition was then inspected and confirmed to contain the required asset update to **Sold - Shipped**. The observed mismatch could not be reproduced from the current function definition, so the incident is retained as a data-reconciliation fault rather than attributing an unverified root cause.
 
 Operational check: after marking a parcel collected, verify both the fulfilment status and `inventory_assets.status` before proceeding to delivery.
+
+## Customer Return Assessment and Financial Closure — 7 September 2026
+
+A buyer return is not considered operationally complete merely because the item has physically arrived back.
+
+### Return label
+
+When the return label is created, staff can record:
+
+- carrier;
+- tracking number;
+- label URL;
+- **cost of the return label**.
+
+### Before resolving a received return
+
+The system now requires staff to record the operational outcome, including:
+
+- what happened;
+- damage or condition found;
+- what happened to the returned item;
+- customer resolution.
+
+The returned-item outcome can be recorded as:
+
+- Returned to Stock / Resale;
+- Sent to Auction;
+- Broken Down for Spares;
+- Sent for Repair;
+- Second-hand Spares Sale;
+- Written Off / Recycled;
+- Other.
+
+### Customer refund or replacement
+
+Where relevant, the return closure can retain:
+
+- full or partial refund;
+- replacement item;
+- refund and replacement;
+- no customer payment;
+- refund method;
+- payment provider/processor, such as Stripe;
+- refund amount;
+- refund transaction/reference;
+- linked replacement inventory asset or replacement reference;
+- replacement notes.
+
+This information is retained as part of the customer-return record so the future accounts system has a traceable source record.
+
+**Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
