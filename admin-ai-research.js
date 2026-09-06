@@ -634,13 +634,47 @@ async function setContinuousResearch(enabled){
  }
  await loadContinuousResearch();
 }
+const DEEP_SOURCE_URL_HISTORY_KEY='gearCashOutDeepSourceUrlHistory';
+const DEEP_SOURCE_URL_HISTORY_MAX=20;
+function normaliseDeepSourceUrl(value){
+ const raw=clean(value||'');
+ if(!/^https?:\/\//i.test(raw))return '';
+ try{return new URL(raw).href;}catch{return '';}
+}
+function loadDeepSourceUrlHistory(){
+ try{
+   const raw=JSON.parse(localStorage.getItem(DEEP_SOURCE_URL_HISTORY_KEY)||'[]');
+   return Array.isArray(raw)?[...new Set(raw.map(normaliseDeepSourceUrl).filter(Boolean))].slice(0,DEEP_SOURCE_URL_HISTORY_MAX):[];
+ }catch{return [];}
+}
+function renderDeepSourceUrlHistory(){
+ const list=$('deep-source-url-history');if(!list)return;
+ list.innerHTML=loadDeepSourceUrlHistory().map(url=>'<option value="'+esc(url)+'"></option>').join('');
+}
+function rememberDeepSourceUrl(value){
+ const url=normaliseDeepSourceUrl(value);if(!url)return false;
+ const history=loadDeepSourceUrlHistory().filter(item=>item!==url);
+ history.unshift(url);
+ try{localStorage.setItem(DEEP_SOURCE_URL_HISTORY_KEY,JSON.stringify(history.slice(0,DEEP_SOURCE_URL_HISTORY_MAX)));}catch{}
+ renderDeepSourceUrlHistory();
+ return true;
+}
+function wireDeepSourceUrlHistory(){
+ const input=$('deep-source-url');if(!input)return;
+ renderDeepSourceUrlHistory();
+ input.addEventListener('change',()=>rememberDeepSourceUrl(input.value));
+ input.addEventListener('blur',()=>rememberDeepSourceUrl(input.value));
+}
 async function runDeepSourceAudit(){
  const b=$('run-deep-source-audit');
  const deepMsg=(t,e=false)=>{const x=$('deep-source-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
  if(b){b.disabled=true;b.textContent='STARTING DEEP AUDIT…'}
  try{
-   const url=clean($('deep-source-url')?.value||'');
-   if(!/^https?:\/\//i.test(url))throw Error('Enter the full landing page URL, including https://');
+   const rawUrl=clean($('deep-source-url')?.value||'');
+   const url=normaliseDeepSourceUrl(rawUrl);
+   if(!url)throw Error('Enter the full landing page URL, including https://');
+   rememberDeepSourceUrl(url);
+   if($('deep-source-url'))$('deep-source-url').value=url;
    const limit=Number(clean($('deep-source-limit')?.value||'5'));
    if(!Number.isFinite(limit)||limit<1)throw Error('Choose a valid Deep Source batch size.');
    const body={
@@ -817,7 +851,7 @@ async function apply(){
  }
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
-async function start(){try{await initClient();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
+async function start(){try{await initClient();wireDeepSourceUrlHistory();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
 $('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));
 $('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear only WAITING products from the research queue? This does NOT stop a product already being researched. Use STOP ALL RESEARCH & WORKER if you need the worker stopped completely.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
 $('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
