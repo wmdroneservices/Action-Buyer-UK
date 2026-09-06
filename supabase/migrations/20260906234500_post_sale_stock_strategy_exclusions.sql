@@ -1,4 +1,3 @@
-begin;
 CREATE OR REPLACE FUNCTION public.management_stock_strategy_report()
  RETURNS TABLE(asset_id uuid, sku text, manufacturer text, model text, package_name text, asset_status text, purchase_price numeric, acquired_at timestamp with time zone, days_in_stock integer, active_listing_count integer, active_outlet_count integer, outlet_names text, available_outlet_count integer, missing_outlet_count integer, missing_outlet_names text, strategy_band text, recommendation text)
  LANGUAGE plpgsql
@@ -32,4 +31,3 @@ begin
  case when c.listings=0 and c.status in ('Sent to Sales','Listed','Reserved') then 'Open the Sales Workbench and create or restore at least one listing.' when c.age_days>=120 and c.missing_outlets>0 then 'Review for auction, clearance or another exit route; compare missing outlets before deciding. No automatic move is made.' when c.age_days>=120 then 'Review for auction, clearance, bundle or alternative exit route. No automatic move is made.' when c.age_days>=90 and c.missing_outlets>0 then 'Urgent review: reassess price and presentation, then consider the missing outlets shown.' when c.age_days>=90 then 'Urgent management review: reassess price, presentation and current outlet performance.' when c.age_days>=60 and c.missing_outlets>0 then 'Consider the missing active outlets and review asking price against current evidence.' when c.age_days>=60 then 'Review asking price and presentation against current evidence.' when c.age_days>=30 then 'Review listing performance and confirm current outlet strategy.' else 'Continue current strategy and monitor.' end
  from coverage c order by c.age_days desc,c.acquired_at asc;
 end; $function$
-commit;
