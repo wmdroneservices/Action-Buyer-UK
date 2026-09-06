@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <p class="section-kicker">ACTION REQUIRED · REPAIR</p>
         <h2>⚠ This item requires repair before it can be sold</h2>
         <div class="notice"><strong>Fault currently recorded</strong><p>${esc(repairFault)}</p></div>
-        <p>Record what was repaired. Completing this section does not send the item to Sales: it returns the item to controlled post-repair testing.</p>
+        <p>Record what was repaired. Completing this repair also records the controlled post-repair test as passed and returns the item directly to Ready for Resale. It does not send the item to Sales.</p>
         <form id="repair-form" class="auth-form">
           <label>Exact fault / defect requiring repair<textarea name="fault_description" rows="4" required>${esc(repairFault)}</textarea></label>
           <label>What repair was carried out?<textarea name="repair_description" rows="5" required placeholder="Record the actual work completed, parts replaced and any relevant result."></textarea></label>
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <label>Repair completed date<input name="repaired_at" type="datetime-local" value="${new Date().toISOString().slice(0,16)}"></label>
           </div>
           <label>Repair evidence (optional)<input id="repair-evidence" type="file" multiple accept="image/*,.pdf"></label>
-          <div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">COMPLETE REPAIR & RETURN TO TESTING</button><p id="repair-message" class="form-message" aria-live="polite"></p></div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">COMPLETE REPAIR & MARK TESTED</button><p id="repair-message" class="form-message" aria-live="polite"></p></div>
         </form>
         <h3 style="margin-top:1.25rem">Repair history</h3>${repairHistoryHtml}
       </section>`:'';
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <section class="valuation-card" style="margin-top:1rem"><h2>${3+stepOffset}. Staff photographs</h2><p>Add inspection, damage, package and resale photographs without leaving the product.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:1rem">${staffPhotoHtml}</div><form id="photo-form" class="auth-form"><label>Add / take photographs<input id="workbench-photos" type="file" accept="image/*" capture="environment" multiple></label><button class="btn btn-secondary" type="submit">UPLOAD PHOTOGRAPHS</button><p id="photo-message" class="form-message" aria-live="polite"></p></form></section>
 
-      <section class="valuation-card" style="margin-top:1rem"><h2>${4+stepOffset}. Complete & send to Sales</h2><div class="notice"><strong>Completion gate</strong><ul><li>Customer quote checked against item received.</li><li>Staff condition recorded.</li><li>Serial and battery counts checked where applicable.</li><li>Missing items resolved and final package contents recorded.</li><li>Technical tests completed.</li><li>Resale description is usable.</li></ul></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem"><a class="btn btn-secondary" href="inventory.html">SAVE & RETURN TO INVENTORY</a>${canSend?'<button id="send-sales" class="btn btn-primary" type="button">SEND TO SALES</button>':'<button class="btn btn-primary" type="button" disabled>SEND TO SALES — COMPLETE WORKFLOW FIRST</button>'}</div>${!canSend?'<p class="form-message error">Blocked: current status is '+esc(status)+'. '+(status==='Repair Required'?'Complete the repair, save the post-repair inspection/testing again, and the workflow will automatically release the item to Ready for Resale when all checks pass.':'Complete the missing inspection, testing, package and condition requirements shown above.')+'</p>':''}<p id="send-message" class="form-message" aria-live="polite"></p></section>`;
+      <section class="valuation-card" style="margin-top:1rem"><h2>${4+stepOffset}. Complete & send to Sales</h2><div class="notice"><strong>Completion gate</strong><ul><li>Customer quote checked against item received.</li><li>Staff condition recorded.</li><li>Serial and battery counts checked where applicable.</li><li>Missing items resolved and final package contents recorded.</li><li>Technical tests completed.</li><li>Resale description is usable.</li></ul></div><div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem"><a class="btn btn-secondary" href="inventory.html">SAVE & RETURN TO INVENTORY</a>${canSend?'<button id="send-sales" class="btn btn-primary" type="button">SEND TO SALES</button>':'<button class="btn btn-primary" type="button" disabled>SEND TO SALES — COMPLETE WORKFLOW FIRST</button>'}</div>${!canSend?'<p class="form-message error">Blocked: current status is '+esc(status)+'. '+(status==='Repair Required'?'Complete and record the repair. Repair completion marks the post-repair test as passed and releases the item to Ready for Resale; then complete any remaining package or condition requirements.':'Complete the missing inspection, testing, package and condition requirements shown above.')+'</p>':''}<p id="send-message" class="form-message" aria-live="polite"></p></section>`;
 
     const setValue=(name,value)=>{const el=root.querySelector(`[name="${name}"]`);if(el&&value!==null&&value!==undefined&&value!=='')el.value=value;};
     setValue('condition_grade',asset.condition_grade); setValue('battery_health',testing?.battery_health||'Not Applicable'); setValue('inspection_result',inspection?.result||'Passed'); setValue('flight_test',testing?.flight_test||'Not Applicable'); setValue('camera_test',testing?.camera_test||'Not Applicable');
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(repairForm) repairForm.addEventListener('submit',async e=>{
       e.preventDefault();
       const f=e.currentTarget,fd=new FormData(f),b=f.querySelector('button[type="submit"]'),m=root.querySelector('#repair-message');
-      b.disabled=true;m.textContent='Recording repair and returning item to post-repair testing…';m.className='form-message';
+      b.disabled=true;m.textContent='Recording repair, marking the post-repair test as passed, and releasing the item to Ready for Resale…';m.className='form-message';
       try{
         const files=[...root.querySelector('#repair-evidence').files];
         const evidencePaths=[];
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           p_evidence_paths:evidencePaths
         });
         if(error) throw error;
-        m.textContent='Repair recorded. The item is now in Testing and requires post-repair checks before it can be sold.';
+        m.textContent='Repair recorded and post-repair testing marked as passed. The item is now Ready for Resale.';
         m.className='form-message success';
         setTimeout(load,600);
       }catch(err){
