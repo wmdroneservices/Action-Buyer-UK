@@ -1875,3 +1875,47 @@ admin-ai-research.html Deep Source URL field
 The normal source selector (all versus amazon_uk) is not included in the Deep Source request and does not alter the Deep Source execution branch.
 
 Failure point to remember: the normal Amazon scope previously widened to all because of an RPC persistence bug. That history applies to normal research runs, not Deep Source runs; the Deep Source path has its own explicit branch and run contract.
+
+
+---
+
+## 6 September 2026 — AI Research Centre control separation
+
+The AI Research Centre has two execution paths which share product-identification filters but do not share source scope or batch controls.
+
+### Shared: Products to research
+
+The following filters identify which catalogue products either workflow should process:
+
+- Manufacturer
+- Model / search term
+- Category
+- Product type
+
+### Regular AI Research only
+
+Regular research uses:
+
+- Market / condition selection;
+- All Sources / Amazon UK Only;
+- Regular research batch size;
+- Continuous mode.
+
+### Deep Source Website Audit only
+
+Deep Source uses:
+
+- the selected website landing page;
+- its own Deep Source audit batch size;
+- the explicit Deep Source domain as the source scope.
+
+The normal market and source selectors do not broaden a Deep Source audit.
+
+### Important UI rule
+
+There must be no ambiguous duplicate batch-size control. The dashboard keeps:
+
+- **Regular research batch size** for normal AI research;
+- **Deep Source audit batch size** for the selected website audit.
+
+Both workflows reuse the shared product filters, so staff select the products once and then choose which research action to run.
