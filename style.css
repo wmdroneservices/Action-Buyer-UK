@@ -261,3 +261,9 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 .catalog-pending-verify-link:hover,.catalog-pending-verify-link:focus{background:#d88732;color:#fff;text-decoration:none;outline:none}
 .catalog-pending-wide>span{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
 @media(max-width:640px){.catalog-pending-verify-link{font-size:.64rem;padding:.22rem .38rem}}
+
+.catalog-pending-checks-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.45rem}
+.catalog-pending-check-all{display:inline-flex!important;align-items:center;gap:.38rem;width:max-content;font-size:.72rem;font-weight:800;color:#8a4d13;cursor:pointer}
+.catalog-pending-check-all input{width:1rem;height:1rem;margin:0;accent-color:#d88732;cursor:pointer}
+.catalog-pending-check-all span{white-space:nowrap}
+@media(max-width:640px){.catalog-pending-checks-head{align-items:flex-start;flex-direction:column;gap:.4rem}.catalog-pending-check-all span{white-space:normal}}
