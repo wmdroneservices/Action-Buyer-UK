@@ -28,3 +28,8 @@ The database contained 202 relevant active records for a Mavic 3-style query at 
 - docs/GEARCASHOUT-AI-OPERATING-MANUAL.md
 
 Cache version: 20260906-alternative-route-7.
+
+
+## Stability follow-up — page renderer crash/twitchiness
+
+A subsequent browser screenshot showed the catalogue page becoming twitchy and then displaying Chrome's "This page is having a problem" screen after scrolling. Code inspection identified the reassignment MutationObserver as a likely client-side load amplifier: it observed the full document and performed a full scan on every mutation, including mutations produced by the reassignment UI itself. The observer was changed to batch added roots and scan only newly added pending-candidate cards. Cache version advanced to 20260906-alternative-route-8.
