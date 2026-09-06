@@ -2003,3 +2003,8 @@ The research pipeline now treats a mismatch as a **review and routing condition*
 ### Safety
 
 Reassignment is limited to pending, unapplied candidates and requires staff access. Applied evidence cannot be silently moved.
+
+
+### 2026-09-06 UI clarification fix — marking a wrong target
+
+The pending-review **VERIFY EACH FIELD → PRODUCT / MODEL / PACKAGE → AI WAS WRONG** control is now a direct trigger for the reassignment workflow. Selecting it immediately reveals the **VALID EVIDENCE — WRONG TARGET DETECTED** panel and destination-product selector. Package Match or Variant Match = Mismatch also triggers the same panel. This avoids requiring staff to understand that the verification outcome and package/variant metadata were previously separate controls.
