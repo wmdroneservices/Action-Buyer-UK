@@ -436,3 +436,30 @@ This gives the closure page a genuine multi-channel context test.
 ### Security
 
 `staff_close_resale_listing` now requires an authenticated **active** staff user. Browser UI remains convenience only; the database RPC enforces the state transition.
+
+
+## Product Workbench post-repair release — repaired 6 September 2026
+
+### User action
+
+Staff records a repair-required item, completes the repair, saves post-repair inspection/testing, then sends the item to Sales.
+
+### Front-end
+
+- `inventory-detail.html` → `inventory-workbench.js`;
+- `asset-state-machine.js` defines legal transitions;
+- `asset-state-actions.js` applies the controlled browser transition.
+
+### First failure found
+
+`inventory-workbench.js` only promoted `Testing` → `Ready for Resale` after passing tests.
+
+When the asset remained `Repair Required`, passing post-repair tests were saved but no branch returned it to `Testing`, leaving the asset blocked.
+
+### Repair
+
+A passing post-repair save now performs `Repair Required` → `Testing` → `Ready for Resale` using the existing state-machine transitions, then the existing `staff_send_inventory_to_sales` RPC remains responsible for the final Sales handoff.
+
+### Controlled test
+
+TEST-ASSET-003 / GCO-2026-100012 exposed the fault: inspection and testing records passed, but the live asset remained `Repair Required`.
