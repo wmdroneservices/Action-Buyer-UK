@@ -107,3 +107,29 @@ No fuzzy matching, manufacturer-only matching or family-level matching is permit
 ### Backfill
 
 `staff_backfill_inventory_catalog_links(limit)` can safely process existing unlinked inventory that has a source quote item. It applies the same exact-only rule.
+
+
+## SKU and warehouse tracking — implemented 6 September 2026
+
+### Identity model
+
+Every physical `inventory_assets` row has a mandatory unique immutable SKU generated automatically:
+
+`GCO-YYYY-######`
+
+This is separate from `catalog_product_id`:
+
+- catalogue ID = product type;
+- SKU = one physical unit.
+
+### Warehouse path
+
+`inventory_locations` → approved storage locations
+
+`inventory_location_movements` → movement audit trail
+
+`staff_move_inventory_asset(asset, destination, movement type, notes)` → controlled movement operation.
+
+### Creation routes
+
+Both traced paid-sale inventory creation routes now use the SKU default, and the secondary `staff_create_inventory_from_paid_sale` route was also brought under the exact-only catalogue identity resolver.
