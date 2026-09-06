@@ -2473,3 +2473,22 @@ The stable design is now:
 - the pending section is rendered once per authoritative pending-data refresh, not repeatedly during startup.
 
 Do not restore either the old repeated pending-section retry loop or a global routing observer to solve future display problems.
+
+
+## Catalogue cleanup audit — 6 September 2026
+
+A post-repair cleanup removed obsolete catalogue bootstrap and legacy scripts that were no longer referenced by the live page. The old bootstrap could dynamically inject the market-structure and evidence-tools scripts even though the page already loaded them directly, creating a risk of duplicate listeners and duplicate observers.
+
+The live catalogue now has one direct load path for those scripts. The reassignment layer also had leftover retry/refresh code from the earlier observer-based approach; that unreachable discovery path was removed. Route controls remain renderer-owned and interaction remains event-driven.
+
+Removed legacy/unreferenced files:
+- admin-catalog-boot-fix.js
+- admin-catalog-accordion-fix.js
+- admin-catalog-accordion.js
+- admin-catalog-discontinued-label.js
+- admin-catalog-list-active.js
+- admin-catalog-online-comparison-guard.js
+- admin-catalog-online-comparison-history.js
+- admin-catalog-online-comparison.js
+
+Do not restore dynamic duplicate script injection or the retired route-state rescan path unless a new, tested ownership model is documented first.
