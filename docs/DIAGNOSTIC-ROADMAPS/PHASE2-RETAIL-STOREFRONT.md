@@ -500,3 +500,39 @@ Staff → Sales Dashboard → Sales Pipeline → see blocked repair stock immedi
 
 ### Failure history
 The live dashboard previously counted one repair-held item only inside Inventory, so the Sales Pipeline did not expose repair work as its own category. Fixed by adding a dedicated repair card and separate count.
+
+
+
+## Sales Dashboard Quick Stock Search — implemented 6 September 2026
+
+### User action
+
+Staff → Sales Dashboard → **Search Stock** → choose SKU / Transaction number / Product / All → **SEARCH** → **VIEW ITEM**.
+
+### Front-end path
+
+- `admin-sales-dashboard.html` — search controls and results container;
+- `admin-sales-dashboard.js` — authenticated search, identifier matching and result rendering;
+- `style.css` — compact responsive search presentation.
+
+### Database source
+
+`public.inventory_assets`:
+
+- `sku`
+- `transaction_number`
+- `manufacturer`
+- `model`
+- `status`
+- `id`
+
+### Expected data flow
+
+Staff search term → authenticated Supabase read → existing RLS → identifier/product match → current asset status → `inventory-detail.html?id=<asset_id>`.
+
+### Failure points
+
+- do not search against a copied inventory index;
+- do not expose service-role credentials for convenience searching;
+- retain the authoritative `inventory_assets.status` in results;
+- as inventory volume grows, move broad client-side search to a controlled server-side search path without changing the inventory truth.
