@@ -1183,3 +1183,14 @@ Uses:
 Deep Source ignores the Regular AI Research market/source controls. Its selected landing-page domain is the source boundary.
 
 The two batch-size controls are intentionally independent. Do not assume changing one changes the other.
+
+
+## Deep Source Audit live run controls — 6 September 2026
+
+The AI Research dashboard now treats a Deep Source Audit as an active run while any of its queue rows are queued, claimed or processing, even if the run record itself still says queued. This matters because the Research PC changes queue rows to processing before the run is marked complete.
+
+The RUN DEEP SOURCE AUDIT button therefore changes to a live progress state such as DEEP AUDIT RUNNING · 3/5 and a visible CANCEL DEEP SOURCE AUDIT control appears beside it. Operators no longer need to scroll to STOP ALL RESEARCH & WORKER merely to stop one Deep Source test.
+
+Cancellation is targeted: ai_research_cancel_run(uuid) marks only that run as cancelled and changes its queued/claimed/processing items to skipped. It does not stop the Research PC, continuous research or unrelated runs. ai_research_complete_queue_item(...) now refuses to overwrite a skipped item, preventing a worker that finishes moments later from resurrecting cancelled work.
+
+The local Research PC worker now re-checks run state before submitting candidates and recognises RUN_CANCELLED, so a cancellation stops further evidence from being written after the current long page operation reaches a cancellation check.
