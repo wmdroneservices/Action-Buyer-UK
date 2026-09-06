@@ -2455,3 +2455,21 @@ Therefore no separate sales-test deletion button was required.
 The current batch covers Ready for Resale, Inspection Required, Repair Required, Sent to Sales, Draft website listing, Published Website/eBay listings, Delist Required duplicate-listing scenario, and stock ages ranging from recent to 120+ days.
 
 These records are for system testing only and must not be treated as genuine stock or financial history.
+
+
+### Alternative-product routing stability repair — 6 September 2026
+
+The missing-routing-control and catalogue-shudder regression was traced to two separate client-side render races:
+
+1. the reassignment script repeatedly discovered cards through startup scans/DOM observation;
+2. the pending-review script repeatedly replaced the entire pending evidence section during its eight-pass startup retry loop.
+
+The stable design is now:
+
+- admin-catalog-pending-ai-review.js renders ROUTE TO ALTERNATIVE PRODUCT directly from the authoritative persisted candidate mismatch fields;
+- admin-catalog-ai-evidence-reassignment.js only handles clicks and direct field changes;
+- there is no document-wide MutationObserver, delayed full-page routing scan or per-mutation rescan;
+- opening the route control still verifies the candidate server state before moving evidence;
+- the pending section is rendered once per authoritative pending-data refresh, not repeatedly during startup.
+
+Do not restore either the old repeated pending-section retry loop or a global routing observer to solve future display problems.
