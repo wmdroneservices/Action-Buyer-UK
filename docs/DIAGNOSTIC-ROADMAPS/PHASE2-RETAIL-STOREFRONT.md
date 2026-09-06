@@ -82,3 +82,28 @@ Customer sale
 ## Known implementation boundary
 
 The public branded storefront repository and domain are intentionally not created yet because the retail brand/name is undecided. Backend infrastructure is brand-neutral and does not expose internal evidence, purchase costs or customer data publicly.
+
+
+## Catalogue identity propagation — implemented 6 September 2026
+
+### First traced creation point
+
+The primary current inventory creation path is `staff_mark_sale_paid_and_create_inventory(p_sale_id,p_payment_reference)`. It reads `sale_items → quote_items` and creates `inventory_assets`.
+
+### Current source limitation
+
+`quote_items` currently carries manufacturer, model and package text rather than a direct catalogue UUID.
+
+### Safe Phase 2 rule
+
+`resolve_quote_item_catalog_product(uuid)` links only when the normalised manufacturer + model + package combination matches exactly one `quote_catalog_products` row.
+
+- exactly one match → link automatically;
+- zero matches → leave `catalog_product_id` NULL;
+- multiple matches → leave `catalog_product_id` NULL.
+
+No fuzzy matching, manufacturer-only matching or family-level matching is permitted.
+
+### Backfill
+
+`staff_backfill_inventory_catalog_links(limit)` can safely process existing unlinked inventory that has a source quote item. It applies the same exact-only rule.
