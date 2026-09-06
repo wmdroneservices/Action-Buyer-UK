@@ -2414,3 +2414,10 @@ This is a UI-density correction only. No candidate, evidence, catalogue product 
 ### Follow-up fault — routing MutationObserver loop
 
 A follow-up test exposed a browser freeze: pending records whose editable fields initially displayed as NOT CHECKED could be server-confirmed mismatches. The observer then alternated between removing and recreating the routing control. The routing script now caches the server route state per card and uses an in-flight check guard, preventing DOM mutation loops. Cache version is `20260906-alternative-route-5`.
+
+
+### Follow-up regression — alternative-product routing disappeared after freeze repair
+
+The freeze repair prevented the MutationObserver loop, but a separate startup race remained. The reassignment script can run before window.actionBuyerAuth.supabase is ready. In that state getCandidateRouteState() returned null, and the previous repair cached the card as not-required. That incorrectly suppressed ROUTE TO ALTERNATIVE PRODUCT for genuine pending database mismatches.
+
+Repair: an unavailable/failed server lookup now leaves the card in unknown, with bounded retries. Only a successful database response may set required or not-required. The existing loop protection remains: required controls are not repeatedly removed/recreated. Cache version: 20260906-alternative-route-6.
