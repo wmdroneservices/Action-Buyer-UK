@@ -309,3 +309,22 @@ main h2,main h3{font-weight:800;letter-spacing:.04em}.intro h2,.wizard-step h2{c
 .live-task-filter:hover,.live-task-filter:focus,.live-task-filter.is-active{background:#102f4f;border-color:#102f4f;color:#fff;outline:none}
 .live-task-item.task-critical{border-left-width:7px;box-shadow:inset 0 0 0 1px rgba(180,35,24,.12)}
 @media(max-width:760px){.live-task-focus{grid-template-columns:1fr auto}.live-task-focus span{grid-column:1/-1}.live-task-focus small{grid-column:1/-1}.live-task-focus b{grid-column:2;grid-row:2}.task-summary-card{min-width:105px}}
+
+
+/* Sales Dashboard: compact staff stock search by SKU, transaction or product. */
+.sales-search-panel{margin:1rem 0}
+.sales-search-heading h2{margin:.2rem 0}
+.sales-search-heading p:last-child{margin:.25rem 0 0}
+.sales-search-form{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) auto;gap:.65rem;align-items:center;margin-top:1rem}
+.sales-search-form select,.sales-search-form input{width:100%;min-height:42px}
+.sales-search-form .btn{min-height:42px;white-space:nowrap}
+.sales-search-results{margin-top:.9rem;border-top:1px solid var(--border,#d8dde3);padding-top:.8rem}
+.sales-search-summary{font-size:.74rem;font-weight:900;letter-spacing:.07em;color:#102f4f;margin-bottom:.55rem;text-transform:uppercase}
+.sales-search-result{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem .9rem;margin:.5rem 0;border:1px solid #d8dde3;background:#f8fafc}
+.sales-search-result strong{display:block;color:#102f4f}
+.sales-search-result span{display:block;margin-top:.2rem;font-size:.78rem;color:#59636d;line-height:1.4}
+.sales-search-result .btn{flex:0 0 auto}
+.sales-search-empty{padding:.85rem .9rem;border:1px solid #d8dde3;background:#f8fafc;color:#59636d}
+.sales-search-limit{margin:.65rem 0 0;font-size:.78rem;color:#667085}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:700px){.sales-search-form{grid-template-columns:1fr}.sales-search-form .btn{width:100%}.sales-search-result{align-items:flex-start;flex-direction:column}.sales-search-result .btn{width:100%;text-align:center}}
