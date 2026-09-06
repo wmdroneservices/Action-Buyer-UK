@@ -103,11 +103,28 @@ function ensureTrigger(card){
 }
 function refreshCard(card){
  const control=card.querySelector('.ai-route-panel,.ai-route-trigger');
- if(domMismatch(card)){if(!control)ensureTrigger(card);return;}
- // Server-backed mismatch remains authoritative if the editable DOM has not caught up yet.
+ if(domMismatch(card)){
+  card.dataset.aiRouteState='required';
+  if(!control)ensureTrigger(card);
+  return;
+ }
+ // The editable fields can initially be NOT CHECKED while the server record is already
+ // a confirmed mismatch. Cache the server result so MutationObserver does not alternate
+ // endlessly between removing and recreating the control.
  const id=card.dataset.pendingCandidate;
- if(id&&!control)getCandidateRouteState(id).then(c=>{if(c?.routeRequired)ensureTrigger(card);}).catch(()=>{});
- else if(control)control.remove();
+ if(!id){if(control)control.remove();return;}
+ if(card.dataset.aiRouteState==='required'){
+  if(!control)ensureTrigger(card);
+  return;
+ }
+ if(card.dataset.aiRouteChecking==='1')return;
+ card.dataset.aiRouteChecking='1';
+ getCandidateRouteState(id).then(c=>{
+  card.dataset.aiRouteState=c?.routeRequired?'required':'not-required';
+  if(c?.routeRequired){
+   if(!card.querySelector('.ai-route-panel,.ai-route-trigger'))ensureTrigger(card);
+  }else card.querySelector('.ai-route-panel,.ai-route-trigger')?.remove();
+ }).catch(()=>{}).finally(()=>{delete card.dataset.aiRouteChecking;});
 }
 function watch(card){
  if(card.dataset.aiRouteWatch)return;card.dataset.aiRouteWatch='1';
