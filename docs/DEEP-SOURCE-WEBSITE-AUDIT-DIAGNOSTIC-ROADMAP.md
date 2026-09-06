@@ -344,3 +344,34 @@ Worker **1.5.2** now:
 - marks valid same-model evidence with a package mismatch as **VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED** instead of silently treating it as an exact match.
 
 This keeps the existing preservation/reassignment workflow intact while making the crawler more specific and deeper for named packages and kits.
+
+
+## Mavic 2 package-depth diagnostic addition — 2026-09-06
+
+### Exact identity branches discovered on MPB
+
+A base Mavic 2 landing result can branch into materially different catalogue identities:
+
+- Mavic 2 Pro
+- Mavic 2 Pro Fly More Combo
+- Mavic 2 Pro with DJI Smart Controller
+- Mavic 2 Pro Fly More Combo with Smart Controller
+- Mavic 2 Zoom with RC1 Controller
+- Mavic 2 Zoom with Smart Controller
+- Mavic 2 Zoom ND Filter Kit
+- Mavic 2 Pro ND Filters Set
+
+### Required routing check
+
+**Discovered URL/title**
+→ classify as aircraft package or standalone accessory
+→ exact catalogue identity exists?
+
+If yes:
+→ attach evidence to that identity.
+
+If no:
+→ create the missing catalogue identity first
+→ then route the preserved evidence.
+
+Never use a base-model match to merge controller packages, Fly More bundles or filter kits into a generic aircraft row.
