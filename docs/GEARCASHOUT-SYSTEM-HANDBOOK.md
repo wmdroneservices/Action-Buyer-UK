@@ -2263,3 +2263,10 @@ When one listing is marked Sold, the central sold workflow marks competing activ
 Gemma must not rely on exact package-name strings. GearCashOut catalogue products are the canonical identities, compared by manufacturer, model, controller, bundle/package, included accessories and variant. Alternative retailer descriptions may be learned as aliases, but aliases retain source/retailer provenance and confidence. Retailer-specific terminology is not automatically global.
 
 Equivalence states are **confirmed**, **probable** and **ambiguous**. Only confirmed mappings may be used confidently; probable mappings are review suggestions; ambiguous mappings must not be forced. Positive conflicts such as controller identity, No RC, Fly More/Cine/Creator/Plus wording, battery count or package-defining accessories prevent automatic equivalence. New aliases require repeated exact evidence, independent confirmation or explicit human confirmation before promotion to confirmed learning.
+
+
+## Dynamic Sales Workbench outlets — 6 September 2026
+
+The Sales Workbench no longer uses a hard-coded marketplace array. Active outlet blocks are read from the central `sales_outlets` registry, filtered by the database to active outlets only. Each saved listing carries `outlet_id` while retaining the existing sales-channel display field for compatibility. This means new owned websites, specialist stores and future auction outlets can be added centrally without editing the Sales Workbench source.
+
+Security: the browser uses the authenticated Supabase client and RLS-protected tables. The UI is not trusted as the authority for sold-state protection; the existing staff RPC/database workflow remains authoritative.
