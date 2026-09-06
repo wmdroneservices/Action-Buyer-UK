@@ -1783,3 +1783,10 @@ If **SEND TO SALES** is disabled after inspection/testing appears to pass:
 5. do not bypass the state machine by directly marking the asset Sent to Sales.
 
 Confirmed fault: the Product Workbench handled `Testing` → `Ready for Resale`, but did not handle a repaired asset whose post-repair testing was saved while still in `Repair Required`. The minimal repair performs the two controlled transitions when the post-repair checks pass.
+
+
+### Repair Required workflow rule — 6 September 2026
+
+Do not treat `Repair Required` as a label that can be cleared manually. Before allowing an asset back into testing, verify the live asset status is `Repair Required`, the fault is visible, a repair record is created through `staff_complete_inventory_repair(...)`, any repair cost is recorded in `inventory_expenses`, and the function moves the asset to `Testing`. Post-repair testing must then pass normally before `Ready for Resale`.
+
+Never restore the previous shortcut where a passing inspection/testing save could move an asset directly out of `Repair Required` without a recorded repair.
