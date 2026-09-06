@@ -493,3 +493,28 @@ After the Research PC reports worker 1.5.4, run a small controlled Deep Source t
 - Explicit model/controller/package identity → route to that exact catalogue package and apply after acceptance.
 - Generic model identity with no controller/combo claim → use a generic Standard Package only where that generic catalogue product exists.
 - Do not infer a specific controller, Fly More, Plus, Cine or premium bundle from a generic source title.
+
+
+## 6 September 2026 — Gemma learning and duplicate-check path
+
+### Live learning flow
+
+1. Staff/assistant corrects, accepts, rejects or reassigns evidence.
+2. Structured reasons/outcomes are stored in review feedback and `quote_catalog_ai_learning`.
+3. The Research PC loads active learning for the current manufacturer/product type.
+4. The learning rules are injected into the Ollama/Gemma validation prompt.
+5. Gemma evaluates newly collected evidence using those prior corrections.
+6. Deep Source new-product candidates run a package-aware catalogue duplicate check before creation.
+7. High-confidence same-package matches are flagged as `likely_duplicate`; same-model but different controller/bundle identities remain distinct review candidates.
+
+### DJI rules now seeded
+
+- explicit controller identity beats generic package identity;
+- generic model pages must not be assigned to unsupported premium bundles;
+- **No RC → Drone Only**;
+- absence of package wording alone → uncertain, not mismatch;
+- MPB final evidence requires exact product pages.
+
+### Worker version
+
+Repository worker is now **1.5.5**. The Research PC must be updated and its heartbeat verified before relying on these new duplicate-check changes.
