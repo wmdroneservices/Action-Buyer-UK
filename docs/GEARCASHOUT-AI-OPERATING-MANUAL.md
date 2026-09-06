@@ -1146,3 +1146,40 @@ The Deep Source landing-page field now uses the approved GearCashOut source regi
 Deep Source runs are isolated from the normal All Sources / Amazon UK Only selector. The dashboard sends evidence_scope: deep_source plus the selected deep_source_url; the worker Edge Function routes that request directly into ai_research_create_deep_source_run(...). The normal all/Amazon branch is not used.
 
 For operators: seeing All Sources selected while preparing a Deep Source audit does not broaden that Deep Source audit. The selected landing-page domain controls the Deep Source run.
+
+
+---
+
+## Shared product filters and separate workflow controls — 6 September 2026
+
+When operating the AI Research Centre, first choose the catalogue products using the shared filters:
+
+- Manufacturer;
+- Model / search term;
+- Category;
+- Product type.
+
+These filters are valid for both **Regular AI Research** and **Deep Source Website Audit**.
+
+Then choose the workflow:
+
+### Regular AI Research
+
+Uses:
+
+- Market / condition;
+- All Sources or Amazon UK Only;
+- **Regular research batch size**;
+- optional Continuous mode.
+
+### Deep Source Website Audit
+
+Uses:
+
+- selected Deep Source landing-page URL;
+- **Deep Source audit batch size**;
+- explicit `evidence_scope=deep_source`.
+
+Deep Source ignores the Regular AI Research market/source controls. Its selected landing-page domain is the source boundary.
+
+The two batch-size controls are intentionally independent. Do not assume changing one changes the other.
