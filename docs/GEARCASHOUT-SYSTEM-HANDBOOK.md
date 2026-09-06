@@ -2249,3 +2249,10 @@ From 6 September 2026, the paid seller-purchase inventory creation path attempts
 Every physical item entering `inventory_assets` now receives an immutable unique GearCashOut SKU automatically. The SKU is the operational identity for the individual physical unit and is separate from the master `catalog_product_id` (which identifies the product type). Current format is `GCO-YYYY-######`.
 
 This supports labels, barcode/QR implementation, warehouse location tracking, stock picking, marketplace/website listing reconciliation and audit history. Warehouse foundations are `inventory_locations` and `inventory_location_movements`; staff movement is recorded through `staff_move_inventory_asset`.
+
+
+## Central Outlet → Listing → SKU architecture — 6 September 2026
+
+Sales are now being standardised around a central model: **one physical inventory asset/SKU → many outlet listings**. The existing `resale_listings` table remains authoritative for listing lifecycle and sold/delist protection; a new `sales_outlets` registry identifies the outlet behind each listing. This supports owned storefronts, marketplaces and future auction outlets without duplicating inventory.
+
+When one listing is marked Sold, the central sold workflow marks competing active listings for the same asset as **Delist Required** and marks the physical inventory asset Sold. This existing protection remains the single operational truth; outlet additions must not create independent sold-state logic.
