@@ -2517,3 +2517,26 @@ Each outstanding **Delist Required** action shows:
 The system does **not** attempt to close a third-party marketplace listing automatically. Staff close it on the marketplace first, then confirm closure in GearCashOut.
 
 The closure RPC now also requires an **active** staff account, not merely a historical staff_users row.
+
+
+## Catalogue consolidation rule — exact evidence only (6 September 2026)
+
+When duplicate or overlapping catalogue package rows are removed:
+
+1. inspect every dependent evidence/candidate/queue record before deleting the product;
+2. move evidence only where the source explicitly supports the destination package/controller identity;
+3. if the exact same evidence already exists on the correct destination, remove the redundant duplicate rather than creating another copy;
+4. never force ambiguous model-level evidence into a remaining package merely because the duplicate row is being removed;
+5. accessory-only evidence must not be merged into a drone bundle unless the source proves the bundle itself;
+6. remove stale AI candidates that embody a known incorrect forced-routing decision rather than preserving them as future training examples;
+7. retain the decision and reason in structured project memory/checkpoints.
+
+### DJI Mavic 3 Classic application
+
+The overlapping **Standard Package** and accessory-only **Fly More Kit** catalogue rows were removed after clear evidence was consolidated into:
+
+- **Drone Only** where the official Drone Only identity was already represented;
+- **Standard Package (DJI RC)** where the source explicitly identified DJI RC;
+- **Fly More Combo** where the source explicitly identified the complete combo.
+
+Generic MPB/model-level evidence and exact accessory-only Fly More Kit evidence were not reassigned to a guessed drone package. This preserves the core rule that uncertainty must remain unresolved rather than being converted into false package certainty.
