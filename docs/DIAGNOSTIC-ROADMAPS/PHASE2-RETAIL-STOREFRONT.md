@@ -391,3 +391,48 @@ The verified function already deletes inventory_return_data → customer_return_
 ### Safety rule
 
 Do not run the destructive reset while genuine production data exists unless the reset architecture is first redesigned to target test records only. The current reset function is an environment-wide test reset, not a selective per-record test cleanup.
+
+
+## Duplicate Listing Closure Control — repaired 6 September 2026
+
+### User action
+
+Sales Dashboard / What Needs Doing → **CLOSE OTHER MARKETPLACE LISTINGS NOW**.
+
+### Front-end path
+
+- `admin-sales-dashboard.js` → dedicated `delist-actions.html`;
+- `live-task-board.js` → dedicated `delist-actions.html`;
+- `delist-actions.js` renders the authoritative closure queue;
+- `listing-readiness.html?id=<asset_id>` remains the explicit product handoff.
+
+### Authoritative data flow
+
+`resale_listings.status='Delist Required'`
+→ affected `asset_id`
+→ `inventory_assets` identity (SKU/product/asset reference)
+→ all sibling `resale_listings` for that same asset
+→ identify Sold sibling / all channel statuses
+→ staff closes third-party listing manually
+→ `staff_close_resale_listing(p_listing_id)`
+→ listing becomes `Cancelled`.
+
+### Repair history
+
+The original handoff pointed to `sold-items.html#delist-actions`. That view was built around Sold/Returned inventory history and did not reliably provide context for every Delist Required row, particularly controlled test data. It also did not show sibling channels for the same SKU.
+
+The repair introduces a dedicated closure page driven directly by the authoritative Delist Required queue and sibling listings.
+
+### Controlled test state
+
+TEST-ASSET-007 / GCO-2026-100016 is now configured as:
+
+- eBay listing: Sold;
+- inventory asset: Sold through eBay;
+- Facebook Marketplace listing: Delist Required.
+
+This gives the closure page a genuine multi-channel context test.
+
+### Security
+
+`staff_close_resale_listing` now requires an authenticated **active** staff user. Browser UI remains convenience only; the database RPC enforces the state transition.
