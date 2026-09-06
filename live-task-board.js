@@ -13,16 +13,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   const itemName=row=>[row.manufacturer,row.model].filter(Boolean).join(" ")||row.item_name||row.asset_reference||row.quote_reference||row.sale_reference||"Workflow item";
 
-  function urgency(date){
+  function urgency(date,priority="auto"){
     const when=date?new Date(date).getTime():Date.now();
     const days=Math.max(0,Math.floor((Date.now()-when)/DAY));
-    if(days>=6)return {tone:"red",label:"PRIORITY",age:days+" days waiting"};
-    if(days>=3)return {tone:"amber",label:"OVERDUE",age:days+" days waiting"};
-    return {tone:"green",label:"CURRENT",age:days===0?"Raised today":days===1?"Waiting 1 day":"Waiting "+days+" days"};
+    const forced={
+      critical:{tone:"red",label:"CRITICAL",rank:0},
+      priority:{tone:"red",label:"PRIORITY",rank:1},
+      overdue:{tone:"amber",label:"OVERDUE",rank:2},
+      current:{tone:"green",label:"CURRENT",rank:3}
+    }[priority];
+    if(forced)return {...forced,age:days===0?"Raised today":days===1?"Waiting 1 day":days+" days waiting"};
+    if(days>=6)return {tone:"red",label:"PRIORITY",rank:1,age:days+" days waiting"};
+    if(days>=3)return {tone:"amber",label:"OVERDUE",rank:2,age:days+" days waiting"};
+    return {tone:"green",label:"CURRENT",rank:3,age:days===0?"Raised today":days===1?"Waiting 1 day":"Waiting "+days+" days"};
   }
 
-  function addTask(tasks,{title,detail,href,when,category,reference}){
-    tasks.push({title,detail,href,when,category:category||"WORKFLOW",reference:reference||"",...urgency(when)});
+  function addTask(tasks,{title,detail,href,when,category,reference,priority="auto",key}){
+    tasks.push({title,detail,href,when,category:category||"WORKFLOW",reference:reference||"",key:key||[category,title,reference,href].join("|"),...urgency(when,priority)});
   }
 
   async function load(){
@@ -61,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const inbound=inboundBySale.get(s.id);
         const when=s.updated_at||s.created_at;
         if(status==="payment_due"&&s.bank_details_confirmed_at){
-          addTask(tasks,{category:"PURCHASING",title:"Send and record customer payment",detail:(s.sale_reference||"Purchase")+" · Bank details confirmed",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
+          addTask(tasks,{category:"PURCHASING",title:"Send and record customer payment",detail:(s.sale_reference||"Purchase")+" · Bank details confirmed",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference,priority:"priority"});
         }else if(["received","inspection"].includes(status)){
           addTask(tasks,{category:"PURCHASING",title:"Inspect received item",detail:(s.sale_reference||"Purchase")+" is ready for receipt and inspection.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
         }else if(["collecting_items","ready_for_shipping","shipping"].includes(status)&&!inbound){
@@ -92,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "Received":["Inspect item",name+" has been received and needs inspection.","INVENTORY"],
           "Inspection Required":["Complete inspection",name+" is waiting for inspection.","INVENTORY"],
           "Testing":["Complete testing",name+" is currently in testing and needs the result recorded.","INVENTORY"],
-          "Repair Required":["Arrange or complete repair",name+" requires repair before it can progress.","INVENTORY"],
+          "Repair Required":["Arrange or complete repair",name+" requires repair before it can progress.","INVENTORY","priority"],
           "Ready for Resale":["Send item to pre-sale",name+" is ready to move into the sales workflow.","INVENTORY"],
           "Sent to Sales":["Prepare and list for sale",name+" is ready for the pre-sale / listing process.","SALES"],
           "Sold":["Dispatch sold item",name+" has sold and needs dispatch / completion.","SALES"],
@@ -100,14 +107,14 @@ document.addEventListener("DOMContentLoaded", () => {
           "Dispatched":["Confirm delivery and completion",name+" has been dispatched and should be followed through.","SALES"]
         };
         if(map[status]){
-          const [title,detail,category]=map[status];
-          addTask(tasks,{category,title,detail,href,when,reference:a.asset_reference});
+          const [title,detail,category,priority="auto"]=map[status];
+          addTask(tasks,{category,title,detail,href,when,reference:a.asset_reference,priority});
         }
       });
 
       listings.forEach(l=>{
         if(String(l.status||"").toLowerCase()==="delist required"){
-          addTask(tasks,{category:"SALES",title:"Close duplicate marketplace listing",detail:(l.listing_title||l.listing_reference||"Marketplace listing")+" must be closed to prevent a duplicate sale.",href:"sold-items.html#delist-actions",when:l.updated_at||l.created_at,reference:l.listing_reference});
+          addTask(tasks,{category:"SALES",title:"Close duplicate marketplace listing",detail:(l.listing_title||l.listing_reference||"Marketplace listing")+" must be closed to prevent a duplicate sale.",href:"sold-items.html#delist-actions",when:l.updated_at||l.created_at,reference:l.listing_reference,priority:"critical"});
         }
       });
 
@@ -123,17 +130,44 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      tasks.sort((a,b)=>{
-        const rank={red:0,amber:1,green:2};
-        return rank[a.tone]-rank[b.tone]||new Date(a.when||0)-new Date(b.when||0);
+      // Collapse accidental duplicates while keeping separate genuinely different actions.
+      const unique=new Map();
+      tasks.forEach(t=>{
+        const existing=unique.get(t.key);
+        if(!existing||t.rank<existing.rank)unique.set(t.key,t);
       });
+      const liveTasks=[...unique.values()].sort((a,b)=>a.rank-b.rank||new Date(a.when||0)-new Date(b.when||0));
 
-      const counts={green:tasks.filter(t=>t.tone==="green").length,amber:tasks.filter(t=>t.tone==="amber").length,red:tasks.filter(t=>t.tone==="red").length};
-      summary.innerHTML=tasks.length
-        ? '<div class="task-summary-card task-summary-green"><strong>'+counts.green+'</strong><span>Current</span></div><div class="task-summary-card task-summary-amber"><strong>'+counts.amber+'</strong><span>Overdue</span></div><div class="task-summary-card task-summary-red"><strong>'+counts.red+'</strong><span>Priority</span></div>'
+      const counts={
+        current:liveTasks.filter(t=>t.label==="CURRENT").length,
+        overdue:liveTasks.filter(t=>t.label==="OVERDUE").length,
+        priority:liveTasks.filter(t=>t.label==="PRIORITY").length,
+        critical:liveTasks.filter(t=>t.label==="CRITICAL").length
+      };
+      const categories=[...new Set(liveTasks.map(t=>t.category))].sort();
+      const focus=liveTasks[0];
+
+      let activeFilter="ALL";
+      const renderList=()=>{
+        const visible=activeFilter==="ALL"?liveTasks:liveTasks.filter(t=>t.category===activeFilter);
+        const filterButtons=['ALL',...categories].map(category=>{
+          const count=category==="ALL"?liveTasks.length:liveTasks.filter(t=>t.category===category).length;
+          const active=category===activeFilter?' is-active':'';
+          return '<button type="button" class="live-task-filter'+active+'" data-task-filter="'+esc(category)+'">'+esc(category)+' <strong>'+count+'</strong></button>';
+        }).join("");
+        const filters='<div class="live-task-filters" aria-label="Filter live tasks">'+filterButtons+'</div>';
+        list.innerHTML=filters+(visible.length?visible.map(t=>'<a class="live-task-item task-'+t.tone+(t.label==="CRITICAL"?' task-critical':'')+'" href="'+esc(t.href)+'"><div class="live-task-status"><span>'+esc(t.category)+'</span><strong>'+esc(t.label)+'</strong></div><div class="live-task-main"><h3>'+esc(t.title)+'</h3><p>'+esc(t.detail)+'</p></div><div class="live-task-age">'+esc(t.age)+'</div><div class="live-task-arrow">VIEW</div></a>').join(""):'<div class="live-task-clear"><strong>NO TASKS IN THIS WORK AREA</strong><span>Choose another filter to see the remaining live workflow.</span></div>');
+        list.querySelectorAll("[data-task-filter]").forEach(button=>button.addEventListener("click",()=>{
+          activeFilter=button.dataset.taskFilter||"ALL";
+          renderList();
+        }));
+      };
+
+      summary.innerHTML=liveTasks.length
+        ? '<div class="task-summary-card task-summary-green"><strong>'+counts.current+'</strong><span>Current</span></div><div class="task-summary-card task-summary-amber"><strong>'+counts.overdue+'</strong><span>Overdue</span></div><div class="task-summary-card task-summary-red"><strong>'+counts.priority+'</strong><span>Priority</span></div><div class="task-summary-card task-summary-critical"><strong>'+counts.critical+'</strong><span>Critical</span></div>'+(focus?'<a class="live-task-focus task-'+focus.tone+'" href="'+esc(focus.href)+'"><span>FOCUS NEXT</span><strong>'+esc(focus.title)+'</strong><small>'+esc(focus.detail)+'</small><b>OPEN</b></a>':'')
         : '<div class="live-task-clear"><strong>NO LIVE TASKS CURRENTLY REQUIRE STAFF ACTION</strong><span>The workflow is clear at the moment.</span></div>';
 
-      list.innerHTML=tasks.length?tasks.map(t=>'<a class="live-task-item task-'+t.tone+'" href="'+esc(t.href)+'"><div class="live-task-status"><span>'+esc(t.category)+'</span><strong>'+esc(t.label)+'</strong></div><div class="live-task-main"><h3>'+esc(t.title)+'</h3><p>'+esc(t.detail)+'</p></div><div class="live-task-age">'+esc(t.age)+'</div><div class="live-task-arrow">VIEW</div></a>').join(""):"";
+      renderList();
       updated.textContent="Live workflow check: "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
     }catch(e){
       list.innerHTML='<div class="form-message error">Could not load the live task list. Please refresh the dashboard.</div>';
