@@ -2020,3 +2020,35 @@ If this happens again, inspect in this order:
 4. linked `inventory_assets` row;
 5. triggers on the affected tables;
 6. only then consider a backend invariant repair.
+
+## Operating Rule — Customer Return Closure and Accounting Data (7 September 2026)
+
+Before changing post-sale customer returns:
+
+1. inspect `sales_customer_returns`;
+2. inspect the current live return RPC definitions;
+3. keep buyer returns separate from `purchase_return_cases`;
+4. do not permit a physically received return to become `Resolved` with only a generic note.
+
+Required flow after receipt:
+
+`Item Received → assessment → damage/condition → item disposition → customer financial/replacement resolution → Resolved`
+
+Required persisted accounting/operational facts include:
+
+- return label cost;
+- resolution summary;
+- damage assessment;
+- item disposition;
+- customer resolution type;
+- refund method/provider/amount/reference;
+- replacement asset/reference where applicable.
+
+The dedicated RPCs are:
+
+- `staff_record_sales_customer_return_label(...)`
+- `staff_resolve_sales_customer_return(...)`
+
+The legacy `staff_update_sales_customer_return(..., 'resolve')` path intentionally refuses closure without the detailed record.
+
+Do not automatically move the returned asset into a new resale status merely because the return is closed. `item_disposition` records what happened to the item; downstream inventory routing should remain explicit and auditable.
