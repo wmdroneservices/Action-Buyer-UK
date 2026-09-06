@@ -320,3 +320,7 @@ Exact page found
 ### Failure-prevention rule
 
 Do not convert a positive mismatch into “no evidence found”. A mismatch means the source page may still contain useful evidence for another catalogue row.
+
+
+### 2026-09-06 Known UI failure fixed
+The reassignment panel originally watched only Package Match / Variant Match metadata. Staff could mark **PRODUCT / MODEL / PACKAGE = AI WAS WRONG** in VERIFY EACH FIELD and see no routing control. The reassignment layer now watches that review outcome directly and refreshes immediately on change.
