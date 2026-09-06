@@ -532,3 +532,20 @@ Before treating a differently worded retailer result as a mismatch or duplicate,
 6. variant.
 
 Then consult source-aware aliases and retailer-specific naming patterns. Confirmed aliases may support matching; probable aliases require review; ambiguous descriptions remain unresolved. New wording is captured as a candidate learning pattern only when supported by exact evidence, and promoted after repeated independent evidence or explicit human confirmation.
+
+
+---
+
+## 6 September 2026 — Controller-aware exact-page decision branch
+
+**Exact source page**
+→ inspect title and canonical URL  
+→ inspect observed unit contents/controller  
+→ single positive controller across all observed units?
+- **Yes** → match the exact controller package
+- **No, mixed controllers** → keep aggregate evidence pending/ambiguous
+- **Explicit No RC** → Drone Only
+- **Accessory title** → exact accessory catalogue product
+- **Bundle name only** → require positive bundle evidence; do not infer from controller
+
+If the exact controller configuration is absent from the catalogue but repeatedly supported by exact evidence, add a narrowly named canonical package and record the source-specific reason.
