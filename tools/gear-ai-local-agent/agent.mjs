@@ -1958,11 +1958,11 @@ async function processOne(){
   }catch(e){
     if(e?.code==='RUN_CANCELLED'){
       log('Research run cancelled; stopping current queue item without submitting further evidence.');
-      await sb.from('quote_catalog_ai_queue')
+      const {error:skipError}=await sb.from('quote_catalog_ai_queue')
         .update({status:'skipped',updated_at:new Date().toISOString()})
         .eq('id',item.queue_id)
-        .in('status',['processing','claimed'])
-        .catch?.(()=>{});
+        .in('status',['processing','claimed']);
+      if(skipError)log('Cancelled queue-item cleanup warning:',skipError.message);
       return true;
     }
     const message=(e?.message||String(e)).slice(0,1000);
