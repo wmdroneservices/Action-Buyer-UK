@@ -14,20 +14,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
   const money = v => v === null || v === undefined || v === '' ? 'Not set' : Number(v).toLocaleString('en-GB',{style:'currency',currency:'GBP'});
-  const channels = ['eBay','Facebook Marketplace','Vinted','Amazon','Website','Marketplace','Central','Other'];
+  let outlets = [];
   const statusLabel = status => ({Draft:'DRAFT', 'Ready For Listing':'READY TO UPLOAD', Published:'LIVE', Reserved:'RESERVED', Sold:'SOLD', Cancelled:'CANCELLED', 'Delist Required':'DELIST REQUIRED'}[status] || status || 'NOT STARTED');
+  const safeOutletType = type => ({owned_storefront:'OWNED WEBSITE', marketplace:'MARKETPLACE', auction:'AUCTION', other:'OTHER'}[type] || 'OUTLET');
 
   const load = async () => {
     box.innerHTML = '<p>Loading sales workbench…</p>';
-    const [{ data: asset, error: assetError }, { data: listings, error: listingsError }] = await Promise.all([
+    const [{ data: asset, error: assetError }, { data: listings, error: listingsError }, { data: outletRows, error: outletsError }] = await Promise.all([
       db.from('inventory_assets').select('*').eq('id', id).single(),
-      db.from('resale_listings').select('*').eq('asset_id', id).order('sales_channel')
+      db.from('resale_listings').select('*').eq('asset_id', id).order('sales_channel'),
+      db.from('sales_outlets').select('id,outlet_code,outlet_name,outlet_type,active').eq('active', true).order('outlet_name')
     ]);
     if (assetError || !asset) { box.innerHTML = '<p>Product could not be found.</p>'; return; }
-    if (listingsError) { box.innerHTML = `<p>Could not load sales channels: ${esc(listingsError.message)}</p>`; return; }
+    if (listingsError) { box.innerHTML = `<p>Could not load sales listings: ${esc(listingsError.message)}</p>`; return; }
+    if (outletsError) { box.innerHTML = `<p>Could not load approved sales outlets: ${esc(outletsError.message)}</p>`; return; }
+    outlets = outletRows || [];
+    if (!outlets.length) { box.innerHTML = '<p>No active sales outlets are configured. Contact management.</p>'; return; }
 
     const rows = listings || [];
-    const map = new Map(rows.map(row => [row.sales_channel, row]));
+    const map = new Map(rows.map(row => [row.outlet_id || row.sales_channel, row]));
     const titleDefault = [asset.manufacturer, asset.model].filter(Boolean).join(' ');
     const descriptionDefault = asset.description || [
       titleDefault,
@@ -79,10 +84,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <section class="valuation-card" style="margin-top:1rem">
         <h2>Sales channels</h2>
-        <p>Each channel is a separate block. Save a draft, mark it <strong>Ready to Upload</strong>, publish it on the marketplace, paste the live listing link, then mark it <strong>Uploaded / Live</strong>.</p>
+        <p>Each active outlet is loaded securely from the central Outlet Registry. Save a draft, mark it <strong>Ready to Upload</strong>, publish where applicable, paste the live listing link, then mark it <strong>Uploaded / Live</strong>.</p>
         <div style="display:grid;gap:1rem;margin-top:1rem">
-          ${channels.map(channel => {
-            const row = map.get(channel) || {};
+          ${outlets.map(outlet => {
+            const channel = outlet.outlet_name;
+            const row = map.get(outlet.id) || {};
             const title = row.listing_title || asset.listing_title || titleDefault;
             const description = row.listing_description || descriptionDefault;
             const isNew = !row.id;
@@ -94,11 +100,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `
               <article class="sales-channel-block" style="border:1px solid ${delistRequired ? '#c92a2a' : '#d7dce2'};border-radius:10px;padding:1rem;background:#fff;box-shadow:${delistRequired ? '0 4px 14px rgba(166,27,27,.14)' : '0 2px 7px rgba(16,47,79,.05)'}">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
-                  <div><h3 style="margin:0">${esc(channel)}</h3><small>${isNew ? 'Not started' : 'Listing saved'}</small></div>
+                  <div><h3 style="margin:0">${esc(channel)}</h3><small>${safeOutletType(outlet.outlet_type)} · ${isNew ? 'Not started' : 'Listing saved'}</small></div>
                   <span style="display:inline-block;padding:.42rem .75rem;border-radius:999px;background:${statusBackground};color:${statusColor};font-size:.78rem;font-weight:900;letter-spacing:.04em"><strong>${esc(statusLabel(row.status))}</strong></span>
                 </div>
                 ${delistRequired ? `<div style="margin:0 0 1rem;padding:1rem 1.1rem;background:#fff0f0;border:3px solid #c92a2a;border-radius:8px;color:#7d1111;box-shadow:0 3px 10px rgba(166,27,27,.12)"><div style="font-size:1rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.25rem">CLOSE THIS LISTING NOW</div><div style="font-weight:800">This item has been sold through another sales channel. Remove or close this ${esc(channel)} listing immediately to prevent a duplicate sale.</div>${row.listing_url ? '<div style="margin-top:.6rem;font-weight:900">Use VIEW LIVE LISTING below to open the marketplace listing.</div>' : ''}</div>` : ''}
-                <form class="channel-form" data-id="${esc(row.id || '')}" data-channel="${esc(channel)}">
+                <form class="channel-form" data-id="${esc(row.id || '')}" data-channel="${esc(channel)}" data-outlet-id="${esc(outlet.id)}">
                   <div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(130px,.45fr) minmax(130px,.45fr);gap:.75rem">
                     <label>Listing title<input name="listing_title" value="${esc(title)}" required></label>
                     <label>Sale price<input name="asking_price" type="number" min="0" step="0.01" value="${esc(row.asking_price ?? asset.approved_resale_price ?? '')}" required></label>
@@ -156,6 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const payload = {
         asset_id: id,
         sales_channel: form.dataset.channel,
+        outlet_id: form.dataset.outletId,
         listing_reference: String(fd.get('listing_reference') || '').trim() || null,
         listing_url: String(fd.get('listing_url') || '').trim() || null,
         status: 'Draft',
