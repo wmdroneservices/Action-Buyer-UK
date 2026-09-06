@@ -1477,3 +1477,8 @@ This is the intended direction of the learning loop:
 **Search → collect → deterministic validation → Gemma review with prior learning → database duplicate/package checks → pending evidence → human correction → structured feedback/learning → next Gemma run.**
 
 Gemma must still not auto-accept uncertain evidence or silently create catalogue products.
+
+
+### Phase 2 follow-up — exact catalogue identity propagation
+
+The actual inventory creation path was traced before modification. `staff_mark_sale_paid_and_create_inventory` is the primary path that creates received inventory after payment confirmation; quote items currently store manufacturer/model/package rather than a catalogue UUID. Therefore the repair adds a deterministic resolver using exact normalised manufacturer + model + package and links only when exactly one catalogue row exists. Never broaden this to fuzzy matching without a separate identity review design. Ambiguous results must remain NULL and be resolved by staff.
