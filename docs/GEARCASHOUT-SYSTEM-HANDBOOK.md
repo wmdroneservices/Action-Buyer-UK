@@ -2611,3 +2611,8 @@ The repair record captures the fault, repair work, repairer type/name, repair co
 Workflow: `Repair Required` → **record completed repair** → `Testing` → **post-repair test** → `Ready for Resale` → `Sent to Sales`.
 
 There is deliberately no generic **Clear Repair Required** button.
+
+
+### Sales Pipeline repair visibility — 6 September 2026
+
+The Sales Dashboard must show **Repair Required** as a separate blocking pipeline category. Repair-held stock must not disappear inside the general Inventory total: the Inventory card counts non-repair inventory workflow states, while the red Repair Required card counts assets blocked pending a completed repair. See the Phase 2 Retail Storefront Diagnostic Roadmap.
