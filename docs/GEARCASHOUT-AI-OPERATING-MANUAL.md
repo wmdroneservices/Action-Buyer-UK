@@ -1310,3 +1310,47 @@ A base-model match is not enough when the page title identifies a distinct:
 If the exact identity is absent from the catalogue, preserve the source finding and create a **NEW PRODUCT CANDIDATE** for staff review. Do not discard it and do not force its price into a generic Standard Package.
 
 Nothing discovered this way becomes live automatically. Staff must approve the product candidate and create a draft catalogue product through the existing review workflow.
+
+
+---
+
+## 6 September 2026 — Mavic 3 exact-package correction and evidence reassignment
+
+A review of the DJI Mavic 3 MPB Deep Source findings confirmed the same failure pattern previously seen in the Mavic 2 family: broad family matching had allowed distinct MPB model/package pages to accumulate under **DJI Mavic 3 — Standard Package**.
+
+The catalogue and evidence were corrected using the exact MPB product-page identity, not the family name alone.
+
+### Exact identities added or separated
+
+- Mavic 3 Enterprise — With RC Pro Enterprise Controller
+- Mavic 3 Pro Cine — Premium Combo with RC Pro Controller
+- Mavic 3 Classic — Fly More Combo
+- Mavic 3 Pro — Fly More Combo
+- Mavic 3 Pro — Standard Package
+
+Existing exact catalogue rows were also used for:
+
+- Mavic 3 — Standard Package
+- Mavic 3 — Fly More Combo
+- Mavic 3 — Cine Premium Combo
+- Mavic 3 Classic — Standard Package
+- Mavic 3 Intelligent Flight Battery
+
+The MPB Mavic 3 Enterprise reference evidence was moved from the generic Enterprise Standard Package to the exact RC Pro Enterprise Controller package.
+
+All Mavic 2/Mavic 3 findings from the reviewed batch were cleared from **pending**. Exact findings were applied to the matching catalogue identity; one duplicate discovery of the same exact Mavic 3 MPB page was retained as rejected audit history rather than creating duplicate live evidence.
+
+### Permanent matching rule reinforced
+
+For package-heavy families, the worker must treat these as separate identities when the exact source page says so:
+
+- base model;
+- controller-specific package;
+- Fly More/Combo package;
+- Cine/Premium package;
+- Classic/Pro/Enterprise variant;
+- battery, filter, lens or other accessory.
+
+A family-name match alone is not sufficient to place evidence into a Standard Package.
+
+When the exact identity is already in the catalogue, route evidence there. When it is not, preserve the evidence and surface a new-product candidate/reassignment path. Do not force the evidence into a generic package and do not discard it.
