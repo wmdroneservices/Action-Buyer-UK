@@ -102,7 +102,9 @@ document.addEventListener("DOMContentLoaded", () => {
           "Repair Required":["Arrange or complete repair",name+" requires repair before it can progress.","INVENTORY","priority"],
           "Ready for Resale":["Send item to pre-sale",name+" is ready to move into the sales workflow.","INVENTORY"],
           "Sent to Sales":["Prepare and list for sale",name+" is ready for the pre-sale / listing process.","SALES"],
-          "Sold":["Dispatch sold item",name+" has sold and needs dispatch / completion.","SALES"],
+          "Sold":["Move legacy sold item into shipping",name+" is a legacy sold record and needs the current shipping workflow.","SALES"],
+          "Sold - Awaiting Shipping":["Arrange shipping",name+" has sold and requires carrier/tracking and collection.","SALES"],
+          "Sold - Shipped":["Monitor delivery / return window",name+" is shipped and must remain in post-sale monitoring until the return window ends.","SALES"],
           "Returned":["Review returned item",name+" has been returned and needs assessment.","SALES"],
           "Dispatched":["Confirm delivery and completion",name+" has been dispatched and should be followed through.","SALES"]
         };
