@@ -1905,3 +1905,6 @@ Before changing this area:
 The user-facing inspection selector should say **Requires Repair**. The successful routing notification must explicitly confirm that the item has moved to **Repair Required**.
 
 First confirmed failure: TEST-ASSET-006 / DJI Neo saved `Requires Attention` but remained `Inspection Required` because the transition branch handled only `Failed`.
+### Sales gate compatibility after Requires Repair
+
+Do not create a false historical `Passed` inspection merely to satisfy `staff_send_inventory_to_sales(...)`. A repair-required inspection may satisfy the inspection gate only when an authoritative `inventory_repairs` record exists. Technical testing, condition, missing-item and Ready for Resale requirements remain mandatory. Repository migration: `20260906214500_allow_repaired_inspection_to_pass_sales_gate.sql`.
