@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const actionFor=state=>window.AssetStateMachine?.getNextAction(state)||{label:"ACTION REQUIRED",detail:"Review this item and determine its next workflow step.",tone:"warning"};
   const toneStyle=tone=>({action:"border:2px solid #b06b00;background:#fff8e8",warning:"border:2px solid #b42318;background:#fff5f5",success:"border:2px solid #18794e;background:#f1fbf5",info:"border:1px solid #b8c4d1;background:#f7f9fb"}[tone]||"border:1px solid #b8c4d1;background:#f7f9fb");
   const inventoryStates=["Received","Inspection Required","Testing","Repair Required","Ready for Resale"];
-  const salesStates=["Sent to Sales","Listed","Reserved","Sold","Returned","Dispatched"];
+  const salesStates=["Sent to Sales","Listed","Reserved","Sold","Sold - Awaiting Shipping","Sold - Shipped","Returned","Dispatched"];
 
   const searchForm=document.getElementById("sales-search-form");
   const searchField=document.getElementById("sales-search-field");
@@ -123,6 +123,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const listed=count("Listed");
     const reserved=count("Reserved");
     const sold=count("Sold");
+    const soldShipping=count("Sold - Awaiting Shipping");
+    const soldShipped=count("Sold - Shipped");
     const returned=count("Returned");
     // Use the same pipeline state styling as Purchasing: green when clear,
     // orange when a stage has work waiting.
@@ -177,16 +179,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(reserved) activeParts.push(`${reserved} RESERVED`);
     setStepNotice("active-step-notice", activeParts.length ? activeParts.join(" &nbsp;·&nbsp; ") : "NO ACTIVE LISTINGS CURRENTLY", activeTotal ? "info" : "success");
 
-    const soldMessage=sold
-      ? `${sold} ${sold===1?"SOLD PRODUCT":"SOLD PRODUCTS"}${delistCount ? ` — ${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : " — CHECK DISPATCH / COMPLETION ACTIONS"}`
-      : (delistCount ? `${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : "NO SOLD PRODUCTS CURRENTLY");
+    const soldMessage=(soldShipping||soldShipped||sold)
+      ? `${soldShipping ? soldShipping+" REQUIRING SHIPPING" : ""}${soldShipping && soldShipped ? " · " : ""}${soldShipped ? soldShipped+" SHIPPED / RETURN WINDOW" : ""}${sold ? ((soldShipping||soldShipped) ? " · " : "")+sold+" LEGACY SOLD" : ""}${delistCount ? ` — ${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : ""}`
+      : (delistCount ? `${delistCount} MARKETPLACE LISTING${delistCount===1?"":"S"} REQUIRE CLOSURE` : "NO POST-SALE ACTIONS CURRENTLY");
     setStepNotice("sold-step-notice", soldMessage, delistCount ? "warning" : (sold ? "action" : "success"));
     const soldLink=document.getElementById("open-sold-items");
     if(soldLink) soldLink.href=delistCount ? "delist-actions.html" : "sold-items.html";
     const returnsNotice=returned ? `${returned} ${returned===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION";
     setStepNotice("returns-step-notice", returnsNotice, returned ? "warning" : "success");
 
-    const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Returned","Dispatched"].includes(a.status));
+    const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Sold - Awaiting Shipping","Sold - Shipped","Returned","Dispatched"].includes(a.status));
     const summary=document.getElementById("sales-action-summary"), list=document.getElementById("sales-action-list");
     if(!summary||!list)return;
     const grouped={};
