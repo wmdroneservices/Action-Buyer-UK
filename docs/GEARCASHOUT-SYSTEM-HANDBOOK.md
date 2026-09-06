@@ -2397,3 +2397,15 @@ New behaviour:
 The task board remains advisory and navigational. Opening a task takes staff to the existing workflow; it does not automatically change item status, send payments, publish listings, dispatch stock or close marketplace listings.
 
 **Developer investigation map:** [Phase 2 Retail Storefront Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md).
+
+
+## Pending evidence routing UI density — 6 September 2026
+
+When many pending findings are valid evidence with a wrong catalogue target, the catalogue must not render a full routing box for every item. The routing workflow is now **lazy-open**:
+
+1. A mismatch candidate shows one compact **ROUTE TO ALTERNATIVE PRODUCT** control inside its existing evidence card.
+2. The searchable destination selector and move action are created only when that control is pressed.
+3. The existing `reassign_ai_candidate(...)` RPC, reassignment audit table and preservation rules are unchanged.
+4. Removing the mismatch state removes the compact control/panel.
+
+This is a UI-density correction only. No candidate, evidence, catalogue product or learning record is changed by rendering the compact control.
