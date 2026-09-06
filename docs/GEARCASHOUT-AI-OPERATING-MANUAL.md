@@ -1996,3 +1996,8 @@ Front-end ownership:
 - `asset-state-machine.js`, `admin-sales-dashboard.js`, `live-task-board.js` — shared lifecycle presentation.
 
 Diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+
+### Return closure compatibility
+
+If a customer return is resolved or refused **before the item is physically received**, restore the linked `sales_fulfillments.status` to `Delivered`. Otherwise the closed return would leave a permanent `Return Open` fulfilment that blocks later archiving. This compatibility repair is implemented in `staff_update_sales_customer_return(...)`.
