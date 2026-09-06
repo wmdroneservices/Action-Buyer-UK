@@ -1792,3 +1792,8 @@ Do not treat `Repair Required` as a label that can be cleared manually. Before a
 When repairing this workflow, inspect the live `inventory_expenses_category_check` constraint before changing the RPC. `Repair` is a required allowed category because the RPC writes linked repair costs transactionally. If the category constraint omits `Repair`, the RPC fails and rolls back without creating the repair record.
 
 Never restore the previous shortcut where a passing inspection/testing save could move an asset directly out of `Repair Required` without a recorded repair.
+
+
+### Sales Dashboard repair count rule — 6 September 2026
+
+When changing `admin-sales-dashboard.js`, keep `Repair Required` visible as its own pipeline count. Do not silently merge it back into the general Inventory card. The dashboard reads `inventory_assets.status`; general Inventory excludes `Repair Required`, and `repair-count` is calculated separately. A repair state is operationally blocked and should use the red repair pipeline styling when work exists.
