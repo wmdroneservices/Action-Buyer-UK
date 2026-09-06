@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),clean=v=>String(v??'').trim();
-let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,editingExistingEvidenceId=null,comparingCandidateId=null,activeProductReviewId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null;
+let sb,candidates=[],products=[],sources=[],productCandidates=[],editingId=null,editingExistingEvidenceId=null,comparingCandidateId=null,activeProductReviewId=null,comparisonEvidenceByProduct=new Map(),selectedCandidateIds=new Set(),decisionReasonDraft='',selectedSourceFilter='all',stopCommandPending=false,stopCommandId=null,activeDeepSourceRunId=null,deepSourceRunStateLoading=false;
 const msg=(t,e=false)=>{const x=$('ai-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const sourceMsg=(t,e=false)=>{const x=$('ai-sources-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
 const checked=()=>[...selectedCandidateIds];
@@ -679,10 +679,103 @@ function wireDeepSourceUrlHistory(){
  input.addEventListener('change',()=>rememberDeepSourceUrl(input.value));
  input.addEventListener('blur',()=>rememberDeepSourceUrl(input.value));
 }
+async function setDeepSourceAuditControls(run,queueRows=[]){
+ const runButton=$('run-deep-source-audit'),cancelButton=$('cancel-deep-source-audit');
+ if(!run){
+   activeDeepSourceRunId=null;
+   if(runButton){runButton.disabled=false;runButton.textContent='RUN DEEP SOURCE AUDIT';}
+   if(cancelButton){cancelButton.hidden=true;cancelButton.disabled=false;cancelButton.textContent='CANCEL DEEP SOURCE AUDIT';}
+   return;
+ }
+ activeDeepSourceRunId=String(run.id);
+ const total=Math.max(Number(run.products_targeted||0),queueRows.length);
+ const done=queueRows.filter(q=>['completed','failed','skipped'].includes(String(q.status||'').toLowerCase())).length;
+ const active=queueRows.filter(q=>['processing','claimed'].includes(String(q.status||'').toLowerCase())).length;
+ const queued=queueRows.filter(q=>String(q.status||'').toLowerCase()==='queued').length;
+ if(runButton){
+   runButton.disabled=true;
+   runButton.textContent='DEEP AUDIT RUNNING · '+done+'/'+total;
+ }
+ if(cancelButton){
+   cancelButton.hidden=false;
+   cancelButton.disabled=false;
+   cancelButton.textContent='CANCEL DEEP SOURCE AUDIT';
+ }
+ const x=$('deep-source-message');
+ if(x){
+   const progress=total?done+'/'+total:'0/0';
+   const detail=(active?' · '+active+' processing':'')+(queued?' · '+queued+' queued':'');
+   x.textContent='Deep Source Audit running: '+progress+' products processed'+detail+'. You can cancel this audit without stopping the whole Research PC.';
+   x.className='form-message success';
+ }
+}
+
+async function loadDeepSourceAuditState(){
+ if(deepSourceRunStateLoading||!sb)return null;
+ deepSourceRunStateLoading=true;
+ try{
+   const {data:runs,error:runsError}=await sb.from('quote_catalog_ai_research_runs')
+     .select('id,status,products_targeted,products_checked,created_at,finished_at,deep_source_url')
+     .eq('evidence_scope','deep_source')
+     .order('created_at',{ascending:false})
+     .limit(12);
+   if(runsError)throw runsError;
+   const runIds=(runs||[]).map(r=>r.id);
+   let queueRows=[];
+   if(runIds.length){
+     const {data,error}=await sb.from('quote_catalog_ai_queue')
+       .select('id,run_id,status,updated_at')
+       .in('run_id',runIds);
+     if(error)throw error;
+     queueRows=data||[];
+   }
+   const active=(runs||[]).find(r=>{
+     const rows=queueRows.filter(q=>String(q.run_id)===String(r.id));
+     return ['queued','running'].includes(String(r.status||'').toLowerCase()) ||
+       rows.some(q=>['queued','claimed','processing'].includes(String(q.status||'').toLowerCase()));
+   })||null;
+   if(active){
+     await setDeepSourceAuditControls(active,queueRows.filter(q=>String(q.run_id)===String(active.id)));
+     return active;
+   }
+   await setDeepSourceAuditControls(null,[]);
+   return null;
+ }finally{
+   deepSourceRunStateLoading=false;
+ }
+}
+
+async function cancelDeepSourceAudit(){
+ let runId=activeDeepSourceRunId;
+ if(!runId){
+   const active=await loadDeepSourceAuditState();
+   runId=active?.id||null;
+ }
+ if(!runId)throw Error('There is no active Deep Source Audit to cancel.');
+ if(!confirm('Cancel this Deep Source Audit only? The remaining products in this audit will be skipped. The Research PC and other research runs will keep running.'))return;
+ const cancelButton=$('cancel-deep-source-audit');
+ if(cancelButton){cancelButton.disabled=true;cancelButton.textContent='CANCELLING DEEP AUDIT…';}
+ try{
+   const {data,error}=await sb.rpc('ai_research_cancel_run',{p_run_id:runId});
+   if(error)throw error;
+   const stopped=Number(data?.queue_items_stopped||0);
+   const x=$('deep-source-message');
+   if(x){x.textContent='Deep Source Audit cancelled. '+stopped+' active or queued product(s) were stopped. The Research PC was left running.';x.className='form-message success';}
+   msg('Deep Source Audit cancelled without stopping the Research PC or other research runs.');
+   activeDeepSourceRunId=null;
+   await Promise.all([loadDeepSourceAuditState(),loadLiveResearch(),load()]);
+ }finally{
+   if(cancelButton){cancelButton.disabled=false;cancelButton.textContent='CANCEL DEEP SOURCE AUDIT';}
+ }
+}
+
 async function runDeepSourceAudit(){
  const b=$('run-deep-source-audit');
  const deepMsg=(t,e=false)=>{const x=$('deep-source-message');if(x){x.textContent=t;x.className='form-message '+(e?'error':'success')}};
+ await loadDeepSourceAuditState();
+ if(activeDeepSourceRunId)throw Error('A Deep Source Audit is already running. Use CANCEL DEEP SOURCE AUDIT or wait for it to finish before starting another one.');
  if(b){b.disabled=true;b.textContent='STARTING DEEP AUDIT…'}
+ let started=false;
  try{
    const rawUrl=clean($('deep-source-url')?.value||'');
    const url=normaliseDeepSourceUrl(rawUrl);
@@ -701,7 +794,7 @@ async function runDeepSourceAudit(){
      deep_source_url:url
    };
    const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
-   deepMsg('Deep Source Audit started for '+scope+'. The shared product filters identify what is being audited. The normal Regular AI Research market and All Sources / Amazon UK Only controls are ignored for this run: the worker is locked to the selected Deep Source domain, uses the landing page only for discovery, and returns exact product pages only.');
+   deepMsg('Starting Deep Source Audit for '+scope+'. The normal Regular AI Research market and All Sources / Amazon UK Only controls are ignored for this run: the selected landing-page domain controls the audit.');
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
@@ -709,14 +802,16 @@ async function runDeepSourceAudit(){
    }
    if(data?.error)throw Error(data.error);
    const r=data||{};
-   deepMsg(r.message||((r.products_queued||0)+' product(s) queued for Deep Source Audit.'),false);
+   started=true;
+   activeDeepSourceRunId=r.run_id||null;
+   deepMsg('Deep Source Audit queued. Waiting for the Research PC to claim the first product…',false);
    msg('Deep Source Audit queued: '+scope+' · '+limit+' product(s) · '+url);
-   await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch()]);
+   await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch(),loadDeepSourceAuditState()]);
  }catch(e){
    deepMsg(e.message||String(e),true);
    throw e;
  }finally{
-   if(b){b.disabled=false;b.textContent='RUN DEEP SOURCE AUDIT'}
+   if(!started&&!activeDeepSourceRunId&&b){b.disabled=false;b.textContent='RUN DEEP SOURCE AUDIT';}
  }
 }
 
@@ -866,7 +961,7 @@ async function apply(){
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
 async function start(){try{await initClient();wireDeepSourceUrlHistory();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
-$('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));
+$('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));$('cancel-deep-source-audit')?.addEventListener('click',()=>cancelDeepSourceAudit().catch(e=>{const x=$('deep-source-message');if(x){x.textContent=e.message||String(e);x.className='form-message error';}}));
 $('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear only WAITING products from the research queue? This does NOT stop a product already being researched. Use STOP ALL RESEARCH & WORKER if you need the worker stopped completely.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
 $('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
 document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
@@ -910,7 +1005,8 @@ const initialLoads=[
   ['continuous research',()=>loadContinuousResearch()],
   ['live research',()=>loadLiveResearch()],
   ['raw discoveries',()=>loadRawDiscoveries()],
-  ['Research PC controls',()=>loadResearchPcControl()]
+  ['Research PC controls',()=>loadResearchPcControl()],
+  ['Deep Source audit state',()=>loadDeepSourceAuditState()]
 ];
 const initialResults=await Promise.allSettled(initialLoads.map(([label,fn])=>withTimeout(Promise.resolve().then(fn),12000,label)));
 const failed=initialResults.filter(r=>r.status==='rejected');
@@ -920,5 +1016,5 @@ const ollama=$('rpc-ollama');if(ollama&&ollama.textContent==='Checking…')ollam
 const model=$('rpc-model');if(model&&model.textContent==='Checking…')model.textContent='—';
 const live=$('live-research-list');if(live&&/Loading live research activity/i.test(live.textContent))live.innerHTML='<div class="empty">Live research status is temporarily unavailable. The panel will retry automatically.</div>';
 msg(failed.length?'Research Centre loaded; some live panels will retry automatically.':'Review queue loaded.');
-setInterval(()=>{loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});},15000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+setInterval(()=>{loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadDeepSourceAuditState().catch(()=>{});},5000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
