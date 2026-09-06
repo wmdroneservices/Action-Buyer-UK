@@ -177,11 +177,44 @@ function watch(card){
   if(e.target.matches('[data-field="edited_package_match"],[data-field="edited_variant_match"],[data-review-outcome="product_match"]'))refreshCard(card);
  });
 }
-function scan(){
- style();
- document.querySelectorAll('[data-pending-candidate]').forEach(card=>{watch(card);refreshCard(card);});
+function processCard(card){
+ if(!(card instanceof Element))return;
+ watch(card);refreshCard(card);
 }
-const mo=new MutationObserver(()=>scan());mo.observe(document.documentElement,{childList:true,subtree:true});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{scan();setTimeout(scan,500);setTimeout(scan,1500);},{once:true});
-else {scan();setTimeout(scan,500);setTimeout(scan,1500);}
+function scan(root=document){
+ style();
+ if(root instanceof Element&&root.matches('[data-pending-candidate]'))processCard(root);
+ (root.querySelectorAll?root.querySelectorAll('[data-pending-candidate]'):[]).forEach(processCard);
+}
+// Do not rescan the whole document for every DOM mutation. The previous observer did
+// exactly that, including mutations made by this script, which could create a heavy
+// feedback loop while the catalogue was being rendered or virtualised during scrolling.
+let observerQueued=false;
+const pendingRoots=new Set();
+const flushObserver=()=>{
+ observerQueued=false;
+ const roots=[...pendingRoots];pendingRoots.clear();
+ roots.forEach(root=>scan(root));
+};
+const mo=new MutationObserver(records=>{
+ for(const record of records){
+  for(const node of record.addedNodes){
+   if(node.nodeType===1)pendingRoots.add(node);
+  }
+ }
+ if(pendingRoots.size&&!observerQueued){
+  observerQueued=true;
+  requestAnimationFrame(flushObserver);
+ }
+});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{
+ scan();
+ mo.observe(document.body,{childList:true,subtree:true});
+ setTimeout(scan,500);setTimeout(scan,1500);
+},{once:true});
+else {
+ scan();
+ mo.observe(document.body,{childList:true,subtree:true});
+ setTimeout(scan,500);setTimeout(scan,1500);
+}
 })();
