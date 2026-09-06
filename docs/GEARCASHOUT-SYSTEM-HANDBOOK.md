@@ -2898,3 +2898,10 @@ The first path is correct. The second path can open the generic Product Workbenc
 **Repair:** `live-task-board.js` now builds the set of assets with open customer-return cases and suppresses the generic `Returned` asset task for those assets. The authoritative `sales_customer_returns` task remains the only CTA for the received buyer return.
 
 **Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+
+### Customer return transaction context
+
+The **Customer Returns** assessment screen now displays the original transaction alongside the return timeline: when the item was sold, the price paid by the customer, sales channel, when the return was opened, collected and physically received.
+
+The sale facts are read from the linked `inventory_assets` record and the return dates from `sales_customer_returns`, so staff can assess and close the return with the transaction context visible without duplicating accounting data manually. See the **Inventory Repair and Sales Workflow Diagnostic Roadmap** for the exact data flow.
