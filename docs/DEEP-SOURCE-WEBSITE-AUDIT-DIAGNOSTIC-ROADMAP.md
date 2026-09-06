@@ -406,3 +406,43 @@ Then:
 ### Failure-prevention rule
 
 Never use a generic package label as permission to collapse all same-model source pages into one catalogue identity. Generic rows are broad search starting points, not catch-all evidence destinations.
+
+
+---
+
+## 6 September 2026 — Mavic 3 package reassignment verification
+
+### Trigger
+
+The Mavic 3 MPB Deep Source batch exposed the same broad-family routing problem previously corrected for Mavic 2. Multiple exact MPB pages had been attached to **Mavic 3 — Standard Package**.
+
+### First failure identified
+
+The source pages were exact and valid; the failure was catalogue identity granularity/routing. A broad `Mavic 3` model token was insufficient to distinguish:
+
+- Pro;
+- Classic;
+- Enterprise;
+- Fly More Combo;
+- Cine Premium Combo;
+- controller-specific Enterprise configuration;
+- battery accessory.
+
+### Data correction completed
+
+Exact package rows were added where absent, existing rows were reused where present, the pending candidates were reassigned and applied, and the already-applied Enterprise RC Pro evidence was moved from the generic Standard Package to the exact controller package.
+
+### Verification outcome
+
+The reviewed Mavic 2/Mavic 3 batch now has **0 pending findings**. One duplicate exact-page discovery was retained as rejected audit history; no valid source evidence was discarded.
+
+### Regression test
+
+The next Deep Source/Gemma test should deliberately use a package-heavy DJI family and confirm:
+
+1. category/family pages are discovery-only;
+2. exact MPB pages are reached;
+3. page title/canonical URL controls identity;
+4. known exact package rows receive the evidence;
+5. missing exact identities create a new-product candidate instead of contaminating Standard Package;
+6. accessories remain separate products.
