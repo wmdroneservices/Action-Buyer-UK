@@ -608,8 +608,8 @@ async function loadContinuousResearch(){
  if(on)select.value='continuous';
  const help=$('research-run-help');
  if(help)help.innerHTML=on
-   ?'<strong>Continuous research is active.</strong> Select a numbered batch and press RUN RESEARCH to stop automatic continuation and begin that batch.'
-   :'Choose a batch size above, or select <strong>Continuous</strong> to keep working through the catalogue until you switch back to a numbered batch and run research again.';
+   ?'<strong>Continuous research is active.</strong> Select a numbered regular research batch and press RUN SELECTED AI RESEARCH to stop automatic continuation and begin that batch.'
+   :'Choose a regular research batch size above, or select <strong>Continuous</strong> to keep working through the catalogue until you switch back to a numbered batch and run research again.';
 }
 async function clearQueuedResearch(silent=false){
  const {data,error}=await sb.rpc('ai_research_clear_queue');
@@ -701,7 +701,7 @@ async function runDeepSourceAudit(){
      deep_source_url:url
    };
    const scope=[body.manufacturer,body.model,body.category,body.product_type].filter(Boolean).join(' · ')||'next available products';
-   deepMsg('Deep Source Audit started for '+scope+'. The normal All Sources / Amazon UK Only filter is ignored for this run: the worker is locked to the selected Deep Source domain, uses the landing page only for discovery, and returns exact product pages only.');
+   deepMsg('Deep Source Audit started for '+scope+'. The shared product filters identify what is being audited. The normal Regular AI Research market and All Sources / Amazon UK Only controls are ignored for this run: the worker is locked to the selected Deep Source domain, uses the landing page only for discovery, and returns exact product pages only.');
    const {data,error}=await sb.functions.invoke('quote-catalog-ai-worker',{body});
    if(error){
      const detail=error.context&&typeof error.context.text==='function'?await error.context.text().catch(()=>null):null;
@@ -755,7 +755,7 @@ async function runResearch(){
      msg(r.message||'Research request queued.',false);
    }
    await Promise.all([load(),loadSources(),loadAgentStatus(),loadLiveResearch()]);
- }finally{if(b){b.disabled=false;b.textContent='RUN RESEARCH'}}
+ }finally{if(b){b.disabled=false;b.textContent='RUN SELECTED AI RESEARCH'}}
 }
 function edit(id){editingId=editingId===id?null:id;render();}
 async function saveEdit(id){
