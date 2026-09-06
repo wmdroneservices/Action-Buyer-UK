@@ -2299,3 +2299,16 @@ The additions preserve controller/package identity while preventing MPB’s reta
 ### Remaining ambiguity rule
 
 Mixed-controller aggregate pages, such as the observed DJI Mini 4 Pro MPB page, remain pending until evidence can be separated by exact unit/package identity.
+
+
+## Management-only Outlet Registry — 6 September 2026
+
+Outlet administration is available only from the central **GearCashOut Staff Dashboard**, alongside the existing management-facing functions. Management users can open **OUTLET MANAGEMENT** to add an outlet and activate or deactivate it. The registry supports owned websites, marketplaces, auction outlets and other outlets.
+
+Security and preservation rules:
+
+- the page performs its own authenticated active-management check before rendering controls;
+- database RLS separately enforces management-only writes;
+- ordinary sales staff can read active outlets for legitimate listing work but cannot create or alter outlets;
+- outlets are deactivated rather than deleted so historical listing relationships remain intact;
+- no service-role credential is present in the browser.
