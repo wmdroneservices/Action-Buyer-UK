@@ -1137,3 +1137,12 @@ No database schema, RLS, review-feedback RPC or live-evidence application RPC wa
 The **Landing page URL** control now remembers previously used valid Deep Source URLs on the staff device/browser and presents them as dropdown suggestions. Entering a new valid full URL adds it to the history; duplicates are moved to the top. The selected URL remains explicit for every run and is still passed as `deep_source_url`.
 
 This history is a convenience layer only. It does not alter source isolation, evidence scope or the exact Deep Source URL selected for the audit.
+
+
+## Deep Source website selection and source-filter isolation — 6 September 2026
+
+The Deep Source landing-page field now uses the approved GearCashOut source registry as its primary suggestion list. Approved, enabled, live quote_catalog_ai_sources.homepage_url values are offered in the dropdown, with local previously used URLs appended without duplication.
+
+Deep Source runs are isolated from the normal All Sources / Amazon UK Only selector. The dashboard sends evidence_scope: deep_source plus the selected deep_source_url; the worker Edge Function routes that request directly into ai_research_create_deep_source_run(...). The normal all/Amazon branch is not used.
+
+For operators: seeing All Sources selected while preparing a Deep Source audit does not broaden that Deep Source audit. The selected landing-page domain controls the Deep Source run.
