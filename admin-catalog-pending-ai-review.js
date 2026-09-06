@@ -109,7 +109,7 @@ function candidateMarkup(c,index){
  +'<label class="catalog-pending-wide"><span>Exact source URL'+(url?' <a class="catalog-pending-verify-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">OPEN / VERIFY PAGE ↗</a>':'')+'</span><input data-field="edited_source_url" type="url" value="'+esc(url)+'"></label>'
  +'<label class="catalog-pending-wide">Evidence notes<textarea data-field="edited_evidence_notes" rows="2">'+esc(effective(c,'edited_evidence_notes','evidence_notes'))+'</textarea></label>'
  +'</div>'
- +'<div class="catalog-pending-checks"><strong>VERIFY EACH FIELD</strong>'
+ +'<div class="catalog-pending-checks"><div class="catalog-pending-checks-head"><strong>VERIFY EACH FIELD</strong><label class="catalog-pending-check-all"><input type="checkbox" data-review-all-correct> <span>CHECK ALL — AI WAS RIGHT</span></label></div>'
  +[['price','FROM / TO PRICE RANGE'],['product_match','PRODUCT / MODEL / PACKAGE'],['url','EXACT PRODUCT PAGE URL'],['condition','CONDITIONS REPRESENTED'],['availability','AVAILABILITY'],['source','SOURCE / RETAILER'],['evidence_bucket','EVIDENCE CATEGORY']].map(([k,label])=>'<label>'+label+((url&&['price','product_match','url'].includes(k))?'<a class="catalog-pending-verify-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">OPEN SOURCE PAGE ↗</a>':'')+'<select data-review-outcome="'+k+'">'+outcome+'</select></label>').join('')
  +'</div>'
  +'<label class="catalog-pending-wide">Review reason / correction reason<textarea data-review-reason rows="3" placeholder="Required when denying. Also explain any corrections so Gemma can learn."></textarea></label>'
@@ -191,6 +191,25 @@ async function reviewCandidate(id,decision,button){
 function openProduct(id){
  const url=new URL(location.href);url.searchParams.set('product',id);location.href=url.pathname+url.search+url.hash;
 }
+
+document.addEventListener('change',e=>{
+ const bulk=e.target.closest('[data-review-all-correct]');
+ if(bulk){
+   const card=bulk.closest('[data-pending-candidate]');
+   card?.querySelectorAll('[data-review-outcome]').forEach(select=>{select.value=bulk.checked?'correct':'';});
+   return;
+ }
+ const field=e.target.closest('[data-review-outcome]');
+ if(field){
+   const card=field.closest('[data-pending-candidate]');
+   const bulkBox=card?.querySelector('[data-review-all-correct]');
+   if(bulkBox){
+     const outcomes=[...card.querySelectorAll('[data-review-outcome]')];
+     bulkBox.checked=outcomes.length>0&&outcomes.every(select=>select.value==='correct');
+     bulkBox.indeterminate=!bulkBox.checked&&outcomes.some(select=>select.value==='correct');
+   }
+ }
+});
 
 document.addEventListener('click',e=>{
  const catalogueEdit=e.target.closest('.edit-product');if(catalogueEdit){setTimeout(renderCurrentProductPending,80);}
