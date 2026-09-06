@@ -2242,3 +2242,10 @@ The worker was also updated to **1.5.5**. New Deep Source product candidates now
 ### Phase 2 catalogue-to-inventory identity propagation
 
 From 6 September 2026, the paid seller-purchase inventory creation path attempts a catalogue link only when manufacturer, model and package identify exactly one `quote_catalog_products` row. Ambiguous or missing matches remain unlinked for staff review; no fuzzy or family-level automatic matching is used. The relevant functions are `resolve_quote_item_catalog_product`, `staff_backfill_inventory_catalog_links` and the updated `staff_mark_sale_paid_and_create_inventory`.
+
+
+## Inventory SKU and warehouse identity — 6 September 2026
+
+Every physical item entering `inventory_assets` now receives an immutable unique GearCashOut SKU automatically. The SKU is the operational identity for the individual physical unit and is separate from the master `catalog_product_id` (which identifies the product type). Current format is `GCO-YYYY-######`.
+
+This supports labels, barcode/QR implementation, warehouse location tracking, stock picking, marketplace/website listing reconciliation and audit history. Warehouse foundations are `inventory_locations` and `inventory_location_movements`; staff movement is recorded through `staff_move_inventory_asset`.
