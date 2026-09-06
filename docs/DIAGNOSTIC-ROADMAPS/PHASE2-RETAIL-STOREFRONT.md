@@ -350,3 +350,44 @@ No task-board action mutates the database.
 - broad client-side reads should be reviewed again as transaction volume grows;
 - first real-world validation still depends on live purchases/inventory/listings entering each workflow branch;
 - category filters are presentation-only and must never be mistaken for permission controls.
+
+
+## Controlled Phase 2 Test Inventory — created 6 September 2026
+
+### Purpose
+
+Provide real-shaped Inventory and Sales records before genuine purchases begin flowing through the system.
+
+### Current sample batch
+
+**8 inventory assets**
+
+- TEST-ASSET-001 — Ready for Resale
+- TEST-ASSET-002 — Ready for Resale
+- TEST-ASSET-003 — Repair Required
+- TEST-ASSET-004 — Sent to Sales
+- TEST-ASSET-005 — Sent to Sales / 120+ day slow-moving scenario
+- TEST-ASSET-006 — Inspection Required
+- TEST-ASSET-007 — Sent to Sales / multi-channel scenario
+- TEST-ASSET-008 — Ready for Resale
+
+**4 resale listings**
+
+- Website Draft
+- Website Published slow-moving scenario
+- eBay Published
+- Facebook Marketplace Delist Required
+
+### Data flow under test
+
+quote_catalog_products → controlled inventory_assets → production SKU generation → Inventory/Sales dashboards → resale_listings → What Needs Doing / Stock Strategy / future storefront testing.
+
+### Cleanup path
+
+Management → existing **Delete All Test Data** → reset_test_quote_data().
+
+The verified function already deletes inventory_return_data → customer_return_requests → resale_transactions → resale_listings → inventory_assets → purchasing test workflow records.
+
+### Safety rule
+
+Do not run the destructive reset while genuine production data exists unless the reset architecture is first redesigned to target test records only. The current reset function is an environment-wide test reset, not a selective per-record test cleanup.
