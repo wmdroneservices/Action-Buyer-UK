@@ -2731,3 +2731,6 @@ The repair screen then shows the recorded fault/defect so staff can see what req
 Developer investigation map:
 
 `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
+### Sales handoff after repair
+
+A repaired item whose original inspection outcome was **Requires Repair** is not forced to repeat the original inspection merely to satisfy the Sales handoff. GearCashOut accepts that inspection outcome only after a completed repair record exists. All other Sales requirements remain in force.
