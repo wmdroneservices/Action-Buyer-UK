@@ -1968,3 +1968,38 @@ Checking it marks all seven field outcomes as **AI WAS RIGHT** in one action:
 - evidence category.
 
 If any individual field is subsequently changed, the bulk checkbox automatically reflects that the whole set is no longer unanimously marked correct. This is only a review-input shortcut: nothing is written to the candidate or live catalogue until the normal **ACCEPT & ADD TO CATALOGUE** action completes.
+
+
+---
+
+## 6 September 2026 — Valid evidence routing and catalogue reassignment
+
+### Decision
+
+A model or package mismatch must no longer cause otherwise valid research to be discarded.
+
+The research pipeline now treats a mismatch as a **review and routing condition**:
+
+1. the candidate remains pending;
+2. the original mismatch state is preserved for human review;
+3. staff can select the correct catalogue product;
+4. the candidate is reassigned without recreating or re-researching the source;
+5. source URL, title, price/range, condition, availability, notes and timestamps remain on the same candidate record;
+6. an audit row records the original and destination catalogue product.
+
+### Diagnostic route
+
+**Pending catalogue evidence card**
+→ `admin-catalog-ai-evidence-reassignment.js`
+→ `reassign_ai_candidate(...)`
+→ `quote_catalog_ai_candidates.catalog_product_id`
+→ `quote_catalog_ai_candidate_reassignments`
+→ candidate appears under the correct catalogue product for normal verification and acceptance.
+
+### Database change
+
+`ai_research_submit_candidate(...)` now permits valid `package_match='mismatch'` or `variant_match='mismatch'` findings to enter the pending review queue. This is intentional: mismatch is no longer a data-loss rule.
+
+### Safety
+
+Reassignment is limited to pending, unapplied candidates and requires staff access. Applied evidence cannot be silently moved.
