@@ -1964,3 +1964,35 @@ Current front-end ownership:
 `inventory-detail.html` → `inventory-workbench.js` → `inventory-sales-handoff.js` (handoff statuses only).
 
 Diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+
+---
+
+## Operating Rule — Sold Shipping States and UK Tax-Year Archive (6 September 2026)
+
+This supersedes the earlier rule that treated `inventory_assets.status='Sold'` as the single post-sale state.
+
+Authoritative inventory lifecycle:
+
+`Sent to Sales / Listed / Reserved → Sold - Awaiting Shipping → Sold - Shipped → Archived`
+
+Rules:
+
+1. Marking a resale listing sold sets the inventory asset to **Sold - Awaiting Shipping**.
+2. Recording a label does not mean the item has shipped.
+3. **Mark Collected / Shipped** moves the asset to **Sold - Shipped**.
+4. **Mark Delivered** records delivery and starts the current 30-day operational return hold in `inventory_assets.return_window_ends_at`.
+5. A customer return may only be opened for a delivered **Sold - Shipped** item.
+6. Do not merge buyer returns with `purchase_return_cases`.
+7. After the return hold ends, delivery is recorded and no buyer return is open, `staff_archive_sales_asset(...)` moves the asset to **Archived**.
+8. Archiving is non-destructive. The same inventory, inspection, evidence, expenses, listing and sales records remain available.
+9. `archive_tax_year` uses the UK tax year boundary: 6 April to 5 April.
+10. Legacy `Sold` records remain readable and are normalised into the new shipping flow when staff create fulfilment.
+
+Front-end ownership:
+
+- `sold-items.html` + `sold-after-sales.js` — active post-sale work.
+- `sales-archive.html` + `sales-archive.js` — UK tax-year archive.
+- `asset-state-machine.js`, `admin-sales-dashboard.js`, `live-task-board.js` — shared lifecycle presentation.
+
+Diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
