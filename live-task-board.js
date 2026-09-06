@@ -48,6 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ]);
 
       const [valuations,sales,shipments,purchaseReturns,assets,listings,customerReturns]=results.map(r=>r.data||[]);
+      const openCustomerReturnAssetIds=new Set(customerReturns
+        .filter(r=>!["resolved","refused","closed","complete","completed","cancelled"].includes(String(r.status||"").trim().toLowerCase().replaceAll("_"," ").replaceAll("-"," ")))
+        .map(r=>r.asset_id)
+        .filter(Boolean));
       const tasks=[];
 
       valuations.forEach(v=>{
@@ -105,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "Sold":["Move legacy sold item into shipping",name+" is a legacy sold record and needs the current shipping workflow.","SALES"],
           "Sold - Awaiting Shipping":["Arrange shipping",name+" has sold and requires carrier/tracking and collection.","SALES"],
           "Sold - Shipped":["Monitor delivery / return window",name+" is shipped and must remain in post-sale monitoring until the return window ends.","SALES"],
-          "Returned":["Review returned item",name+" has been returned and needs assessment.","SALES"],
+          "Returned":openCustomerReturnAssetIds.has(a.id)?null:["Review returned item",name+" has been returned and needs assessment.","SALES"],
           "Dispatched":["Confirm delivery and completion",name+" has been dispatched and should be followed through.","SALES"]
         };
         if(map[status]){
