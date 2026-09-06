@@ -2751,3 +2751,22 @@ Search modes:
 Results show the product, SKU, transaction number and current workflow status, with a direct **VIEW ITEM** handoff to `inventory-detail.html?id=<asset_id>`.
 
 This is a read-only convenience search over the existing `inventory_assets` truth. It does not create a separate stock index or change workflow state.
+
+
+## Post-sale fulfilment and customer returns — 6 September 2026
+
+The resale workflow now continues after an item is marked **Sold**. The physical inventory record remains the authoritative sold record and stays visible in **Sold Items**; fulfilment is tracked separately.
+
+**Sold → Create/record shipping label → Ready for Collection (optional) → Collected → Delivered**
+
+`sales_fulfillments` records buyer/shipping details, carrier, tracking, label URL and timestamps.
+
+### Separate customer-return process
+
+`purchase_return_cases` remains for customer-owned items GearCashOut did **not** purchase during Purchasing. Post-sale buyer returns use the separate `sales_customer_returns` workflow:
+
+**Requested → Approved → Label Created → Collected → Item Received → Resolved/Refused**
+
+When a buyer return is physically received, the inventory asset moves to **Returned** for review while sold history remains recorded.
+
+**Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
