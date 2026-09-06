@@ -270,3 +270,58 @@ If a customer return is resolved or refused **before the item is physically rece
 **Repair:** TEST-ASSET-007 was reconciled only after confirming the linked fulfilment was genuinely Collected. Its asset status is now **Sold - Shipped**; the fulfilment remains **Collected**.
 
 **Rule:** do not overwrite the current fulfilment RPC based on this incident alone. If repeated, capture the browser RPC call and transaction timing first, then inspect for a reproducible database invariant failure.
+
+## Customer return assessment, disposal and accounts capture — 7 September 2026
+
+### User decision
+
+A physically received buyer return must not be closed with a single **Mark Return Resolved** action.
+
+Before resolution, staff must record:
+
+- the return-label cost;
+- what happened and the return assessment;
+- damage or condition found;
+- what happened to the returned item;
+- whether it is returned to stock/resale, sent to auction, broken down for spares, sent for repair, sold as second-hand spares, written off/recycled or another documented outcome;
+- how the customer was resolved;
+- refund method, amount, provider/processor and transaction reference where applicable;
+- replacement asset/reference and notes where a replacement was supplied.
+
+### Front end
+
+- `sales-customer-returns.html`
+- `sales-customer-returns.js`
+
+### Supabase
+
+Table: `sales_customer_returns`
+
+New closure/accounting fields include:
+
+- `return_label_cost`
+- `resolution_summary`
+- `damage_assessment`
+- `item_disposition`
+- `customer_resolution_type`
+- `refund_method`
+- `refund_provider`
+- `refund_amount`
+- `refund_reference`
+- `replacement_asset_id`
+- `replacement_reference`
+
+RPCs:
+
+- `staff_record_sales_customer_return_label(...)`
+- `staff_resolve_sales_customer_return(...)`
+
+### Required closure rule
+
+`Item Received → mandatory assessment + financial/customer resolution details → Resolved`
+
+The legacy generic `resolve` action now refuses to close an Item Received return without the detailed closure record.
+
+### Accounting principle
+
+The customer-return record is now an operational accounting source record. It does not yet replace a future accounts ledger, but costs, refunds, payment method/provider and references are retained so that a later accounts system can consume them without reconstructing the event from notes.
