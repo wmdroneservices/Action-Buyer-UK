@@ -1797,3 +1797,57 @@ Never restore the previous shortcut where a passing inspection/testing save coul
 ### Sales Dashboard repair count rule — 6 September 2026
 
 When changing `admin-sales-dashboard.js`, keep `Repair Required` visible as its own pipeline count. Do not silently merge it back into the general Inventory card. The dashboard reads `inventory_assets.status`; general Inventory excludes `Repair Required`, and `repair-count` is calculated separately. A repair state is operationally blocked and should use the red repair pipeline styling when work exists.
+
+
+---
+
+## Multi-AI Coordination and Shared Project Memory — 6 September 2026
+
+### Current multi-agent arrangement
+
+More than one ChatGPT technical agent may be working on GearCashOut at the same time.
+
+Current known streams include:
+
+- **AI research stream:** Quote Catalogue, evidence, Gemma, Research PC, Ollama, package matching and research learning.
+- **Sales stream:** inventory, testing, repair, resale, listings, sales dashboards and related operational workflows.
+
+Both streams use the same repository and Supabase project. Therefore, neither agent may treat its own conversation history or checkpoint as the complete current system state.
+
+### Mandatory shared-state retrieval
+
+Before material work, retrieve and compare:
+
+1. relevant Supabase project-memory rules;
+2. current checkpoints relevant to the task;
+3. recent project-memory events, especially from other areas;
+4. current GitHub code and recent commits;
+5. current Supabase schema and affected live data.
+
+If another agent has recently changed a shared dependency, inspect that change before editing.
+
+### Concurrent checkpoint rule
+
+Do not replace another workstream's checkpoint simply because it is the newest current checkpoint. Checkpoints describe work context; they do not grant exclusive ownership of the whole project.
+
+For cross-stream coordination:
+
+- record material work as area-specific events;
+- keep the active task area explicit;
+- reference commits/database objects where possible;
+- avoid changing another stream's documented workflow without inspecting it;
+- update both manuals when a change alters system-wide behaviour.
+
+### Conflict prevention
+
+If repository state, Supabase state and memory disagree, treat **current deployed code/database state** as the operational fact to investigate, then correct the documentation and memory.
+
+Never resolve a disagreement by assuming one AI's earlier explanation is authoritative.
+
+### Shared-memory principle
+
+The working model is:
+
+**Research AI discoveries + sales/inventory changes + human decisions → shared Supabase memory → current GitHub/Supabase verification → both manuals updated where relevant.**
+
+This is the continuity mechanism that allows separate AI workstreams to contribute to one coherent system without relying on private conversation memory.
