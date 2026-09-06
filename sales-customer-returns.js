@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
       }else if(r.status==='Approved'){
         action=labelForm(r);
       }else if(r.status==='Label Created'){
-        action='<div class="notice"><strong>Return label recorded</strong><br>Carrier: '+esc(r.carrier||'Not recorded')+'<br>Tracking: '+esc(r.tracking_number||'Not recorded')+'<br>Label cost: '+money(r.return_label_cost)+'</div><div style="margin-top:.75rem"><button class="btn btn-primary return-action" data-id="'+r.id+'" data-action="collected">MARK RETURN COLLECTED</button> <button class="btn btn-secondary edit-label" data-id="'+r.id+'">EDIT RETURN LABEL / COST</button></div>';
+        action='<div class="notice"><strong>Return label recorded</strong><br>Carrier: '+esc(r.carrier||'Not recorded')+'<br>Tracking: '+esc(r.tracking_number||'Not recorded')+'<br>Label cost: '+money(r.return_label_cost)+'</div>'+labelForm(r)+'<div style="margin-top:.75rem"><button class="btn btn-primary return-action" data-id="'+r.id+'" data-action="collected">MARK RETURN COLLECTED</button></div>';
       }else if(r.status==='Collected'){
         action='<button class="btn btn-primary return-action" data-id="'+r.id+'" data-action="received">MARK ITEM RECEIVED</button>';
       }else if(r.status==='Item Received'){
@@ -80,13 +80,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
       const {error}=await rpc(b.dataset.id,'refuse',{p_refusal_reason:reason});
       if(error){alert(error.message);return;}
       load();
-    }));
-
-    list.querySelectorAll('.edit-label').forEach(b=>b.addEventListener('click',async()=>{
-      const row=Array.from(list.querySelectorAll('.valuation-card')).find(card=>card.querySelector('[data-id="'+b.dataset.id+'"]'));
-      if(row) b.parentElement.insertAdjacentHTML('afterend',labelForm({id:b.dataset.id}));
-      bindEvents();
-      b.disabled=true;
     }));
 
     list.querySelectorAll('.label-form').forEach(f=>f.addEventListener('submit',async e=>{
