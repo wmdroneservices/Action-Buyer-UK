@@ -241,3 +241,24 @@ These are advisory only. No automatic stock movement, price change or listing cl
 3. confirm age uses `acquired_at` with `created_at` fallback;
 4. confirm active listing counts use central listing statuses;
 5. never use this report to create a second inventory truth.
+
+
+## Outlet Coverage & Controlled Sales Handoff — implemented 6 September 2026
+
+### User action
+
+Management → Staff Dashboard → Slow-Moving Stock → inspect SKU coverage → **OPEN SALES WORKBENCH**.
+
+### Data flow
+
+`inventory_assets` SKU → active `resale_listings` → active `sales_outlets` comparison → coverage/missing-outlet report → existing `listing-readiness.html?id=<asset_id>`.
+
+### Security boundary
+
+The strategy RPC remains management-only. The Sales Workbench keeps its own authenticated staff checks and existing listing/sold-state workflow. The handoff carries only the asset ID in the URL; it does not grant extra permissions.
+
+### Failure points
+
+- outlet deactivation changes future coverage calculations but preserves history;
+- listings without `outlet_id` remain visible through compatibility channel text but cannot satisfy a specific registry outlet match until associated;
+- no automatic listing creation is permitted from this reporting layer.
