@@ -2540,3 +2540,44 @@ The overlapping **Standard Package** and accessory-only **Fly More Kit** catalog
 - **Fly More Combo** where the source explicitly identified the complete combo.
 
 Generic MPB/model-level evidence and exact accessory-only Fly More Kit evidence were not reassigned to a guessed drone package. This preserves the core rule that uncertainty must remain unresolved rather than being converted into false package certainty.
+
+
+---
+
+## Valuation Catalogue Duplicate-Option Guard — 6 September 2026
+
+A reported customer-side duplicate Mavic 3 Classic package display was investigated against the live Supabase catalogue before deleting any product.
+
+### Database result
+
+The live active/customer-visible DJI Mavic 3 Classic catalogue contains four distinct package identities:
+
+- Drone Only;
+- Fly More Combo;
+- Standard Package (DJI RC-N1);
+- Standard Package (DJI RC).
+
+No duplicate normalised manufacturer + model + package-key rows were present. The controller-specific Standard Packages must remain separate because they represent different package identities.
+
+### Front-end protection
+
+The valuation wizard remains database-driven through:
+
+`valuation.html` → `quote-reverse-basket-v5.js` → `quote_catalog_products`.
+
+A defence-in-depth `quote-catalog-dropdown-guard.js` now removes only true duplicate dropdown identities:
+
+- categories/product types/manufacturers/models by normalised display identity;
+- packages by normalised package key.
+
+This does not collapse legitimate controller variants. The valuation script cache version was also advanced so browsers fetch the current catalogue code rather than continuing to use an older cached script.
+
+### Diagnostic lesson
+
+Before deleting an apparent duplicate from the catalogue, verify the live normalised database identity and distinguish:
+
+**same model + same package key = duplicate candidate**
+
+from:
+
+**same model + different controller/package key = legitimate package variant**.
