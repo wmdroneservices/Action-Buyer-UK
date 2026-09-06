@@ -44,7 +44,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
       }
 
       const transaction='<div class="notice" style="margin-top:.75rem"><strong>Transaction and return timeline</strong><br><br><strong>Sold:</strong> '+dateTime(a.sold_at)+'<br><strong>Customer paid:</strong> '+money(a.sold_price)+'<br><strong>Sales channel:</strong> '+esc(a.sold_channel||'Not recorded')+'<br><br><strong>Return opened:</strong> '+dateTime(r.created_at)+'<br><strong>Return collected:</strong> '+dateTime(r.collected_at)+'<br><strong>Item returned to GearCashOut:</strong> '+dateTime(r.item_received_at)+'</div>';
-      return '<article class="valuation-card" style="margin-bottom:1rem"><p class="section-kicker">'+esc(r.status)+'</p><h2>'+esc(product)+'</h2><p>'+esc(r.return_reference)+' · SKU '+esc(a.sku||'Not recorded')+' · '+esc(a.transaction_number||'')+'</p>'+transaction+'<div class="notice" style="margin-top:.75rem"><strong>Reason</strong><br>'+esc(r.reason)+'<br><br><strong>Customer notes</strong><br>'+esc(r.customer_notes||'None recorded')+'</div><div style="margin-top:1rem">'+action+'</div></article>';
+      const isActive=!['Resolved','Refused','Closed','Complete','Completed','Cancelled'].includes(r.status);
+      const summary='<span><strong>'+esc(product)+'</strong><br><small>'+esc(r.status)+' · '+esc(r.return_reference)+' · SKU '+esc(a.sku||'Not recorded')+'</small></span><span style="margin-left:auto;font-size:.8rem;white-space:nowrap">VIEW DETAILS ▾</span>';
+      const body='<div style="padding-top:.9rem"><p>'+esc(a.transaction_number||'')+'</p>'+transaction+'<div class="notice" style="margin-top:.75rem"><strong>Reason</strong><br>'+esc(r.reason)+'<br><br><strong>Customer notes</strong><br>'+esc(r.customer_notes||'None recorded')+'</div><div style="margin-top:1rem">'+action+'</div></div>';
+      return '<details class="valuation-card customer-return-card" style="margin-bottom:1rem"'+(isActive?' open':'')+'><summary style="display:flex;align-items:center;gap:1rem;cursor:pointer;list-style:none;padding:.25rem 0">'+summary+'</summary>'+body+'</details>';
     }).join('');
 
     bindEvents();
