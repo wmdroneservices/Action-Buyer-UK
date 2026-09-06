@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       listings.forEach(l=>{
         if(String(l.status||"").toLowerCase()==="delist required"){
-          addTask(tasks,{category:"SALES",title:"Close duplicate marketplace listing",detail:(l.listing_title||l.listing_reference||"Marketplace listing")+" must be closed to prevent a duplicate sale.",href:"sold-items.html#delist-actions",when:l.updated_at||l.created_at,reference:l.listing_reference,priority:"critical"});
+          addTask(tasks,{category:"SALES",title:"Close duplicate marketplace listing",detail:(l.listing_title||l.listing_reference||"Marketplace listing")+" must be closed to prevent a duplicate sale.",href:"delist-actions.html",when:l.updated_at||l.created_at,reference:l.listing_reference,priority:"critical"});
         }
       });
 
