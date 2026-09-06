@@ -1354,3 +1354,38 @@ For package-heavy families, the worker must treat these as separate identities w
 A family-name match alone is not sufficient to place evidence into a Standard Package.
 
 When the exact identity is already in the catalogue, route evidence there. When it is not, preserve the evidence and surface a new-product candidate/reassignment path. Do not force the evidence into a generic package and do not discard it.
+
+
+---
+
+## DJI package-identity checkpoint — 6 September 2026
+
+### Trigger
+
+A live Gemma regression test found **Used DJI Mini 2 with RC-N1 Controller | MPB** and matched it to the catalogue's generic **Mini 2 — Standard Package**. The model match was correct, but the catalogue identity was too vague to teach the system what the base package actually contained.
+
+### Implemented database normalisation
+
+The following live quote_catalog_products records were renamed and given controller-specific package keys:
+
+- Air 2 → `Standard Package (DJI RC-N1)` / `standard-rc-n1`
+- Air 2S → `Standard Package (DJI RC-N1)` / `standard-rc-n1`
+- Mavic Air → `Standard Package (Mavic Air Controller)` / `standard-mavic-air-controller`
+- Mini 2 → `Standard Package (DJI RC-N1)` / `standard-rc-n1`
+- Mini 4K → `Standard Package (DJI RC-N1)` / `standard-rc-n1`
+
+### Non-negotiable matching lesson
+
+Do not treat every generic DJI “Standard Package” record as safely equivalent to one controller configuration. Some MPB model pages legitimately contain mixed controller variants. The first failure point must be identified from the candidate title, package/controller evidence and catalogue identity before splitting or reassigning records.
+
+### Next work
+
+Use a broader DJI research pass as a regression test. Inspect candidate → package/variant match → catalogue target, especially for:
+
+- RC-N1 / RC-N2 / RC-N3;
+- DJI RC / RC 2 / RC Pro;
+- Fly More / Combo / Premium;
+- aircraft-only and no-controller listings;
+- accessories and batteries.
+
+Do not publish uncertain mixed-controller evidence automatically.
