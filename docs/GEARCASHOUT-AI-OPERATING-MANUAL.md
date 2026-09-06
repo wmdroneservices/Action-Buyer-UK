@@ -1789,4 +1789,6 @@ Confirmed fault: the Product Workbench handled `Testing` → `Ready for Resale`,
 
 Do not treat `Repair Required` as a label that can be cleared manually. Before allowing an asset back into testing, verify the live asset status is `Repair Required`, the fault is visible, a repair record is created through `staff_complete_inventory_repair(...)`, any repair cost is recorded in `inventory_expenses`, and the function moves the asset to `Testing`. Post-repair testing must then pass normally before `Ready for Resale`.
 
+When repairing this workflow, inspect the live `inventory_expenses_category_check` constraint before changing the RPC. `Repair` is a required allowed category because the RPC writes linked repair costs transactionally. If the category constraint omits `Repair`, the RPC fails and rolls back without creating the repair record.
+
 Never restore the previous shortcut where a passing inspection/testing save could move an asset directly out of `Repair Required` without a recorded repair.
