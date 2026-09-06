@@ -2184,3 +2184,30 @@ This is deliberately a worker-side compatibility repair. The database contract r
 
 ### Required verification
 After the Research PC reports worker 1.5.4, run a small controlled Deep Source test before another large manufacturer audit. Confirm that valid exact MPB candidates no longer fail with Invalid match status.
+
+
+---
+
+## Phase 2 — Retail Storefront Foundation — 6 September 2026
+
+GearCashOut now has an additive backend foundation for a separate branded retail storefront while preserving the existing multi-channel sales system.
+
+### Architecture decision
+
+The new public sales website is another sales channel, not a replacement for eBay or other marketplaces. Central inventory remains authoritative. Existing cross-channel sold/delist protection remains the operational model.
+
+### New backend foundation
+
+- `inventory_assets.catalog_product_id` links a physical inventory asset to its exact master catalogue product without guessing ambiguous matches.
+- `sales_storefronts` stores storefront-level configuration, including empty-category behaviour.
+- `sales_catalog_visibility` provides manufacturer/category/product visibility overrides with `auto`, `show` and `hide` modes.
+- `catalog_sales_content` stores reusable product-level hero imagery, manufacturer imagery and product description separately from valuation data.
+- `inventory_sales_content` stores item-specific condition description and listing presentation content separately from the master product.
+- `staff_sales_market_evidence(uuid)` provides sales-permitted staff with read-only market evidence for pricing once an inventory asset is linked to a catalogue product.
+- `staff_link_inventory_asset_catalog_product(uuid,uuid)` provides an explicit controlled link rather than unsafe automatic matching.
+
+### Diagnostic Roadmap
+
+See: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
+
+The public storefront repository has not yet been created because the retail brand/domain is still undecided. The shared Supabase infrastructure is intentionally brand-neutral at this stage.
