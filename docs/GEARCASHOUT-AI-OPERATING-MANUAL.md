@@ -1730,3 +1730,24 @@ The first diagnostic checks are:
 Do not filter the closure context only to inventory assets already selected by a Sold Items history query. The authoritative closure queue is `resale_listings.status='Delist Required'`.
 
 Security rule: the closure confirmation RPC must require `staff_users.active=true`.
+
+
+## Duplicate catalogue consolidation learning — 6 September 2026
+
+When a catalogue package is removed because it overlaps another canonical identity, Gemma must not solve the deletion by guessing a new destination for every attached finding.
+
+Use this sequence:
+
+1. Read the source identity.
+2. Identify explicit model, controller, bundle and accessory facts.
+3. Route only clear exact matches to the surviving canonical product.
+4. If identical evidence already exists there, do not duplicate it.
+5. Leave ambiguous model-level/package-unknown evidence unresolved; do not mark it exact.
+6. Keep accessory-only evidence separate from complete drone/package pricing.
+7. Remove stale candidate decisions created by a previous forced-routing mistake and record the correction as learning.
+
+### Mavic 3 Classic correction
+
+During consolidation, exact Fly More Combo evidence was moved to **Fly More Combo** and exact DJI RC evidence to **Standard Package (DJI RC)**. Official Drone Only evidence already existed on the correct destination, so redundant duplicate copies were removed. Generic MPB Mavic 3 Classic evidence and exact Fly More Kit accessory evidence were not forced into another drone package.
+
+**Hard learning rule:** ambiguity is a valid outcome. Never manufacture package certainty to keep a record attached to a catalogue row.
