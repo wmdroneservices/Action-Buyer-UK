@@ -159,3 +159,26 @@ Both traced paid-sale inventory creation routes now use the SKU default, and the
 3. build the staff outlet-management view with active/inactive controls;
 4. add stock-age and outlet-strategy reporting without changing sold-state truth;
 5. keep public storefront repositories restricted to their own outlet's published inventory.
+
+
+## Sales Workbench dynamic registry integration — implemented 6 September 2026
+
+### Front-end entry point
+
+`sales-workbench.js`
+
+### Flow
+
+Authenticated active staff → load inventory asset → load existing `resale_listings` → load active `sales_outlets` → render one block per active outlet → save listing with `asset_id + outlet_id`.
+
+### Security controls
+
+- active outlets filtered in database query;
+- RLS enabled on `sales_outlets`, `resale_listings` and `inventory_assets`;
+- staff authorization remains enforced server-side/database-side;
+- sold state remains handled by the existing authoritative RPC/trigger path;
+- no service-role secret is placed in browser code.
+
+### Known next step
+
+Build a management-only Outlet Registry interface rather than requiring direct database edits. It must use least privilege and must not allow ordinary sales staff to create arbitrary outlets.
