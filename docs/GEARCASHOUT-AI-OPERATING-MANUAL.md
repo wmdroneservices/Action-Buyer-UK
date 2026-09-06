@@ -1610,3 +1610,8 @@ For the management attention panel:
 7. refresh the operational pipeline independently from the management summary to avoid unnecessary management-RPC polling.
 
 The current implementation refreshes the normal sales workflow frequently and the management stock summary on a slower interval.
+
+
+### Alternative-product routing rule — 6 September 2026
+
+When a pending finding is valid but the original catalogue target is wrong, keep the finding and expose **ROUTE TO AN ALTERNATIVE PRODUCT**. Select the exact canonical destination using manufacturer → model → controller → bundle/package → accessories → variant. This is reassignment, not duplication: preserve one candidate and its audit trail, then continue normal verify/accept/apply review. Do not deny valid evidence merely because the first target was wrong.
