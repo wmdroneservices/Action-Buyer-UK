@@ -372,3 +372,17 @@ Current rule:
 **First verified failure:** TEST-ASSET-007 / CSR-E768FABB1E5B produced a correct customer-return task and a second generic asset task. The second CTA could route staff away from the mandatory assessment page.
 
 Repair location: `live-task-board.js`.
+
+
+## Customer Return Assessment — Transaction Context (7 September 2026)
+
+For a physically received buyer return, the assessment screen must show the linked sale and return timeline before staff complete closure:
+
+- date/time sold (`inventory_assets.sold_at`);
+- customer sale price (`inventory_assets.sold_price`);
+- sales channel (`inventory_assets.sold_channel`);
+- return opened (`sales_customer_returns.created_at`);
+- return collected (`collected_at`);
+- item physically received back (`item_received_at`).
+
+These are display-only transaction facts. They must not be re-entered manually during assessment. The existing mandatory closure fields remain the authoritative record of the return outcome and customer financial resolution.
