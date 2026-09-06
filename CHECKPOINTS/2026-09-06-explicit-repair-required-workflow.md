@@ -22,6 +22,12 @@
 
 No generic clear/bypass control exists. The RPC requires an active staff account and refuses any asset not currently in `Repair Required`.
 
+## Known fix — repair cost category mismatch
+
+During live testing, a £10 repair cost failed with `inventory_expenses_category_check` because the repair RPC wrote category `Repair` while the live database constraint did not permit it. The transaction rolled back, leaving no repair record.
+
+Fixed by adding `Repair` to the live `inventory_expenses_category_check` constraint and by adding migration `20260906220000_add_repair_inventory_expense_category.sql`.
+
 ## Test required
 
 Use TEST-ASSET-003 / GCO-2026-100012: open while Repair Required, confirm repair panel, record repair, confirm Testing, save passing post-repair tests, confirm Ready for Resale, then Send to Sales.
