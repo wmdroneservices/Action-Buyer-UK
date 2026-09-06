@@ -1215,3 +1215,31 @@ All shortcuts open the same candidate canonical source URL in a new tab. They ar
 When every field on a pending evidence card has been checked and is correct, use **CHECK ALL — AI WAS RIGHT** at the top of **VERIFY EACH FIELD**. This sets every field outcome to AI WAS RIGHT at once. You can still override any individual field afterwards; the checkbox then shows that the review is no longer unanimously correct.
 
 The checkbox does not accept, save or apply the evidence by itself. Finish with the normal **ACCEPT & ADD TO CATALOGUE** action.
+
+
+---
+
+## 6 September 2026 — Mismatched evidence preservation rule
+
+**Permanent rule: valid evidence must not be discarded solely because the originally targeted catalogue product is wrong.**
+
+The previous database contract rejected `variant_match='mismatch'` or `package_match='mismatch'` before review. This was unsafe for package-heavy product families because valid MPB/retailer evidence could be lost when Gemma or deterministic matching attached it to the wrong catalogue row.
+
+Current behaviour:
+
+- mismatch findings remain pending;
+- mismatch remains visible as an error/attention state;
+- staff can route the same candidate to the correct catalogue product;
+- the original target and reassignment history are retained;
+- no evidence is duplicated or recreated;
+- normal human verification still happens before acceptance and live application.
+
+Authorities:
+
+- submission: `ai_research_submit_candidate(...)`
+- reassignment: `reassign_ai_candidate(uuid,uuid,text)`
+- candidate record: `quote_catalog_ai_candidates`
+- reassignment audit: `quote_catalog_ai_candidate_reassignments`
+- review UI enhancement: `admin-catalog-ai-evidence-reassignment.js`
+
+Do not solve future package/model mismatches by filtering them out of the database again. Preserve first, route second, verify third.
