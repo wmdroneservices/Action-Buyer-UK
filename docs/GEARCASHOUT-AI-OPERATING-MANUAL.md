@@ -1615,3 +1615,28 @@ The current implementation refreshes the normal sales workflow frequently and th
 ### Alternative-product routing rule — 6 September 2026
 
 When a pending finding is valid but the original catalogue target is wrong, keep the finding and expose **ROUTE TO AN ALTERNATIVE PRODUCT**. Select the exact canonical destination using manufacturer → model → controller → bundle/package → accessories → variant. This is reassignment, not duplication: preserve one candidate and its audit trail, then continue normal verify/accept/apply review. Do not deny valid evidence merely because the first target was wrong.
+
+
+### Unified live-task intelligence rule
+
+live-task-board.js is the shared central action layer used by the main Staff Dashboard, Purchasing Dashboard and Sales Dashboard.
+
+When changing it:
+
+1. derive tasks from existing authoritative workflow records; do not create a competing task truth unless a separate task system is explicitly designed;
+2. assign explicit forced priority only to actions whose urgency is inherent in the workflow;
+3. retain age-based escalation for ordinary workflow actions;
+4. use the ranking order **CRITICAL → PRIORITY → OVERDUE → CURRENT**;
+5. keep **FOCUS NEXT** as a navigation recommendation, not an automatic action;
+6. deduplicate only identical task identities; never merge different required actions merely because they concern the same SKU;
+7. category filters must affect only browser display, not underlying database state;
+8. preserve the existing RLS/security boundary and do not introduce service-role credentials into browser code;
+9. version every dashboard page that loads the shared task-board script after material changes so cached staff pages receive the current workflow logic.
+
+Current explicit priority examples:
+
+- Delist Required marketplace listings → **CRITICAL**.
+- confirmed customer payment awaiting staff recording → **PRIORITY**.
+- Repair Required inventory → **PRIORITY**.
+
+All other ordinary tasks continue through age-based escalation unless a later verified workflow requirement changes this rule.
