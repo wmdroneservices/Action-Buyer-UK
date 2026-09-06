@@ -298,3 +298,55 @@ Central inventory/listing/outlet truth → management-only strategy RPC → comp
 - live unsold inventory count was zero at implementation, so first real-stock verification remains required;
 - active Outlet Registry currently exists independently of live inventory coverage testing;
 - the panel must not be mistaken for an automatic workflow engine.
+
+
+## Unified What Needs Doing Task Intelligence — implemented 6 September 2026
+
+### User action
+
+Staff → Main Dashboard / Purchasing Dashboard / Sales Dashboard → **What Needs Doing** → review priority → optionally filter work area → **FOCUS NEXT** or **VIEW** → existing workflow page.
+
+### Shared front-end entry point
+
+- live-task-board.js
+- style.css
+
+Loaded by:
+
+- admin.html
+- admin-purchasing.html
+- admin-sales-dashboard.html
+
+### Current authoritative data sources
+
+The board reads existing records only:
+
+- valuations
+- sales
+- shipments
+- purchase_return_cases
+- inventory_assets
+- resale_listings
+- customer_return_requests
+
+### Priority logic
+
+1. CRITICAL — forced immediate workflow risk.
+2. PRIORITY — important operational action.
+3. OVERDUE — age-based escalation.
+4. CURRENT — recent workflow action.
+
+The current forced CRITICAL rule is resale_listings.status = Delist Required.
+
+### Expected data flow
+
+Authoritative workflow tables → shared browser task collector → task identity/deduplication → priority ranking → summary counts → FOCUS NEXT → category filters → explicit existing workflow handoff.
+
+No task-board action mutates the database.
+
+### Known failure points
+
+- a new workflow status must be deliberately added to the task map or it will not appear as an actionable task;
+- broad client-side reads should be reviewed again as transaction volume grows;
+- first real-world validation still depends on live purchases/inventory/listings entering each workflow branch;
+- category filters are presentation-only and must never be mistaken for permission controls.
