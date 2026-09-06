@@ -474,3 +474,12 @@ TEST-ASSET-003 / GCO-2026-100012 exposed the fault: inspection and testing recor
 **Database:** `inventory_assets.status`, `inventory_testing`, new `inventory_repairs`, and linked `inventory_expenses` for repair cost. `staff_complete_inventory_repair(...)` checks active staff access, locks the asset, refuses any non-Repair Required state, records the repair and transitions to `Testing`.
 
 **Failure prevention:** no generic Clear Repair Required control. The normal release path is recorded repair followed by post-repair testing.
+
+
+## Repair workflow constraint alignment — 6 September 2026
+
+**Known failure:** the Product Workbench repair form can correctly call `staff_complete_inventory_repair(...)`, but a non-zero repair cost previously failed at `inventory_expenses_category_check` because the database category list omitted `Repair`.
+
+**First failure point:** `inventory_expenses` insert inside the secure repair RPC.
+
+**Required contract:** keep `Repair` in `inventory_expenses.category` alongside Collection, Postage, Accessories, Replacement Parts, Cleaning, Testing, Preparation and Other. The repair RPC, expense UI and database constraint must remain aligned.
