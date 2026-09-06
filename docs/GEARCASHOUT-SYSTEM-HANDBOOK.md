@@ -2270,3 +2270,32 @@ Equivalence states are **confirmed**, **probable** and **ambiguous**. Only confi
 The Sales Workbench no longer uses a hard-coded marketplace array. Active outlet blocks are read from the central `sales_outlets` registry, filtered by the database to active outlets only. Each saved listing carries `outlet_id` while retaining the existing sales-channel display field for compatibility. This means new owned websites, specialist stores and future auction outlets can be added centrally without editing the Sales Workbench source.
 
 Security: the browser uses the authenticated Supabase client and RLS-protected tables. The UI is not trusted as the authority for sold-state protection; the existing staff RPC/database workflow remains authoritative.
+
+
+---
+
+## 17Z. 6 September 2026 — DJI controller-aware package correction pass
+
+A live review of new Gemma/MPB findings confirmed that generic model titles must be checked against the **exact product page and observed included controller**, not matched by the words “Standard Package” alone.
+
+### Rules confirmed in live use
+
+- An explicit controller in an exact listing is a package-defining identity component.
+- If all observed units on an exact model page show the same controller, the evidence may be routed to that exact controller package.
+- If the observed units contain mixed controllers, one aggregate price range must **not** be forced into a single controller package.
+- An explicit **No RC** identity routes to **Drone Only**.
+- A separately titled battery/accessory must be treated as its own catalogue product, not as a drone package.
+- A controller-only identity must not be upgraded into **Fly More** unless the source positively proves the Fly More bundle.
+
+### Catalogue additions made
+
+- DJI Air 3S — Standard Package (DJI RC 2)
+- DJI Mini 5 Pro — Standard Package (DJI RC-N3)
+- DJI Neo — Drone Only
+- DJI Mini 5 Pro Intelligent Flight Battery — Standard Item
+
+The additions preserve controller/package identity while preventing MPB’s retailer wording from being mistaken for a different Fly More or premium bundle.
+
+### Remaining ambiguity rule
+
+Mixed-controller aggregate pages, such as the observed DJI Mini 4 Pro MPB page, remain pending until evidence can be separated by exact unit/package identity.
