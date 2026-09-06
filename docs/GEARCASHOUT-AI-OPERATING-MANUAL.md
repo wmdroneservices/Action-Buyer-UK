@@ -2001,3 +2001,22 @@ Diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLO
 ### Return closure compatibility
 
 If a customer return is resolved or refused **before the item is physically received**, restore the linked `sales_fulfillments.status` to `Delivered`. Otherwise the closed return would leave a permanent `Return Open` fulfilment that blocks later archiving. This compatibility repair is implemented in `staff_update_sales_customer_return(...)`.
+
+
+### Known post-sale reconciliation fault — TEST-ASSET-007 (6 September 2026)
+
+Observed state:
+
+- `sales_fulfillments.status = 'Collected'`
+- linked `inventory_assets.status = 'Sold'`
+
+Expected state after collection is **Sold - Shipped**. The asset was reconciled directly to **Sold - Shipped** after confirming the linked fulfilment collection timestamp. The current live `staff_update_sales_fulfillment(uuid,text)` function was inspected and already contains the correct asset update, so do not invent a root cause or replace the current RPC without reproducing a new failure.
+
+If this happens again, inspect in this order:
+
+1. exact RPC definition in live Supabase;
+2. browser network/RPC call and returned error;
+3. `sales_fulfillments` row;
+4. linked `inventory_assets` row;
+5. triggers on the affected tables;
+6. only then consider a backend invariant repair.
