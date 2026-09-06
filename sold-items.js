@@ -56,4 +56,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     <p style="margin-top:1rem"><a class="btn btn-secondary" href="inventory-detail.html?id=${encodeURIComponent(a.id)}">OPEN FULL ASSET RECORD</a></p></div>`;
     list.appendChild(card);
   }
+
+  // Group active post-sale records by operational stage without changing the underlying accounting record.
+  const postSaleGroups=[
+    {statuses:new Set(['Sold','Sold - Awaiting Shipping']),title:'Sold — Requiring Shipping',detail:'Items sold and waiting for shipping details or carrier collection.'},
+    {statuses:new Set(['Sold - Shipped']),title:'Sold — Shipped / Return Window',detail:'Shipped items retained through delivery and the post-sale return hold.'},
+    {statuses:new Set(['Returned']),title:'Returned Items',detail:'Returned products awaiting controlled review.'}
+  ];
+  const cards=[...list.querySelectorAll(':scope > details')];
+  if(cards.length){
+    const byStatus=new Map();
+    cards.forEach(card=>{
+      const status=(card.querySelector('summary .section-kicker')?.textContent||'').trim();
+      if(!byStatus.has(status))byStatus.set(status,[]);
+      byStatus.get(status).push(card);
+    });
+    const ordered=[];
+    postSaleGroups.forEach(group=>{
+      const groupCards=[...group.statuses].flatMap(status=>byStatus.get(status)||[]);
+      if(!groupCards.length)return;
+      const section=document.createElement('section');
+      section.className='valuation-card';
+      section.style.marginBottom='1rem';
+      section.innerHTML='<p class="section-kicker">POST-SALE STAGE</p><h2>'+group.title+'</h2><p>'+group.detail+'</p>';
+      groupCards.forEach(card=>section.appendChild(card));
+      ordered.push(section);
+    });
+    list.replaceChildren(...ordered);
+  }
+
 });
