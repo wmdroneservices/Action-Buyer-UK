@@ -5,7 +5,7 @@
 
 const ASSET_STATES = Object.freeze([
   'Awaiting Receipt', 'Received', 'Inspection Required', 'Testing',
-  'Repair Required', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Reserved', 'Sold', 'Returned',
+  'Repair Required', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Reserved', 'Sold', 'Sold - Awaiting Shipping', 'Sold - Shipped', 'Returned',
   'Dispatched', 'Completed', 'Held', 'Written Off'
 ]);
 
@@ -17,12 +17,15 @@ const TRANSITIONS = Object.freeze({
   'Repair Required': ['Testing', 'Held', 'Written Off'],
   'Ready for Resale': ['Sent to Sales', 'Held'],
   'Sent to Sales': ['Listed', 'Held'],
-  'Listed': ['Reserved', 'Sold', 'Sent to Sales', 'Held'],
-  'Reserved': ['Listed', 'Sold', 'Sent to Sales', 'Held'],
-  'Sold': ['Returned', 'Dispatched', 'Held'],
+  'Listed': ['Reserved', 'Sold - Awaiting Shipping', 'Sent to Sales', 'Held'],
+  'Reserved': ['Listed', 'Sold - Awaiting Shipping', 'Sent to Sales', 'Held'],
+  'Sold': ['Sold - Awaiting Shipping', 'Returned', 'Held'],
+  'Sold - Awaiting Shipping': ['Sold - Shipped', 'Returned', 'Held'],
+  'Sold - Shipped': ['Returned', 'Archived', 'Held'],
   'Returned': [],
   'Dispatched': ['Completed', 'Held'],
-  'Completed': [],
+  'Completed': ['Archived'],
+  'Archived': [],
   'Held': ['Awaiting Receipt', 'Received', 'Inspection Required', 'Testing', 'Repair Required', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Written Off'],
   'Written Off': []
 });
@@ -37,10 +40,13 @@ const NEXT_ACTIONS = Object.freeze({
   'Sent to Sales': { label: 'READY TO LIST FOR SALE', detail: 'Create and publish the required sales-channel listing.', tone: 'action' },
   'Listed': { label: 'LISTED — AWAITING SALE', detail: 'Monitor active listings and respond to reservations or sales.', tone: 'info' },
   'Reserved': { label: 'RESERVED — SALE IN PROGRESS', detail: 'Complete the sale or return the item to Listed if the reservation ends.', tone: 'info' },
-  'Sold': { label: 'SOLD — NEXT STEP: DISPATCH', detail: 'Dispatch the sold item and record the shipment.', tone: 'action' },
+  'Sold': { label: 'SOLD — LEGACY SHIPPING HANDOFF', detail: 'Move the legacy sold record into the current shipping workflow.', tone: 'action' },
+  'Sold - Awaiting Shipping': { label: 'SOLD — REQUIRES SHIPPING', detail: 'Record the carrier and tracking, then mark the parcel collected.', tone: 'action' },
+  'Sold - Shipped': { label: 'SOLD — SHIPPED / RETURN WINDOW', detail: 'Follow delivery and retain the item through the post-sale return window.', tone: 'info' },
   'Returned': { label: 'RETURNED', detail: 'Review the return and decide the next controlled disposition.', tone: 'warning' },
   'Dispatched': { label: 'AWAITING COMPLETION', detail: 'Confirm completion when the transaction is finished.', tone: 'info' },
   'Completed': { label: 'COMPLETE', detail: 'No further action required.', tone: 'success' },
+  'Archived': { label: 'ARCHIVED', detail: 'Accounting and research history retained in the UK tax-year sales archive.', tone: 'success' },
   'Held': { label: 'HELD — REVIEW REQUIRED', detail: 'Review why the item is held and choose the appropriate next state.', tone: 'warning' },
   'Written Off': { label: 'WRITTEN OFF', detail: 'No further workflow action required.', tone: 'warning' }
 });
@@ -65,7 +71,7 @@ function transitionAsset(asset, nextState, metadata = {}) {
 
 function getAllowedNextStates(state) { return isValidState(state) ? [...TRANSITIONS[state]] : []; }
 function getLifecycleProgress(state) {
-  const milestones = ['Received', 'Testing', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Sold', 'Returned', 'Dispatched', 'Completed'];
+  const milestones = ['Received', 'Testing', 'Ready for Resale', 'Sent to Sales', 'Listed', 'Sold - Awaiting Shipping', 'Sold - Shipped', 'Returned', 'Dispatched', 'Completed', 'Archived'];
   if (state === 'Awaiting Receipt') return 0;
   const index = milestones.indexOf(state);
   return index < 0 ? null : Math.round(((index + 1) / milestones.length) * 100);
