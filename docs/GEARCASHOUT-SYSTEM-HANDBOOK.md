@@ -2712,3 +2712,22 @@ The workflow does not restore a generic bypass. The RPC still requires an active
 Repair completion does **not** automatically send stock to Sales. Existing package, condition and other Sales gates remain authoritative.
 
 **Related checkpoint:** `CHECKPOINTS/2026-09-06-repair-completion-marks-tested.md`.
+
+
+## Inspection outcome: Requires Repair — 6 September 2026
+
+For staff inventory inspection, **Requires Repair** is a completed inspection outcome, not an unfinished inspection.
+
+The operational route is:
+
+`Inspection Required → Requires Repair → Repair Required → Complete Repair & Mark Tested → Ready for Resale`
+
+The Product Workbench gives an explicit on-screen notification when the item is routed:
+
+**Inspection complete: REQUIRES REPAIR. The item has been moved to Repair Required.**
+
+The repair screen then shows the recorded fault/defect so staff can see what requires repair before completing the controlled repair-and-test step.
+
+Developer investigation map:
+
+`docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
