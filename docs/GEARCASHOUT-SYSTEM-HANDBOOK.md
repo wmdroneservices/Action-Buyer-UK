@@ -2884,3 +2884,17 @@ The staff **What Needs Doing** board now reads the authoritative post-sale table
 An **Item Received** return opens `sales-customer-returns.html`, where staff complete the assessment, damage/condition, item disposition and customer financial/replacement details before resolution. It must not route to the older `returns.html` page, which uses the separate legacy return workflow and can incorrectly show no requests.
 
 **Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+
+## Known Fault and Repair — Duplicate Returned-Item Live Task (7 September 2026)
+
+After the customer-return routing repair, one further first-failure check found that the same received return could generate **two** Live Task Board actions:
+
+1. the authoritative **CUSTOMER RETURNS → Complete returned item assessment** task from `sales_customer_returns`; and
+2. a generic **SALES → Review returned item** task from `inventory_assets.status='Returned'`.
+
+The first path is correct. The second path can open the generic Product Workbench and bypass the intended return-assessment destination.
+
+**Repair:** `live-task-board.js` now builds the set of assets with open customer-return cases and suppresses the generic `Returned` asset task for those assets. The authoritative `sales_customer_returns` task remains the only CTA for the received buyer return.
+
+**Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
