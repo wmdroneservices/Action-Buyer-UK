@@ -1494,3 +1494,16 @@ Do not confuse the two identities:
 Every newly inserted inventory asset receives its SKU from `next_inventory_sku()`, and the column is NOT NULL with a unique index. Preserve SKU across inspection, warehouse moves, listing and sale. Do not regenerate it when an item changes channel or location.
 
 Warehouse growth uses `inventory_locations` plus append-only `inventory_location_movements`. Do not treat free-text `current_location` as the future audit history; the movement table is the historical record.
+
+
+### Outlet architecture rule — Phase 2
+
+Treat these as separate layers:
+
+- `inventory_assets` / SKU = the physical unit;
+- `sales_outlets` = where the unit may be offered;
+- `resale_listings` = one listing of that SKU on one outlet.
+
+Do not duplicate inventory records for different websites. Multiple listings may coexist for one SKU. The existing database-level sold/delist workflow remains authoritative. A UI must read listing status from the database and must not independently calculate competing-listing closure state.
+
+Before adding a new owned brand or auction outlet, register it in `sales_outlets`; then connect its listing/publication layer to the same `resale_listings.asset_id`.
