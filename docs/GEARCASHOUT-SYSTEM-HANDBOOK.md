@@ -1951,3 +1951,20 @@ The catalogue-centred pending AI evidence review now places an **OPEN SOURCE PAG
 The same exact source URL is also accompanied by an **OPEN / VERIFY PAGE** shortcut in the editable evidence fields. These links open the candidate's canonical `source_url` in a new tab and do not alter the candidate, review outcome, acceptance flow or live evidence.
 
 The existing bottom action remains as a general source-page shortcut, renamed **OPEN / VERIFY SOURCE PAGE** so it is not MPB-specific.
+
+
+## Pending evidence review — Check All confirmation — 6 September 2026
+
+Where a reviewer has verified that every field in a pending evidence finding is correct, the **VERIFY EACH FIELD** panel now includes **CHECK ALL — AI WAS RIGHT**.
+
+Checking it marks all seven field outcomes as **AI WAS RIGHT** in one action:
+
+- price range;
+- product / model / package;
+- exact product page URL;
+- conditions represented;
+- availability;
+- source / retailer;
+- evidence category.
+
+If any individual field is subsequently changed, the bulk checkbox automatically reflects that the whole set is no longer unanimously marked correct. This is only a review-input shortcut: nothing is written to the candidate or live catalogue until the normal **ACCEPT & ADD TO CATALOGUE** action completes.
