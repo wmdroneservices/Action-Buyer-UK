@@ -476,3 +476,20 @@ This is deliberately a worker-side compatibility repair. The database contract r
 
 ### Required verification
 After the Research PC reports worker 1.5.4, run a small controlled Deep Source test before another large manufacturer audit. Confirm that valid exact MPB candidates no longer fail with Invalid match status.
+
+
+## 6 September 2026 — Current failure/fix history
+
+### Reassignment RLS failure
+**Symptom:** MOVE TO CORRECT PRODUCT returned a row-level-security error for quote_catalog_ai_candidate_reassignments.
+
+**First failure:** the RPC was running with invoker rights. The candidate update path was permitted, but the audit-table insert had only a staff SELECT policy and therefore failed under RLS.
+
+**Fix:** reassign_ai_candidate(...) is now SECURITY DEFINER, retains the explicit staff_users/auth.uid() authorization check, and uses the existing controlled audit insert.
+
+**UI containment:** mismatch routing panels are collapsed by default to prevent large audits producing pages of expanded routing controls.
+
+### DJI audit handling rule
+- Explicit model/controller/package identity → route to that exact catalogue package and apply after acceptance.
+- Generic model identity with no controller/combo claim → use a generic Standard Package only where that generic catalogue product exists.
+- Do not infer a specific controller, Fly More, Plus, Cine or premium bundle from a generic source title.
