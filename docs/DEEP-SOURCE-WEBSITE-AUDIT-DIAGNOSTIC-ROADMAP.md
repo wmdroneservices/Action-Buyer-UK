@@ -185,3 +185,16 @@ The Deep Source landing-page field now keeps a local persistent history for the 
 5. Up to 20 recent Deep Source URLs are retained on that device/browser.
 
 This is UI history only. The selected URL still remains the explicit `deep_source_url` sent with each Deep Source run, so saved suggestions do not silently change or broaden the audit source.
+
+
+## Source filter isolation and database-backed URL suggestions — 6 September 2026
+
+### Confirmed behaviour
+Deep Source Audit is a separate execution path. runDeepSourceAudit() sends only evidence_scope: deep_source and deep_source_url; it does not send the normal research-source-filter value.
+
+The Edge Function treats either evidence_scope === deep_source or a supplied deep_source_url as a Deep Source run and calls ai_research_create_deep_source_run(...) directly. The normal all / amazon_uk branch is therefore not entered.
+
+The Research PC then reads the run configuration and uses deep_source_url / deep_source_domain for same-domain discovery and exact-product evidence.
+
+### URL dropdown
+The landing-page datalist is now populated from approved, enabled, live rows in quote_catalog_ai_sources.homepage_url, then supplemented by the browser previously used Deep Source URLs. The database registry therefore supplies shared approved website suggestions, while local history remains a convenience for manually entered URLs.
