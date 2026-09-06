@@ -20,12 +20,13 @@ Deno.serve(async req=>{
   let admin:any;try{admin=await auth(req)}catch(e:any){return out({error:e.message||String(e)},e.status||500)}
   try{
     const body=await req.json().catch(()=>({}));
-    const limit=Math.max(1,Math.min(25,Number(body.limit||5)));
+    const requestedLimit=Number(body.limit);
     const manufacturer=String(body.manufacturer||'').trim()||null,model=String(body.model||'').trim()||null,category=String(body.category||'').trim()||null,productType=String(body.product_type||'').trim()||null;
     const requestedScope=String(body.evidence_scope||'all'),deepSourceUrl=String(body.deep_source_url||'').trim()||null,deepSource=requestedScope==='deep_source'||!!deepSourceUrl;
     let runId:any,scope:string;
     if(deepSource){
       if(!deepSourceUrl||!/^https?:\/\//i.test(deepSourceUrl))throw new Error('A valid Deep Source landing page URL is required.');
+      if(limit===0&&!manufacturer&&!model&&!category&&!productType)throw new Error('ALL matching products requires at least one product filter. Select a manufacturer to audit a whole manufacturer safely.');
       scope=[manufacturer&&'manufacturer='+manufacturer,model&&'model='+model,category&&'category='+category,productType&&'type='+productType,'deep_source='+deepSourceUrl].filter(Boolean).join(', ');
       const {data,error}=await admin.rpc('ai_research_create_deep_source_run',{p_limit:limit,p_notes:'Deep Source Audit: '+scope,p_manufacturer:manufacturer,p_model:model,p_category:category,p_product_type:productType,p_deep_source_url:deepSourceUrl});
       if(error)throw error;runId=data;
