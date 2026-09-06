@@ -2930,3 +2930,18 @@ Two stale routes remained:
 ### Rule
 
 A completed post-sale customer return must not continue to generate legacy return or generic Product Workbench actions. The authoritative record remains `sales_customer_returns`; once terminal, it is history rather than live work.
+
+
+---
+
+## MPB Deep Source discovery repair — 7 September 2026
+
+Worker **1.5.6** keeps direct HTTP as the first path. When MPB returns HTTP 403, the local Chromium fallback through `playwright-core` is now also used for MPB internal-search and discovery/crawl pages, not just exact product pages. This is a discovery repair only: landing, category, search and subcategory pages remain discovery-only and can never become final evidence. Exact `/en-uk/product/...` pages are still fetched and validated separately before evidence is created.
+
+### 7 September 2026 — MPB Deep Source 403/404 discovery gap
+
+Live Sony auditing proved that deterministic slugs alone were not sufficient. The worker marked products such as Sony PXW-Z190, PXW-Z150 and PMW-200 as completed without candidates even though live MPB pages existed under URLs with retailer-specific suffixes such as `-4k-camcorder` or `-camcorder`.
+
+The first failure was discovery: Node HTTP received MPB 403 responses on internal search and crawl pages, while a deterministic guessed slug could return 404. The previous browser fallback only helped after an exact URL was already known.
+
+The repair extends the existing MPB browser fallback to discovery pages after HTTP 403. Those pages are still only maps; exact evidence remains restricted to validated exact MPB product pages. This prevents a guessed 404 URL from becoming the worker's only route when MPB uses a retailer-specific product suffix.
