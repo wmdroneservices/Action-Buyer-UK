@@ -207,3 +207,37 @@ Deactivation removes an outlet from the active Sales Workbench query without del
 ### Next investigation point
 
 Add slow-moving stock and outlet-strategy reporting using inventory age and current listing/outlet coverage, without altering the authoritative sold/delist workflow.
+
+
+## Slow-Moving Stock & Outlet Strategy — implemented 6 September 2026
+
+### User action
+
+Management → central Staff Dashboard → **SLOW-MOVING STOCK**.
+
+### Front-end
+
+- `admin-stock-strategy.html`
+- `admin-stock-strategy.js`
+
+### Database path
+
+Management-authenticated user → `management_stock_strategy_report()` → `inventory_assets` + active `resale_listings` + `sales_outlets`.
+
+### Strategy bands
+
+- no active listing for sales-ready stock;
+- 30+ days: review;
+- 60+ days: expand outlets / price review;
+- 90+ days: urgent strategy review;
+- 120+ days: auction / exit review.
+
+These are advisory only. No automatic stock movement, price change or listing closure occurs.
+
+### Security/failure points
+
+1. confirm authenticated management permission;
+2. confirm RPC rejects non-management users;
+3. confirm age uses `acquired_at` with `created_at` fallback;
+4. confirm active listing counts use central listing statuses;
+5. never use this report to create a second inventory truth.
