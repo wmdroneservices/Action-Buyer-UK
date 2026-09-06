@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en-GB"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outlet Management | GearCashOut</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script><script src="admin-outlet-management.js?v=20260906-1" defer></script>
+</head><body>
+<header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Management navigation"><ul class="nav-list"><li><a href="admin.html">STAFF DASHBOARD</a></li><li><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li><li><a href="admin-outlet-management.html">OUTLET MANAGEMENT</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container">
+<div class="account-header"><div><p class="section-kicker">MANAGEMENT ONLY</p><h1>Outlet Management</h1><p>Control the central list of owned websites, marketplaces and future auction outlets. Deactivate outlets instead of deleting historical sales records.</p></div><a class="btn btn-secondary" href="admin.html">BACK TO STAFF DASHBOARD</a></div>
+<div id="outlet-message" class="form-message" role="status" aria-live="polite"></div>
+<section class="account-panel"><p class="section-kicker">NEW OUTLET</p><form id="outlet-form" class="auth-form">
+<label>Outlet name<input id="outlet-name" type="text" maxlength="120" required></label>
+<label>Outlet code<input id="outlet-code" type="text" maxlength="60" pattern="[A-Za-z0-9_-]+" required><small>Stable internal identifier. Use letters, numbers, underscores or hyphens only.</small></label>
+<label>Outlet type<select id="outlet-type" required><option value="owned_storefront">Owned website</option><option value="marketplace">Marketplace</option><option value="auction">Auction</option><option value="other">Other</option></select></label>
+<label>Public base URL (optional)<input id="outlet-url" type="url" maxlength="500" placeholder="https://example.co.uk"></label>
+<label>Internal notes (optional)<textarea id="outlet-notes" rows="4" maxlength="2000"></textarea></label>
+<label class="checkbox-label"><input id="outlet-active" type="checkbox" checked> Active and available in Sales Workbench</label>
+<button class="btn btn-primary" type="submit">ADD OUTLET</button>
+</form></section>
+<section class="account-panel" style="margin-top:1.5rem"><p class="section-kicker">CENTRAL OUTLET REGISTRY</p><h2 style="margin-top:0">Configured Outlets</h2><p>Only management can change this registry. Existing outlets should normally be deactivated rather than removed.</p><div id="outlet-list">Loading outlets…</div></section>
+</div></main></body></html>
