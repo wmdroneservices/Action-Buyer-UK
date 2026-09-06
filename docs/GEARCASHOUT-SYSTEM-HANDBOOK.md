@@ -2256,3 +2256,10 @@ This supports labels, barcode/QR implementation, warehouse location tracking, st
 Sales are now being standardised around a central model: **one physical inventory asset/SKU → many outlet listings**. The existing `resale_listings` table remains authoritative for listing lifecycle and sold/delist protection; a new `sales_outlets` registry identifies the outlet behind each listing. This supports owned storefronts, marketplaces and future auction outlets without duplicating inventory.
 
 When one listing is marked Sold, the central sold workflow marks competing active listings for the same asset as **Delist Required** and marks the physical inventory asset Sold. This existing protection remains the single operational truth; outlet additions must not create independent sold-state logic.
+
+
+## Package equivalence and retailer-aware alias learning — 6 September 2026
+
+Gemma must not rely on exact package-name strings. GearCashOut catalogue products are the canonical identities, compared by manufacturer, model, controller, bundle/package, included accessories and variant. Alternative retailer descriptions may be learned as aliases, but aliases retain source/retailer provenance and confidence. Retailer-specific terminology is not automatically global.
+
+Equivalence states are **confirmed**, **probable** and **ambiguous**. Only confirmed mappings may be used confidently; probable mappings are review suggestions; ambiguous mappings must not be forced. Positive conflicts such as controller identity, No RC, Fly More/Cine/Creator/Plus wording, battery count or package-defining accessories prevent automatic equivalence. New aliases require repeated exact evidence, independent confirmation or explicit human confirmation before promotion to confirmed learning.
