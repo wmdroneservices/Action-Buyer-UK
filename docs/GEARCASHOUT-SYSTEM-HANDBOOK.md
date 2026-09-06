@@ -2770,3 +2770,22 @@ The resale workflow now continues after an item is marked **Sold**. The physical
 When a buyer return is physically received, the inventory asset moves to **Returned** for review while sold history remains recorded.
 
 **Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+## Product Workbench Sales Handoff Mode — 6 September 2026
+
+Once an item has been handed to Sales, the Product Workbench must stop presenting inspection/testing as a workflow that can be repeated.
+
+For statuses `Sent to Sales`, `Listed`, `Reserved` and `Sold`, `inventory-sales-handoff.js` replaces the active workbench view with:
+
+- **INSPECTION COMPLETE · SENT TO SALES** handoff status;
+- retained inspection/testing summary;
+- a controlled inspection-report correction handoff;
+- reusable catalogue content editing through `catalog_sales_content`;
+- individual-item condition/listing/hero editing through `inventory_sales_content`;
+- separate customer-supplied photograph evidence;
+- editable staff photographs, including individual-item hero selection;
+- direct handoff to the Sales Workbench.
+
+This deliberately reuses the Phase 2 sales-content tables rather than creating another description or image system.
+
+Developer roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
