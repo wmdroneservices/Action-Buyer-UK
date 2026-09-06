@@ -2365,3 +2365,12 @@ The panel links to the detailed **Slow-Moving Stock & Outlet Strategy** page. It
 Ordinary sales staff do not receive this management panel. The browser checks active management permission before displaying it, while the underlying strategy RPC remains database-authorised for management only.
 
 **Developer investigation map:** [Phase 2 Retail Storefront Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md).
+
+
+---
+
+## Pending evidence alternative-product routing — 6 September 2026
+
+Valid evidence must not disappear merely because its original catalogue target is wrong. Any pending candidate with a package/model/variant mismatch must expose the compact **VALID EVIDENCE — ROUTE TO AN ALTERNATIVE PRODUCT** control. The routing decision is preserved through `reassign_ai_candidate(...)`; the source finding is not recreated and duplicate live evidence is not created.
+
+The UI must not depend solely on transient rendered dropdown values to decide whether the control exists. It checks both the visible review state and the persisted candidate mismatch state, with delayed rescans for asynchronous catalogue rendering. The compact panel remains collapsed by default so large audits do not produce pages of expanded controls.
