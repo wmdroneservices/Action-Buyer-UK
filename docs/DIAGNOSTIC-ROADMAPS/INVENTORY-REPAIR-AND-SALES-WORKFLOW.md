@@ -133,6 +133,9 @@ Sold item → create/record shipping label → mark collected → mark delivered
 ### Front-end
 - `sold-items.html` + `sold-after-sales.js`
 - `sales-customer-returns.html` → `sales-customer-returns.js`
+  - one independently collapsible record per customer return;
+  - header retains product, status, return reference and SKU;
+  - active cases are expanded by default; terminal history is collapsible.
 - `staff-navigation.js`
 
 ### Supabase
