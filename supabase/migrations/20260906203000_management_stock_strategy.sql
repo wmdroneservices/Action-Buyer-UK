@@ -1,0 +1,15 @@
+-- Management-only slow-moving stock and outlet strategy report.
+-- Advisory only: does not change prices, listings, outlets or inventory status.
+create or replace function public.management_stock_strategy_report()
+returns table(asset_id uuid,sku text,manufacturer text,model text,package_name text,asset_status text,purchase_price numeric,acquired_at timestamptz,days_in_stock integer,active_listing_count integer,active_outlet_count integer,outlet_names text,strategy_band text,recommendation text)
+language plpgsql security definer set search_path=public,auth as $$
+begin
+ if not exists(select 1 from public.staff_users s where s.user_id=auth.uid() and s.active=true and coalesce(s.can_manage_staff,false)=true) then raise exception 'Management access required'; end if;
+ return query with listing_summary as (
+ select rl.asset_id,count(*) filter(where rl.status in ('Draft','Ready For Listing','Published','Reserved'))::integer active_listing_count,count(distinct rl.outlet_id) filter(where rl.status in ('Draft','Ready For Listing','Published','Reserved'))::integer active_outlet_count,string_agg(distinct coalesce(so.outlet_name,rl.sales_channel),', ' order by coalesce(so.outlet_name,rl.sales_channel)) filter(where rl.status in ('Draft','Ready For Listing','Published','Reserved')) outlet_names from public.resale_listings rl left join public.sales_outlets so on so.id=rl.outlet_id group by rl.asset_id
+ ),base as (
+ select a.*,greatest(0,floor(extract(epoch from(now()-coalesce(a.acquired_at,a.created_at)))/86400))::integer age_days,coalesce(ls.active_listing_count,0) listings,coalesce(ls.active_outlet_count,0) outlets,ls.outlet_names from public.inventory_assets a left join listing_summary ls on ls.asset_id=a.id where a.status not in ('Sold','Returned','Disposed')
+ ) select b.id,b.sku,b.manufacturer,b.model,b.package_name,b.status,b.purchase_price,b.acquired_at,b.age_days,b.listings,b.outlets,b.outlet_names,case when b.listings=0 and b.status in ('Sent to Sales','Listed','Reserved') then 'NO ACTIVE LISTING' when b.age_days>=120 then 'AUCTION / EXIT REVIEW' when b.age_days>=90 then 'URGENT STRATEGY REVIEW' when b.age_days>=60 then 'EXPAND OUTLETS / PRICE REVIEW' when b.age_days>=30 then 'REVIEW' else 'NORMAL' end,case when b.listings=0 and b.status in ('Sent to Sales','Listed','Reserved') then 'Create or restore at least one active listing.' when b.age_days>=120 then 'Review for auction, clearance, bundle or alternative exit route. No automatic move is made.' when b.age_days>=90 then 'Management review required: reassess price, presentation and outlet coverage.' when b.age_days>=60 then 'Consider additional outlets and review price against current evidence.' when b.age_days>=30 then 'Review listing performance and confirm current outlet strategy.' else 'Continue current strategy and monitor.' end from base b order by b.age_days desc,b.acquired_at asc nulls last;
+end; $$;
+revoke all on function public.management_stock_strategy_report() from public;
+grant execute on function public.management_stock_strategy_report() to authenticated;
