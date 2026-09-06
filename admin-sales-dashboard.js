@@ -112,7 +112,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function load(){
     const {data:assets,error}=await auth.supabase.from("inventory_assets").select("id,status,manufacturer,model,asset_reference,transaction_number").in("status",[...inventoryStates,...salesStates]).order("status_changed_at",{ascending:true});
     if(error){notice("Could not load Sales Dashboard counts.",false);return;}
+    const {data:customerReturns,error:returnError}=await auth.supabase
+      .from("sales_customer_returns")
+      .select("asset_id,status");
+    if(returnError){notice("Could not load customer return status.",false);return;}
     const rows=assets||[];
+    const customerReturnAssetIds=new Set((customerReturns||[]).map(r=>r.asset_id).filter(Boolean));
+    const terminalCustomerReturnStatuses=new Set(["resolved","refused","closed","complete","completed","cancelled"]);
+    const openCustomerReturns=(customerReturns||[]).filter(r=>!terminalCustomerReturnStatuses.has(String(r.status||"").trim().toLowerCase().replaceAll("_"," ").replaceAll("-"," "))).length;
     const count=s=>rows.filter(a=>a.status===s).length;
     // Repair Required is intentionally broken out as its own visible pipeline category.
     // Inventory means stock still progressing through inspection/testing/resale preparation.
@@ -125,7 +132,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const sold=count("Sold");
     const soldShipping=count("Sold - Awaiting Shipping");
     const soldShipped=count("Sold - Shipped");
-    const returned=count("Returned");
+    const returned=rows.filter(a=>a.status==="Returned"&&!customerReturnAssetIds.has(a.id)).length;
+    const returnsRequiringAction=openCustomerReturns+returned;
     // Use the same pipeline state styling as Purchasing: green when clear,
     // orange when a stage has work waiting.
     const setPipelineCount=(id,value)=>{
@@ -144,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setPipelineCount("listed-count",listed);
     setPipelineCount("reserved-count",reserved);
     setPipelineCount("sold-count",sold);
-    setPipelineCount("returned-count",returned);
+    setPipelineCount("returned-count",returnsRequiringAction);
 
     const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,asset_id,status,sales_channel,listing_url");
     if(le){notice("Could not load sales listing counts.",false);return;}
@@ -185,10 +193,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setStepNotice("sold-step-notice", soldMessage, delistCount ? "warning" : (sold ? "action" : "success"));
     const soldLink=document.getElementById("open-sold-items");
     if(soldLink) soldLink.href=delistCount ? "delist-actions.html" : "sold-items.html";
-    const returnsNotice=returned ? `${returned} ${returned===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION";
-    setStepNotice("returns-step-notice", returnsNotice, returned ? "warning" : "success");
+    const returnsNotice=returnsRequiringAction ? `${returnsRequiringAction} ${returnsRequiringAction===1?"RETURN":"RETURNS"} REQUIRE REVIEW` : "NO RETURNS CURRENTLY REQUIRING ACTION";
+    setStepNotice("returns-step-notice", returnsNotice, returnsRequiringAction ? "warning" : "success");
 
-    const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Sold - Awaiting Shipping","Sold - Shipped","Returned","Dispatched"].includes(a.status));
+    const actionable=rows.filter(a=>["Received","Inspection Required","Testing","Repair Required","Ready for Resale","Sent to Sales","Sold","Sold - Awaiting Shipping","Sold - Shipped","Returned","Dispatched"].includes(a.status) && !(a.status==="Returned"&&customerReturnAssetIds.has(a.id)));
     const summary=document.getElementById("sales-action-summary"), list=document.getElementById("sales-action-list");
     if(!summary||!list)return;
     const grouped={};
