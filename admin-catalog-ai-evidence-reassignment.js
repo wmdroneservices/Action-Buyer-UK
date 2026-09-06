@@ -70,14 +70,34 @@ async function openPanel(card){
  const search=panel.querySelector('.ai-route-search'),select=panel.querySelector('select'),button=panel.querySelector('button'),status=panel.querySelector('.ai-route-status');
  const renderChoices=term=>{
   const needle=norm(term);
-  const filtered=choices.filter(({p})=>!needle||norm([p.manufacturer,p.model,p.package_name,p.package_key].filter(Boolean).join(' ')).includes(needle));
   const previous=select.value;
+  // Do not inject thousands of active catalogue products into one native select.
+  // That made the browser sluggish and made the search appear inactive.
+  if(!needle){
+   select.innerHTML='<option value="">Type at least 2 characters to search the catalogue…</option>';
+   select.disabled=true;
+   status.textContent='Start typing to search the active catalogue.';
+   status.className='ai-route-status';
+   return;
+  }
+  if(needle.length<2){
+   select.innerHTML='<option value="">Type at least 2 characters to search the catalogue…</option>';
+   select.disabled=true;
+   status.textContent='Keep typing to search the active catalogue.';
+   status.className='ai-route-status';
+   return;
+  }
+  const filtered=choices.filter(({p})=>norm([p.manufacturer,p.model,p.package_name,p.package_key].filter(Boolean).join(' ')).includes(needle)).slice(0,100);
+  select.disabled=false;
   select.innerHTML='<option value="">'+(filtered.length?'Choose the alternative catalogue product…':'No matching catalogue products found')+'</option>'
    +filtered.map(({p,s})=>'<option value="'+esc(p.id)+'"'+(s>0?' data-score="'+s+'"':'')+'>'+esc([p.manufacturer,p.model,p.package_name||p.package_key].filter(Boolean).join(' · '))+'</option>').join('');
   if(previous&&filtered.some(({p})=>String(p.id)===String(previous)))select.value=previous;
+  status.textContent=filtered.length===100?'Showing the first 100 matches. Refine your search if needed.':filtered.length+' matching catalogue product'+(filtered.length===1?'':'s')+' found.';
+  status.className='ai-route-status';
  };
  renderChoices('');
  search.addEventListener('input',()=>renderChoices(search.value));
+ search.addEventListener('search',()=>renderChoices(search.value));
  button.addEventListener('click',async()=>{
   const target=select.value;
   if(!target){status.textContent='Choose the alternative catalogue product first.';status.className='ai-route-status error';return;}
