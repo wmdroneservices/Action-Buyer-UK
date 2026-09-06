@@ -1567,3 +1567,16 @@ For `admin-outlet-management.html`:
 4. rely on `sales_outlets` RLS for database enforcement;
 5. prefer deactivation over deletion to preserve historical listing references;
 6. never place service-role credentials or other secrets in public JavaScript.
+
+
+### Slow-moving stock strategy rule
+
+Use `management_stock_strategy_report()` only as a management advisory/reporting layer. It must not become an automatic repricing, automatic delisting, automatic auction-transfer or inventory-status mutation mechanism without a separately designed and audited workflow.
+
+Security requirements:
+
+- authenticated active management permission is checked inside the RPC;
+- public access is revoked and only authenticated execution is granted;
+- the page performs its own active-management guard but database authorization remains authoritative;
+- only unsold/non-disposed inventory is reported;
+- listing status is read from central `resale_listings`.
