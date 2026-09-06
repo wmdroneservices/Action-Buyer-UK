@@ -2091,3 +2091,19 @@ Current rule in `live-task-board.js`:
 First verified example: `TEST-ASSET-007` / `CSR-E768FABB1E5B` had **Item Received** in `sales_customer_returns` and **Returned** in `inventory_assets`. The correct return task existed, but the generic duplicate CTA could route to the Product Workbench instead.
 
 Do not fix this by changing the database status or deleting either history record. The two records represent different parts of the same workflow; the repair belongs in task generation.
+
+
+### Customer return assessment transaction context — 7 September 2026
+
+Before modifying the customer-return assessment screen, preserve the distinction between display context and closure data.
+
+The assessment page should read and display:
+
+- `inventory_assets.sold_at`;
+- `inventory_assets.sold_price`;
+- `inventory_assets.sold_channel`;
+- `sales_customer_returns.created_at`;
+- `sales_customer_returns.collected_at`;
+- `sales_customer_returns.item_received_at`.
+
+Do not ask staff to manually retype these historical transaction facts. They provide context for the assessment and later accounts research; the detailed closure fields remain the persisted outcome record.
