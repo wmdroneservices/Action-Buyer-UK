@@ -1908,3 +1908,23 @@ First confirmed failure: TEST-ASSET-006 / DJI Neo saved `Requires Attention` but
 ### Sales gate compatibility after Requires Repair
 
 Do not create a false historical `Passed` inspection merely to satisfy `staff_send_inventory_to_sales(...)`. A repair-required inspection may satisfy the inspection gate only when an authoritative `inventory_repairs` record exists. Technical testing, condition, missing-item and Ready for Resale requirements remain mandatory. Repository migration: `20260906214500_allow_repaired_inspection_to_pass_sales_gate.sql`.
+
+---
+
+## Sales Dashboard Quick Stock Search — 6 September 2026
+
+Front end:
+
+`admin-sales-dashboard.html` → compact search form → `admin-sales-dashboard.js`.
+
+Search source: `inventory_assets` using the existing authenticated staff Supabase client and RLS.
+
+Allowed search identities:
+
+1. `sku`
+2. `transaction_number`
+3. combined `manufacturer + model`
+
+The result renderer must show the authoritative current `status` and hand off to the existing Product Workbench detail route. Do not create a duplicate search table or write inventory state from the search UI.
+
+If inventory volume becomes large, review the current client-side search read and replace it with a controlled server-side search/RPC rather than weakening RLS or exposing service credentials.
