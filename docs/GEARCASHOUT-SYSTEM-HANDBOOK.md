@@ -2431,3 +2431,27 @@ The routing panel must not preload the full active catalogue into a native selec
 ### Catalogue stability fix — 6 September 2026
 
 The alternative-product reassignment script must not rescan the entire document for every DOM mutation. The previous broad MutationObserver watched the full document and called a full catalogue scan on each mutation, including DOM changes made by the reassignment script itself. During rendering/scrolling this could create heavy repeated work and renderer instability. The observer now batches only added DOM roots and processes pending-candidate cards inside those roots. Existing initial scans and field-change handling remain in place. Cache version: 20260906-alternative-route-8.
+
+
+---
+
+## Controlled Phase 2 Test Stock — 6 September 2026
+
+A controlled sample batch of **8 inventory assets and 4 resale listings** was created to allow the Inventory → Sales → Outlet infrastructure to be tested before genuine purchasing stock is available.
+
+The records are linked to real quote_catalog_products and receive normal production-format SKUs. They are explicitly marked in their inventory notes as **TEST DATA**.
+
+The existing management-only **Delete All Test Data** route uses reset_test_quote_data() and already deletes, in dependency order:
+
+1. inventory return data;
+2. customer return requests;
+3. resale transactions;
+4. resale listings;
+5. inventory assets;
+6. purchasing test records and related workflow data.
+
+Therefore no separate sales-test deletion button was required.
+
+The current batch covers Ready for Resale, Inspection Required, Repair Required, Sent to Sales, Draft website listing, Published Website/eBay listings, Delist Required duplicate-listing scenario, and stock ages ranging from recent to 120+ days.
+
+These records are for system testing only and must not be treated as genuine stock or financial history.
