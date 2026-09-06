@@ -1553,3 +1553,17 @@ For `admin-outlet-management.html`:
 4. rely on `sales_outlets` RLS for database enforcement;
 5. prefer deactivation over deletion to preserve historical listing references;
 6. never place service-role credentials or other secrets in public JavaScript.
+
+
+### Management-facing links rule — Outlet Registry
+
+Management-only operational pages must be reached from the central `admin.html` Staff Dashboard and protected by both UI/session checks and database authorization. Do not rely on hidden navigation as security.
+
+For `admin-outlet-management.html`:
+
+1. require an authenticated session;
+2. require `staff_users.active = true`;
+3. require `staff_users.can_manage_staff = true`;
+4. rely on `sales_outlets` RLS for database enforcement;
+5. prefer deactivation over deletion to preserve historical listing references;
+6. never place service-role credentials or other secrets in public JavaScript.
