@@ -1293,3 +1293,20 @@ The following are separate accessory products:
 Operational rule: when an exact page proves a different package or accessory, **preserve and route** the evidence to the exact identity. Do not attach it to the base aircraft merely because the model tokens match.
 
 The Mavic 2 Zoom ND Filter Kit finding from the Deep Source run was reassigned from the Zoom aircraft to its new accessory product and applied. The exact RC1 Controller finding was applied to the corrected RC1 package identity. Duplicate discovery of the same RC1 page was reconciled to the same evidence row rather than creating a second live price.
+
+
+## Deep Source exact-package discovery rule — 6 September 2026
+
+When Gemma reaches a category or model-family page, she must continue to exact product pages and classify the exact identity before assigning evidence.
+
+A base-model match is not enough when the page title identifies a distinct:
+
+- controller package;
+- Fly More/Combo/bundle;
+- kit;
+- filter/lens/accessory;
+- other named variant.
+
+If the exact identity is absent from the catalogue, preserve the source finding and create a **NEW PRODUCT CANDIDATE** for staff review. Do not discard it and do not force its price into a generic Standard Package.
+
+Nothing discovered this way becomes live automatically. Staff must approve the product candidate and create a draft catalogue product through the existing review workflow.
