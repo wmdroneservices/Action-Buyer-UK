@@ -2221,3 +2221,19 @@ The public storefront repository has not yet been created because the retail bra
 - Clear wrong-target cases were reassigned conservatively: RC-N1, RC1, RC Pro Enterprise, Drone Only and generic Standard Package destinations where the source identity supported them.
 - Generic evidence was not forced onto controller, Fly More, Plus, Cine or other specific variants without source support; those cases remain for review.
 - Duplicate candidates may point to the same live evidence row after application; this is expected and avoids duplicate market evidence.
+
+
+## 6 September 2026 — Gemma learning loop from catalogue corrections
+
+The local worker already loads active records from `quote_catalog_ai_learning` and passes them into the Ollama/Gemma validation prompt as **ACTIVE HUMAN LEARNING / SOURCE-SPECIFIC RULES**. The DJI Deep Source audit has now been converted into explicit operational learning, not just historical notes.
+
+Current DJI rules teach Gemma that:
+
+- an explicitly named controller is package identity and beats a generic package label;
+- a generic exact-model page must not be promoted into a specific Fly More, Cine, Creator, Plus or premium-controller package without evidence;
+- **No RC** means **Drone Only**;
+- missing package wording alone is not a positive mismatch;
+- MPB UK search/category pages are discovery-only and exact `/en-uk/product/` pages are required for final evidence;
+- high-confidence catalogue duplicate checks must compare package identity as well as model identity.
+
+The worker was also updated to **1.5.5**. New Deep Source product candidates now run the existing catalogue duplicate check before creation and store either `likely_duplicate` or `no_high_confidence_duplicate`, with matching catalogue records attached for review. Same-model products with different controller/bundle identities are no longer treated as high-confidence duplicates merely because the base model matches.
