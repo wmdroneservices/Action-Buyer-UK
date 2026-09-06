@@ -262,3 +262,39 @@ The strategy RPC remains management-only. The Sales Workbench keeps its own auth
 - outlet deactivation changes future coverage calculations but preserves history;
 - listings without `outlet_id` remain visible through compatibility channel text but cannot satisfy a specific registry outlet match until associated;
 - no automatic listing creation is permitted from this reporting layer.
+
+
+## Sales Dashboard Management Attention — implemented 6 September 2026
+
+### User action
+
+Management → admin-sales-dashboard.html → **MANAGEMENT ATTENTION / Stock Strategy** → **OPEN STOCK STRATEGY**.
+
+Ordinary sales staff continue to use the operational Sales Pipeline and What Needs Doing sections without receiving the management strategy panel.
+
+### Front-end entry points
+
+- admin-sales-dashboard.html
+- admin-sales-dashboard.js
+- style.css
+
+### Database path
+
+Authenticated active manager → management_stock_strategy_report() → inventory_assets + resale_listings + active sales_outlets.
+
+### Expected data flow
+
+Central inventory/listing/outlet truth → management-only strategy RPC → compact dashboard counts → explicit link to admin-stock-strategy.html → explicit management decision → existing controlled Sales Workbench.
+
+### Security boundary
+
+- dashboard panel is only requested/displayed for active management users;
+- strategy RPC independently enforces active management permission;
+- no service-role credential is used in browser code;
+- hidden UI is not treated as the database security boundary.
+
+### Failure points and test state
+
+- live unsold inventory count was zero at implementation, so first real-stock verification remains required;
+- active Outlet Registry currently exists independently of live inventory coverage testing;
+- the panel must not be mistaken for an automatic workflow engine.
