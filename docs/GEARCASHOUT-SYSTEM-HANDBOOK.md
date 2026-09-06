@@ -2409,3 +2409,8 @@ When many pending findings are valid evidence with a wrong catalogue target, the
 4. Removing the mismatch state removes the compact control/panel.
 
 This is a UI-density correction only. No candidate, evidence, catalogue product or learning record is changed by rendering the compact control.
+
+
+### Follow-up fault — routing MutationObserver loop
+
+A follow-up test exposed a browser freeze: pending records whose editable fields initially displayed as NOT CHECKED could be server-confirmed mismatches. The observer then alternated between removing and recreating the routing control. The routing script now caches the server route state per card and uses an in-flight check guard, preventing DOM mutation loops. Cache version is `20260906-alternative-route-5`.
