@@ -1580,3 +1580,16 @@ Security requirements:
 - the page performs its own active-management guard but database authorization remains authoritative;
 - only unsold/non-disposed inventory is reported;
 - listing status is read from central `resale_listings`.
+
+
+### Outlet coverage and controlled handoff rule
+
+The stock strategy layer may calculate missing outlet coverage and provide a direct link into the existing SKU Sales Workbench. It must not automatically create listings merely because an outlet is missing.
+
+Coverage is calculated from:
+
+- active records in `sales_outlets`;
+- active listing statuses in `resale_listings`;
+- the central `inventory_assets` SKU.
+
+A missing outlet means the active registry contains an outlet without a Draft, Ready For Listing, Published or Reserved listing for that SKU. It is a management signal, not an instruction to publish everywhere.
