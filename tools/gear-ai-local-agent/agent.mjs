@@ -60,6 +60,17 @@ const sb=createClient(cfg.supabaseUrl,cfg.serviceKey,{auth:{persistSession:false
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const log=(...x)=>console.log(new Date().toLocaleString('en-GB'),...x);
 
+// Canonical worker/database contract for package and variant identity.
+// The database accepts only: exact, compatible, uncertain, mismatch.
+function canonicalMatchStatus(v){
+  const s=String(v??'uncertain').trim().toLowerCase();
+  if(['exact','compatible','uncertain','mismatch'].includes(s))return s;
+  if(['match','yes','true','matched','correct','same'].includes(s))return 'exact';
+  if(['partial','close'].includes(s))return 'compatible';
+  if(['no','false','different','incorrect','wrong'].includes(s))return 'mismatch';
+  return 'uncertain';
+}
+
 async function heartbeat(status='online',last_error=null,metadata={}){
   const row={
     agent_id:cfg.agentId,
@@ -67,7 +78,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.3',
+    version:'1.5.4',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -933,7 +944,7 @@ function deepSourceTargetIdentity(product,title,url){
     return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact base model found, but the source page identifies a more specific package, bundle, controller or accessory identity than the generic catalogue package.',discovered_suffix:discoveredSuffix};
   }
 
-  return {model_match:true,package_match:'match',variant_match:'match',reason:'Exact catalogue identity is present in the page title/canonical URL.',discovered_suffix:discoveredSuffix};
+  return {model_match:true,package_match:'exact',variant_match:'exact',reason:'Exact catalogue identity is present in the page title/canonical URL.',discovered_suffix:discoveredSuffix};
 }
 
 async function createDeepSourceProductCandidate(runId,product,page){
@@ -1551,16 +1562,7 @@ Return JSON only matching the schema.`;
   // Local models occasionally emit an enum value that is semantically clear
   // but not one of the strict database values. Normalise those values here
   // rather than failing the entire product and losing otherwise valid research.
-  const validMatch=new Set(['exact','compatible','uncertain','mismatch']);
-  const normaliseMatch=v=>{
-    const s=String(v||'uncertain').trim().toLowerCase();
-    if(validMatch.has(s))return s;
-    if(['match','yes','true','matched','correct','same'].includes(s))return 'exact';
-    if(['partial','compatible','close'].includes(s))return 'compatible';
-    if(['no','false','different','incorrect','wrong'].includes(s))return 'mismatch';
-    if(['likely','probable','possible','unknown','unclear','n/a','na'].includes(s))return 'uncertain';
-    return 'uncertain';
-  };
+  const normaliseMatch=canonicalMatchStatus;
   const validCondition=new Set(['new','used','refurbished','unknown']);
   const validKind=new Set(['manufacturer','retailer','marketplace','used_dealer','auction','other']);
   const validCategory=new Set(['new_uk','used_uk','overseas','official']);
@@ -1740,8 +1742,8 @@ async function submitCandidate(runId,productId,product,c,sourceMap){
     p_market_region:actualCategory==='overseas'?'overseas':(c.market_region||cls.market_region),
     p_source_country_code:c.source_country_code||source?.country_code||null,
     p_source_kind:c.source_kind||source?.source_kind||'other',
-    p_package_match:c.package_match||'uncertain',
-    p_variant_match:c.variant_match||'uncertain',
+    p_package_match:canonicalMatchStatus(c.package_match),
+    p_variant_match:canonicalMatchStatus(c.variant_match),
     p_evidence_notes:c.evidence_notes||null,
     p_reference_price_min:c.reference_price_min??null,
     p_reference_price_max:c.reference_price_max??null,
