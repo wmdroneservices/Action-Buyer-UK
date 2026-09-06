@@ -2664,3 +2664,51 @@ Changes in one stream must be checked for effects on the other. Examples include
 - project-memory events arriving while another agent is working.
 
 The manuals and Supabase memory are therefore the coordination layer between concurrent technical agents, not merely documentation written after the fact.
+
+
+---
+
+## Product Workbench — Repair Completion and Testing Rule (6 September 2026)
+
+### Current workflow
+
+A completed repair is now the controlled post-repair testing step.
+
+`Inspection/Testing failure → Repair Required → Record completed repair + mark tested → Ready for Resale → Send to Sales`
+
+The Product Workbench must not return a repaired item to a separate Testing stage.
+
+### Diagnostic route
+
+**User action:** Complete the repair in the Product Workbench.
+
+**Front end:** `inventory-workbench.js`, repair form and `staff_complete_inventory_repair(...)` RPC call.
+
+**Supabase:**
+
+- `inventory_assets`
+- `inventory_repairs`
+- `inventory_expenses`
+- `inventory_testing`
+- `staff_complete_inventory_repair(...)`
+
+### Expected data flow
+
+Repair form
+→ authenticated active staff session
+→ optional repair evidence upload
+→ secure repair RPC
+→ asset row lock and Repair Required validation
+→ optional Repair expense
+→ repair history row
+→ explicit Passed testing row
+→ asset status `Ready for Resale`
+→ existing Sales completion gate.
+
+### Security and completion rule
+
+The workflow does not restore a generic bypass. The RPC still requires an active staff account and an asset currently in `Repair Required`.
+
+Repair completion does **not** automatically send stock to Sales. Existing package, condition and other Sales gates remain authoritative.
+
+**Related checkpoint:** `CHECKPOINTS/2026-09-06-repair-completion-marks-tested.md`.
