@@ -1462,3 +1462,18 @@ Roadmap: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
 - Clear wrong-target cases were reassigned conservatively: RC-N1, RC1, RC Pro Enterprise, Drone Only and generic Standard Package destinations where the source identity supported them.
 - Generic evidence was not forced onto controller, Fly More, Plus, Cine or other specific variants without source support; those cases remain for review.
 - Duplicate candidates may point to the same live evidence row after application; this is expected and avoids duplicate market evidence.
+
+
+## 6 September 2026 — Learning from audit corrections
+
+Gemma's learning is not limited to the model's static prompt. The Research PC loads active rules from Supabase table `quote_catalog_ai_learning` for the relevant manufacturer/product type and passes them into every Ollama validation request.
+
+The DJI audit has added explicit rules explaining the reason behind catalogue corrections: controller identity, generic-versus-specific bundles, **No RC → Drone Only**, uncertainty when package wording is absent, MPB exact-page requirements, and package-aware duplicate checks.
+
+Worker **1.5.5** also uses the catalogue duplicate check before creating a new Deep Source product candidate. It flags only high-confidence same-package matches as likely duplicates; a different controller or bundle is preserved as a potentially distinct catalogue identity.
+
+This is the intended direction of the learning loop:
+
+**Search → collect → deterministic validation → Gemma review with prior learning → database duplicate/package checks → pending evidence → human correction → structured feedback/learning → next Gemma run.**
+
+Gemma must still not auto-accept uncertain evidence or silently create catalogue products.
