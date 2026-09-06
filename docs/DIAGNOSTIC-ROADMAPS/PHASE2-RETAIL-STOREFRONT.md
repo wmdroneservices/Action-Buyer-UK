@@ -463,3 +463,14 @@ A passing post-repair save now performs `Repair Required` → `Testing` → `Rea
 ### Controlled test
 
 TEST-ASSET-003 / GCO-2026-100012 exposed the fault: inspection and testing records passed, but the live asset remained `Repair Required`.
+
+
+## Repair Required / post-repair testing workflow — implemented 6 September 2026
+
+**User flow:** inspection or technical testing identifies a fault → asset enters `Repair Required` → staff sees the fault → staff records repair work/cost/provider/evidence → asset moves to `Testing` → post-repair testing → `Ready for Resale` → Sales.
+
+**Front-end:** `inventory-detail.html` → `inventory-workbench.js`. The dedicated Repair Required panel renders only while the asset status is `Repair Required`; normal inspection/testing save is disabled while repair remains outstanding.
+
+**Database:** `inventory_assets.status`, `inventory_testing`, new `inventory_repairs`, and linked `inventory_expenses` for repair cost. `staff_complete_inventory_repair(...)` checks active staff access, locks the asset, refuses any non-Repair Required state, records the repair and transitions to `Testing`.
+
+**Failure prevention:** no generic Clear Repair Required control. The normal release path is recorded repair followed by post-repair testing.
