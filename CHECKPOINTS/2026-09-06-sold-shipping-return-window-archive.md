@@ -35,3 +35,8 @@ The archive is grouped by UK tax year and remains non-destructive for accounting
 ## Relevant roadmap
 
 `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
+
+
+## Follow-up repair
+
+Closed/refused customer returns that end before physical receipt now restore the original fulfilment to **Delivered**, preventing a stale **Return Open** state from blocking the later archive path.
