@@ -2211,3 +2211,13 @@ The new public sales website is another sales channel, not a replacement for eBa
 See: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
 
 The public storefront repository has not yet been created because the retail brand/domain is still undecided. The shared Supabase infrastructure is intentionally brand-neutral at this stage.
+
+
+## 6 September 2026 — DJI evidence reassignment and catalogue cleanup
+
+- Fixed the live reassign_ai_candidate(...) RPC so it runs as SECURITY DEFINER while retaining its explicit staff check; this prevents the reassignment audit insert from being blocked by RLS.
+- Compact mismatch routing UI: each VALID EVIDENCE — WRONG TARGET DETECTED workflow is now collapsed by default and opens only when routing is needed.
+- During the DJI/MPB audit, clear controller/package identities were normalised to exact, accepted and applied to live comparison evidence.
+- Clear wrong-target cases were reassigned conservatively: RC-N1, RC1, RC Pro Enterprise, Drone Only and generic Standard Package destinations where the source identity supported them.
+- Generic evidence was not forced onto controller, Fly More, Plus, Cine or other specific variants without source support; those cases remain for review.
+- Duplicate candidates may point to the same live evidence row after application; this is expected and avoids duplicate market evidence.
