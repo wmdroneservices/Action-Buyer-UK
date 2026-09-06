@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260906-completed-audit-only-1" defer></script><style>
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Research Centre | GearCashOut</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js" defer></script><script src="staff-navigation.js" defer></script><script src="admin-ai-research.js?v=20260906-deep-source-url-history-1" defer></script><style>
 .ai-review-grid{display:grid;gap:16px}
 .ai-empty-state{padding:24px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#5b6470}
 .ai-review-card{display:grid;grid-template-columns:auto minmax(240px,1fr) minmax(360px,1.6fr) auto;gap:18px;align-items:stretch;padding:18px;border:1px solid #d8dde3;border-left:4px solid #c97921;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -172,7 +172,7 @@
 <h2 id="deep-source-heading">Deep Source / Website Audit</h2>
 <p class="ai-market-scope-help">Paste a website or marketplace landing page. The landing page is used only as the starting map: the Research PC follows relevant categories and subcategories, uses source-specific deep-search rules where available, and only returns exact product pages as final evidence. Category, brand and search pages are discovery-only.</p>
 <div class="research-controls" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px;margin:16px 0">
-<label>Landing page URL<input id="deep-source-url" type="url" placeholder="https://www.mpb.com/en-uk/ or another approved source landing page"></label>
+<label>Landing page URL<input id="deep-source-url" type="url" list="deep-source-url-history" autocomplete="off" placeholder="https://www.mpb.com/en-uk/ or another approved source landing page"><datalist id="deep-source-url-history"></datalist><span class="form-help">Previously used Deep Source URLs are saved on this device and appear here as a dropdown. Enter a new full URL and it will be added for future audits.</span></label>
 <label>Deep audit batch size<select id="deep-source-limit"><option value="1">1 product</option><option value="3">3 products</option><option value="5" selected>5 products</option><option value="10">10 products</option><option value="25">25 products</option></select></label>
 </div>
 <div class="ai-actions"><button id="run-deep-source-audit" class="btn btn-primary" type="button">RUN DEEP SOURCE AUDIT</button></div>
