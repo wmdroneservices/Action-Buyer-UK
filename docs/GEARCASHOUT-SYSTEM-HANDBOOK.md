@@ -3011,3 +3011,15 @@ The AI Research Centre Deep Source audit no longer relies on Chrome's native URL
 - a **SAVE WEBSITE TO LIST** action.
 
 Saving a new URL remembers it for the local Deep Source selector and also registers it with the shared AI source registry for review. A newly discovered source is not automatically approved/enabled for normal AI research merely because it has been saved for Deep Source use.
+
+---
+
+## Research run completion visibility and recovery guard — 7 September 2026
+
+A live Sony Deep Source run was investigated after the PowerShell window appeared to stop progressing. Supabase proved the run had actually reached its terminal state: all five queue items were finished and the run was marked completed_with_errors; the remaining PowerShell output was only the opening-source monitor.
+
+The Research PC worker now makes terminal completion explicit in its own log after the final product, including the run ID, finished count and error count. This prevents a completed audit from looking like an idle/frozen worker.
+
+The queue recovery guard was also corrected from 1 minute to 5 minutes, matching the existing restart-recovery design and reducing the risk of a legitimate long-running product being incorrectly recovered as interrupted.
+
+HTTP 403 responses from monitored opening-soon storefronts remain non-fatal. Repeated blocked-source notices are rate-limited so they do not bury real research activity in the PowerShell log.
