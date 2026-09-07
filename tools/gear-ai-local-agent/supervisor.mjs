@@ -27,6 +27,38 @@ loadEnvFile(new URL('./.env',import.meta.url));
 const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY'];
 for(const key of required)if(!process.env[key])throw new Error(key+' is required. Preferred location: '+external);
 
+// The dashboard architecture assumes one persistent supervisor per Research PC.
+// Without a local single-instance guard, a second launcher can start another
+// worker with the same agent ID and both workers can claim queue items.
+const supervisorLockPath=external.replace(/\.env$/i,'.supervisor.lock');
+function pidLooksAlive(pid){
+  if(!Number.isInteger(pid)||pid<=0)return false;
+  try{process.kill(pid,0);return true}catch(e){return e?.code==='EPERM';}
+}
+function acquireSupervisorLock(){
+  try{
+    if(fs.existsSync(supervisorLockPath)){
+      const prior=Number.parseInt(String(fs.readFileSync(supervisorLockPath,'utf8')).trim(),10);
+      if(prior&&prior!==process.pid&&pidLooksAlive(prior)){
+        throw new Error('Another GearCashOut Research PC supervisor is already running (PID '+prior+'). Close the duplicate launcher instead of starting a second worker.');
+      }
+    }
+    fs.writeFileSync(supervisorLockPath,String(process.pid),'utf8');
+  }catch(e){
+    if(String(e?.message||'').includes('Another GearCashOut'))throw e;
+    throw new Error('Could not acquire Research PC supervisor lock: '+(e?.message||String(e)));
+  }
+}
+function releaseSupervisorLock(){
+  try{
+    if(!fs.existsSync(supervisorLockPath))return;
+    const owner=Number.parseInt(String(fs.readFileSync(supervisorLockPath,'utf8')).trim(),10);
+    if(!owner||owner===process.pid)fs.unlinkSync(supervisorLockPath);
+  }catch{}
+}
+acquireSupervisorLock();
+process.on('exit',releaseSupervisorLock);
+
 const cfg={
   agentId:process.env.AGENT_ID||'gear-local-agent-1',
   agentName:process.env.AGENT_NAME||'GearCashOut Local Research Agent',
