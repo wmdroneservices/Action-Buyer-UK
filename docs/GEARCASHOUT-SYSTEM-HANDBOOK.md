@@ -2950,3 +2950,12 @@ The repair extends the existing MPB browser fallback to discovery pages after HT
 ## Customer Returns Record Display — 7 September 2026
 
 Each post-sale customer return on **Customer Returns** is now an individual collapsible record. The collapsed header keeps the product, return status, return reference and SKU visible; expanding it reveals the transaction timeline, reason, customer notes and the relevant workflow or resolved accounting record. Active cases remain open by default so required staff actions are immediately accessible.
+
+
+## Stock Strategy Report Repair — 7 September 2026
+
+The **Slow-Moving Stock & Outlet Strategy** page briefly failed with `column reference "count" is ambiguous`, followed by **Unable to load strategy report**. The fault was inside `management_stock_strategy_report()`: aggregate COUNT() columns in the listing summary had been left unnamed and were later referenced through generated names (`count` / `count_1`).
+
+The repair gives the aggregates explicit names: `active_listing_count` and `active_outlet_count`. The report remains management-only and advisory. No inventory, listing, price or outlet data is changed by the repair.
+
+**Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
