@@ -205,3 +205,27 @@ Fixed remaining generic MPB crawl admission:
 9. Confirm queue/run/database state.
 10. Start a larger batch only after the one-product result is clean.
 11. Update both manuals and Supabase project memory/checkpoint.
+
+
+## 7 September 2026 — Regression invariant: manufacturer × source isolation
+
+### Repair
+
+Worker 1.5.12 separates `evidence_scope='deep_source'` from evidence categories. `deep_source` is only the selected-source collection route.
+
+### Required invariant
+
+For every Deep Source run, the pair **current manufacturer/model × selected source domain** is evaluated independently:
+
+- manufacturer-specific learning applies only to that manufacturer;
+- source/domain rules may be reused only when explicitly generic;
+- retailer URL suffixes are not inferred from another manufacturer's successful URL;
+- final-page acceptance is based on current target identity, not slug resemblance;
+- exact evidence is classified into its actual market category;
+- URLs are deduplicated only after successful candidate persistence.
+
+### Regression tests
+
+1. DJI × MPB must continue to create its valid MPB reference findings.
+2. Sony × MPB must create findings from valid exact Sony pages without requiring DJI URL shapes.
+3. A future manufacturer × MPB must use the same generic contract without a manufacturer-specific code branch.
