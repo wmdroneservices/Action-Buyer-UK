@@ -79,14 +79,14 @@ function workerRunning(){
 }
 
 async function heartbeat(status,last_error=null,extra={}){
-  const metadata={control_online:true,worker_running:workerRunning(),supervisor_version:'1.5.13-supervisor',...extra};
+  const metadata={control_online:true,worker_running:workerRunning(),supervisor_version:'1.5.14-supervisor',...extra};
   const row={
     agent_id:cfg.agentId,
     agent_name:cfg.agentName,
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.13-supervisor',
+    version:'1.5.14-supervisor',
     last_heartbeat_at:new Date().toISOString(),
     last_error,
     metadata,
