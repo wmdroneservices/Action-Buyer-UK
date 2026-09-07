@@ -242,3 +242,17 @@ The worker now:
 4. retains the source page so staff can approve it for creation as an inactive catalogue draft.
 
 This means missing packages and accessories are surfaced instead of being lost or contaminating the generic model price evidence.
+
+
+## Startup compatibility repair — 7 September 2026
+
+The persistent supervisor architecture is now also enforced by `package.json`:
+
+- `npm start` → `node supervisor.mjs`
+- `npm run worker` → direct `node agent.mjs` for controlled development only
+
+This closes the deployment gap where an older Windows launcher could still run `npm start` and accidentally launch `agent.mjs` directly after the worker had been changed to rely on the supervisor.
+
+At supervisor startup, queued lifecycle commands older than 10 minutes are marked expired rather than being replayed later against a recovered worker. This prevents stale STOP/RESTART commands from unexpectedly firing after an architecture repair.
+
+**Required deployment set for the Research PC:** copy `agent.mjs`, `supervisor.mjs` and `package.json` together. Do not update only `agent.mjs` when the worker architecture changes.
