@@ -2881,3 +2881,12 @@ The replacement workflow is now catalogue-first:
 → production hero mapping only after approval.
 
 A corrected Batch 100 research manifest has been created in the Retail Storefront repository. It contains 100 real catalogue-derived targets and replaces the previous generic review methodology.
+
+
+## Retail Storefront catalogue image population — 7 September 2026
+
+The Retail Storefront product grid has entered visual population mode. Product cards now derive an image lookup identity from the actual live catalogue row (manufacturer + model + package/product context) rather than assigning generic category imagery.
+
+The first implementation is deliberately non-destructive and front-end only: it does not alter `quote_catalog_products`, purchase pricing, evidence, stock, visibility controls or the existing buying/sales backend.
+
+If a product-specific public image cannot be resolved, the card remains explicitly pending rather than being silently populated with an unrelated generic item. The next maintenance stage is to replace runtime lookup with a curated approved mapping/cache after visual coverage review.
