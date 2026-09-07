@@ -3454,3 +3454,16 @@ Relevant diagnostic roadmaps:
 
 - Central backend: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
 - Public website: `GearCashOut-Retail-Storefront/docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
+
+
+---
+
+## Retail Storefront temporary identity — 7 September 2026
+
+The separate Retail Storefront website remains connected to the shared GearCashOut platform and central catalogue. For design preview, it now uses **GearOutlet** as a temporary customer-facing name with the established GearCashOut four-point compass visual language.
+
+- Repository: `wmdroneservices/GearCashOut-Retail-Storefront`
+- Temporary asset: `images/gearoutlet-brand.svg`
+- Final brand/domain: not yet chosen and remains configurable
+- Backend impact: none; this change is presentation-only
+- Diagnostic map: `docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
