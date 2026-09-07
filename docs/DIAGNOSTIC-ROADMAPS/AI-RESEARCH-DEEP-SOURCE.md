@@ -229,3 +229,17 @@ For every Deep Source run, the pair **current manufacturer/model × selected sou
 1. DJI × MPB must continue to create its valid MPB reference findings.
 2. Sony × MPB must create findings from valid exact Sony pages without requiring DJI URL shapes.
 3. A future manufacturer × MPB must use the same generic contract without a manufacturer-specific code branch.
+
+
+### 7. Exact MPB page found but no SKU/range extracted (1.5.13)
+
+Check whether the browser fallback captured the page before MPB's client-rendered inventory appeared.
+
+Current rule:
+
+- final exact MPB collection waits, bounded to 15 seconds, for real SKU text;
+- discovery/category pages do not incur that inventory wait;
+- extractMpbUkUnits() first handles the known rendered layout, then parses bounded SKU blocks with independently extracted price, condition, metric and included contents;
+- do not reintroduce a fixed short sleep as the only readiness signal.
+
+This is a source-rendering issue, not a DJI/Sony matching issue. Manufacturer × source isolation from 1.5.12 remains in force.
