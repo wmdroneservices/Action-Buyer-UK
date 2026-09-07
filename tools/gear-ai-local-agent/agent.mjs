@@ -1074,7 +1074,10 @@ function deepLinkScore(product,link,rule,depth){
   let score=0;
   if(model&&hay.includes(model))score+=100;
   if(manufacturer&&hay.includes(manufacturer))score+=25;
-  if(rule?.exactPath&&rule.exactPath.test(new URL(link.url).pathname))score+=60;
+  // Being an exact product-path is not enough on its own. MPB category/search pages
+  // expose many unrelated /product/... links; the old +60 score admitted all of them
+  // and could make one Sony job sequentially fetch Fujifilm pages until the watchdog hit.
+  if(rule?.exactPath&&rule.exactPath.test(new URL(link.url).pathname))score+=20;
   if(/\b(category|categories|shop|products|cameras|drones|lenses|photo|video|used|new|brand|collection|page)\b/.test(hay))score+=10;
   score-=depth*2;
   return score;
@@ -1235,8 +1238,17 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
 
   // Final validation fetches exact candidate pages only. Generic landing,
   // category and subcategory pages are explicitly excluded from final evidence.
+  if(context?.signal?.aborted)throw new Error('Deep Source collection aborted.');
   const pages=[];
-  for(const r of [...candidates.values()].sort((a,b)=>deepLinkScore(product,b,rule,1)-deepLinkScore(product,a,rule,1)).slice(0,cfg.maxResults)){
+  const rankedCandidates=[...candidates.values()]
+    .map(r=>({...r,_deepScore:deepLinkScore(product,r,rule,1)}))
+    // Deterministic source-specific URLs are allowed through as an explicit fast path.
+    // Every other exact product URL must contain enough target identity to survive ranking.
+    .filter(r=>String(r.query||'').includes('mpb-direct-slug')||r._deepScore>=60)
+    .sort((a,b)=>b._deepScore-a._deepScore)
+    .slice(0,cfg.maxResults);
+  for(const r of rankedCandidates){
+    if(context?.signal?.aborted)throw new Error('Deep Source collection aborted.');
     try{
       const {url,html}=domain==='mpb.com'
         ?await fetchMpbExactPage(r.url)
@@ -1914,17 +1926,29 @@ async function processOne(){
     const learning=await getActiveLearningForProduct(product,evidenceScope);
     log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry and',learning.length,'active learning rule(s).');
 
+    // Deep Source has a hard product watchdog. Keep the collection cooperative:
+    // when the watchdog fires, the collector is marked aborted so it cannot continue
+    // submitting evidence in the background after the queue row has already failed.
+    const deepAbortController=evidenceScope==='deep_source'?new AbortController():null;
+    const deepCollection=()=>collectDeepSourceEvidence(product,sources,runConfig,{
+      runId:item.run_id,
+      productId:item.catalog_product_id,
+      queueId:item.queue_id,
+      evidenceScope,
+      signal:deepAbortController?.signal||null
+    });
     const pages=evidenceScope==='deep_source'
-      ?await withTimeout(
-          ()=>collectDeepSourceEvidence(product,sources,runConfig,{
-            runId:item.run_id,
-            productId:item.catalog_product_id,
-            queueId:item.queue_id,
-            evidenceScope
-          }),
-          cfg.deepSourceProductTimeoutMs,
-          'Deep Source collection for '+productName(product)
-        )
+      ?await new Promise((resolve,reject)=>{
+          let timer;
+          Promise.resolve().then(deepCollection).then(
+            value=>{clearTimeout(timer);resolve(value);},
+            error=>{clearTimeout(timer);reject(error);}
+          );
+          timer=setTimeout(()=>{
+            deepAbortController.abort();
+            reject(new Error('Deep Source collection for '+productName(product)+' timed out after '+cfg.deepSourceProductTimeoutMs+'ms'));
+          },cfg.deepSourceProductTimeoutMs);
+        })
       :await collectEvidence(product,sources,evidenceScope,{
           runId:item.run_id,
           productId:item.catalog_product_id,
