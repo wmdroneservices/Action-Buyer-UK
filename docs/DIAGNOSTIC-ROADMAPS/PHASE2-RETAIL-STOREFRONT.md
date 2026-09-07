@@ -259,6 +259,7 @@ The strategy RPC remains management-only. The Sales Workbench keeps its own auth
 
 ### Failure points
 
+- **Known fault, repaired 7 September 2026:** unnamed COUNT aggregates in the stock strategy RPC produced generated `count` / `count_1` names and could raise `column reference "count" is ambiguous`. The live repair explicitly aliases them as `active_listing_count` and `active_outlet_count`.
 - outlet deactivation changes future coverage calculations but preserves history;
 - listings without `outlet_id` remain visible through compatibility channel text but cannot satisfy a specific registry outlet match until associated;
 - no automatic listing creation is permitted from this reporting layer.
