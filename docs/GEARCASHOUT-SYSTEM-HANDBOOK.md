@@ -3155,3 +3155,51 @@ This is a front-end startup/control-channel repair. It does not change research 
 The Research PC is a local deployment and does not update automatically when GitHub changes. AI Research fixes must therefore be treated as two stages: repository repair and Research PC deployment/verification. A heartbeat/version check is required before declaring a worker fix live.
 
 Deep Source release 1.5.10 specifically contains orphan-crawl containment: a 180000ms product timeout now aborts the active MPB browser fallback, closes Playwright resources, and blocks late discovery persistence into a terminal run. Controlled testing must start with one product before restoring larger batches.
+
+
+---
+
+## Deep Source MPB target-isolation repair — 7 September 2026 (1.5.11)
+
+### Observed failure
+
+A live Sony Alpha 1 II Deep Source run reached the 180-second watchdog while the Research PC repeatedly opened unrelated MPB Sony category, guide and content URLs.
+
+### First failure
+
+The remaining fault was not the supervisor, Ollama, queue lifecycle or watchdog. MPB's generic same-domain breadth-first crawl was still allowed to expand non-product links using broad manufacturer/category relevance. Those pages were discovery-only by design, but they could still consume the product watchdog budget.
+
+### Current repair
+
+For MPB Deep Source audits:
+
+1. deterministic MPB exact-product slugs remain available;
+2. site-constrained external discovery remains available;
+3. MPB internal search remains available;
+4. unrelated exact MPB product links must visibly contain the requested catalogue model before admission;
+5. MPB generic category/content/guide pages are no longer expanded into the breadth-first crawl;
+6. final MPB candidates must either be the explicit deterministic slug or visibly identify the requested model;
+7. the existing abort, browser closure, terminal-run and watchdog protections remain unchanged.
+
+### Expected data flow
+
+`Deep Source URL`
+→ exact deterministic/search discovery
+→ target-model identity gate
+→ exact `/en-uk/product/...` candidate
+→ HTTP fetch or Playwright fallback
+→ final title/canonical identity validation
+→ MPB reference-only range extraction
+→ Pending Evidence Review.
+
+Generic MPB category, brand and editorial/content pages may help a human understand the site but are not permitted to consume the product crawl as successive browser targets.
+
+### Verification rule
+
+A one-product MPB test must show:
+
+- only target-relevant MPB discovery/fallback URLs;
+- no long sequence of unrelated category or editorial pages;
+- no unrelated manufacturer/model exact product pages;
+- queue state remains consistent with actual local work;
+- worker heartbeat reports the deployed release before a larger batch is started.
