@@ -54,7 +54,7 @@ async function heartbeat(status,last_error=null,extra={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.0-supervisor',
+    version:'1.5.7-supervisor',
     last_heartbeat_at:new Date().toISOString(),
     last_error,
     metadata,
@@ -108,6 +108,24 @@ async function stopWorker(){
     try{child.kill('SIGKILL')}catch{}
   }
   return true;
+}
+
+
+// Commands are transient operational instructions, not a durable backlog.
+// A command left queued while the Research PC was running the wrong architecture
+// must not fire hours later and unexpectedly stop/restart a recovered worker.
+async function expireStaleCommands(){
+  const cutoff=new Date(Date.now()-10*60*1000).toISOString();
+  const {error}=await sb.from('quote_catalog_ai_agent_commands')
+    .update({
+      status:'failed',
+      completed_at:new Date().toISOString(),
+      error:'Research PC command expired before the persistent supervisor was available.'
+    })
+    .eq('agent_id',cfg.agentId)
+    .eq('status','queued')
+    .lt('requested_at',cutoff);
+  if(error)throw error;
 }
 
 async function claimCommand(){
@@ -187,6 +205,7 @@ async function handleCommand(data){
 async function loop(){
   log('Research PC supervisor online. Control channel remains available while worker is stopped.');
   await heartbeat('offline',null,{control_online:true,worker_running:false});
+  await expireStaleCommands();
   startWorker();
   while(!shuttingDown){
     try{
