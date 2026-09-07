@@ -3425,3 +3425,32 @@ On 7 September 2026, the GitHub Desktop working copy was verified by:
 Relevant diagnostic roadmap:
 
 `docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`
+
+
+## Public Retail Storefront — Stage 1 foundation
+
+A separate public website repository now exists:
+
+`wmdroneservices/GearCashOut-Retail-Storefront`
+
+It is a second website over the existing central Supabase platform, not a second catalogue or inventory database.
+
+The public storefront currently uses the complete central buying catalogue:
+
+`public.quote_catalog_products`
+
+Current verified source size: **3,845 products across 73 manufacturers**.
+
+Public catalogue reads are intentionally routed through safe RPCs:
+
+- `public_storefront_manufacturers('retail')`
+- `public_storefront_catalog('retail', ...)`
+
+These expose only public presentation fields and availability counts. They do not expose buying prices, internal notes, customer data, staff data or market evidence.
+
+Manufacturer/category/product visibility remains controlled by the existing `sales_catalog_visibility` model. All manufacturers are enabled by default through `auto`; management can explicitly hide a manufacturer without deleting catalogue data.
+
+Relevant diagnostic roadmaps:
+
+- Central backend: `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`
+- Public website: `GearCashOut-Retail-Storefront/docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
