@@ -767,3 +767,38 @@ The queue is authoritative. A Deep Source audit is active only when its queue co
 2. Start an audit with filters matching zero active products → `no_matching_products`, no running lock.
 3. Cancel a real active audit → active rows become skipped and controls reset.
 4. Refresh the page after completion/cancellation → controls remain idle.
+
+
+## 7 September 2026 — Deep Source Edge queue-count regression
+
+### First actual failure
+
+The zero-product stale-state repair in the Edge Function used the wrong Supabase response field when checking how many queue rows had been created.
+
+The query used:
+
+`select('id',{count:'exact',head:true})`
+
+but read `data` instead of `count`.
+
+Because `head:true` intentionally returns no row data, `data` was null. Real Deep Source runs were therefore immediately marked `completed` even though queue rows existed and the Research PC could subsequently claim them.
+
+### Repair
+
+`quote-catalog-ai-worker` now reads:
+
+`const {count:queueCount,error:countError}=...`
+
+and only enters the zero-product terminal branch when `queueCount === 0`.
+
+### Regression test map
+
+- Matching Sony × MPB audit: queue count > 0 → run remains queued.
+- Matching DJI × MPB audit: queue count > 0 → run remains queued.
+- Zero-match filter: queue count = 0 → run completes as no matching products.
+- Cancel active audit: run becomes cancelled and active queue rows become skipped.
+- Dashboard: active state follows actual queued/claimed/processing rows and never treats a completed run as cancellable.
+
+### Historical reconciliation
+
+Run `5aeb67a1-9f70-4aef-95c1-731e06031fbe` was created during the regression. Its queue row was skipped by targeted cancellation and no product completed, so the run record was reconciled from erroneous `completed` to `cancelled`.
