@@ -2988,3 +2988,12 @@ Current package behaviour:
 The supervisor expires queued lifecycle commands older than 10 minutes at startup so stale commands from an unavailable or wrongly deployed control channel cannot replay against a recovered worker.
 
 **Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`.
+
+
+## Stock Strategy Outlet Coverage Display Repair — 7 September 2026
+
+A live visual check found that the Slow-Moving Stock table was displaying the missing-outlet figure beneath the **ACTIVE OUTLETS** heading. The report data itself was correct: for the tested Accsoon CineView HE, there was one active published listing on the GearCashOut Retail Website and eight other active registry outlets not carrying the SKU.
+
+The table now displays active listing count, active outlet coverage and missing outlet count as separate values. No listing, inventory or outlet record was changed.
+
+**Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
