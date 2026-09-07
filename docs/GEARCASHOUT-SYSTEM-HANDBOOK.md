@@ -3121,3 +3121,30 @@ Two discovery-path gaps remained:
 Expected result: a Sony Deep Source job may traverse relevant discovery/category paths, but it must not sequentially open unrelated Fujifilm, Nikon or other manufacturer product pages merely because they appear on MPB landing/category HTML.
 
 The dashboard's active indicator remains database-driven: queued/running runs or queue rows in queued/claimed/processing are active. Once the local collector stops with the queue row, the UI and Research PC state remain consistent.
+
+
+---
+
+## 7 September 2026 — AI Research Centre startup freeze recovery
+
+A live dashboard failure showed the Deep Source website selector stuck on **Loading approved websites…** while the Research PC Remote Controls remained on **Checking…** and none of the control buttons were wired.
+
+### First failure point
+
+admin-ai-research.js called window.actionBuyerAuth.getSession() before wiring any dashboard controls. That helper performs an additional profile lookup. If that lookup stalled, the entire Research Centre startup remained blocked before:
+
+- the Deep Source selector was rendered;
+- Research PC controls were attached;
+- initial live-status loads started.
+
+### Repair
+
+Startup now:
+
+- waits briefly only for the Supabase client object;
+- uses the direct Supabase auth.getSession() call rather than the profile-loading auth helper;
+- bounds authentication and source/status calls with timeouts;
+- never leaves the source selector permanently displaying a fake Loading state;
+- uses a new script cache version so browsers receive the repaired JavaScript.
+
+This is a front-end startup/control-channel repair. It does not change research queue data or worker lifecycle state.
