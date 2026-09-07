@@ -802,3 +802,28 @@ and only enters the zero-product terminal branch when `queueCount === 0`.
 ### Historical reconciliation
 
 Run `5aeb67a1-9f70-4aef-95c1-731e06031fbe` was created during the regression. Its queue row was skipped by targeted cancellation and no product completed, so the run record was reconciled from erroneous `completed` to `cancelled`.
+
+
+## 7 September 2026 — Dashboard terminal-message transition
+
+### Symptom
+
+A five-product Sony × MPB run completed in Supabase and the Research PC logged completion, while the dashboard button correctly returned to **RUN DEEP SOURCE AUDIT**. However, the message beneath it still said **Deep Source Audit running: 4/5 products processed · 1 processing** until a manual page refresh.
+
+### First failure point
+
+This was not a queue or worker failure. `admin-ai-research.js` correctly detected that no active queue rows remained and reset the controls, but `setDeepSourceAuditControls(null, [])` did not replace the previous running message.
+
+### Repair path
+
+`loadDeepSourceAuditState()` now:
+
+1. remembers the run ID observed as active in the current browser session;
+2. reads the latest run and queue state;
+3. clears active controls when no queue row is queued, claimed, or processing;
+4. if that same observed run is terminal, displays completed / completed-with-errors / cancelled / failed status;
+5. does not show historical completion notices after a page refresh.
+
+### Regression check
+
+Run a small Deep Source batch and leave the dashboard open. When the final queue row becomes terminal, the button and message must both transition without a manual refresh.
