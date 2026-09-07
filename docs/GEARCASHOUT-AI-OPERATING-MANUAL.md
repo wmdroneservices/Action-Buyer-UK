@@ -2906,3 +2906,12 @@ The homepage primary **Browse catalogue** action now takes the user to a categor
 The homepage uses the main catalogue groupings, including Cameras, Lenses, Drones, Video Cameras, Action Cameras, Camera Accessories, Lighting, Audio, Supports & Stabilisation, Video Production Equipment, Drone Accessories, Power & Batteries and Studio Equipment.
 
 Each category links into the existing central catalogue using the category query parameter. Manufacturer browsing remains available as a separate route and the underlying catalogue/RPC/backend remains unchanged.
+
+
+## Correction: category cards must use the existing shop grid — 7 September 2026
+
+The previous homepage category-first implementation was the wrong visual interpretation: it created a separate list/grid section rather than using the established Retail Storefront shop layout.
+
+**Correct behaviour:** opening **Browse Catalogue** now keeps the exact shop page structure shown in the storefront: left filters and the existing card grid. The initial grid contains category cards (Cameras, Lenses, Drones, Video Cameras, Action Cameras, etc.) instead of individual products. Clicking a category then switches that same grid to the products within the selected category.
+
+This is a front-end navigation/layout correction only. The central catalogue, manufacturer controls, Supabase RPCs, buying and sales backend remain unchanged.
