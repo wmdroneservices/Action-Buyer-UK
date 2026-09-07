@@ -91,7 +91,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.11-worker',
+    version:'1.5.12-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -905,8 +905,14 @@ async function getActiveLearningForProduct(product,evidenceScope='all'){
   return (data||[]).filter(l=>{
     const type=String(l.product_type||'').trim();
     const category=String(l.evidence_category||'').trim().toLowerCase();
-    return (!type||!productType||type.toLowerCase()===productType.toLowerCase()) &&
-      (!category||category==='all'||evidenceScope==='all'||category===evidenceScope||category==='used_uk');
+    if(type&&productType&&type.toLowerCase()!==productType.toLowerCase())return false;
+
+    // Deep Source is a collection mode, not an evidence category. Source-specific
+    // learning must therefore be available to the validator without pretending
+    // that "deep_source" is a market bucket. Normal market scopes still filter by
+    // their actual evidence category.
+    if(!category||category==='all'||evidenceScope==='all'||evidenceScope==='deep_source')return true;
+    return category===evidenceScope;
   });
 }
 
@@ -1681,6 +1687,9 @@ RESEARCH MODE: ${evidenceScope}
 Rules:
 - Every candidate MUST include evidence_id matching the numbered COLLECTED WEB EVIDENCE item used. The worker will verify the URL against that evidence item.
 - ACTIVE HUMAN LEARNING / SOURCE-SPECIFIC RULES are operational instructions from reviewed mistakes. Apply them before returning candidates.
+- RESEARCH MODE is not an evidence category. In particular, deep_source means "collected from this one selected website/domain"; it must never be compared with new_uk, used_uk, official or overseas.
+- Deep Source target isolation is mandatory: manufacturer + model describe the current target only. Never generalise a URL slug, suffix, package pattern or extraction rule learned from DJI to Sony, or from Sony to DJI. Reuse only source/domain rules that are explicitly generic.
+- Retailer URL shapes may vary by product and manufacturer. An exact MPB product page may legitimately use a suffix such as -camera, -camcorder or another retailer-specific ending. Validate the collected page against the requested manufacturer/model evidence instead of requiring one manufacturer's URL pattern.
 - For MPB UK specifically: category pages, brand pages and search pages are discovery-only and must not be returned as final price evidence. Continue to the exact MPB /en-uk/product/... model page. If that page exposes multiple individual live units, aggregate them into one reference-only Used UK range for that exact product page: minimum price, maximum price, conditions represented, unit count and the canonical verification URL.
 - Use ONLY URLs and factual evidence in COLLECTED WEB EVIDENCE. Never invent a URL, title, price or availability. Prefer collected evidence title and price fields when present.
 - Exact model matching is mandatory. A true variant/generation mismatch must be rejected.
@@ -1787,6 +1796,16 @@ Return JSON only matching the schema.`;
   return parsed;
 }
 
+// Research mode and evidence category are different concepts.
+// "deep_source" tells the worker how the evidence was collected; it is never a
+// market bucket and must not be compared with new_uk/used_uk/official/overseas.
+function researchScopeAllowsEvidence(evidenceScope,evidenceCategory){
+  const scope=String(evidenceScope||'all').toLowerCase();
+  const category=String(evidenceCategory||'').toLowerCase();
+  if(scope==='all'||scope==='deep_source')return true;
+  return scope===category;
+}
+
 function buildManualReviewFallback(product,page,knownSource,evidenceScope='all'){
   // Safety net: Ollama is a validator, not the sole gatekeeper. If a collected
   // live page has exact-model evidence but the model omits it, preserve it for
@@ -1808,7 +1827,7 @@ function buildManualReviewFallback(product,page,knownSource,evidenceScope='all')
     // Amazon-only is a discovery mode, not a separate evidence market. The
     // Amazon is a source filter. Listing condition determines New/Used evidence; refurbished is stored under Used evidence.
     if(hostOf(page.url)!=='amazon.co.uk')return null;
-  }else if(evidenceScope!=='all'&&cls.evidence_category!==evidenceScope)return null;
+  }else if(!researchScopeAllowsEvidence(evidenceScope,cls.evidence_category))return null;
 
   return {
     source_url:page.url,
@@ -2162,8 +2181,13 @@ async function processOne(){
         _evidence_title:page.title,
         _evidence_text:page.text
       };
-      if(await submitCandidate(item.run_id,item.catalog_product_id,product,candidate,sourceMap))mpbSubmitted++;
-      mpbSubmittedPageUrls.add(String(page.url||'').split('#')[0]);
+      // Only mark an MPB page as handled after the candidate was actually
+      // persisted. A failed insert must remain eligible for the generic/manual
+      // preservation path below instead of being silently deduplicated away.
+      if(await submitCandidate(item.run_id,item.catalog_product_id,product,candidate,sourceMap)){
+        mpbSubmitted++;
+        mpbSubmittedPageUrls.add(String(page.url||'').split('#')[0]);
+      }
     }
     if(mpbSubmitted>0)log('Created',mpbSubmitted,'MPB UK reference-only range finding(s) from',mpbSubmittedPageUrls.size,'exact model page(s).');
 
@@ -2256,8 +2280,8 @@ async function processOne(){
         fallback._preserve_wrong_target=true;
         fallback.evidence_notes='VALID EVIDENCE — WRONG TARGET / PACKAGE DETECTED. '+String(page.target_identity?.reason||'Exact same-model source identity differs from the catalogue target.')+' '+String(fallback.evidence_notes||'');
       }
-      seenCandidateUrls.add(dedupeKey);
       if(await submitCandidate(item.run_id,item.catalog_product_id,product,fallback,sourceMap)){
+        seenCandidateUrls.add(dedupeKey);
         submitted++;
         preserved++;
       }
