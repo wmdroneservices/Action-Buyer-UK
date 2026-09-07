@@ -2145,3 +2145,14 @@ A completed post-sale customer return must not continue to generate legacy retur
 ## Operating Rule — Customer Return Record Presentation (7 September 2026)
 
 When changing `sales-customer-returns.html` / `sales-customer-returns.js`, preserve one independently expandable record per `sales_customer_returns` row. The collapsed header must retain enough identity to distinguish the case without opening it: product, status, return reference and SKU. Do not hide active workflow actions behind a collapsed record by default; active cases may remain expanded while terminal history can be collapsed.
+
+
+### Known fault — Stock strategy ambiguous COUNT columns (7 September 2026)
+
+Symptom: `column reference "count" is ambiguous` and the front end falls back to **Unable to load strategy report**.
+
+Root cause: `management_stock_strategy_report()` previously allowed PostgreSQL to generate aggregate column names (`count` and `count_1`) in `listing_summary`, then referenced those generated names later.
+
+Repair rule: always alias report aggregates explicitly, especially inside PL/pgSQL `RETURN QUERY` CTEs. Use `active_listing_count` and `active_outlet_count`; do not depend on generated aggregate names.
+
+Verification: inspect the live RPC definition, confirm the aliases are present, and run the underlying reporting CTE successfully against the current inventory/listing/outlet state. Preserve the management authorization guard and advisory-only behaviour.
