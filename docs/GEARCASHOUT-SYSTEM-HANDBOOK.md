@@ -3300,3 +3300,12 @@ The database and queue lifecycle were already correct. The failure was isolated 
 The dashboard now detects the transition from the browser-observed active run to its terminal database state and displays a completion, cancellation, error, or failure message. Historical runs are not re-announced after a page refresh.
 
 See: `docs/DEEP-SOURCE-WEBSITE-AUDIT-DIAGNOSTIC-ROADMAP.md`.
+
+
+## 7 September 2026 — Sony MPB five-product finding audit
+
+The completed Sony × MPB Deep Source run `7dc6d17f-d140-4ff4-9e3a-a658baf7d410` produced ten Pending Review candidates for five products. Independent audit accepted only one live pricing finding: **Sony VG-C4EM Vertical Grip** on the exact MPB UK page, with two live Excellent units at **£224**. The evidence was applied as **reference-only UK used-market evidence** so it does not alter automatic pricing.
+
+The remaining nine candidates were denied because they were generic/ambiguous identities, duplicate aliases, out-of-stock/unpriced findings, or stale/non-canonical paths that did not contain usable live price evidence.
+
+Important diagnostic finding: the active learning registry already contained the rule that generic catalogue taxonomy labels such as **Accessory** are not literal package variants. The accepted VG-C4EM candidate was nevertheless initially marked package/variant mismatch. This is now recorded as a candidate-scoring compliance issue to inspect before changing the Sony/DJI manufacturer-isolation rules.
