@@ -3203,3 +3203,21 @@ A one-product MPB test must show:
 - no unrelated manufacturer/model exact product pages;
 - queue state remains consistent with actual local work;
 - worker heartbeat reports the deployed release before a larger batch is started.
+
+
+## 7 September 2026 — Deep Source manufacturer/URL isolation repair (worker 1.5.12)
+
+A Deep Source run is a **collection mode**, not an evidence category. `deep_source` must never be compared directly with `new_uk`, `used_uk`, `official` or `overseas`.
+
+The repair was made after Sony Alpha 1 II exact MPB pages were successfully discovered but discarded before candidate creation because the manual-review fallback compared `used_uk !== deep_source`.
+
+Worker 1.5.12 now enforces:
+
+- manufacturer + model identify the current target only;
+- source/domain rules can be generic, but manufacturer-specific patterns cannot leak into another manufacturer;
+- DJI MPB URL/extraction success does not become a Sony requirement, and Sony suffixes do not alter DJI matching;
+- retailer-specific URL suffixes are validated by page identity rather than one manufacturer's slug pattern;
+- a Deep Source exact page remains eligible for its real evidence category;
+- MPB and fallback dedupe only mark a URL handled after successful candidate persistence.
+
+Regression set: DJI × MPB, Sony × MPB, and a future manufacturer × selected source.
