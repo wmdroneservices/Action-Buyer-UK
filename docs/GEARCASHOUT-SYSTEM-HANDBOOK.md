@@ -3627,3 +3627,28 @@ Only an explicitly approved mapping may render. Candidate or unverified web resu
 
 ### Coordination rule
 This queue is deliberately separate from `catalog_sales_content`, which is currently part of the shared research workflow. Do not overwrite or bulk-edit Gemma/other-agent catalogue evidence or sales-content records while this pipeline is being populated.
+
+
+## Staff Image Research Workspace — 7 September 2026
+
+A dedicated internal Image Research workspace is now available in the Retail Storefront at `image-research.html`.
+
+### Access
+The page is protected by Supabase Authentication and the existing `public.is_staff_manager()` permission check. Only an active staff manager can load or save the research queue. The retail image queue itself now has RLS enabled and direct anon/authenticated table access revoked; the UI uses manager-only RPCs.
+
+### What the workspace allows
+- Filter by scope: category, manufacturer, model or exact product.
+- Filter by research status and search the queue.
+- Review the exact catalogue target.
+- Preview a candidate image.
+- Record image URL, source page URL and source name.
+- Record licence/rights status and research notes.
+- Mark a candidate pending, candidate, approved, rejected or blocked.
+- Explicitly approve imagery for storefront use.
+
+### Database routes
+- `staff_retail_image_research_list(...)`
+- `staff_retail_image_research_save(...)`
+- Existing public storefront imagery remains limited to explicitly approved records.
+
+This workspace is deliberately isolated from `catalog_sales_content` so it does not interfere with Gemma or other agents' catalogue/evidence research.
