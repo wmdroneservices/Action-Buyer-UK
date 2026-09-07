@@ -91,7 +91,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.10-worker',
+    version:'1.5.11-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -1083,6 +1083,23 @@ function deepLinkScore(product,link,rule,depth){
   return score;
 }
 
+function mpbLinkHasTargetModelIdentity(product,link){
+  const model=normaliseIdentityText(product?.model);
+  if(!model)return false;
+  let identity=normaliseIdentityText([link?.title,link?.url].filter(Boolean).join(' '));
+  try{
+    identity+=' '+normaliseIdentityText(decodeURIComponent(new URL(link?.url).pathname).replace(/[\/_-]+/g,' '));
+  }catch{}
+  return identity.includes(model);
+}
+
+function isMpbGenericContentPath(url){
+  try{
+    const path=new URL(url).pathname.toLowerCase();
+    return /^\/en-uk\/(?:content|category|categories|brand|brands|kit-guides|tips-and-techniques|videos-and-podcasts)(?:\/|$)/.test(path);
+  }catch{return true}
+}
+
 let mpbBrowserFallbackWarned=false;
 function mpbBrowserExecutableCandidates(){
   const envPath=String(process.env.MPB_BROWSER_PATH||'').trim();
@@ -1253,9 +1270,19 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
           // An exact product URL that does not identify the requested target is
           // not a discovery page. Do not crawl it just because it came from MPB.
           if(exact){
-            if(score>=60)addCandidate({...link,target_query:query},'internal-search');
+            // MPB search/category pages can expose unrelated exact product URLs.
+            // Require the requested model in the link identity; only the explicit
+            // deterministic slug is allowed to bypass this discovery check.
+            if(domain!=='mpb.com' ? score>=60 : mpbLinkHasTargetModelIdentity(product,link)){
+              addCandidate({...link,target_query:query},'internal-search');
+            }
             continue;
           }
+          // Do not breadth-first crawl MPB generic/category/content pages. MPB
+          // has deterministic exact slugs, site-constrained web discovery and its
+          // own internal search above; expanding broad content links is what caused
+          // Sony jobs to wander through unrelated Sony guide/category URLs.
+          if(domain==='mpb.com')continue;
           if(score>=8)queue.push({url:link.url,title:link.title,depth:1,from:'internal-search',target_query:query});
         }
       }catch(e){log('Deep Source internal search unavailable:',u,e.message||String(e))}
@@ -1288,9 +1315,16 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
         // meet the target-identity threshold, never enqueue it for further crawl.
         // This prevents a Sony audit from opening Fujifilm/Nikon/etc. product pages.
         if(exact){
-          if(score>=60)addCandidate(link,'deep-crawl');
+          if(domain!=='mpb.com' ? score>=60 : mpbLinkHasTargetModelIdentity(product,link)){
+            addCandidate(link,'deep-crawl');
+          }
           continue;
         }
+        // MPB category and content pages are discovery-only. Never enqueue them
+        // into the breadth-first crawl for another fetch: target discovery is
+        // already handled by deterministic slugs, exact web search and internal
+        // search. This keeps one product audit bounded and target-specific.
+        if(domain==='mpb.com')continue;
         if(node.depth<maxDepth&&score>=8){
           queue.push({url:link.url,title:link.title,depth:node.depth+1,from:'deep-crawl'});
         }
@@ -1305,10 +1339,17 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   const rankedCandidates=[...candidates.values()]
     .map(r=>({...r,_deepScore:deepLinkScore(product,r,rule,1)}))
     // Deterministic source-specific URLs are allowed through as an explicit fast path.
-    // Every other exact product URL must contain enough target identity to survive ranking.
-    .filter(r=>String(r.query||'').includes('mpb-direct-slug')||r._deepScore>=60)
+    // Every other MPB exact product URL must visibly identify the requested model;
+    // broad category/content discovery can never promote an unrelated model.
+    .filter(r=>{
+      if(domain==='mpb.com'){
+        return String(r.query||'').includes('mpb-direct-slug')||mpbLinkHasTargetModelIdentity(product,r);
+      }
+      return r._deepScore>=60;
+    })
     .sort((a,b)=>b._deepScore-a._deepScore)
     .slice(0,cfg.maxResults);
+  log('Deep Source',domain,'target-isolated candidates:',rankedCandidates.length,'of',candidates.size,'for',productName(product));
   for(const r of rankedCandidates){
     throwIfAborted();
     try{
