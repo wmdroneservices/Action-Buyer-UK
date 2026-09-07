@@ -45,6 +45,7 @@ const cfg={
   pollSeconds:Math.max(5,Number(process.env.POLL_SECONDS||15)),
   maxResults:Math.max(5,Math.min(30,Number(process.env.MAX_RESULTS_PER_PRODUCT||20))),
   requestTimeoutMs:Math.max(5000,Number(process.env.REQUEST_TIMEOUT_MS||15000)),
+  deepSourceProductTimeoutMs:Math.max(60000,Number(process.env.DEEP_SOURCE_PRODUCT_TIMEOUT_MS||180000)),
   sourceProbeLimit:Math.max(3,Math.min(20,Number(process.env.SOURCE_PROBE_LIMIT||12))),
   googleSearchEnabled:process.env.GOOGLE_SEARCH_ENABLED!=='false',
   googleSearchApiKey:String(process.env.GOOGLE_SEARCH_API_KEY||process.env.GOOGLE_API_KEY||'').trim(),
@@ -59,6 +60,18 @@ const sb=createClient(cfg.supabaseUrl,cfg.serviceKey,{auth:{persistSession:false
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const log=(...x)=>console.log(new Date().toLocaleString('en-GB'),...x);
+
+async function withTimeout(task,timeoutMs,label='Operation'){
+  let timer;
+  try{
+    return await Promise.race([
+      Promise.resolve().then(task),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' timed out after '+timeoutMs+'ms')),timeoutMs);})
+    ]);
+  }finally{
+    if(timer)clearTimeout(timer);
+  }
+}
 
 // Canonical worker/database contract for package and variant identity.
 // The database accepts only: exact, compatible, uncertain, mismatch.
@@ -1096,20 +1109,30 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
     if(!executablePath)throw new Error('HTTP 403 and no local Chrome/Edge executable was found for MPB browser fallback.');
     let browser,context;
     try{
+      log('MPB browser fallback starting:',url);
       browser=await chromium.launch({
         executablePath,
         headless:true,
+        timeout:timeoutMs,
         args:['--disable-blink-features=AutomationControlled']
       });
-      context=await browser.newContext({
-        locale:'en-GB',
-        userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
-        extraHTTPHeaders:{'Accept-Language':'en-GB,en;q=0.9'}
-      });
-      const page=await context.newPage();
+      log('MPB browser fallback launched:',url);
+      context=await withTimeout(
+        ()=>browser.newContext({
+          locale:'en-GB',
+          userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
+          extraHTTPHeaders:{'Accept-Language':'en-GB,en;q=0.9'}
+        }),
+        timeoutMs,
+        'MPB browser context'
+      );
+      const page=await withTimeout(()=>context.newPage(),timeoutMs,'MPB browser page');
+      log('MPB browser fallback navigating:',url);
       await page.goto(url,{waitUntil:'domcontentloaded',timeout:timeoutMs});
       await page.waitForTimeout(Math.min(2500,Math.max(500,timeoutMs/4)));
-      return {url:page.url(),html:await page.content()};
+      const html=await withTimeout(()=>page.content(),timeoutMs,'MPB browser page content');
+      log('MPB browser fallback collected:',page.url());
+      return {url:page.url(),html};
     }finally{
       if(context)await context.close().catch(()=>{});
       if(browser)await browser.close().catch(()=>{});
@@ -1892,12 +1915,16 @@ async function processOne(){
     log('Loaded',sources.length,'dynamic research source(s) from shared memory + compatibility registry and',learning.length,'active learning rule(s).');
 
     const pages=evidenceScope==='deep_source'
-      ?await collectDeepSourceEvidence(product,sources,runConfig,{
-          runId:item.run_id,
-          productId:item.catalog_product_id,
-          queueId:item.queue_id,
-          evidenceScope
-        })
+      ?await withTimeout(
+          ()=>collectDeepSourceEvidence(product,sources,runConfig,{
+            runId:item.run_id,
+            productId:item.catalog_product_id,
+            queueId:item.queue_id,
+            evidenceScope
+          }),
+          cfg.deepSourceProductTimeoutMs,
+          'Deep Source collection for '+productName(product)
+        )
       :await collectEvidence(product,sources,evidenceScope,{
           runId:item.run_id,
           productId:item.catalog_product_id,
