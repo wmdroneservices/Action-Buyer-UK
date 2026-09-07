@@ -2837,3 +2837,31 @@ No Supabase product records, inventory, pricing or visibility controls are chang
 `GearCashOut-Retail-Storefront/docs/CATEGORY-HERO-IMAGE-SOURCES.md`
 
 Two first-batch visuals (Binocular Case and Body Camera) are documented as closest-match temporary white-background imagery and should be upgraded when a stronger exact-category stock source is found.
+
+
+## Retail Storefront hero imagery — Batch 100 review, 7 September 2026
+
+A review-only research batch of **100 hero-image candidates** has been added to the Retail Storefront before mass activation.
+
+Composition:
+- 50 catalogue categories;
+- 25 manufacturers;
+- 25 product lines.
+
+Review entry point:
+
+`GearCashOut-Retail-Storefront/hero-image-review.html`
+
+Technical data:
+
+`js/hero-image-review.js`
+
+The candidates use researched stock/editorial source pages and are presented against the required white/near-white visual treatment. They are **not yet wired into live manufacturer/category/product-line filtering**, preserving the existing working storefront until review approval.
+
+Source audit:
+
+`docs/HERO-IMAGE-BATCH-100-REVIEW.md`
+
+Relevant diagnostic roadmap:
+
+`docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
