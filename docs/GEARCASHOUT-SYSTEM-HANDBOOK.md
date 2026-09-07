@@ -3595,3 +3595,35 @@ Only listings with **Published** status on the active **WEBSITE** outlet are exp
 - Manufacturer, model and stock cards resolve imagery from the actual manufacturer/model identity rather than substituting unrelated generic objects.
 - The selected hierarchy level also receives a relevant top hero.
 - Curated catalogue/inventory sales imagery can replace runtime lookup as it is approved and populated.
+
+
+## Image-system hard stop and curated replacement pipeline — 7 September 2026
+
+### Fault identified
+The live storefront was performing an unconstrained runtime Wikimedia search from manufacturer/model/category text. This could return semantically wrong media, including people, unrelated objects and duplicates. This was the first failure behind the poor card imagery.
+
+### Immediate repair
+- Removed the Wikimedia runtime image resolver completely.
+- Removed runtime fallback searching from category, manufacturer, model and stock cards.
+- Cleared the previous mixed hero mapping before replacement.
+- Cards without an explicitly curated image now show a neutral **IMAGE CURATION — Approved image pending** state rather than an unrelated photograph.
+- The 14 main storefront categories now have individually researched, explicit white-background/clean-background hero selections from Pexels research.
+
+### Dedicated image queue
+A new isolated Supabase table, `public.retail_storefront_image_queue`, was created so image research does not overwrite Gemma's evidence/catalogue work:
+
+- 34 category targets
+- 188 category/manufacturer targets
+- 3,526 category/manufacturer/model targets
+- 3,845 exact catalogue-product targets
+
+Each target carries independent fields for source URL, source name, licence status, research status and explicit approval.
+
+### Approval rule
+Only an explicitly approved mapping may render. Candidate or unverified web results must never silently appear on the public storefront.
+
+### Public access
+`public_storefront_image_assets(category, manufacturer)` returns only approved rows with non-empty image URLs. Internal research notes and rejected/pending candidates remain private.
+
+### Coordination rule
+This queue is deliberately separate from `catalog_sales_content`, which is currently part of the shared research workflow. Do not overwrite or bulk-edit Gemma/other-agent catalogue evidence or sales-content records while this pipeline is being populated.
