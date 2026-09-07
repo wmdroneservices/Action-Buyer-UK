@@ -2997,3 +2997,17 @@ A live visual check found that the Slow-Moving Stock table was displaying the mi
 The table now displays active listing count, active outlet coverage and missing outlet count as separate values. No listing, inventory or outlet record was changed.
 
 **Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
+
+
+---
+
+## Deep Source Website Selector (7 September 2026)
+
+The AI Research Centre Deep Source audit no longer relies on Chrome's native URL datalist. The interface now has:
+
+- a normal dropdown containing all approved live research websites;
+- alphabetical ordering by hostname after removing a leading `www.`;
+- a separate full-URL input for a website not already listed;
+- a **SAVE WEBSITE TO LIST** action.
+
+Saving a new URL remembers it for the local Deep Source selector and also registers it with the shared AI source registry for review. A newly discovered source is not automatically approved/enabled for normal AI research merely because it has been saved for Deep Source use.
