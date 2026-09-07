@@ -2985,3 +2985,10 @@ This queue is deliberately separate from `catalog_sales_content`, which is curre
 ## Image Research ownership — 7 September 2026
 
 Before adding staff tooling for any outlet, keep the repository boundary explicit: public outlet repositories are presentation/website channels only. Staff operations, research, review and approval tools are built in Action-Buyer-UK under the appropriate Staff Dashboard area. For image research, the correct entry point is Staff Dashboard → Research & Pricing.
+
+
+## Image Research operating boundary
+
+**Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md`
+
+When implementing imagery for any sales channel, do not build staff research tools into the public outlet repository. Investigate and maintain image candidates centrally in **Action-Buyer-UK → Staff Dashboard → Research & Pricing → Image Research**. The workflow uses controlled staff RPCs over the central image queue; public websites consume approved records only.
