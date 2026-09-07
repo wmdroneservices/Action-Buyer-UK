@@ -2434,3 +2434,19 @@ The release identifiers must agree:
 - supervisor metadata: `1.5.11-supervisor`
 
 Run `node --check agent.mjs`, `node --check supervisor.mjs` and `npm install` after deployment. Then start one controlled Sony/MPB Deep Source product and inspect the first browser-fallback URLs before starting a larger batch.
+
+
+## 7 September 2026 — Deep Source target-isolation rule (worker 1.5.12)
+
+`deep_source` is a collection route, not a market category. Gemma receives a global active learning rule that manufacturer/model identity belongs to the current target only. It must not transfer a URL suffix, slug shape, package pattern or extraction exception learned from DJI to Sony, or vice versa.
+
+For any manufacturer × selected URL/domain combination:
+
+1. start from the current manufacturer + exact model;
+2. apply only generic source/domain rules that explicitly fit the selected domain;
+3. validate the collected final page against the current target identity;
+4. allow retailer-specific suffixes such as camera/camcorder endings;
+5. classify the evidence into its real market category separately from the Deep Source mode;
+6. preserve exact/strong evidence for Pending Review if automated extraction or Gemma does not produce a final candidate.
+
+The MPB dedupe guard now records a page as handled only after candidate persistence succeeds.
