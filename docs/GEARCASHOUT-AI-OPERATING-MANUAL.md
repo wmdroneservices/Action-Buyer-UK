@@ -2203,3 +2203,22 @@ The strategy table now keeps the three measures separate:
 - **MISSING ACTIVE OUTLETS** — missing_outlet_count with the names of the missing active outlets.
 
 No database or listing data was changed. This was a front-end column-mapping/display repair.
+
+
+---
+
+## Deep Source URL control rule — 7 September 2026
+
+Do not revert the Deep Source website selector to a browser `<datalist>` as the primary source list. Chrome can filter or truncate datalist suggestions, making a healthy source registry appear to have disappeared.
+
+Current design:
+
+1. Load approved live source URLs from `quote_catalog_ai_sources` through the `source_registry` action.
+2. Sort URLs alphabetically by hostname after removing leading `www.`.
+3. Render them in `#deep-source-url-select`.
+4. Copy a selected URL into `#deep-source-url` for the audit.
+5. Permit manual URL entry.
+6. **SAVE WEBSITE TO LIST** remembers the URL locally and registers it through `discover_source` for shared registry review.
+7. Do not automatically enable a newly discovered source.
+
+Relevant files: `admin-ai-research.html`, `admin-ai-research.js`, and Supabase Edge Function `quote-catalog-ai-orchestrator`.
