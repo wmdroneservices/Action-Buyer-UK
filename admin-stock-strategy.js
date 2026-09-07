@@ -17,7 +17,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
    <td><strong>${esc([x.manufacturer,x.model].filter(Boolean).join(" ")||"Unknown item")}</strong><br><small>${esc(x.package_name||"")}</small><br><small>${money(x.purchase_price)}</small></td>
    <td>${esc(x.asset_status)}</td><td><strong>${esc(x.days_in_stock)}</strong></td>
    <td>${esc(x.active_listing_count)}<br><small>${esc(x.outlet_names||"None")}</small></td>
-   <td>${esc(x.missing_outlet_count)} of ${esc(x.available_outlet_count)}<br><small>${esc(x.missing_outlet_names||"None")}</small></td>
+   <td>${esc(x.active_outlet_count)} of ${esc(x.available_outlet_count)}</td>
+   <td>${esc(x.missing_outlet_count)}<br><small>${esc(x.missing_outlet_names||"None")}</small></td>
    <td><strong>${esc(x.strategy_band)}</strong></td><td>${esc(x.recommendation)}</td>
    <td><a class="btn btn-secondary" href="listing-readiness.html?id=${encodeURIComponent(x.asset_id)}">${esc(actionLabel(x))}</a></td>
   </tr>`).join("")||'<tr><td colspan="10">No live inventory.</td></tr>';
