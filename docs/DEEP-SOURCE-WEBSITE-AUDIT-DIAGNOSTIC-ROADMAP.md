@@ -676,3 +676,51 @@ The Deep Source watchdog uses an AbortSignal. Every long-running discovery loop 
 Repository worker version: `1.5.9-worker`.
 
 Before live verification, confirm the Research PC heartbeat reports that version. If it still reports `1.5.8-worker`, the Windows worker has not yet been updated and any continued unrelated-MPB behaviour must not be used to judge the repository repair.
+
+
+---
+
+## 7 September 2026 — Research Centre startup/control freeze
+
+### User action
+
+Open AI Research Centre.
+
+### Front-end entry
+
+admin-ai-research.html
+→ auth.js
+→ admin-ai-research.js
+→ start()
+→ initClient()
+
+### Failure point found
+
+Previously:
+
+start()
+→ await initClient()
+→ await actionBuyerAuth.getSession()
+→ auth helper also queried profiles
+→ stalled profile request
+→ **no controls wired and no initial panels loaded**
+
+### Repair path
+
+initClient()
+→ wait for actionBuyerAuth.supabase
+→ assign sb
+→ direct sb.auth.getSession() with timeout
+→ wire controls
+→ bounded initial panel loads
+
+### Expected data/control flow
+
+- Deep Source selector: source_registry → Edge Function → quote_catalog_ai_sources.
+- Research PC status: direct Supabase → quote_catalog_ai_agents.
+- Lifecycle command: dashboard → ai_agent_request_command() → quote_catalog_ai_agent_commands → persistent supervisor.mjs.
+- Research PC heartbeat: supervisor/worker → quote_catalog_ai_agents.
+
+### Known fault history
+
+A static **Loading approved websites… / Checking…** screen is now classified as a potential **front-end startup block**, not automatically as a Research PC outage.
