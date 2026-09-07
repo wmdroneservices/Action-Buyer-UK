@@ -2278,3 +2278,18 @@ Always distinguish:
 4. stale processing rows after interruption.
 
 Check Supabase before deciding which condition exists.
+
+
+---
+
+## Current repair note — 7 September 2026: MPB Deep Source unrelated-page timeout
+
+Live Sony Deep Source logs proved the worker was active; this was not a Gemma/Ollama outage. The failure was inside MPB candidate admission.
+
+**Symptom:** one Sony job opened a sequence of unrelated Fujifilm exact product URLs and then hit the 180-second Deep Source watchdog.
+
+**Root cause:** exact MPB product-path status alone scored highly enough to admit unrelated links into final validation.
+
+**Current repair:** `agent.mjs` now requires target identity for ordinary discovered exact pages, while preserving explicit deterministic MPB product slugs. The Deep Source product watchdog also aborts the collection context so a timed-out job cannot continue through subsequent candidates.
+
+Before treating a future Deep Source timeout as an Ollama failure, check the first repeated URL pattern in the Research PC log. Repeated unrelated models indicate discovery/candidate admission; repeated target URLs indicate collection/browser latency.
