@@ -2890,3 +2890,10 @@ The Retail Storefront product grid has entered visual population mode. Product c
 The first implementation is deliberately non-destructive and front-end only: it does not alter `quote_catalog_products`, purchase pricing, evidence, stock, visibility controls or the existing buying/sales backend.
 
 If a product-specific public image cannot be resolved, the card remains explicitly pending rather than being silently populated with an unrelated generic item. The next maintenance stage is to replace runtime lookup with a curated approved mapping/cache after visual coverage review.
+
+
+## Image population fault and fix — 7 September 2026
+
+**First failure:** the product card stored row JSON in an HTML data attribute after stripping quotation marks. The subsequent `JSON.parse` therefore failed before the product-image resolver could make any lookup.
+
+**Minimal repair:** preserve the exact row JSON using URI encoding in the data attribute and decode it immediately before parsing. This changes only the image resolver handoff and does not alter catalogue, RPC, pricing, stock or sales logic.
