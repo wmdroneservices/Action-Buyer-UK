@@ -2500,3 +2500,36 @@ A run record with zero queue rows is not a running audit and must not disable th
 
 ### Diagnostic rule
 If the UI ever appears inconsistent, inspect the run and queue together. Do not infer activity from the button text or run status alone.
+
+
+### 7 September 2026 — Edge Function queue-count contract regression
+
+#### First failure
+
+The stale 0/0 repair introduced a regression in `quote-catalog-ai-worker`.
+
+The code used:
+
+`const { data: count } = await ...select(...,{ count:'exact', head:true })`
+
+With Supabase `head:true`, `data` is null and the exact row total is returned separately as `count`. This meant every run was interpreted as having zero queued products and was immediately marked completed even when queue rows existed.
+
+#### Repair
+
+The Edge Function now uses:
+
+`const { count: queueCount, error } = ...`
+
+and derives `productsQueued` from `queueCount ?? 0`.
+
+Only genuine zero-row runs are terminalised as `no_matching_products`. Queue-backed runs remain `queued` for the Research PC and dashboard.
+
+#### Verification rule
+
+After any change to Deep Source lifecycle logic, verify all three states:
+
+1. one matching product → run remains queued/running and can be claimed;
+2. zero matching products → completed with no queue rows;
+3. targeted cancellation of an active queue-backed run → run cancelled and queue rows skipped without stopping the Research PC.
+
+The current deployed Edge Function is version 12.
