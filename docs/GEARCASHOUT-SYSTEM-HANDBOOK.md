@@ -3148,3 +3148,10 @@ Startup now:
 - uses a new script cache version so browsers receive the repaired JavaScript.
 
 This is a front-end startup/control-channel repair. It does not change research queue data or worker lifecycle state.
+
+
+### Research PC deployment integrity — 2026-09-07
+
+The Research PC is a local deployment and does not update automatically when GitHub changes. AI Research fixes must therefore be treated as two stages: repository repair and Research PC deployment/verification. A heartbeat/version check is required before declaring a worker fix live.
+
+Deep Source release 1.5.10 specifically contains orphan-crawl containment: a 180000ms product timeout now aborts the active MPB browser fallback, closes Playwright resources, and blocks late discovery persistence into a terminal run. Controlled testing must start with one product before restoring larger batches.
