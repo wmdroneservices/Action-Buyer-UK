@@ -2897,3 +2897,12 @@ If a product-specific public image cannot be resolved, the card remains explicit
 **First failure:** the product card stored row JSON in an HTML data attribute after stripping quotation marks. The subsequent `JSON.parse` therefore failed before the product-image resolver could make any lookup.
 
 **Minimal repair:** preserve the exact row JSON using URI encoding in the data attribute and decode it immediately before parsing. This changes only the image resolver handoff and does not alter catalogue, RPC, pricing, stock or sales logic.
+
+
+## Catalogue-first homepage browsing — 7 September 2026
+
+The homepage primary **Browse catalogue** action now takes the user to a category-first browsing section rather than immediately presenting an A–Z/all-products experience.
+
+The homepage uses the main catalogue groupings, including Cameras, Lenses, Drones, Video Cameras, Action Cameras, Camera Accessories, Lighting, Audio, Supports & Stabilisation, Video Production Equipment, Drone Accessories, Power & Batteries and Studio Equipment.
+
+Each category links into the existing central catalogue using the category query parameter. Manufacturer browsing remains available as a separate route and the underlying catalogue/RPC/backend remains unchanged.
