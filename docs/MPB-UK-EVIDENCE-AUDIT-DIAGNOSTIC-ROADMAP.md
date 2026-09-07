@@ -192,3 +192,18 @@ The first failure was discovery: Node HTTP received MPB 403 responses on interna
 The repair extends the existing MPB browser fallback to discovery pages after HTTP 403. Those pages are still only maps; exact evidence remains restricted to validated exact MPB product pages. This prevents a guessed 404 URL from becoming the worker's only route when MPB uses a retailer-specific product suffix.
 
 The worker requires `npm install` once after updating to install the new `playwright-core` dependency. If the browser fallback succeeds, normal exact-model validation and MPB SKU/unit extraction continue unchanged. No live evidence is automatically applied.
+
+
+## 7 September 2026 — Manufacturer × URL target isolation (worker 1.5.12)
+
+The Sony regression exposed a second-stage routing fault after exact MPB discovery succeeded: Deep Source was being treated as though it were an evidence category. The fallback therefore rejected valid MPB Used UK evidence before candidate creation.
+
+The 1.5.12 rule is deliberately generic:
+
+- `deep_source` describes how evidence was collected, never what market bucket it belongs to;
+- the current manufacturer + model are isolated target inputs;
+- URL shapes are validated per collected page and target identity;
+- one manufacturer's MPB URL pattern cannot become another manufacturer's required pattern;
+- MPB candidate/fallback dedupe occurs only after successful persistence.
+
+This protects the working DJI MPB path while allowing Sony and future manufacturers to use different exact MPB URL suffixes without cross-contamination.
