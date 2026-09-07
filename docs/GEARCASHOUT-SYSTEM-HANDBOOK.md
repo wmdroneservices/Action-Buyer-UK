@@ -3244,3 +3244,24 @@ Regression invariant:
 - DJI × MPB remains valid;
 - Sony × MPB remains valid;
 - future manufacturers use the same source-level inventory readiness and SKU extraction without inheriting another manufacturer's URL pattern.
+
+
+---
+
+## Deep Source zero-product state contract — 7 September 2026
+
+A Deep Source run is active only when `quote_catalog_ai_queue` contains at least one row for that run with status `queued`, `claimed` or `processing`.
+
+`quote_catalog_ai_research_runs.status='queued'` by itself is insufficient to lock the dashboard. This prevents stale **DEEP AUDIT RUNNING · 0/0** displays.
+
+Zero matching catalogue products follow this terminal path:
+
+dashboard request
+→ `quote-catalog-ai-worker`
+→ `ai_research_create_deep_source_run(...)`
+→ zero queue rows
+→ run completed with `products_targeted=0`
+→ Edge Function returns `no_matching_products`
+→ dashboard remains ready to start another audit.
+
+Cancellation also re-reads authoritative Deep Source state before invoking `ai_research_cancel_run`, so a stale browser-side run ID cannot target a completed or cancelled run.
