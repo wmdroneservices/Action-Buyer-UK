@@ -2533,3 +2533,22 @@ After any change to Deep Source lifecycle logic, verify all three states:
 3. targeted cancellation of an active queue-backed run → run cancelled and queue rows skipped without stopping the Research PC.
 
 The current deployed Edge Function is version 12.
+
+
+### 7 September 2026 — Dashboard completion-message transition
+
+#### Symptom
+
+The Deep Source queue and run reached a terminal state and the button returned to **RUN DEEP SOURCE AUDIT**, but the message still said the audit was running until the page was refreshed.
+
+#### First failure
+
+`setDeepSourceAuditControls(null, [])` reset only the button and cancellation controls. It deliberately left the message untouched, so the previous live-progress text remained visible.
+
+#### Repair
+
+`loadDeepSourceAuditState()` now remembers the run ID that the current browser session actually observed as active. When that same run becomes terminal, it clears the live state and replaces the running message with the appropriate terminal result. A fresh page load does not announce old historical runs.
+
+#### Rule
+
+Treat the queue/run database state as authoritative, but also test the visible transition from active → terminal without refreshing the browser.
