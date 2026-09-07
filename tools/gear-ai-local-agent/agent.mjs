@@ -91,7 +91,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.12-worker',
+    version:'1.5.13-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -800,20 +800,60 @@ function extractMpbUkUnits(page){
   if(!page?.url||!isMpbUkProductPage(page.url))return [];
   const text=String(page.text||'').replace(/\s+/g,' ').trim();
   if(!text)return [];
+
   const out=[],seen=new Set();
-  const re=/SKU:\s*(\d+)\s*£\s*([0-9][0-9,]*(?:\.\d{2})?)\s*Cosmetic condition:\s*(Like new|Excellent|Good|Well used|Heavily used)(?:\s*(Charges|Shutter count):\s*([0-9,]+))?(?:\s*What's included\s*([\s\S]*?))?(?=\s*SKU:|\s*That's all of our available options|\s*If none of these are suitable|\s*Model Overview|$)/gi;
+  const addUnit=(sku,priceRaw,conditionRaw='',metric='',metricValue='',included='')=>{
+    const id=String(sku||'').trim();
+    const price=Number(String(priceRaw||'').replace(/,/g,''));
+    const condition=String(conditionRaw||'').trim();
+    if(!id||!Number.isFinite(price)||price<=0||seen.has(id))return;
+    seen.add(id);
+    out.push({
+      sku:id,
+      price,
+      condition,
+      metric:String(metric||'').trim(),
+      metricValue:String(metricValue||'').replace(/,/g,'').trim(),
+      included:String(included||'').replace(/\s+/g,' ').trim().slice(0,900)
+    });
+  };
+
+  // Fast path for the known MPB rendered text shape.
+  const exact=/SKU:\s*(\d+)\s*£\s*([0-9][0-9,]*(?:\.\d{2})?)\s*Cosmetic condition:\s*(Like new|Excellent|Good|Well used|Heavily used|Spares and Repairs)(?:\s*(Charges|Shutter count):\s*([0-9,]+))?(?:\s*What's included\s*([\s\S]*?))?(?=\s*SKU:|\s*That's all of our available options|\s*If none of these are suitable|\s*Model Overview|$)/gi;
   let m;
-  while((m=re.exec(text))){
-    const sku=String(m[1]||'').trim();
-    const price=Number(String(m[2]||'').replace(/,/g,''));
-    const condition=String(m[3]||'').trim();
-    const metric=String(m[4]||'').trim();
-    const metricValue=String(m[5]||'').replace(/,/g,'').trim();
-    const included=String(m[6]||'').replace(/\s+/g,' ').trim().slice(0,900);
-    if(!sku||!Number.isFinite(price)||price<=0||seen.has(sku))continue;
-    seen.add(sku);
-    out.push({sku,price,condition,metric,metricValue,included});
+  while((m=exact.exec(text)))addUnit(m[1],m[2],m[3],m[4],m[5],m[6]);
+
+  // MPB is client-rendered and its text order can change between layouts. Do not
+  // require one rigid SKU → price → condition sequence. Once a real SKU marker is
+  // present, inspect that SKU's bounded block and extract the fields independently.
+  const skuRe=/\bSKU\s*:\s*([A-Za-z0-9-]{3,})\b/gi;
+  const marks=[...text.matchAll(skuRe)];
+  for(let i=0;i<marks.length;i++){
+    const mark=marks[i];
+    const start=mark.index||0;
+    const next=i+1<marks.length?(marks[i+1].index||text.length):text.length;
+    let block=text.slice(start,next);
+    block=block.split(/\b(?:That's all of our available options|If none of these are suitable|Model Overview|You might also like)\b/i)[0];
+
+    const sku=mark[1];
+    const priceMatch=block.match(/£\s*([0-9][0-9,]*(?:\.\d{1,2})?)/);
+    const conditionMatch=block.match(/Cosmetic condition:\s*(Like new|Excellent|Good|Well used|Heavily used|Spares and Repairs)/i)
+      ||block.match(/\b(Like new|Excellent|Good|Well used|Heavily used|Spares and Repairs)\b/i);
+    const metricMatch=block.match(/\b(Charges|Shutter count)\s*:\s*([0-9,]+)/i);
+    let included='';
+    const includedMatch=block.match(/What's included\s*([\s\S]*?)(?=\s*(?:What's not included|Additional product information|Free twelve-month warranty|Add Extended Product Protection|$))/i);
+    if(includedMatch)included=includedMatch[1];
+
+    addUnit(
+      sku,
+      priceMatch?.[1],
+      conditionMatch?.[1]||'',
+      metricMatch?.[1]||'',
+      metricMatch?.[2]||'',
+      included
+    );
   }
+
   return out;
 }
 
@@ -1119,7 +1159,7 @@ function deepAbortError(){
 function throwIfDeepSignalAborted(signal){
   if(signal?.aborted)throw deepAbortError();
 }
-async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
+async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null,options={}){
   throwIfDeepSignalAborted(signal);
   try{
     const result=await fetchText(url,timeoutMs);
@@ -1177,7 +1217,26 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
       log('MPB browser fallback navigating:',url);
       await page.goto(url,{waitUntil:'domcontentloaded',timeout:timeoutMs});
       throwIfDeepSignalAborted(signal);
-      await page.waitForTimeout(Math.min(2500,Math.max(500,timeoutMs/4)));
+
+      // Discovery pages can return immediately, but exact MPB product pages load
+      // their live inventory client-side after DOMContentLoaded. A fixed 2.5-second
+      // sleep could capture the title before any SKU/price rows existed, producing
+      // manual fallbacks with no usable range. Wait for real inventory text only
+      // when this call is final exact-page collection.
+      if(options?.waitForInventory){
+        const inventoryWait=Math.min(timeoutMs,15000);
+        try{
+          await page.waitForFunction(
+            ()=>/\\bSKU\\s*:\\s*[A-Za-z0-9-]{3,}\\b/.test(document.body?.innerText||''),
+            {timeout:inventoryWait}
+          );
+        }catch{
+          // Out-of-stock exact pages legitimately have no SKU rows. Keep the
+          // collected page for normal exact-page validation/manual handling.
+        }
+      }else{
+        await page.waitForTimeout(Math.min(1500,Math.max(350,timeoutMs/8)));
+      }
       throwIfDeepSignalAborted(signal);
       const html=await withTimeout(()=>page.content(),timeoutMs,'MPB browser page content');
       throwIfDeepSignalAborted(signal);
@@ -1195,7 +1254,7 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
 
 // Kept as a named wrapper so the final-validation rule stays explicit at call sites.
 async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
-  return fetchMpbPage(url,timeoutMs,signal);
+  return fetchMpbPage(url,timeoutMs,signal,{waitForInventory:true});
 }
 
 async function collectDeepSourceEvidence(product,sources,config,context={}){
