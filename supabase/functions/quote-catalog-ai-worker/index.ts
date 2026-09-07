@@ -39,9 +39,9 @@ Deno.serve(async req=>{
       const {data,error}=await admin.rpc('ai_research_create_run_filtered',{p_limit:limit,p_notes:'Local Ollama AI research: '+scope,p_manufacturer:manufacturer,p_model:model,p_category:category,p_product_type:productType,p_evidence_scope:evidenceScope});
       if(error)throw error;runId=data;
     }
-    const {data:count,error:countError}=await admin.from('quote_catalog_ai_queue').select('id',{count:'exact',head:true}).eq('run_id',runId);
+    const {count:queueCount,error:countError}=await admin.from('quote_catalog_ai_queue').select('id',{count:'exact',head:true}).eq('run_id',runId);
     if(countError)throw countError;
-    const productsQueued=count??0;
+    const productsQueued=queueCount??0;
 
     // A zero-row run is terminal, not "queued". Leaving it queued created the
     // stale DEEP AUDIT RUNNING · 0/0 dashboard state with nothing to cancel.
