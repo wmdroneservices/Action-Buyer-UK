@@ -2339,3 +2339,40 @@ After deployment, confirm all four layers together:
 2. Sony Deep Source queue row remains active only while the collector is genuinely working.
 3. Browser fallback logs contain target-relevant discovery/category paths and target exact pages, not a long sequence of unrelated manufacturer product pages.
 4. After a watchdog timeout, background browser-fallback logging for that timed-out product stops promptly and the dashboard/run state remains consistent.
+
+
+---
+
+## 17. 7 September 2026 — AI Research Centre controls frozen at startup
+
+### Symptom
+
+The page could show both:
+
+- Deep Source selector: **Loading approved websites…**
+- Remote Controls: **Checking…**
+
+with the buttons apparently unresponsive.
+
+### Root cause
+
+Do not assume this means the Research PC is offline. The page startup itself could be blocked before handlers were registered because initClient() awaited actionBuyerAuth.getSession(), and that helper also performs a profile query.
+
+A stalled profile query therefore prevented:
+
+1. control event listeners from being attached;
+2. loadResearchPcControl() from running;
+3. loadSources() from replacing the initial Loading option.
+
+### Current repair
+
+admin-ai-research.js now uses direct sb.auth.getSession() with a timeout and waits only for the Supabase client object to become available. Source registry and agent-status requests are also bounded. The HTML script query string was changed to force delivery of the repaired JavaScript.
+
+### Diagnostic rule
+
+If a future page remains static:
+
+1. distinguish a frozen page startup from an offline Research PC;
+2. check the latest quote_catalog_ai_agents.last_heartbeat_at directly;
+3. inspect quote_catalog_ai_agent_commands before sending duplicate lifecycle commands;
+4. do not use the terminal alone to infer control-channel state.
