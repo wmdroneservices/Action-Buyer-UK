@@ -86,7 +86,7 @@ async function heartbeat(status,last_error=null,extra={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.7-supervisor',
+    version:'1.5.8-supervisor',
     last_heartbeat_at:new Date().toISOString(),
     last_error,
     metadata,
