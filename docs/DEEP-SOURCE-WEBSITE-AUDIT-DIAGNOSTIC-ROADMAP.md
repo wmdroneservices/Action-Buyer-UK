@@ -549,3 +549,13 @@ Then consult source-aware aliases and retailer-specific naming patterns. Confirm
 - **Bundle name only** → require positive bundle evidence; do not infer from controller
 
 If the exact controller configuration is absent from the catalogue but repeatedly supported by exact evidence, add a narrowly named canonical package and record the source-specific reason.
+
+## Completion-state diagnostic rule — 7 September 2026
+
+After the last product logs Completed product, verify the authoritative run and queue state before diagnosing a freeze:
+
+1. quote_catalog_ai_research_runs — terminal status and products_checked.
+2. quote_catalog_ai_queue — all rows terminal (completed, failed or intentionally skipped/cancelled).
+3. Only then inspect the worker loop.
+
+The PowerShell window can continue printing independent source-monitor activity after a research run is complete. A repeated HTTP 403 from a monitored opening-soon storefront is not evidence that the research queue is stuck.
