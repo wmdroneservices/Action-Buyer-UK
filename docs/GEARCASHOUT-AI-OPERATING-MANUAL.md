@@ -2807,3 +2807,16 @@ Current public read model:
 `quote_catalog_products + sales_catalog_visibility + catalog_sales_content + WEBSITE resale availability → safe public RPC → storefront`
 
 All 73 current manufacturers are enabled by default through the existing `auto` visibility mode. A hide/show decision must use the existing visibility model rather than deleting products.
+
+
+---
+
+## Retail Storefront temporary identity — 7 September 2026
+
+The separate Retail Storefront website remains connected to the shared GearCashOut platform and central catalogue. For design preview, it now uses **GearOutlet** as a temporary customer-facing name with the established GearCashOut four-point compass visual language.
+
+- Repository: `wmdroneservices/GearCashOut-Retail-Storefront`
+- Temporary asset: `images/gearoutlet-brand.svg`
+- Final brand/domain: not yet chosen and remains configurable
+- Backend impact: none; this change is presentation-only
+- Diagnostic map: `docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
