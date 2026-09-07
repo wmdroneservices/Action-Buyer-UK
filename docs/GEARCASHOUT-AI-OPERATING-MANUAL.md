@@ -2785,3 +2785,25 @@ The first diagnostic checks are:
 6. external configuration loading;
 7. live Supabase heartbeat/control state;
 8. only then the first actual failure point.
+
+## Public Retail Storefront operating rule — Stage 1
+
+The separate `GearCashOut-Retail-Storefront` repository is a public presentation layer over the existing central sales platform.
+
+Before changing storefront catalogue behaviour, check:
+
+1. current shared project memory/checkpoint;
+2. `PHASE2-RETAIL-STOREFRONT.md`;
+3. current public storefront repository;
+4. current Supabase storefront/catalogue RPCs;
+5. `sales_catalog_visibility` state.
+
+Do not duplicate `quote_catalog_products` into a second product database.
+
+Do not expose purchase prices, internal notes, customer data, staff data, market evidence or service-role credentials through public browser code.
+
+Current public read model:
+
+`quote_catalog_products + sales_catalog_visibility + catalog_sales_content + WEBSITE resale availability → safe public RPC → storefront`
+
+All 73 current manufacturers are enabled by default through the existing `auto` visibility mode. A hide/show decision must use the existing visibility model rather than deleting products.
