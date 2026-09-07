@@ -2473,3 +2473,30 @@ Regression invariant:
 - DJI × MPB remains valid;
 - Sony × MPB remains valid;
 - future manufacturers use the same source-level inventory readiness and SKU extraction without inheriting another manufacturer's URL pattern.
+
+
+---
+
+## 7 September 2026 — Deep Source zero-product dashboard-state repair
+
+### Failure traced
+The dashboard could show **DEEP AUDIT RUNNING · 0/0** even though Supabase had no active queue work. The immediate cause was a zero-product Deep Source run being left with status `queued`.
+
+The Edge Function always forced every newly created run back to `queued`, even when `quote_catalog_ai_queue` contained zero rows. The dashboard's earlier active-state rule also trusted a queued/running run record without requiring an active queue row.
+
+### Authoritative rule
+`quote_catalog_ai_queue` is the execution authority.
+
+A Deep Source audit is active only while at least one queue row is `queued`, `claimed` or `processing`.
+
+A run record with zero queue rows is not a running audit and must not disable the run button or expose cancellation.
+
+### Repair
+1. The Deep Source run creation RPC now completes a zero-product run immediately.
+2. The Edge Function returns `no_matching_products` instead of forcing a zero-row run back to `queued`.
+3. The dashboard requires an active queue row before rendering **DEEP AUDIT RUNNING**.
+4. Cancellation always refreshes authoritative database state instead of trusting a cached run ID.
+5. Legacy queued/running Deep Source runs with `products_targeted=0` and no queue rows are reconciled to completed.
+
+### Diagnostic rule
+If the UI ever appears inconsistent, inspect the run and queue together. Do not infer activity from the button text or run status alone.
