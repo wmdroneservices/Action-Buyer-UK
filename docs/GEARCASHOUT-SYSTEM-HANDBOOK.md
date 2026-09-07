@@ -3632,3 +3632,10 @@ This queue is deliberately separate from `catalog_sales_content`, which is curre
 ## Image Research ownership — 7 September 2026
 
 Image research is a staff operation and belongs inside the Action-Buyer-UK Staff Dashboard → Research & Pricing area. Public outlet/storefront repositories are website-only and consume approved results; they do not contain staff research tools.
+
+
+## Image Research — central staff ownership
+
+**Diagnostic roadmap:** [Image Research and Sales-Channel Imagery](DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md)
+
+Image research is a central staff operation. Use **Staff Dashboard → Research & Pricing → Image Research** in the `Action-Buyer-UK` repository to research and approve imagery for categories, manufacturers, models and exact catalogue products. Public outlet repositories remain website-only and consume approved results.
