@@ -61,3 +61,18 @@ The latest three zero-product Sony runs were already cancelled and are no longer
 - docs/GEARCASHOUT-SYSTEM-HANDBOOK.md
 - docs/GEARCASHOUT-AI-OPERATING-MANUAL.md
 - docs/DEEP-SOURCE-WEBSITE-AUDIT-DIAGNOSTIC-ROADMAP.md
+
+
+## Controlled database regression passed
+
+A controlled Deep Source request using manufacturer __GEARCASHOUT_ZERO_MATCH_REGRESSION__ returned run 0dd6dd42-9a7e-40a8-90e6-a91d9e68c958.
+
+Verified result:
+
+- status: completed
+- products_targeted: 0
+- queue rows: 0
+- finished_at populated
+- notes include no matching active catalogue products
+
+This confirms the database side of the stale 0/0 lifecycle is fixed. The remaining operator check is a hard refresh of the browser dashboard followed by one normal matching Deep Source run.
