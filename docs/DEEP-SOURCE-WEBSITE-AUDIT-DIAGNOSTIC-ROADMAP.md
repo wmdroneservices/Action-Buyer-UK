@@ -735,3 +735,35 @@ A static **Loading approved websites… / Checking…** screen is now classified
 **Containment repair:** release 1.5.10 propagates cancellation into the Playwright MPB fallback, closes browser resources on abort, and refuses to persist discoveries when the run is no longer active.
 
 **Verification required:** stop the currently running old worker, update the Research PC checkout, restart only through the persistent supervisor, confirm heartbeat 1.5.10, then run a controlled one-product Deep Source test before any five-product batch.
+
+
+---
+
+## Dashboard stale 0/0 state repair — 7 September 2026
+
+### Symptom
+The AI Research Centre displayed **DEEP AUDIT RUNNING · 0/0** and exposed cancellation although Supabase had no active Deep Source queue work.
+
+### First failure
+The first durable failure was the zero-product creation path:
+
+1. `ai_research_create_deep_source_run(...)` inserted a run as `queued`.
+2. Product filters could select zero active catalogue products.
+3. The queue remained empty.
+4. `quote-catalog-ai-worker` then unconditionally updated the run back to `queued`.
+5. The dashboard treated queued status alone as active.
+
+### Corrected contract
+The queue is authoritative. A Deep Source audit is active only when its queue contains `queued`, `claimed` or `processing` rows.
+
+### Files / services
+- `admin-ai-research.js` — active-state detection and cancellation reconciliation.
+- `supabase/functions/quote-catalog-ai-worker/index.ts` — zero-product response and no forced queued status.
+- `ai_research_create_deep_source_run(...)` — zero-product runs complete immediately.
+- Supabase migration `fix_zero_product_deep_source_run_state` — live schema/function repair and legacy reconciliation.
+
+### Regression checks
+1. Start an audit with filters matching products → active queue row and normal progress.
+2. Start an audit with filters matching zero active products → `no_matching_products`, no running lock.
+3. Cancel a real active audit → active rows become skipped and controls reset.
+4. Refresh the page after completion/cancellation → controls remain idle.
