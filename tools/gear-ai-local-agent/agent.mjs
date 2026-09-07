@@ -91,7 +91,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.9-worker',
+    version:'1.5.10-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -1094,15 +1094,24 @@ function mpbBrowserExecutableCandidates(){
     'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
   ].filter(Boolean);
 }
-async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
-  try{return await fetchText(url,timeoutMs)}
-  catch(firstError){
+function deepAbortError(){
+  const e=new Error('Deep Source collection aborted.');
+  e.code='ABORT_ERR';
+  return e;
+}
+function throwIfDeepSignalAborted(signal){
+  if(signal?.aborted)throw deepAbortError();
+}
+async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
+  throwIfDeepSignalAborted(signal);
+  try{
+    const result=await fetchText(url,timeoutMs);
+    throwIfDeepSignalAborted(signal);
+    return result;
+  }catch(firstError){
+    if(signal?.aborted)throw deepAbortError();
     if(!/HTTP 403\b/.test(String(firstError?.message||firstError)))throw firstError;
 
-    // MPB can block Node HTTP on internal search, landing/category pages and
-    // exact product pages. The browser fallback is allowed here for discovery
-    // as well as validation, but discovery pages remain discovery-only and are
-    // never returned as final evidence.
     let chromium;
     try{({chromium}=await import('playwright-core'))}
     catch(e){
@@ -1110,8 +1119,22 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
     }
     const executablePath=mpbBrowserExecutableCandidates().find(p=>fs.existsSync(p));
     if(!executablePath)throw new Error('HTTP 403 and no local Chrome/Edge executable was found for MPB browser fallback.');
-    let browser,context;
+
+    let browser,context,page;
+    let aborted=false;
+    const abortBrowser=async()=>{
+      aborted=true;
+      await Promise.allSettled([
+        page?.close?.(),
+        context?.close?.(),
+        browser?.close?.()
+      ]);
+    };
+    const onAbort=()=>{abortBrowser().catch(()=>{});};
+    if(signal)signal.addEventListener('abort',onAbort,{once:true});
+
     try{
+      throwIfDeepSignalAborted(signal);
       log('MPB browser fallback starting:',url);
       browser=await chromium.launch({
         executablePath,
@@ -1119,7 +1142,9 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
         timeout:timeoutMs,
         args:['--disable-blink-features=AutomationControlled']
       });
+      throwIfDeepSignalAborted(signal);
       log('MPB browser fallback launched:',url);
+
       context=await withTimeout(
         ()=>browser.newContext({
           locale:'en-GB',
@@ -1129,23 +1154,31 @@ async function fetchMpbPage(url,timeoutMs=cfg.requestTimeoutMs){
         timeoutMs,
         'MPB browser context'
       );
-      const page=await withTimeout(()=>context.newPage(),timeoutMs,'MPB browser page');
+      throwIfDeepSignalAborted(signal);
+      page=await withTimeout(()=>context.newPage(),timeoutMs,'MPB browser page');
+      throwIfDeepSignalAborted(signal);
       log('MPB browser fallback navigating:',url);
       await page.goto(url,{waitUntil:'domcontentloaded',timeout:timeoutMs});
+      throwIfDeepSignalAborted(signal);
       await page.waitForTimeout(Math.min(2500,Math.max(500,timeoutMs/4)));
+      throwIfDeepSignalAborted(signal);
       const html=await withTimeout(()=>page.content(),timeoutMs,'MPB browser page content');
+      throwIfDeepSignalAborted(signal);
       log('MPB browser fallback collected:',page.url());
       return {url:page.url(),html};
+    }catch(e){
+      if(signal?.aborted||aborted)throw deepAbortError();
+      throw e;
     }finally{
-      if(context)await context.close().catch(()=>{});
-      if(browser)await browser.close().catch(()=>{});
+      if(signal)signal.removeEventListener('abort',onAbort);
+      await abortBrowser().catch(()=>{});
     }
   }
 }
 
 // Kept as a named wrapper so the final-validation rule stays explicit at call sites.
-async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs){
-  return fetchMpbPage(url,timeoutMs);
+async function fetchMpbExactPage(url,timeoutMs=cfg.requestTimeoutMs,signal=null){
+  return fetchMpbPage(url,timeoutMs,signal);
 }
 
 async function collectDeepSourceEvidence(product,sources,config,context={}){
@@ -1209,7 +1242,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
       throwIfAborted();
       try{
         const {url:finalUrl,html}=domain==='mpb.com'
-          ?await fetchMpbPage(u,Math.min(cfg.requestTimeoutMs,7000))
+          ?await fetchMpbPage(u,Math.min(cfg.requestTimeoutMs,7000),context?.signal||null)
           :await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
         throwIfAborted();
         for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
@@ -1241,7 +1274,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     seen.add(key);
     try{
       const {url:finalUrl,html}=domain==='mpb.com'
-        ?await fetchMpbPage(key,Math.min(cfg.requestTimeoutMs,7000))
+        ?await fetchMpbPage(key,Math.min(cfg.requestTimeoutMs,7000),context?.signal||null)
         :await fetchText(key,Math.min(cfg.requestTimeoutMs,7000));
       throwIfAborted();
       const links=extractAllSameDomainLinks(html,finalUrl,domain);
@@ -1280,7 +1313,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     throwIfAborted();
     try{
       const {url,html}=domain==='mpb.com'
-        ?await fetchMpbExactPage(r.url)
+        ?await fetchMpbExactPage(r.url,cfg.requestTimeoutMs,context?.signal||null)
         :await fetchText(r.url);
       throwIfAborted();
       const meta=extractStructuredPageData(html,url);
@@ -1311,6 +1344,11 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     }catch(e){log('Deep Source exact page unavailable:',r.url,e.message||String(e))}
   }
 
+  throwIfAborted();
+  // Never persist discoveries after the run has become terminal. This is the
+  // second lifecycle guard behind the abort signal and prevents a late browser
+  // crawl from writing results into a run that already timed out or was stopped.
+  if(context?.runId)await ensureRunActive(context.runId);
   throwIfAborted();
   await recordRawDiscoveries({...context,evidenceScope:'deep_source'},[...candidates.values()]);
   throwIfAborted();
