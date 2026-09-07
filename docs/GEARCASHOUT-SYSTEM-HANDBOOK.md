@@ -3562,3 +3562,36 @@ The previous homepage category-first implementation was the wrong visual interpr
 **Correct behaviour:** opening **Browse Catalogue** now keeps the exact shop page structure shown in the storefront: left filters and the existing card grid. The initial grid contains category cards (Cameras, Lenses, Drones, Video Cameras, Action Cameras, etc.) instead of individual products. Clicking a category then switches that same grid to the products within the selected category.
 
 This is a front-end navigation/layout correction only. The central catalogue, manufacturer controls, Supabase RPCs, buying and sales backend remain unchanged.
+
+
+## Retail browse hierarchy: Category → Manufacturer → Model → Live Stock — 7 September 2026
+
+### User journey
+The Retail Storefront now follows a hierarchical browse journey while preserving the existing sidebar and card-grid layout:
+
+1. **Browse Categories** — category cards, each with a relevant hero image.
+2. **Select Category** — only manufacturers relevant to that category are shown, each as an image card.
+3. **Select Manufacturer** — models relevant to that manufacturer and category are shown as image cards.
+4. **Select Model** — only actual units currently published to the WEBSITE outlet are shown as stock cards, with condition and asking price.
+
+No category/manufacturer/model card requires a product-count number.
+
+### Live data path
+Category card
+→ `public_storefront_category_manufacturers(store_key, category)`
+→ manufacturer card
+→ `public_storefront_models(store_key, category, manufacturer)`
+→ model card
+→ `public_storefront_stock(store_key, category, manufacturer, model)`
+→ published WEBSITE resale listings joined to inventory assets and sales content.
+
+### Safety and visibility
+All new public RPCs are SECURITY DEFINER with fixed public search path and apply storefront visibility rules. Stock output deliberately excludes private fields such as serial numbers, storage locations, purchase prices and internal notes.
+
+Only listings with **Published** status on the active **WEBSITE** outlet are exposed as live stock.
+
+### Hero imagery
+- Main category cards use explicit clean-background category hero mappings where available.
+- Manufacturer, model and stock cards resolve imagery from the actual manufacturer/model identity rather than substituting unrelated generic objects.
+- The selected hierarchy level also receives a relevant top hero.
+- Curated catalogue/inventory sales imagery can replace runtime lookup as it is approved and populated.
