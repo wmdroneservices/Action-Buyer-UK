@@ -1161,6 +1161,12 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   const seen=new Set(),candidates=new Map(),discovered=[];
   const maxDepth=Math.max(1,Number(rule.maxDepth||3));
   const maxPages=Math.max(20,Number(rule.maxPages||60));
+  // The product watchdog can reject processOne before a browser-backed crawl has
+  // naturally returned. Every discovery loop must therefore cooperate with the
+  // AbortSignal so a timed-out product cannot keep crawling MPB in the background.
+  const throwIfAborted=()=>{
+    if(context?.signal?.aborted)throw new Error('Deep Source collection aborted.');
+  };
 
   const addCandidate=(x,from)=>{
     if(!x?.url||hostOf(x.url)!==domain)return;
@@ -1174,10 +1180,13 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   // (2) external web discovery constrained to exact MPB UK product URLs.
   // Both remain discovery only until the exact page itself is fetched and validated.
   if(domain==='mpb.com'){
+    throwIfAborted();
     for(const url of mpbExactProductUrls(product,domain)){
+      throwIfAborted();
       addCandidate({url,title:productName(product)},'mpb-direct-slug');
     }
     for(const query of queries){
+      throwIfAborted();
       try{
         const results=await searchWeb('site:mpb.com/en-uk/product "'+query+'"');
         for(const r of results||[]){
@@ -1195,15 +1204,26 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   // First use the site's own search routes when known. The landing page remains
   // the root of the audit, but internal search is a fast path to deep exact pages.
   for(const query of queries){
+    throwIfAborted();
     for(const u of rule.searchAttempts('https://'+domain,query)){
+      throwIfAborted();
       try{
         const {url:finalUrl,html}=domain==='mpb.com'
           ?await fetchMpbPage(u,Math.min(cfg.requestTimeoutMs,7000))
           :await fetchText(u,Math.min(cfg.requestTimeoutMs,7000));
+        throwIfAborted();
         for(const link of extractAllSameDomainLinks(html,finalUrl,domain)){
+          throwIfAborted();
           const score=deepLinkScore(product,link,rule,1);
-          if(score>=60)addCandidate({...link,target_query:query},'internal-search');
-          else if(score>=8)queue.push({url:link.url,title:link.title,depth:1,from:'internal-search',target_query:query});
+          const path=new URL(link.url).pathname;
+          const exact=rule.exactPath?rule.exactPath.test(path):false;
+          // An exact product URL that does not identify the requested target is
+          // not a discovery page. Do not crawl it just because it came from MPB.
+          if(exact){
+            if(score>=60)addCandidate({...link,target_query:query},'internal-search');
+            continue;
+          }
+          if(score>=8)queue.push({url:link.url,title:link.title,depth:1,from:'internal-search',target_query:query});
         }
       }catch(e){log('Deep Source internal search unavailable:',u,e.message||String(e))}
     }
@@ -1213,6 +1233,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
   // subcategory links. Category/landing pages are discovery-only and never
   // become final evidence.
   while(queue.length&&seen.size<maxPages){
+    throwIfAborted();
     queue.sort((a,b)=>deepLinkScore(product,{url:a.url,title:a.title||''},rule,a.depth)-deepLinkScore(product,{url:b.url,title:b.title||''},rule,b.depth));
     const node=queue.pop();
     const key=String(node.url).split('#')[0];
@@ -1222,13 +1243,21 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
       const {url:finalUrl,html}=domain==='mpb.com'
         ?await fetchMpbPage(key,Math.min(cfg.requestTimeoutMs,7000))
         :await fetchText(key,Math.min(cfg.requestTimeoutMs,7000));
+      throwIfAborted();
       const links=extractAllSameDomainLinks(html,finalUrl,domain);
       for(const link of links){
+        throwIfAborted();
         let score=0;
         try{score=deepLinkScore(product,link,rule,node.depth+1)}catch{continue}
         const path=new URL(link.url).pathname;
         const exact=rule.exactPath?rule.exactPath.test(path):false;
-        if(exact&&score>=60){addCandidate(link,'deep-crawl');continue;}
+        // Exact product pages are terminal discovery targets. If one does not
+        // meet the target-identity threshold, never enqueue it for further crawl.
+        // This prevents a Sony audit from opening Fujifilm/Nikon/etc. product pages.
+        if(exact){
+          if(score>=60)addCandidate(link,'deep-crawl');
+          continue;
+        }
         if(node.depth<maxDepth&&score>=8){
           queue.push({url:link.url,title:link.title,depth:node.depth+1,from:'deep-crawl'});
         }
@@ -1238,7 +1267,7 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
 
   // Final validation fetches exact candidate pages only. Generic landing,
   // category and subcategory pages are explicitly excluded from final evidence.
-  if(context?.signal?.aborted)throw new Error('Deep Source collection aborted.');
+  throwIfAborted();
   const pages=[];
   const rankedCandidates=[...candidates.values()]
     .map(r=>({...r,_deepScore:deepLinkScore(product,r,rule,1)}))
@@ -1248,11 +1277,12 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     .sort((a,b)=>b._deepScore-a._deepScore)
     .slice(0,cfg.maxResults);
   for(const r of rankedCandidates){
-    if(context?.signal?.aborted)throw new Error('Deep Source collection aborted.');
+    throwIfAborted();
     try{
       const {url,html}=domain==='mpb.com'
         ?await fetchMpbExactPage(r.url)
         :await fetchText(r.url);
+      throwIfAborted();
       const meta=extractStructuredPageData(html,url);
       const finalUrl=meta.url||url;
       const finalPath=new URL(finalUrl).pathname;
@@ -1281,7 +1311,9 @@ async function collectDeepSourceEvidence(product,sources,config,context={}){
     }catch(e){log('Deep Source exact page unavailable:',r.url,e.message||String(e))}
   }
 
+  throwIfAborted();
   await recordRawDiscoveries({...context,evidenceScope:'deep_source'},[...candidates.values()]);
+  throwIfAborted();
   log('Deep Source Audit',domain,'crawled',seen.size,'landing/category/subcategory page(s) and found',pages.length,'exact product page(s) for',productName(product));
   return pages;
 }
