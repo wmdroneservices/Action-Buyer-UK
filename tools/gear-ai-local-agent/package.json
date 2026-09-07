@@ -1,6 +1,6 @@
 {
   "name": "gearcashout-local-ai-research-agent",
-  "version": "1.5.8",
+  "version": "1.5.10",
   "private": true,
   "type": "module",
   "description": "Local Ollama research worker and persistent Research PC supervisor for GearCashOut Quote Catalogue",
