@@ -819,7 +819,39 @@ async function loadDeepSourceAuditState(){
      await setDeepSourceAuditControls(active,queueRows.filter(q=>String(q.run_id)===String(active.id)));
      return active;
    }
+
+   // The button state already returns to RUN DEEP SOURCE AUDIT when no queue row
+   // is active, but the old running message remained in the dashboard forever.
+   // Only announce completion when this page actually observed the run as active;
+   // a page refresh must not resurrect a historical completion notice.
+   const previousRunId=activeDeepSourceRunId?String(activeDeepSourceRunId):null;
+   const terminalRun=previousRunId
+     ?(runs||[]).find(r=>String(r.id)===previousRunId&&['completed','completed_with_errors','failed','cancelled'].includes(String(r.status||'').toLowerCase()))
+     :null;
+
    await setDeepSourceAuditControls(null,[]);
+
+   if(terminalRun){
+     const status=String(terminalRun.status||'completed').toLowerCase();
+     const total=Math.max(Number(terminalRun.products_targeted||0),Number(terminalRun.products_checked||0));
+     const checked=Number(terminalRun.products_checked||0);
+     const x=$('deep-source-message');
+     if(x){
+       if(status==='completed'){
+         x.textContent='Deep Source Audit completed: '+checked+'/'+total+' products processed. The Research PC remains online and ready for the next run.';
+         x.className='form-message success';
+       }else if(status==='completed_with_errors'){
+         x.textContent='Deep Source Audit finished with errors: '+checked+'/'+total+' products processed. Check the review queue and Research PC activity for the affected product(s).';
+         x.className='form-message error';
+       }else if(status==='cancelled'){
+         x.textContent='Deep Source Audit cancelled. The Research PC remains online and ready for the next run.';
+         x.className='form-message success';
+       }else{
+         x.textContent='Deep Source Audit failed. Check the Research PC activity and the affected queue item before running it again.';
+         x.className='form-message error';
+       }
+     }
+   }
    return null;
  }finally{
    deepSourceRunStateLoading=false;
