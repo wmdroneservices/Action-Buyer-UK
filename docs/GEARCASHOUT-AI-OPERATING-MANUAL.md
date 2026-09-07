@@ -2610,3 +2610,69 @@ Release alignment is now:
 - Generic taxonomy labels such as Accessory must not be used as literal source-title requirements.
 - Mixed MPB model-page inventory must be split or corrected before application.
 - Out-of-stock/unpriced discovery can remain historical audit information but is not current live pricing evidence.
+
+
+---
+
+# GitHub Desktop / Research PC Operating Standard — 7 September 2026
+
+## Locked operating rule
+
+For this development machine, the active local repository used for normal code updates and the Gemma Research PC is:
+
+`C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN`
+
+The GitHub repository remains the source of truth:
+
+`wmdroneservices/Action-Buyer-UK`
+
+Do not diagnose the obsolete extracted copy as if it were the active repository. Before changing Research PC code, confirm the path, current GitHub branch/commit, and running process.
+
+## Secrets boundary
+
+The external secrets/config folder remains:
+
+`C:\\GearCashOut-Config`
+
+Secrets, API keys and credentials stay outside the repository and must never be committed or stored in project memory.
+
+The verified runtime configuration chain is:
+
+`C:\\GearCashOut-Config\\.env` → repository configuration → supervisor/worker
+
+## Canonical update and deployment sequence
+
+When a repository change is needed:
+
+1. Inspect project memory and the relevant Diagnostic Roadmap.
+2. Inspect current GitHub `main`.
+3. Inspect current Supabase state where the workflow touches the database.
+4. Identify the first actual failure.
+5. Make the smallest safe repair.
+6. Commit and push the repair to GitHub.
+7. On the Research PC, use GitHub Desktop to Fetch/Pull the committed change into the active working copy.
+8. If a running Research PC file changed, stop/restart the supervisor or worker as appropriate.
+9. Verify the heartbeat/release and run a real affected-workflow test.
+10. Update both manuals, the relevant roadmap and Supabase project memory/checkpoint.
+
+## Important runtime rule
+
+GitHub Desktop synchronises files. It does **not** automatically reload a running Node.js process.
+
+Therefore a pull of changes to `agent.mjs`, `supervisor.mjs`, `package.json` or equivalent runtime files must be followed by a controlled restart before claiming that the Research PC is running the new release.
+
+## Current verified runtime
+
+The Research PC was successfully restarted from:
+
+`C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN\\tools\\gear-ai-local-agent`
+
+with the persistent supervisor and Gemma worker functioning, configuration loaded from the separate config folder, and a real research job processed successfully.
+
+## Diagnostic route
+
+For startup, STOP/START, GitHub working-copy path or Gemma deployment issues, use:
+
+`docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`
+
+before attempting repairs.
