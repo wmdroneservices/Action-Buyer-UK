@@ -2959,3 +2959,32 @@ The **Slow-Moving Stock & Outlet Strategy** page briefly failed with `column ref
 The repair gives the aggregates explicit names: `active_listing_count` and `active_outlet_count`. The report remains management-only and advisory. No inventory, listing, price or outlet data is changed by the repair.
 
 **Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
+
+
+---
+
+## Research PC deployment integrity rule — 7 September 2026
+
+A live failure exposed a partial-deployment hazard: the Research PC received a newer `agent.mjs` whose lifecycle commands had moved to `supervisor.mjs`, while its local startup path still used `npm start → agent.mjs`. The worker could research and heartbeat, but queued dashboard lifecycle commands were never consumed.
+
+### Required deployment contract
+
+The Research PC control chain is:
+
+**Windows launcher → Start-GearCashOut-AI.ps1 → npm start / supervisor.mjs → agent.mjs**
+
+The following files are a single control deployment set and must be updated together when lifecycle architecture changes:
+
+- `tools/gear-ai-local-agent/package.json`
+- `tools/gear-ai-local-agent/supervisor.mjs`
+- `tools/gear-ai-local-agent/agent.mjs`
+- the Windows launcher when its implementation changes
+
+Current package behaviour:
+
+- `npm start` starts the persistent supervisor;
+- `npm run worker` is a controlled direct worker command for development only.
+
+The supervisor expires queued lifecycle commands older than 10 minutes at startup so stale commands from an unavailable or wrongly deployed control channel cannot replay against a recovered worker.
+
+**Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`.
