@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Deep Source Audit aware queue entrypoint. Deployed Supabase version 8.
+// Deep Source Audit aware queue entrypoint. Deployed Supabase version 9.
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
 const out=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,'Content-Type':'application/json'}});
 async function auth(req:Request){
@@ -41,7 +41,25 @@ Deno.serve(async req=>{
     }
     const {data:count,error:countError}=await admin.from('quote_catalog_ai_queue').select('id',{count:'exact',head:true}).eq('run_id',runId);
     if(countError)throw countError;
+    const productsQueued=count??0;
+
+    // A zero-row run is terminal, not "queued". Leaving it queued created the
+    // stale DEEP AUDIT RUNNING · 0/0 dashboard state with nothing to cancel.
+    if(productsQueued===0){
+      await admin.from('quote_catalog_ai_research_runs')
+        .update({status:'completed',finished_at:new Date().toISOString()})
+        .eq('id',runId);
+      return out({
+        run_id:runId,
+        status:'no_matching_products',
+        products_queued:0,
+        scope,
+        deep_source:deepSource,
+        message:'No active catalogue products matched the selected Deep Source filters. Nothing was queued.'
+      });
+    }
+
     await admin.from('quote_catalog_ai_research_runs').update({status:'queued'}).eq('id',runId);
-    return out({run_id:runId,status:'queued_for_local_agent',products_queued:count??0,scope,deep_source:deepSource,message:(count??0)+' product(s) queued. The local Ollama research agent will '+(deepSource?'crawl the Deep Source landing/category/subcategory path and return exact product pages only.':'collect web evidence and send findings to manual review.')});
+    return out({run_id:runId,status:'queued_for_local_agent',products_queued:productsQueued,scope,deep_source:deepSource,message:productsQueued+' product(s) queued. The local Ollama research agent will '+(deepSource?'crawl the Deep Source landing/category/subcategory path and return exact product pages only.':'collect web evidence and send findings to manual review.')});
   }catch(e:any){return out({error:e.message||String(e)},500)}
 });
