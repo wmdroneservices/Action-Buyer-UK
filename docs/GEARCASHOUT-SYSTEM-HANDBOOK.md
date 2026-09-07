@@ -3360,3 +3360,68 @@ Release alignment is now:
 6. Confirm generic exact model pages no longer create false package mismatches solely because Body Only/Accessory wording is absent.
 7. Run one package-specific product and confirm a real competing bundle is still marked mismatch.
 8. Only then start a larger batch.
+
+
+---
+
+# GitHub Desktop and Research PC Working-Copy Standard — 7 September 2026
+
+## Authoritative code workflow
+
+The authoritative source repository is:
+
+`wmdroneservices/Action-Buyer-UK`
+
+GitHub Desktop is the normal local source-control tool for the Research PC/development machine. The current verified working copy is:
+
+`C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN`
+
+Do not treat the older extracted folder as a second active development repository.
+
+## Secrets and configuration
+
+Secrets remain outside GitHub in:
+
+`C:\\GearCashOut-Config\\.env`
+
+They must never be committed, copied into project memory, or added to GitHub.
+
+The Research PC has verified that its configuration loads from the external config folder plus any non-secret repository configuration required by the worker.
+
+## Gemma / Research PC path
+
+The external Windows launcher resolves the active agent directory through:
+
+`GEARCASHOUT_AGENT_DIR`
+
+The verified current value points to:
+
+`C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN\\tools\\gear-ai-local-agent`
+
+This is the path from which the supervisor and Gemma research worker are currently running successfully.
+
+## Normal update procedure
+
+1. Open GitHub Desktop.
+2. Select the GearCashOut / Action-Buyer UK repository.
+3. Fetch/Pull the latest `main` changes.
+4. Review local changes before committing.
+5. Commit only intended changes with a clear message.
+6. Push the commit to GitHub.
+7. If the pull changed `agent.mjs`, `supervisor.mjs`, `package.json` or other running Research PC files, restart the Research PC supervisor/worker so the new code is actually loaded.
+8. Run a small real workflow test before a larger batch.
+
+A GitHub pull updates files on disk; it does not automatically hot-reload a Node.js process that is already running.
+
+## Verified end-to-end state
+
+On 7 September 2026, the GitHub Desktop working copy was verified by:
+
+- starting the supervisor from the GitHub working-copy agent folder;
+- loading configuration from `C:\\GearCashOut-Config\\.env` plus repository configuration;
+- confirming the Research PC became ready and polled normally;
+- claiming and processing a real research job successfully.
+
+Relevant diagnostic roadmap:
+
+`docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`
