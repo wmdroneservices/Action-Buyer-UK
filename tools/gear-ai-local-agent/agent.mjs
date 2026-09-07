@@ -91,7 +91,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.13-worker',
+    version:'1.5.14-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -144,7 +144,11 @@ function isGenericInternalPackageLabel(value){
   return new Set([
     '', 'standard item', 'standard', 'base item', 'base package',
     'default package', 'default item', 'basic item', 'basic package',
-    'standard package', 'quote standard package'
+    'standard package', 'quote standard package',
+    // Taxonomy labels describe the catalogue class, not a literal retailer bundle.
+    // An exact accessory model must not be rejected because the source title omits
+    // the internal word "Accessory".
+    'accessory'
   ]).has(x);
 }
 
@@ -1020,11 +1024,23 @@ function deepSourceTargetIdentity(product,title,url){
   const packageName=cleanProductPackageName(product);
   if(packageName&&!isGenericInternalPackageLabel(packageName)){
     const packageIdentity=normaliseIdentityText(packageName);
-    if(packageIdentity&&!identity.includes(packageIdentity)){
-      return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model found, but the catalogue package/kit name is not present in the page title or canonical product URL.',discovered_suffix:discoveredSuffix};
+    if(packageIdentity&&identity.includes(packageIdentity)){
+      return {model_match:true,package_match:'exact',variant_match:'exact',reason:'Exact catalogue model and package identity are present in the page title/canonical URL.',discovered_suffix:discoveredSuffix};
     }
-  }else if(hasSpecificSuffix){
-    return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact base model found, but the source page identifies a more specific package, bundle, controller or accessory identity than the generic catalogue package.',discovered_suffix:discoveredSuffix};
+
+    // Absence of the catalogue package wording is not positive evidence of a
+    // mismatch. Retailer model pages (especially MPB) often use a generic title
+    // while the live SKU contents carry the actual Body Only/kit/bundle identity.
+    // Only an explicit competing package suffix should be treated as a mismatch.
+    if(hasSpecificSuffix){
+      return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact model found, but the source title/canonical URL positively identifies a more specific package, bundle, kit, controller or accessory identity than the catalogue target.',discovered_suffix:discoveredSuffix};
+    }
+
+    return {model_match:true,package_match:'uncertain',variant_match:'uncertain',reason:'Exact model found, but the generic source title/canonical URL does not prove the catalogue package. Preserve the evidence for unit-level/package verification rather than marking a mismatch.',discovered_suffix:discoveredSuffix};
+  }
+
+  if(hasSpecificSuffix){
+    return {model_match:true,package_match:'mismatch',variant_match:'mismatch',reason:'Exact base model found, but the source page positively identifies a more specific package, bundle, controller or accessory identity than the generic catalogue package.',discovered_suffix:discoveredSuffix};
   }
 
   return {model_match:true,package_match:'exact',variant_match:'exact',reason:'Exact catalogue identity is present in the page title/canonical URL.',discovered_suffix:discoveredSuffix};
