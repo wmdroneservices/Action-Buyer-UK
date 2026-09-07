@@ -559,3 +559,47 @@ After the last product logs Completed product, verify the authoritative run and 
 3. Only then inspect the worker loop.
 
 The PowerShell window can continue printing independent source-monitor activity after a research run is complete. A repeated HTTP 403 from a monitored opening-soon storefront is not evidence that the research queue is stuck.
+
+
+## 7 September 2026 — Live MPB hang and duplicate-worker diagnostic
+
+### Live database verification
+
+A new Sony 5-product MPB Deep Source run was checked directly in Supabase after the PowerShell window appeared active but did not produce research progress.
+
+The authoritative state showed:
+
+- run `e27ad564-de94-4e01-bd24-28475dc0dcf6` remained queued with `products_checked = 0`;
+- two queue rows were simultaneously `processing`;
+- both were claimed within the same second;
+- the worker code is designed as a single sequential `processOne()` loop, so two simultaneous claims indicate more than one worker/supervisor process was active;
+- the remaining three rows were still queued.
+
+This was therefore a real live research stall, not the earlier completed-run monitor-noise condition.
+
+### First failure
+
+The current MPB discovery path can enter the Chromium fallback after MPB returns HTTP 403. The browser launch path previously had no explicit launch timeout and no stage-level logging. A hung Chromium launch could therefore leave a queue row permanently processing.
+
+### Repair
+
+Repository changes now:
+
+1. add explicit Chromium launch/context/page/content time limits and stage logs;
+2. add a whole-product Deep Source collection watchdog, defaulting to 180 seconds;
+3. add a local single-instance lock to `supervisor.mjs` so a second Research PC launcher cannot start another worker and claim queue rows in parallel.
+
+### Deployment state
+
+**GitHub repaired; Research PC deployment still required.**
+
+Do not interpret the new repository fix as already active on the Windows Research PC until the local files have been replaced and the launcher restarted.
+
+### Immediate verification after deployment
+
+1. Confirm only one supervisor/worker starts.
+2. Start a small MPB Deep Source run.
+3. Confirm only one queue row enters `processing` at a time.
+4. Confirm PowerShell logs MPB fallback stages when HTTP 403 occurs.
+5. Confirm a timeout becomes a clean product failure rather than a permanent `processing` row.
+6. Confirm the next queued product can continue after a timeout/failure.
