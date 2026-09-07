@@ -629,3 +629,50 @@ The Deep Source link scorer previously allowed an exact product path to meet the
 ### Diagnostic rule
 
 If one product log opens multiple unrelated manufacturers/models, inspect candidate admission before changing Gemma, Ollama, or MPB extraction.
+
+
+---
+
+## 7 September 2026 — Exact-page queue isolation and watchdog orphan follow-up
+
+### Symptom
+
+A Sony Alpha 1 II Deep Source run failed in Supabase after 180 seconds, yet the Research PC continued printing MPB browser fallback activity for unrelated manufacturer product URLs. The dashboard no longer showed the run as active.
+
+### Correct interpretation
+
+Check Supabase first:
+
+- if the run and queue row are terminal, the dashboard is correct to remove the active state;
+- continuing PowerShell browser logs then indicate a local collector that outlived its queue item.
+
+### First failure point
+
+`collectDeepSourceEvidence()` had two remaining paths to inspect:
+
+1. **Internal search:** exact low-scoring product links could fall through into the crawl queue.
+2. **Breadth-first crawl:** exact low-scoring product links could also fall through to the generic queue path.
+
+Exact product pages are not category traversal pages. If they do not meet the target identity threshold, they must be rejected rather than crawled.
+
+### Repair rule now implemented
+
+For every discovered link:
+
+**Exact product URL**
+→ target score ≥ threshold? → candidate for final validation  
+→ target score below threshold? → reject/ignore  
+→ never enqueue for breadth-first crawl
+
+**Non-exact category/subcategory URL**
+→ sufficient discovery relevance? → may enter bounded crawl queue
+
+### Abort rule
+
+The Deep Source watchdog uses an AbortSignal. Every long-running discovery loop must check that signal before starting another fetch and after returning from a bounded fetch. A watchdog timeout must not leave a background crawler opening further URLs after the Supabase queue row has already failed.
+
+### Current deployment marker
+
+Repository worker version: `1.5.9-worker`.
+
+Before live verification, confirm the Research PC heartbeat reports that version. If it still reports `1.5.8-worker`, the Windows worker has not yet been updated and any continued unrelated-MPB behaviour must not be used to judge the repository repair.
