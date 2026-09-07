@@ -2293,3 +2293,49 @@ Live Sony Deep Source logs proved the worker was active; this was not a Gemma/Ol
 **Current repair:** `agent.mjs` now requires target identity for ordinary discovered exact pages, while preserving explicit deterministic MPB product slugs. The Deep Source product watchdog also aborts the collection context so a timed-out job cannot continue through subsequent candidates.
 
 Before treating a future Deep Source timeout as an Ollama failure, check the first repeated URL pattern in the Research PC log. Repeated unrelated models indicate discovery/candidate admission; repeated target URLs indicate collection/browser latency.
+
+
+---
+
+## 16. 7 September 2026 — Deep Source exact-page queue leak and watchdog orphan
+
+### Do not repeat the earlier conclusion
+
+The candidate-admission repair alone was insufficient. A later Sony Alpha 1 II test showed the queue row failing at 180 seconds while the same local collector continued logging unrelated MPB browser fallback requests.
+
+### Verified first-layer state
+
+Supabase was authoritative:
+
+- queue row: failed;
+- run: terminal `completed_with_errors`;
+- Research PC: still online and still printing browser fallback activity.
+
+Therefore the Deep Source dashboard correctly stopped showing an active run. The local worker had become inconsistent with the persisted queue state because the timed-out collector was still executing in the background.
+
+### Actual remaining failure path
+
+`collectDeepSourceEvidence()`
+→ landing/internal-search link extraction
+→ low-scoring exact product URL
+→ incorrectly allowed into crawl queue
+→ MPB browser fallback fetch
+→ unrelated manufacturer product page
+
+At the same time, `AbortController.abort()` did not immediately stop the crawl because discovery loops lacked consistent cooperative abort checks.
+
+### Repair commit
+
+Current repository repair:
+
+- `f4ef98528fa57e1f5b63789c26e9e7f53724a1e3` — Deep Source target isolation and cooperative abort checks;
+- `59ebdbc70f2699d2c8b72f274b3d633429db4ab7` — worker version bump to `1.5.9-worker`.
+
+### Verification rule
+
+After deployment, confirm all four layers together:
+
+1. Research PC heartbeat reports `1.5.9-worker`.
+2. Sony Deep Source queue row remains active only while the collector is genuinely working.
+3. Browser fallback logs contain target-relevant discovery/category paths and target exact pages, not a long sequence of unrelated manufacturer product pages.
+4. After a watchdog timeout, background browser-fallback logging for that timed-out product stops promptly and the dashboard/run state remains consistent.
