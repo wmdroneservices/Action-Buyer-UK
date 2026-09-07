@@ -2389,3 +2389,48 @@ A five-product Sony Deep Source batch exposed a lifecycle fault: the database wa
 - aligns package, worker and supervisor release identifiers at 1.5.10 for deployment verification.
 
 Operational rule: after any worker repair, verify the Research PC heartbeat/version against the repository release before starting another batch. A GitHub code change alone does not update the running Windows process.
+
+
+---
+
+## 18. 7 September 2026 — MPB generic crawl timeout repair (1.5.11)
+
+### Verified first failure
+
+The 1.5.10 orphan-crawl containment worked: after the Sony Alpha 1 II watchdog timeout, the persisted queue/run state became terminal and the worker did not continue writing discoveries into that terminal run.
+
+However, the Sony collector still spent its live 180-second budget traversing broad MPB URLs such as category, guide and editorial/content pages. The first remaining failure was therefore **MPB generic discovery admission**, not Ollama, the supervisor, the database queue or Playwright abort handling.
+
+### Repair
+
+Worker 1.5.11 changes only MPB discovery admission:
+
+- deterministic exact MPB product slugs remain enabled;
+- external site-constrained exact-product discovery remains enabled;
+- MPB internal search remains enabled;
+- ordinary MPB exact product links must visibly identify the requested catalogue model;
+- MPB non-exact links are no longer added to the breadth-first crawl;
+- final MPB candidates must be either the explicit deterministic slug or visibly identify the requested model.
+
+The existing 1.5.10 abort propagation, Playwright resource closure and terminal-run persistence guard are retained unchanged.
+
+### Do not reintroduce
+
+Do not restore broad MPB category/content crawling merely because a product is not found immediately. That was the failure mechanism. First inspect:
+
+1. deterministic target slug;
+2. exact site-constrained search result;
+3. MPB internal search result;
+4. exact product title/canonical URL.
+
+Only after those fail should MPB discovery logic be deliberately redesigned and tested on one product.
+
+### Deployment verification
+
+The release identifiers must agree:
+
+- package: `1.5.11`
+- worker heartbeat: `1.5.11-worker`
+- supervisor metadata: `1.5.11-supervisor`
+
+Run `node --check agent.mjs`, `node --check supervisor.mjs` and `npm install` after deployment. Then start one controlled Sony/MPB Deep Source product and inspect the first browser-fallback URLs before starting a larger batch.
