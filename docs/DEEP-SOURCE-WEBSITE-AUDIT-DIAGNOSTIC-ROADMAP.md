@@ -603,3 +603,29 @@ Do not interpret the new repository fix as already active on the Windows Researc
 4. Confirm PowerShell logs MPB fallback stages when HTTP 403 occurs.
 5. Confirm a timeout becomes a clean product failure rather than a permanent `processing` row.
 6. Confirm the next queued product can continue after a timeout/failure.
+
+
+---
+
+## 7 September 2026 — Candidate admission timeout repair
+
+### Failure signature
+
+A Sony Deep Source job logged successful MPB browser fallback collection for a series of unrelated Fujifilm product pages, then failed at the 180-second product watchdog.
+
+### First failure point
+
+Candidate admission, before exact-page identity validation.
+
+The Deep Source link scorer previously allowed an exact product path to meet the candidate threshold without proving that the link belonged to the catalogue target.
+
+### Repair
+
+1. Exact-path status now provides only a ranking bonus.
+2. Ordinary discovered candidates must still carry enough target identity to pass the threshold.
+3. Explicit deterministic MPB slugs remain allowed as a source-specific discovery fast path.
+4. The product watchdog now aborts the collector context, preventing further candidate iteration after timeout.
+
+### Diagnostic rule
+
+If one product log opens multiple unrelated manufacturers/models, inspect candidate admission before changing Gemma, Ollama, or MPB extraction.
