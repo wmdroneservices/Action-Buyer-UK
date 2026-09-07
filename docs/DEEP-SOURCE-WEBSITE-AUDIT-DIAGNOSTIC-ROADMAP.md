@@ -724,3 +724,14 @@ initClient()
 ### Known fault history
 
 A static **Loading approved websites… / Checking…** screen is now classified as a potential **front-end startup block**, not automatically as a Research PC outage.
+
+
+## Current failure history — 2026-09-07
+
+**Observed:** Sony Deep Source batch of 5 products timed out at 180000ms, while the Research PC terminal continued launching and collecting MPB URLs. Supabase marked the queue item/run terminal, but the older local worker continued crawling and later wrote raw discoveries into the failed run. Those discoveries included unrelated manufacturers.
+
+**Confirmed first failure:** local deployment drift plus incomplete abort propagation in the older worker. The live Research PC reported 1.5.8-worker while GitHub contained the newer repair.
+
+**Containment repair:** release 1.5.10 propagates cancellation into the Playwright MPB fallback, closes browser resources on abort, and refuses to persist discoveries when the run is no longer active.
+
+**Verification required:** stop the currently running old worker, update the Research PC checkout, restart only through the persistent supervisor, confirm heartbeat 1.5.10, then run a controlled one-product Deep Source test before any five-product batch.
