@@ -2230,3 +2230,51 @@ When a Deep Source or normal research run reaches its final queue item, the Rese
 Queue recovery now uses a five-minute stale threshold while the worker is idle. A normal product crawl can take longer than one minute, so the earlier one-minute recovery threshold was too aggressive for interrupted/deployment edge cases.
 
 A monitored source returning HTTP 403 during an opening-status probe does not stop catalogue research. Blocked-source messages are rate-limited; investigate the queue/run state for actual research progress rather than judging activity from repeated source-monitor lines.
+
+
+---
+
+## 14. 7 September 2026 — MPB live stall / duplicate worker lesson
+
+### Do not repeat the earlier diagnosis
+
+The earlier Sony run was genuinely complete and only the opening-source monitor continued printing. A later run was different.
+
+Live Supabase verification showed:
+
+- run `e27ad564-de94-4e01-bd24-28475dc0dcf6`;
+- `products_checked = 0`;
+- two rows simultaneously `processing`;
+- three rows still queued.
+
+The worker implementation is sequential, so this is evidence of duplicate worker/supervisor execution rather than a normal single-worker state.
+
+### First failure route
+
+`agent.mjs`
+→ `processOne()`
+→ `collectDeepSourceEvidence()`
+→ MPB HTTP 403
+→ Chromium/Playwright fallback
+
+The browser launch previously lacked a hard launch timeout and stage logging, so a launch stall could leave a queue row processing indefinitely.
+
+### Repair committed
+
+- commit `13b2e98c5c85bc46b2e0ea40facd93a29a3b2c53`: MPB fallback time limits, stage logging and Deep Source product watchdog;
+- commit `b38cd14dd18c130cc351b06c7d53ed5507d173e2`: supervisor single-instance lock.
+
+### Deployment status
+
+Repository repaired. Local Research PC deployment and live verification are still required.
+
+### Future troubleshooting rule
+
+Always distinguish:
+
+1. completed run + independent monitor output;
+2. one genuine active processing item;
+3. duplicate simultaneous processing claims;
+4. stale processing rows after interruption.
+
+Check Supabase before deciding which condition exists.
