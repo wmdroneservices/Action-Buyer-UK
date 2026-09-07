@@ -3265,3 +3265,27 @@ dashboard request
 → dashboard remains ready to start another audit.
 
 Cancellation also re-reads authoritative Deep Source state before invoking `ai_research_cancel_run`, so a stale browser-side run ID cannot target a completed or cancelled run.
+
+
+## 7 September 2026 — Deep Source queue-count regression repair
+
+The Deep Source Edge Function must read Supabase exact counts from the response `count` property, not `data`.
+
+The failure was:
+
+`select(..., { count: 'exact', head: true })`
+
+was destructured as `data: count`. With `head: true`, data is null even when queue rows exist. The Edge Function therefore treated real one-product audits as zero-product audits and immediately marked the run `completed` while the Research PC could still claim the queued row.
+
+The repaired path is:
+
+Edge Function creates run and queue rows
+→ reads `count: queueCount`
+→ only zero rows become `no_matching_products` / `completed`
+→ one or more rows remain `queued`
+→ dashboard sees real queue-backed activity
+→ targeted cancellation can mark the active run `cancelled`.
+
+The affected 15:25 UTC Sony MPB run was reconciled to `cancelled` after confirming its only queue row was skipped and no work completed.
+
+See: `docs/DEEP-SOURCE-WEBSITE-AUDIT-DIAGNOSTIC-ROADMAP.md`.
