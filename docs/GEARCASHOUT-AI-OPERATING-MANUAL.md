@@ -2820,3 +2820,20 @@ The separate Retail Storefront website remains connected to the shared GearCashO
 - Final brand/domain: not yet chosen and remains configurable
 - Backend impact: none; this change is presentation-only
 - Diagnostic map: `docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
+
+
+## Retail category hero imagery — first batch, 7 September 2026
+
+The public Retail Storefront now has a separate editorial category-hero layer above catalogue results.
+
+The first ten raw catalogue categories alphabetically are mapped to white/near-white stock imagery. The feature supports both category-only and manufacturer × category browsing, while keeping the hero imagery separate from product-card imagery and the central catalogue.
+
+Technical path:
+
+`shop.html` → `js/category-heroes.js` → `js/shop.js: renderCategoryHero()`
+
+No Supabase product records, inventory, pricing or visibility controls are changed. Source/audit record:
+
+`GearCashOut-Retail-Storefront/docs/CATEGORY-HERO-IMAGE-SOURCES.md`
+
+Two first-batch visuals (Binocular Case and Body Camera) are documented as closest-match temporary white-background imagery and should be upgraded when a stronger exact-category stock source is found.
