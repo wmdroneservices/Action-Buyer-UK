@@ -2186,3 +2186,20 @@ After any Research PC control change, verify all three states:
 - **OFFLINE** — supervisor unavailable.
 
 Then test **CHECK STATUS**, **CHECK OLLAMA**, **STOP**, and **START** before resuming a large research run.
+
+
+## Stock strategy outlet-count display repair — 7 September 2026
+
+### First failure identified
+
+The live management_stock_strategy_report() data was correct, but admin-stock-strategy.js rendered missing_outlet_count of available_outlet_count underneath the **ACTIVE OUTLETS** heading. This made a SKU with one active listing in the central registry appear to have **8 of 9 active outlets** when the actual meaning was **8 missing outlets out of 9 available**.
+
+### Repair
+
+The strategy table now keeps the three measures separate:
+
+- **ACTIVE LISTINGS** — active_listing_count with current listing outlet names;
+- **ACTIVE OUTLETS** — active_outlet_count of available_outlet_count;
+- **MISSING ACTIVE OUTLETS** — missing_outlet_count with the names of the missing active outlets.
+
+No database or listing data was changed. This was a front-end column-mapping/display repair.
