@@ -3023,3 +3023,41 @@ The Research PC worker now makes terminal completion explicit in its own log aft
 The queue recovery guard was also corrected from 1 minute to 5 minutes, matching the existing restart-recovery design and reducing the risk of a legitimate long-running product being incorrectly recovered as interrupted.
 
 HTTP 403 responses from monitored opening-soon storefronts remain non-fatal. Repeated blocked-source notices are rate-limited so they do not bury real research activity in the PowerShell log.
+
+
+---
+
+## 17H. 7 September 2026 — Real MPB research stall distinguished from monitor noise
+
+A later Sony MPB Deep Source run exposed a different failure from the earlier completed-run incident.
+
+### Verified live state
+
+Supabase showed a new run with:
+
+- 0 products checked;
+- 2 queue items simultaneously in `processing`;
+- 3 still queued.
+
+Because the local worker is intended to process one queue item sequentially, the simultaneous claims proved that duplicate worker/supervisor activity was possible.
+
+### Failure path
+
+The MPB browser fallback could hang during Chromium startup because browser launch did not have an explicit timeout. The queue item then remained `processing`.
+
+### Repository repair
+
+- MPB Chromium launch/context/page/content operations now have explicit limits and progress logging.
+- Deep Source collection has a product-level watchdog.
+- The Research PC supervisor now uses a single-instance local lock to prevent a second launcher from starting another worker with the same agent identity.
+
+### Important operational rule
+
+Do not diagnose every quiet PowerShell window as harmless opening-source monitoring. Check the live queue:
+
+- one processing item progressing normally can be valid;
+- all rows terminal means the run is complete;
+- multiple simultaneous processing rows for this single sequential worker indicate duplicate worker activity;
+- a processing row that exceeds the collection watchdog must fail/recover rather than remain indefinitely stuck.
+
+Deployment must be verified on the local Research PC before this repair can be called live.
