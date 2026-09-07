@@ -635,12 +635,21 @@ async function setContinuousResearch(enabled){
  await loadContinuousResearch();
 }
 const DEEP_SOURCE_URL_HISTORY_KEY='gearCashOutDeepSourceUrlHistory';
-const DEEP_SOURCE_URL_HISTORY_MAX=20;
+const DEEP_SOURCE_URL_HISTORY_MAX=100;
 let deepSourceRegistryUrls=[];
 function normaliseDeepSourceUrl(value){
  const raw=clean(value||'');
  if(!/^https?:\/\//i.test(raw))return '';
  try{return new URL(raw).href;}catch{return '';}
+}
+function deepSourceDomainKey(url){
+ try{return new URL(url).hostname.replace(/^www\./i,'').toLowerCase();}catch{return String(url||'').toLowerCase();}
+}
+function deepSourceDisplayLabel(url){
+ try{
+   const u=new URL(url);
+   return u.hostname.replace(/^www\./i,'')+(u.pathname&&u.pathname!=='/'?u.pathname:'');
+ }catch{return url;}
 }
 function loadDeepSourceUrlHistory(){
  try{
@@ -654,30 +663,66 @@ function approvedDeepSourceRegistryUrls(){
    .map(s=>normaliseDeepSourceUrl(s.homepage_url))
    .filter(Boolean))];
 }
-function renderDeepSourceUrlHistory(){
- const list=$('deep-source-url-history');if(!list)return;
+function sortedDeepSourceUrls(){
  const registry=[...deepSourceRegistryUrls];
  const history=loadDeepSourceUrlHistory();
- const urls=[...registry,...history.filter(url=>!registry.includes(url))];
- list.innerHTML=urls.map(url=>'<option value="'+esc(url)+'"></option>').join('');
+ return [...new Set([...registry,...history])]
+   .sort((a,b)=>deepSourceDomainKey(a).localeCompare(deepSourceDomainKey(b),'en-GB',{sensitivity:'base'})||a.localeCompare(b,'en-GB',{sensitivity:'base'}));
+}
+function renderDeepSourceUrlSelector(){
+ const select=$('deep-source-url-select');if(!select)return;
+ const current=normaliseDeepSourceUrl($('deep-source-url')?.value||'');
+ const urls=sortedDeepSourceUrls();
+ select.innerHTML='<option value="">Choose a website…</option>'+urls.map(url=>'<option value="'+esc(url)+'">'+esc(deepSourceDisplayLabel(url))+'</option>').join('');
+ if(current&&urls.includes(current))select.value=current;
 }
 function refreshDeepSourceUrlRegistry(){
  deepSourceRegistryUrls=approvedDeepSourceRegistryUrls();
- renderDeepSourceUrlHistory();
+ renderDeepSourceUrlSelector();
 }
 function rememberDeepSourceUrl(value){
  const url=normaliseDeepSourceUrl(value);if(!url)return false;
  const history=loadDeepSourceUrlHistory().filter(item=>item!==url);
  history.unshift(url);
  try{localStorage.setItem(DEEP_SOURCE_URL_HISTORY_KEY,JSON.stringify(history.slice(0,DEEP_SOURCE_URL_HISTORY_MAX)));}catch{}
- renderDeepSourceUrlHistory();
+ renderDeepSourceUrlSelector();
  return true;
 }
-function wireDeepSourceUrlHistory(){
- const input=$('deep-source-url');if(!input)return;
- renderDeepSourceUrlHistory();
- input.addEventListener('change',()=>rememberDeepSourceUrl(input.value));
- input.addEventListener('blur',()=>rememberDeepSourceUrl(input.value));
+async function saveDeepSourceUrl(){
+ const input=$('deep-source-url');
+ const url=normaliseDeepSourceUrl(input?.value||'');
+ if(!url)throw Error('Enter the full website URL, including https://, before saving it.');
+ rememberDeepSourceUrl(url);
+ if(input)input.value=url;
+ const select=$('deep-source-url-select');if(select)select.value=url;
+ const sourceName=deepSourceDomainKey(url);
+ try{
+   await api({action:'discover_source',source_url:url,source_name:sourceName,source_kind:'other'});
+   await loadSources();
+   const x=$('deep-source-message');if(x){x.textContent='Website saved to your Deep Source list and registered in the shared source registry for review.';x.className='form-message success';}
+ }catch(e){
+   const message=e?.message||String(e);
+   if(/duplicate|already exists|unique/i.test(message)){
+     await loadSources().catch(()=>{});
+     const x=$('deep-source-message');if(x){x.textContent='Website is already in the shared source registry. It has been kept in your Deep Source list.';x.className='form-message success';}
+     return;
+   }
+   throw e;
+ }
+}
+function wireDeepSourceUrlControls(){
+ const input=$('deep-source-url'),select=$('deep-source-url-select'),save=$('save-deep-source-url');
+ renderDeepSourceUrlSelector();
+ if(select)select.addEventListener('change',()=>{
+   if(!select.value)return;
+   if(input)input.value=select.value;
+   rememberDeepSourceUrl(select.value);
+ });
+ if(input){
+   input.addEventListener('change',()=>{const url=normaliseDeepSourceUrl(input.value);if(url){input.value=url;rememberDeepSourceUrl(url);if(select&&[...select.options].some(o=>o.value===url))select.value=url;}});
+   input.addEventListener('blur',()=>{const url=normaliseDeepSourceUrl(input.value);if(url){input.value=url;rememberDeepSourceUrl(url);}});
+ }
+ if(save)save.addEventListener('click',()=>saveDeepSourceUrl().catch(e=>{const x=$('deep-source-message');if(x){x.textContent=e.message||String(e);x.className='form-message error';}}));
 }
 async function setDeepSourceAuditControls(run,queueRows=[]){
  const runButton=$('run-deep-source-audit'),cancelButton=$('cancel-deep-source-audit');
@@ -963,7 +1008,7 @@ async function apply(){
  }
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
-async function start(){try{await initClient();wireDeepSourceUrlHistory();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
+async function start(){try{await initClient();wireDeepSourceUrlControls();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
 $('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));$('cancel-deep-source-audit')?.addEventListener('click',()=>cancelDeepSourceAudit().catch(e=>{const x=$('deep-source-message');if(x){x.textContent=e.message||String(e);x.className='form-message error';}}));
 $('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear only WAITING products from the research queue? This does NOT stop a product already being researched. Use STOP ALL RESEARCH & WORKER if you need the worker stopped completely.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
 $('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
