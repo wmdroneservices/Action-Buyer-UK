@@ -2222,3 +2222,11 @@ Current design:
 7. Do not automatically enable a newly discovered source.
 
 Relevant files: `admin-ai-research.html`, `admin-ai-research.js`, and Supabase Edge Function `quote-catalog-ai-orchestrator`.
+
+## Research completion visibility and queue recovery — 7 September 2026
+
+When a Deep Source or normal research run reaches its final queue item, the Research PC now logs an explicit Research run complete message with the run ID, finished count and error count. Do not interpret later background source-monitor activity as evidence that the audit is still running.
+
+Queue recovery now uses a five-minute stale threshold while the worker is idle. A normal product crawl can take longer than one minute, so the earlier one-minute recovery threshold was too aggressive for interrupted/deployment edge cases.
+
+A monitored source returning HTTP 403 during an opening-status probe does not stop catalogue research. Blocked-source messages are rate-limited; investigate the queue/run state for actual research progress rather than judging activity from repeated source-monitor lines.
