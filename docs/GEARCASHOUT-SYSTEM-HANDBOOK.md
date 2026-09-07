@@ -3221,3 +3221,26 @@ Worker 1.5.12 now enforces:
 - MPB and fallback dedupe only mark a URL handled after successful candidate persistence.
 
 Regression set: DJI × MPB, Sony × MPB, and a future manufacturer × selected source.
+
+
+---
+
+## MPB exact-page inventory readiness repair — 7 September 2026 (1.5.13)
+
+A successful 1.5.12 Sony × MPB regression proved that manufacturer × URL isolation was fixed: the run created new Pending Review rows instead of repeating the earlier DJI/Sony cross-rule failure. The remaining first failure was later in collection.
+
+MPB exact product pages are client-rendered. The browser fallback previously waited a fixed 2.5 seconds after DOMContentLoaded, which could capture the model title before the live SKU/price inventory rows had rendered. The result was an exact URL reaching manual preservation with no price range.
+
+Worker 1.5.13 now:
+
+- waits for MPB exact-page SKU inventory text, bounded to 15 seconds, before collecting final evidence;
+- keeps discovery pages fast and does not apply the inventory wait to generic discovery routes;
+- retains out-of-stock pages for normal exact-page handling when no SKU appears;
+- extracts MPB units with both the known strict layout and a bounded per-SKU parser, so harmless field-order/layout changes do not erase otherwise valid live inventory;
+- preserves the existing manufacturer × selected-domain isolation rule unchanged.
+
+Regression invariant:
+
+- DJI × MPB remains valid;
+- Sony × MPB remains valid;
+- future manufacturers use the same source-level inventory readiness and SKU extraction without inheriting another manufacturer's URL pattern.
