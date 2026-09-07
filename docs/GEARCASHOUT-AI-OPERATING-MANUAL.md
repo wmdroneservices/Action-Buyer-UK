@@ -2865,3 +2865,19 @@ Source audit:
 Relevant diagnostic roadmap:
 
 `docs/RETAIL-STOREFRONT-DIAGNOSTIC-ROADMAP.md`
+
+
+## Corrected Retail hero-image methodology — 7 September 2026
+
+The first generic Batch 100 review was rejected because its imagery was selected by broad category resemblance rather than from the products actually represented in the catalogue.
+
+The replacement workflow is now catalogue-first:
+
+`quote_catalog_products`
+→ real manufacturer/category/product line/model group
+→ representative catalogue product selected
+→ manufacturer-specific/official image research
+→ visual suitability review (recognisable product, clean white/light background, no generic substitute)
+→ production hero mapping only after approval.
+
+A corrected Batch 100 research manifest has been created in the Retail Storefront repository. It contains 100 real catalogue-derived targets and replaces the previous generic review methodology.
