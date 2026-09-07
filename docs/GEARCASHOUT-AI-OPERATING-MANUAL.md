@@ -2156,3 +2156,33 @@ Root cause: `management_stock_strategy_report()` previously allowed PostgreSQL t
 Repair rule: always alias report aggregates explicitly, especially inside PL/pgSQL `RETURN QUERY` CTEs. Use `active_listing_count` and `active_outlet_count`; do not depend on generated aggregate names.
 
 Verification: inspect the live RPC definition, confirm the aliases are present, and run the underlying reporting CTE successfully against the current inventory/listing/outlet state. Preserve the management authorization guard and advisory-only behaviour.
+
+
+---
+
+## Research PC supervisor deployment rule — 7 September 2026
+
+Do not update the local Research PC by copying only `agent.mjs` when the worker/control architecture has changed.
+
+The control deployment set is:
+
+1. `package.json`
+2. `supervisor.mjs`
+3. `agent.mjs`
+4. `Start-GearCashOut-AI.ps1` when the launcher itself changes
+
+The safe startup contract is:
+
+`Windows launcher → npm start → supervisor.mjs → agent.mjs`
+
+The repository now makes `npm start` launch the supervisor. Direct `agent.mjs` execution is reserved for controlled development via `npm run worker`.
+
+When recovering a Research PC after the control channel has been unavailable, stale queued lifecycle commands older than 10 minutes are expired by the supervisor at startup rather than replayed. This avoids an old STOP or RESTART unexpectedly acting on a newly recovered worker.
+
+After any Research PC control change, verify all three states:
+
+- **ONLINE** — supervisor and worker running;
+- **READY** — supervisor running, worker stopped;
+- **OFFLINE** — supervisor unavailable.
+
+Then test **CHECK STATUS**, **CHECK OLLAMA**, **STOP**, and **START** before resuming a large research run.
