@@ -48,7 +48,18 @@ function renderEditor(){
  '<p id="image-save-message" class="image-research-message"></p></form>';
  const form=$('image-research-form');
  form.addEventListener('submit',save);
- $('image-preview-button').addEventListener('click',()=>{const url=form.image_url.value.trim();el.querySelector('.image-research-preview').innerHTML=url?'<img src="'+esc(url)+'" alt="Candidate image preview">':'<span>No image URL entered.</span>';});
+ $('image-preview-button').addEventListener('click',()=>{
+  const imageUrl=String(form.elements['image_url']?.value||'').trim();
+  const sourceUrl=String(form.elements['source_url']?.value||'').trim();
+  const preview=el.querySelector('.image-research-preview');
+  if(imageUrl){
+    preview.innerHTML='<img src="'+esc(imageUrl)+'" alt="Candidate image preview">';
+  }else if(sourceUrl){
+    preview.innerHTML='<div class="image-research-preview-empty"><span>No direct image URL has been recorded yet.</span><a class="btn btn-secondary" href="'+esc(sourceUrl)+'" target="_blank" rel="noopener">OPEN SOURCE PAGE</a></div>';
+  }else{
+    preview.innerHTML='<span>No image URL or source page URL entered.</span>';
+  }
+});
 }
 async function save(e){
  e.preventDefault();const f=e.currentTarget,db=auth(),status=f.research_status.value,approved=f.approved.checked,saveMsg=$('image-save-message');
