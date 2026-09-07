@@ -3087,3 +3087,37 @@ The Deep Source link scoring gave an exact MPB product path enough points to pas
 Expected flow:
 
 catalogue identity → target-aware MPB candidate admission → exact-page validation → evidence extraction → queue completion.
+
+
+---
+
+## 7 September 2026 — Deep Source crawl isolation and terminal-state consistency
+
+A further live Sony MPB Deep Source test proved that the previous candidate-admission repair was incomplete.
+
+### Verified behaviour
+
+Supabase recorded the Sony Alpha 1 II queue row as failed at the 180-second watchdog and the run as terminal, while the Research PC PowerShell window continued logging MPB browser fallback requests for many unrelated exact product URLs.
+
+The Deep Source dashboard therefore returned to **RUN DEEP SOURCE AUDIT** because the authoritative database run was already terminal. The apparent dashboard mismatch was caused by an orphaned local collector still crawling after the queue item had failed, not by the dashboard incorrectly hiding an active database run.
+
+### Root cause
+
+Two discovery-path gaps remained:
+
+1. exact MPB product links below the target-candidate threshold could still be placed into the breadth-first discovery queue and fetched as if they were category pages;
+2. the watchdog aborted the controller, but the crawl and discovery loops did not consistently check the abort signal, allowing background MPB requests to continue until the loops naturally ended.
+
+### Repair
+
+`tools/gear-ai-local-agent/agent.mjs` now:
+
+- treats exact product pages as terminal discovery links;
+- never queues a low-scoring unrelated exact product page for further crawling;
+- checks the Deep Source abort signal throughout MPB discovery, internal search, crawl and final validation loops;
+- stops further crawl work promptly after the 180-second watchdog fires;
+- identifies the repaired worker as version `1.5.9-worker`.
+
+Expected result: a Sony Deep Source job may traverse relevant discovery/category paths, but it must not sequentially open unrelated Fujifilm, Nikon or other manufacturer product pages merely because they appear on MPB landing/category HTML.
+
+The dashboard's active indicator remains database-driven: queued/running runs or queue rows in queued/claimed/processing are active. Once the local collector stops with the queue row, the UI and Research PC state remain consistent.
