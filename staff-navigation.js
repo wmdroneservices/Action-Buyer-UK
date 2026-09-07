@@ -16,7 +16,8 @@
       'admin-catalog.html',
       'admin-catalog-control.html',
       'admin-automatic-pricing.html',
-      'admin-ai-research.html'
+      'admin-ai-research.html',
+      'admin-image-research.html'
     ]),
     purchasing: new Set([
       'admin-purchasing.html',
@@ -56,6 +57,7 @@
       ['admin-catalog.html', 'QUOTE CATALOGUE'],
       ['admin-automatic-pricing.html', 'AUTOMATIC PRICING'],
       ['admin-ai-research.html', 'AI RESEARCH'],
+      ['admin-image-research.html', 'IMAGE RESEARCH'],
       ['admin-catalog-control.html', 'CATALOGUE CONTROL']
     ],
     purchasing: [
