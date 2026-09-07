@@ -808,10 +808,12 @@ async function loadDeepSourceAuditState(){
      if(error)throw error;
      queueRows=data||[];
    }
+   // Queue rows are the authoritative execution state. A queued/running run record
+   // with zero active queue rows is not a running audit and must never lock the UI
+   // at DEEP AUDIT RUNNING · 0/0.
    const active=(runs||[]).find(r=>{
      const rows=queueRows.filter(q=>String(q.run_id)===String(r.id));
-     return ['queued','running'].includes(String(r.status||'').toLowerCase()) ||
-       rows.some(q=>['queued','claimed','processing'].includes(String(q.status||'').toLowerCase()));
+     return rows.some(q=>['queued','claimed','processing'].includes(String(q.status||'').toLowerCase()));
    })||null;
    if(active){
      await setDeepSourceAuditControls(active,queueRows.filter(q=>String(q.run_id)===String(active.id)));
@@ -825,11 +827,10 @@ async function loadDeepSourceAuditState(){
 }
 
 async function cancelDeepSourceAudit(){
- let runId=activeDeepSourceRunId;
- if(!runId){
-   const active=await loadDeepSourceAuditState();
-   runId=active?.id||null;
- }
+ // Do not trust a previously rendered run id. The database queue is authoritative
+ // and can have completed/cancelled between dashboard polls.
+ const active=await loadDeepSourceAuditState();
+ const runId=active?.id||null;
  if(!runId)throw Error('There is no active Deep Source Audit to cancel.');
  if(!confirm('Cancel this Deep Source Audit only? The remaining products in this audit will be skipped. The Research PC and other research runs will keep running.'))return;
  const cancelButton=$('cancel-deep-source-audit');
