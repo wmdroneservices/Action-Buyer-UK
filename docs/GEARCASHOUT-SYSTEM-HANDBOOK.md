@@ -3061,3 +3061,29 @@ Do not diagnose every quiet PowerShell window as harmless opening-source monitor
 - a processing row that exceeds the collection watchdog must fail/recover rather than remain indefinitely stuck.
 
 Deployment must be verified on the local Research PC before this repair can be called live.
+
+
+---
+
+## 7 September 2026 — MPB Deep Source candidate admission repair
+
+A live Sony Deep Source run exposed a second collection failure after the Chromium fallback repair.
+
+### Verified first failure
+
+The Research PC was collecting unrelated MPB exact product pages. The live worker log showed a Sony product job sequentially opening multiple Fujifilm MPB URLs before the 180-second product watchdog failed the Sony queue row.
+
+### Root cause
+
+The Deep Source link scoring gave an exact MPB product path enough points to pass the candidate threshold by itself. MPB pages containing many product links could therefore admit unrelated products into final validation.
+
+### Repair
+
+- exact product-path status now contributes only a small ranking bonus;
+- non-deterministic candidates must also contain sufficient target identity to pass admission;
+- deterministic MPB product slugs remain explicit source-specific discovery paths;
+- the Deep Source watchdog now aborts the collector context so a timed-out job cannot continue through further candidate pages in the background.
+
+Expected flow:
+
+catalogue identity → target-aware MPB candidate admission → exact-page validation → evidence extraction → queue completion.
