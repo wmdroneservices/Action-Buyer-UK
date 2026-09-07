@@ -554,3 +554,54 @@ The strategy table now keeps the three measures separate:
 - **MISSING ACTIVE OUTLETS** — missing_outlet_count with the names of the missing active outlets.
 
 No database or listing data was changed. This was a front-end column-mapping/display repair.
+
+
+## Public Retail Website — Stage 1 foundation — 7 September 2026
+
+### Separate repository
+
+`wmdroneservices/GearCashOut-Retail-Storefront`
+
+### Public catalogue path
+
+`quote_catalog_products`
+→ `public_storefront_manufacturers('retail')`
+→ public manufacturer browsing
+
+`quote_catalog_products`
++ `sales_catalog_visibility`
++ `catalog_sales_content`
++ published WEBSITE `resale_listings`
++ linked `inventory_assets`
+→ `public_storefront_catalog('retail', ...)`
+→ public catalogue cards.
+
+### Verified starting catalogue
+
+- 3,845 products;
+- 73 manufacturers;
+- no duplicated catalogue created.
+
+### Visibility rule
+
+Manufacturer/category/product scope continues to use:
+
+- `auto`;
+- `show`;
+- `hide`.
+
+All manufacturers are enabled by default through `auto`. Hidden brands are excluded from public RPC results without deleting the underlying buying catalogue.
+
+### Security boundary
+
+Public RPCs expose safe presentation fields and website availability only. They do not expose purchase costs, internal notes, customer/staff information or research evidence.
+
+### Public stock rule
+
+Availability is derived from authoritative central records:
+
+Published `resale_listings`
+→ WEBSITE `sales_outlets`
+→ linked unsold `inventory_assets.catalog_product_id`.
+
+No second stock truth exists.
