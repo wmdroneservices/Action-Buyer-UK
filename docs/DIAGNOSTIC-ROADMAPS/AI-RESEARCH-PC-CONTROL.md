@@ -112,3 +112,48 @@ Files:
 8. Run START RESEARCH PC WORKER.
 9. Confirm worker returns ONLINE.
 10. Only then resume Deep Source or continuous research.
+
+
+## GitHub Desktop working-copy standard — 7 September 2026
+
+### Authoritative repository and local working copy
+
+- GitHub source of truth: `wmdroneservices/Action-Buyer-UK`
+- Current verified local working copy: `C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN`
+- Current agent directory: `C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN\\tools\\gear-ai-local-agent`
+- External secrets/config: `C:\\GearCashOut-Config\\.env`
+
+The active path is supplied to the external launcher through the Windows environment variable:
+
+`GEARCASHOUT_AGENT_DIR`
+
+Do not assume the launcher's legacy fallback path is the active path. Verify the resolved path in the PowerShell prompt/log before diagnosing a code issue.
+
+### GitHub Desktop update flow
+
+`GitHub origin/main → GitHub Desktop Fetch/Pull → active local working copy → controlled supervisor/worker restart → live workflow test`
+
+GitHub Desktop updates the files only. It does not hot-reload the running Node.js supervisor or worker.
+
+### Path-specific failure points
+
+1. GitHub Desktop is pointing at a different local clone than the running Research PC.
+2. `GEARCASHOUT_AGENT_DIR` is missing or points at an obsolete copy.
+3. A change is pulled successfully but the old Node.js process remains running.
+4. A legacy extracted folder is mistaken for the active working copy.
+5. Secrets/config are copied into the repository instead of remaining in `C:\\GearCashOut-Config`.
+
+### Verification after any agent-code update
+
+1. Confirm GitHub Desktop has the intended latest commit on `main`.
+2. Confirm the PowerShell path is the active GitHub working-copy agent folder.
+3. Restart the supervisor if runtime code changed.
+4. Confirm configuration loads from the external config folder.
+5. Confirm the worker reaches Ready/Polling.
+6. Trigger one small real research job.
+7. Confirm the job is claimed and completes/returns evidence.
+8. Only then continue with larger research work.
+
+### Verified migration result
+
+On 7 September 2026 the Research PC was started from the GitHub working copy, loaded the separate external configuration, reached Ready/Polling, and successfully processed a real research job. This is the baseline deployment state for future repairs and updates.
