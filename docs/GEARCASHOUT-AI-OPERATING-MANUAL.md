@@ -2676,3 +2676,112 @@ For startup, STOP/START, GitHub working-copy path or Gemma deployment issues, us
 `docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`
 
 before attempting repairs.
+
+
+---
+
+# GitHub Desktop, Local Working Copy and Research PC Deployment Standard — 7 September 2026
+
+## Status
+
+**Current verified baseline.** GitHub Desktop is now the normal local source-control and update path for the GearCashOut / Action-Buyer UK development and Research PC machine.
+
+This replaces the previous manual deployment habit of downloading individual repository files and copying/replacing `.mjs` files by hand.
+
+## Authoritative locations
+
+- **Authoritative repository:** `wmdroneservices/Action-Buyer-UK`
+- **Active verified local working copy:** `C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN`
+- **Active local AI agent directory:** `C:\\GearCashOut\\Action-Buyer-UK-GITHUB-CLEAN\\tools\\gear-ai-local-agent`
+- **External configuration folder:** `C:\\GearCashOut-Config`
+
+Secrets remain outside GitHub. Secret values must never be committed, copied into documentation, or stored in project memory.
+
+## Launcher path rule
+
+The Windows launcher resolves the active agent directory through:
+
+`GEARCASHOUT_AGENT_DIR`
+
+The verified active value points to the GitHub Desktop working copy's:
+
+`tools\\gear-ai-local-agent`
+
+Do not diagnose a worker from a folder name alone. Always verify the actual PowerShell prompt/log path before changing code or declaring a deployment live.
+
+## Normal GitHub Desktop workflow
+
+For repository changes:
+
+1. Inspect project memory, relevant roadmap, current GitHub code and live Supabase state first.
+2. Make the smallest safe repair.
+3. Test the affected workflow.
+4. Update the Human/Developer Handbook, AI Operating Manual, relevant Diagnostic Roadmap and Supabase project memory/checkpoint.
+5. Commit the intended changes with a clear message.
+6. Push to GitHub.
+
+For receiving updates on the Research PC/development machine:
+
+1. Open GitHub Desktop.
+2. Select `wmdroneservices/Action-Buyer-UK`.
+3. Fetch/Pull the latest `main` changes into the active working copy.
+4. Review what changed before assuming the update is safe.
+5. If runtime files changed, restart the local supervisor/worker.
+6. Confirm the PowerShell path is the active GitHub working-copy agent directory.
+7. Confirm external configuration loads.
+8. Confirm the worker reaches Ready/Polling.
+9. Trigger one small real research job.
+10. Confirm the job is claimed and processed before starting larger work.
+
+## Runtime rule
+
+GitHub Desktop updates the files on disk.
+
+It does **not** hot-reload a Node.js process already running in memory.
+
+Therefore, after pulling changes to any active runtime file such as:
+
+- `agent.mjs`
+- `supervisor.mjs`
+- `package.json`
+- other worker dependencies or startup files
+
+restart the affected supervisor/worker and verify the live heartbeat/log version where applicable.
+
+## Verified end-to-end migration result
+
+On 7 September 2026:
+
+- GitHub Desktop's clean working copy was used as the active local repository.
+- The external configuration remained separate from the repository.
+- `GEARCASHOUT_AGENT_DIR` was pointed at the GitHub working-copy agent directory.
+- The local supervisor started successfully from that working copy.
+- The Research PC reached Ready/Polling.
+- A real research job was claimed and processed successfully.
+
+This establishes the current baseline:
+
+`GitHub origin/main → GitHub Desktop → active local working copy → controlled runtime restart when required → small real workflow verification`
+
+## Obsolete-folder rule
+
+An older extracted repository folder must not be treated as a second active development source.
+
+Do not delete a historical local copy merely because it is older; retain it as a temporary backup until the GitHub Desktop workflow and required recovery options are confirmed. The active path must nevertheless remain unambiguous.
+
+## Diagnostic entry point
+
+For startup, STOP/START, path, supervisor and local deployment issues, use:
+
+`docs/DIAGNOSTIC-ROADMAPS/AI-RESEARCH-PC-CONTROL.md`
+
+The first diagnostic checks are:
+
+1. project memory/checkpoint;
+2. roadmap;
+3. current GitHub code and commit;
+4. actual PowerShell working path;
+5. `GEARCASHOUT_AGENT_DIR`;
+6. external configuration loading;
+7. live Supabase heartbeat/control state;
+8. only then the first actual failure point.
