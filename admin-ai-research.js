@@ -8,7 +8,21 @@ const withTimeout=(promise,ms=12000,label='Request')=>Promise.race([promise,new 
 const rememberSelection=()=>{document.querySelectorAll('.candidate-check').forEach(x=>{if(x.checked)selectedCandidateIds.add(String(x.value));else selectedCandidateIds.delete(String(x.value));});};
 const productFor=c=>products.find(x=>String(x.id)===String(c.catalog_product_id));
 const pname=c=>{const p=productFor(c);if(!p)return'Catalogue product not loaded';const m=clean(p.model),pkg=clean(p.package_name);const parts=[p.manufacturer,m];if(pkg&&pkg.toLowerCase()!==m.toLowerCase()&&!pkg.toLowerCase().startsWith(m.toLowerCase()+' '))parts.push(pkg);return parts.filter(Boolean).join(' · ')};
-async function initClient(){if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');sb=window.actionBuyerAuth.supabase;const s=await window.actionBuyerAuth.getSession();if(!s?.user)throw Error('Please sign in again.')}
+async function initClient(){
+  // Do not block the entire Research Centre on auth.js getSession(), which also
+  // performs a profile lookup. A stalled profile request previously prevented
+  // every dashboard handler from being wired, leaving the selector on Loading…
+  // and the Research PC panel permanently on Checking….
+  const deadline=Date.now()+8000;
+  while(!window.actionBuyerAuth?.supabase&&Date.now()<deadline){
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  if(!window.actionBuyerAuth?.supabase)throw Error('Supabase authentication is not ready.');
+  sb=window.actionBuyerAuth.supabase;
+  const {data,error}=await withTimeout(sb.auth.getSession(),8000,'Authentication check');
+  if(error)throw error;
+  if(!data?.session?.user)throw Error('Please sign in again.');
+}
 async function api(body){const {data,error}=await sb.functions.invoke('quote-catalog-ai-orchestrator',{body});if(error)throw error;if(data?.error)throw Error(data.error);return data}
 function renderProductCandidateCard(c){
  const matches=Array.isArray(c.duplicate_matches)?c.duplicate_matches:[];
@@ -461,10 +475,30 @@ async function load(){
  products=[...byId.values()];
  populateResearchFilters();render();renderProductCandidates();
 }
-async function loadSources(){const data=await api({action:'source_registry'});sources=data.sources||[];renderSources();refreshDeepSourceUrlRegistry()}
+async function loadSources(){
+  try{
+    const data=await withTimeout(api({action:'source_registry'}),10000,'Research source registry');
+    sources=data.sources||[];
+    renderSources();
+    refreshDeepSourceUrlRegistry();
+  }catch(error){
+    // Keep the Deep Source selector usable from remembered URLs even when the
+    // registry endpoint is temporarily unavailable. Do not leave a fake
+    // Loading… option indefinitely.
+    const select=$('deep-source-url-select');
+    if(select&&/Loading approved websites/i.test(select.textContent||'')){
+      renderDeepSourceUrlSelector();
+      if(!select.options.length||select.options.length===1){
+        select.options[0].textContent='Source registry temporarily unavailable';
+      }
+    }
+    throw error;
+  }
+}
 async function loadAgentStatus(){
  const el=$('local-ai-status');if(!el)return;
- const data=await api({action:'agent_status'});const a=(data.agents||[])[0];
+ const data=await withTimeout(api({action:'agent_status'}),10000,'Research PC status');
+ const a=(data.agents||[])[0];
  if(!a){el.textContent='LOCAL AI WORKER OFFLINE — queued research will wait until the research PC agent is running.';el.className='form-message error';return}
  const age=a.last_heartbeat_at?Date.now()-new Date(a.last_heartbeat_at).getTime():Infinity;
  const online=age<90000&&['online','working','starting'].includes(a.status);
