@@ -2376,3 +2376,16 @@ If a future page remains static:
 2. check the latest quote_catalog_ai_agents.last_heartbeat_at directly;
 3. inspect quote_catalog_ai_agent_commands before sending duplicate lifecycle commands;
 4. do not use the terminal alone to infer control-channel state.
+
+
+### 2026-09-07 — Deep Source timeout / orphan-crawl containment (1.5.10)
+
+A five-product Sony Deep Source batch exposed a lifecycle fault: the database watchdog correctly marked a product failed after 180000ms, but an older local Research PC worker could continue an MPB Playwright crawl and later persist raw discoveries into the already terminal run. The current repair now:
+
+- propagates the Deep Source abort signal into MPB browser fallback;
+- closes the active Playwright page/context/browser immediately when the product watchdog aborts;
+- checks the abort state between browser stages;
+- checks that the Supabase run is still active immediately before persisting Deep Source discoveries;
+- aligns package, worker and supervisor release identifiers at 1.5.10 for deployment verification.
+
+Operational rule: after any worker repair, verify the Research PC heartbeat/version against the repository release before starting another batch. A GitHub code change alone does not update the running Windows process.
