@@ -3289,3 +3289,14 @@ Edge Function creates run and queue rows
 The affected 15:25 UTC Sony MPB run was reconciled to `cancelled` after confirming its only queue row was skipped and no work completed.
 
 See: `docs/DEEP-SOURCE-WEBSITE-AUDIT-DIAGNOSTIC-ROADMAP.md`.
+
+
+## 7 September 2026 — Deep Source completion message repair
+
+A completed Deep Source run correctly reset the **RUN DEEP SOURCE AUDIT** button, but the status message could remain on **Deep Source Audit running** until the browser was refreshed.
+
+The database and queue lifecycle were already correct. The failure was isolated to `admin-ai-research.js`: when no active queue rows remained, `setDeepSourceAuditControls(null, [])` reset the controls but did not replace the old running message.
+
+The dashboard now detects the transition from the browser-observed active run to its terminal database state and displays a completion, cancellation, error, or failure message. Historical runs are not re-announced after a page refresh.
+
+See: `docs/DEEP-SOURCE-WEBSITE-AUDIT-DIAGNOSTIC-ROADMAP.md`.
