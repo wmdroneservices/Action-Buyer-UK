@@ -2561,3 +2561,52 @@ The completed Sony × MPB Deep Source run `7dc6d17f-d140-4ff4-9e3a-a658baf7d410`
 The remaining nine candidates were denied because they were generic/ambiguous identities, duplicate aliases, out-of-stock/unpriced findings, or stale/non-canonical paths that did not contain usable live price evidence.
 
 AI operating rule: the active learning registry already contained the rule that generic catalogue taxonomy labels such as **Accessory** are not literal package variants. The accepted VG-C4EM candidate was nevertheless initially marked package/variant mismatch. This is now recorded as a candidate-scoring rule-compliance issue to inspect before changing the Sony/DJI manufacturer-isolation rules.
+
+
+---
+
+## 7 September 2026 — Sony pending-evidence cleanup and package-identity hardening (1.5.14)
+
+A historical Sony × MPB Pending Review backlog was audited after the earlier five-product run. **32 candidates** were reviewed against their exact catalogue targets and the preserved MPB evidence.
+
+### Result
+
+- **24 accepted and applied** as **reference-only UK used-market evidence**;
+- **8 rejected** with explicit audit reasons;
+- accepted evidence remains separate from automatic pricing;
+- the FX2 Body Only candidate was corrected from a mixed model-page range to the verified **£2,129 Body Only** observation before application;
+- lens-kit/bundle candidates were rejected where the generic model page did not positively prove the required package;
+- duplicate VG-C4EM evidence was rejected because stronger evidence was already applied;
+- out-of-stock/unpriced LA-EA5 and unpriced Alpha 1 II discovery paths were rejected.
+
+### 1.5.14 Research PC rule
+
+The first actual matching fault was in deepSourceTargetIdentity():
+
+- a missing package phrase in a generic retailer title was being treated as a positive **mismatch**;
+- the internal taxonomy label **Accessory** was not treated as generic in that code path.
+
+The worker now:
+
+1. treats **Accessory** as a generic taxonomy label rather than a literal retailer bundle;
+2. treats explicit package identity as **exact**;
+3. treats an explicit competing package suffix as **mismatch**;
+4. treats a generic exact-model page that does not prove package identity as **uncertain**, preserving it for unit-level/manual verification rather than falsely rejecting it.
+
+Release alignment is now:
+
+- package 1.5.14
+- worker 1.5.14-worker
+- supervisor 1.5.14-supervisor
+
+**Deployment requirement:** GitHub changes do not alter the running Research PC until the three files are deployed locally and the worker/supervisor is restarted. Before the next production batch, run syntax checks and verify the heartbeat release.
+
+
+### Audit decision rules confirmed by this cleanup
+
+- Exact model identity is not enough to prove a named kit/bundle.
+- Absence of a package phrase is not proof of a mismatch.
+- Positive conflicting package evidence is required for an automatic mismatch.
+- Generic taxonomy labels such as Accessory must not be used as literal source-title requirements.
+- Mixed MPB model-page inventory must be split or corrected before application.
+- Out-of-stock/unpriced discovery can remain historical audit information but is not current live pricing evidence.
