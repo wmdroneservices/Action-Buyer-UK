@@ -1093,12 +1093,6 @@ function mpbLinkHasTargetModelIdentity(product,link){
   return identity.includes(model);
 }
 
-function isMpbGenericContentPath(url){
-  try{
-    const path=new URL(url).pathname.toLowerCase();
-    return /^\/en-uk\/(?:content|category|categories|brand|brands|kit-guides|tips-and-techniques|videos-and-podcasts)(?:\/|$)/.test(path);
-  }catch{return true}
-}
 
 let mpbBrowserFallbackWarned=false;
 function mpbBrowserExecutableCandidates(){
