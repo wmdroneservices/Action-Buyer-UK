@@ -78,7 +78,7 @@ async function heartbeat(status='online',last_error=null,metadata={}){
     status,
     provider:'ollama',
     model:cfg.model,
-    version:'1.5.6',
+    version:'1.5.7-worker',
     last_heartbeat_at:new Date().toISOString(),
     last_started_at:status==='starting'?new Date().toISOString():undefined,
     last_error,
@@ -322,6 +322,8 @@ async function fetchText(url, timeoutMs=cfg.requestTimeoutMs){
 
 let lastOpeningSourceCheckAt=0;
 const OPENING_SOURCE_CHECK_MS=10*60*1000;
+const OPENING_SOURCE_BLOCKED_NOTICE_MS=6*60*60*1000;
+const openingSourceBlockedNoticeAt=new Map();
 
 async function monitorOpeningSoonSources(force=false){
   if(!force&&Date.now()-lastOpeningSourceCheckAt<OPENING_SOURCE_CHECK_MS)return;
@@ -392,11 +394,17 @@ async function monitorOpeningSoonSources(force=false){
           ? 'Automated opening-status check blocked by HTTP 403. Skipped; catalogue research continues normally.'
           : 'Status check failed: '+message.slice(0,300)
       }).eq('id',source.id);
-      log(
-        blocked?'Opening-source monitor skipped (HTTP 403; research continues):':'Opening-source monitor warning:',
-        source.domain,
-        message
-      );
+      if(blocked){
+        const key=String(source.domain||url).toLowerCase();
+        const now=Date.now();
+        const last=openingSourceBlockedNoticeAt.get(key)||0;
+        if(now-last>=OPENING_SOURCE_BLOCKED_NOTICE_MS){
+          openingSourceBlockedNoticeAt.set(key,now);
+          log('Opening-source monitor skipped (HTTP 403; research continues):',source.domain,message);
+        }
+      }else{
+        log('Opening-source monitor warning:',source.domain,message);
+      }
     }
   }
 }
@@ -1797,7 +1805,7 @@ async function finishRunIfComplete(runId){
   if(error)throw error;
   const total=rows.length;
   const done=rows.filter(r=>['completed','failed'].includes(r.status)).length;
-  if(done<total)return;
+  if(done<total)return {complete:false,total,done,errors:0};
   const errors=rows.filter(r=>r.status==='failed').length;
   await sb.from('quote_catalog_ai_research_runs').update({
     status:errors?'completed_with_errors':'completed',
@@ -1805,6 +1813,7 @@ async function finishRunIfComplete(runId){
     errors_count:errors,
     finished_at:new Date().toISOString()
   }).eq('id',runId);
+  return {complete:true,total,done,errors};
 }
 
 async function recoverInterruptedQueueItems(maxAge='00:01:00',reason='idle worker'){
@@ -1834,7 +1843,7 @@ async function processOne(){
     // previously left the worker online but apparently "paused" forever. We only
     // run this recovery while THIS worker is idle, so we never recover an item
     // currently being processed by this single sequential loop.
-    const recovered=await recoverInterruptedQueueItems('00:01:00','the worker was idle');
+    const recovered=await recoverInterruptedQueueItems('00:05:00','the worker was idle');
     if(recovered>0)item=await claimNextQueueItem();
   }
   if(!item){
@@ -2106,8 +2115,11 @@ async function processOne(){
 
     // ai_research_submit_candidate increments run counters transactionally.
     // Do not increment them again here or every finding is double-counted.
-    await finishRunIfComplete(item.run_id);
+    const runCompletion=await finishRunIfComplete(item.run_id);
     log('Completed product:',submitted+mpbSubmitted,'findings (including '+mpbSubmitted+' MPB reference range finding(s)).');
+    if(runCompletion.complete){
+      log('Research run complete:',item.run_id,'·',runCompletion.total+'/'+runCompletion.total,'products finished ·',runCompletion.errors,'error(s).');
+    }
     return true;
   }catch(e){
     if(e?.code==='RUN_CANCELLED'){
