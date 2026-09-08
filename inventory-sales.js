@@ -28,13 +28,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (assetError || listingError) { list.innerHTML = "<p>Could not load sales channels.</p>"; message.textContent = assetError?.message || listingError?.message || "Could not load sales channels."; message.className = "form-message error"; return; }
     const allRows = assets || [], ls = listings || [], map = new Map();
     ls.forEach(x => { if (!map.has(x.asset_id)) map.set(x.asset_id, []); map.get(x.asset_id).push(x); });
-    const rows = allRows.filter(a => activeStatuses.includes(a.status) || (a.status === "Sold" && (map.get(a.id) || []).some(x => x.status === "Delist Required")));
-    const activeRows = allRows.filter(a => activeStatuses.includes(a.status));
-    const published = ls.filter(x => ["Published","Reserved"].includes(x.status) && activeRows.some(a => a.id === x.asset_id));
+
+    // One sales stream: channel state decides where a Sales asset appears.
+    // A Sent to Sales asset is ready for listing only until it has a Published/Reserved channel row.
+    const hasLiveListing = asset => (map.get(asset.id) || []).some(x => ["Published","Reserved"].includes(x.status));
+    const readyRows = allRows.filter(a => a.status === "Sent to Sales" && !hasLiveListing(a));
+    const soldClosureRows = allRows.filter(a => a.status === "Sold" && (map.get(a.id) || []).some(x => x.status === "Delist Required"));
+    const rows = [...readyRows, ...soldClosureRows];
+    const published = ls.filter(x => ["Published","Reserved"].includes(x.status));
     const warnings = ls.filter(x => x.status === "Delist Required").length;
-    const readyToList = activeRows.filter(a => a.status === "Sent to Sales").length;
-    summary.innerHTML = `<div style="display:flex;gap:2rem;flex-wrap:wrap"><div><strong>${activeRows.length}</strong><br>items in Sales</div><div><strong>${readyToList}</strong><br>ready to list for sale</div><div><strong>${published.length}</strong><br>live/reserved listings</div><div><strong style="color:#b42318">${warnings}</strong><br>delist warnings</div></div><p style="margin-top:1rem">Sold items with outstanding delist actions remain visible until every remaining marketplace listing is closed.</p>`;
-    if (!rows.length) { list.innerHTML = '<div class="empty-account"><h3>No products requiring sales action</h3><p>Products sent to Sales appear here for listing. Sold products remain visible while marketplace closures are outstanding.</p></div>'; return; }
+    const readyToList = readyRows.length;
+    summary.innerHTML = `<div style="display:flex;gap:2rem;flex-wrap:wrap"><div><strong>${readyToList}</strong><br>ready to list for sale</div><div><strong>${published.length}</strong><br>live/reserved listings</div><div><strong style="color:#b42318">${warnings}</strong><br>delist warnings</div></div><p style="margin-top:1rem">Published and reserved products belong to Active Listings, not this ready-to-list queue. Sold products are handled in Sold Items; only outstanding marketplace closures remain here as urgent warnings.</p>`;
+    if (!rows.length) { list.innerHTML = '<div class="empty-account"><h3>No products ready to list</h3><p>Products remain here only until a channel is published or reserved. Live listings move to Active Listings automatically.</p></div>'; return; }
     list.innerHTML = rows.map(asset => {
       const assetListings = map.get(asset.id) || [], delists = assetListings.filter(x => x.status === "Delist Required"), warning = delists.length > 0, action = actionFor(asset.status);
       const cards = channels.map(ch => { const l = assetListings.find(x => x.sales_channel === ch); if (!l) return `<span style="display:inline-block;margin:.2rem .35rem .2rem 0;padding:.35rem .55rem;border:1px solid #ddd;border-radius:6px">${esc(ch)}: not listed</span>`; return `<span style="display:inline-block;margin:.2rem .35rem .2rem 0;padding:.35rem .55rem;border:1px solid ${l.status === "Delist Required" ? "#b42318" : "#ddd"};border-radius:6px"><strong>${esc(ch)}</strong>: ${esc(l.status)}${l.asking_price != null ? ` · ${money(l.asking_price)}` : ""}</span>`; }).join("");
