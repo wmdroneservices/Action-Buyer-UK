@@ -150,9 +150,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // presented there as purchasing work. Keep inventory preparation visible
       // because Ready for Resale is the action that precedes that handoff.
       const pageName=(location.pathname.split("/").pop()||"").toLowerCase();
-      const categoryScope=pageName==="admin-purchasing.html"
-        ? new Set(["PURCHASING","PURCHASE RETURNS","INVENTORY"])
-        : null;
+      const pageCategoryScopes={
+        "admin-purchasing.html":new Set(["PURCHASING","PURCHASE RETURNS","INVENTORY"]),
+        "admin-sales-dashboard.html":new Set(["SALES","CUSTOMER RETURNS"])
+      };
+      const categoryScope=pageCategoryScopes[pageName]||null;
       const pageTasks=categoryScope
         ? liveTasks.filter(t=>categoryScope.has(t.category))
         : liveTasks;
