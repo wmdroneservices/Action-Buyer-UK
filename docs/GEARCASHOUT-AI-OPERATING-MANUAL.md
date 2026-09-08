@@ -3684,3 +3684,23 @@ For customer-sourced items, the original valuation and the later staff inspectio
 5. Confirm the stored `item_data.photos` paths and `quote-photos` ownership policy before changing the renderer.
 
 Do not weaken RLS or make valuation IDs publicly readable merely to make the page load.
+
+## 8 September 2026 — Receipt rollback caused by UUID aggregate
+
+### Symptom
+
+Staff pressed **ITEM RECEIVED**, but neither dashboard changed. Live Supabase still showed `sales.status='shipping'`, inbound shipment `status='in_transit'`, and no linked inventory asset.
+
+### First actual failure
+
+Do not assume a stale UI when the database remains unchanged. A transactional test of the authoritative receipt RPC reached `resolve_quote_item_catalog_product(...)`, where the resolver used `min(id)` on a UUID column. PostgreSQL rejected `function min(uuid) does not exist`, rolling back the entire receipt transaction.
+
+### Repair
+
+Migration: `supabase/migrations/20260908224500_fix_catalog_uuid_aggregate_receipt.sql`.
+
+The resolver now uses `(array_agg(id))[1]` and returns an ID only when exactly one catalogue match exists. Public execute was revoked and authenticated execute retained.
+
+### Verification rule
+
+Before declaring receipt fixed, verify all three authoritative transitions: `sales.status='received'`, inbound `shipments.status='delivered'`, and a linked `inventory_assets.status='Received'`. If any fail, inspect the first failing database statement before changing dashboard rendering.
