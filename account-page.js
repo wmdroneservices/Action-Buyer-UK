@@ -76,9 +76,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // paid, archived or otherwise closed. This prevents closed transactions
     // from reappearing in the Valuations Received section.
     const { data: linkedSaleItems } = itemIds.length
-      ? await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("quote_item_id", itemIds)
+      ? await auth.supabase.from("sale_items").select("sale_id,quote_item_id,accepted_offer_id").in("quote_item_id", itemIds)
       : { data: [] };
     const linkedItemIds = new Set((linkedSaleItems || []).map(row => row.quote_item_id));
+    const publishedFinalItemIds = new Set((offers || []).filter(o => o.offer_type === "final" && o.status === "published").map(o => o.item_id));
     const closedValuationIds = new Set((items || []).filter(item => linkedItemIds.has(item.id)).map(item => item.valuation_id));
 
     const { data: sales } = await auth.supabase.from("sales").select("id,sale_reference,status,total_amount,created_at,payment_sent_at").eq("user_id", user.id).order("created_at", { ascending: false });
@@ -157,6 +158,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (String(v.status || "") === "cancelled") return false;
       const valuationItems = (items || []).filter(i => i.valuation_id === v.id);
       if (!valuationItems.length) return false;
+      // A published final offer is no longer "in progress": show the final offer itself,
+      // not a second generic valuation card for the same item.
+      if (valuationItems.some(i => publishedFinalItemIds.has(i.id))) return false;
       if (valuationItems.some(i => activeSaleItemIds.has(i.id))) return true;
       if (saleItemsByValuation.has(v.id)) return false;
       return valuationItems.some(i => !["accepted", "closed"].includes(i.item_status));
@@ -192,6 +196,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         salesBox.innerHTML = activeSales.map(s => {
           const shipment = (shipments || []).filter(sh => sh.sale_id === s.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
           const saleStatus = String(s.status || "");
+          const saleItemRows = (linkedSaleItems || []).filter(row => row.sale_id === s.id);
+          const finalOffers = saleItemRows.map(row => {
+            const item = (items || []).find(i => i.id === row.quote_item_id);
+            const offer = (offers || []).filter(o => o.item_id === row.quote_item_id && o.offer_type === "final" && o.status === "published").sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+            return item && offer ? { item, offer } : null;
+          }).filter(Boolean);
+          if (finalOffers.length) {
+            return finalOffers.map(({ item, offer }) => {
+              const title = [item.manufacturer, item.model || item.item_name].filter(Boolean).join(" ") || "Equipment";
+              const message = offer.customer_message || "Your final offer is ready. Please accept or refuse it below.";
+              return '<article class="valuation-card final-offer-card" data-sale-id="' + esc(s.id) + '" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;border-left:4px solid #d88732"><div><span class="valuation-ref">' + esc(s.sale_reference || "") + '</span><p class="section-kicker">FINAL OFFER READY</p><h3>' + esc(title) + '</h3><p><strong>Final offer from GearCashOut</strong></p><p>' + esc(message) + '</p></div><div class="valuation-meta"><strong>' + money(offer.amount) + '</strong><div class="navigation-buttons"><button class="btn btn-primary accept-offer" data-id="' + esc(offer.id) + '">ACCEPT FINAL OFFER</button><button class="btn btn-secondary refuse-offer" data-id="' + esc(offer.id) + '">REFUSE</button></div></div></article>';
+            }).join("");
+          }
           let message = "Your offer has been accepted. We are preparing the next steps.";
           // The purchase status is authoritative once staff has recorded receipt.
           // Shipment state is historical transport context and must not overwrite receipt/inspection progress.
