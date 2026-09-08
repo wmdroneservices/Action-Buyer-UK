@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   button.addEventListener("click", async () => {
     const confirmed = window.confirm(
-      "WARNING: This permanently deletes TEST quote workflow data.\n\nThis removes test valuations, quote items, offers, offer events, refusals, queued quote emails, test sales records and quote photographs.\n\nCustomer accounts, staff accounts, catalogue products, pricing and retailer data are NOT deleted.\n\nContinue?"
+      "WARNING: This permanently deletes ALL OPERATIONAL WORKFLOW DATA.\n\nThis removes valuations, quote items, offers, refusals, purchasing records, inventory assets, listings, resale records, fulfilment records, returns, sales workflow records and workflow photographs.\n\nCustomer and staff accounts, catalogue products, pricing, outlets and system configuration are NOT deleted.\n\nThis is the reset used to start the operational workflow afresh.\n\nContinue?"
     );
 
     if (!confirmed) return;
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     button.textContent = "RESETTING...";
 
     if (message) {
-      message.textContent = "Removing test quote photographs...";
+      message.textContent = "Removing workflow photographs...";
       message.className = "form-message";
     }
 
@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // never by deleting rows from storage.objects with SQL.
       const photosRemoved = await removeQuotePhotos();
 
-      if (message) message.textContent = "Removing test quote database records...";
+      if (message) message.textContent = "Removing operational database records...";
 
       const { data, error } = await auth.supabase.rpc("reset_test_quote_data");
       if (error) throw error;
@@ -106,20 +106,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (message) {
         message.textContent = total
-          ? `Test data reset complete. ${total} test records/files removed.`
-          : "Test data reset complete. There was no test data to remove.";
+          ? `Operational data reset complete. ${total} records/files removed.`
+          : "Operational data reset complete. There was no operational data to remove.";
         message.className = "form-message success";
       }
 
       setTimeout(() => window.location.reload(), 1200);
     } catch (error) {
-      console.error("GearCashOut test data reset failed", error);
+      console.error("GearCashOut operational data reset failed", error);
       if (message) {
         message.textContent = error?.message || "Reset failed.";
         message.className = "form-message error";
       }
       button.disabled = false;
-      button.textContent = "CLEAR ALL TEST DATA";
+      button.textContent = "CLEAR ALL OPERATIONAL DATA";
     }
   });
 });
