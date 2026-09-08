@@ -72,7 +72,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if(!session)return;
       const items=basket();
       if(!items.length){alert("Please add at least one item to your quote.");return;}
-      const storedFiles=filesStore();
+      let storedFiles=filesStore();
+      if (typeof window.gearCashOutReverseBasket?.restoreFiles === "function") {
+        storedFiles=await window.gearCashOutReverseBasket.restoreFiles();
+      }
       const submissionKey=crypto.randomUUID ? crypto.randomUUID() : `submission-${Date.now()}`;
       const submittedItems=[];
 
@@ -81,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const files=storedFiles[index] || [];
         if(!files.length || files.some(file=>!isValidImageFile(file))){
           const bad=files.find(file=>!isValidImageFile(file));
-          throw new Error(bad ? `"${bad.name || "Selected file"}" is not a photograph. Please go back and select an actual image file.` : "Please add at least one actual photograph.");
+          throw new Error(bad ? `"${bad.name || "Selected file"}" is not a photograph. Please go back and select an actual image file.` : "The photographs for this saved valuation are not available in this browser. Please go back, remove and re-add the item with at least one photograph.");
         }
         const reference=`WBA-${new Date().getFullYear()}-${Math.floor(100000+Math.random()*900000)}`;
         const photos=await uploadPhotos(session.user.id,reference,files);
@@ -100,6 +103,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const reference=data?.quote_reference || data?.quotes?.[0]?.quote_reference || "";
       localStorage.setItem("wba_latest_quote",JSON.stringify({quoteReferences:reference ? [reference] : []}));
       localStorage.removeItem("gearCashOutQuoteBasket");
+      if (typeof window.gearCashOutReverseBasket?.clearPersistedFiles === "function") {
+        await window.gearCashOutReverseBasket.clearPersistedFiles();
+      }
       const ref=document.getElementById("quote-reference");
       if(ref)ref.textContent=reference;
       form.querySelectorAll(".wizard-step").forEach(s=>s.hidden=Number(s.dataset.step)!==10);
