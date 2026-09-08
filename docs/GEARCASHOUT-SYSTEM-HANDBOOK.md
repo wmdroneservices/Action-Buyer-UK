@@ -4339,3 +4339,75 @@ Public detail data comes from:
 - `public-listing-media` Edge Function
 
 The public detail route exposes listing presentation only and does not expose purchase cost, serial number, storage location, customer details or internal notes.
+
+
+---
+
+## 9 September 2026 — Customer valuation taxonomy normalisation
+
+### Verified issue
+
+The public valuation wizard was loading the raw catalogue taxonomy directly from `quote_catalog_products`. The live catalogue contains historical/imported source categories from multiple feeds, so customers could see overlapping choices such as:
+
+- **Drone** and **Drones**;
+- **Lighting**, **Continuous Lighting**, **Studio Lighting** and **Photography Lighting & Studio**;
+- other closely related camera, support and video groups.
+
+The existing dropdown guard removed only exact duplicate option identities. It could not resolve semantically overlapping source categories.
+
+### Minimal repair
+
+The underlying catalogue records were **not renamed or merged**. Instead, the customer valuation wizard now maps raw categories into one stable public taxonomy:
+
+- **Drones**
+- **Action Cameras**
+- **Cameras**
+- **Lenses & Accessories**
+- **Video Equipment**
+- **Audio Equipment**
+- **Other Equipment** only for genuine unmatched catalogue records
+
+This preserves catalogue/research history while preventing customers from having to choose between competing singular/plural or overlapping source categories.
+
+Product types remain derived from the selected public category and are deduplicated by normalised display identity.
+
+### Developer Diagnostic Roadmap — Start Your Valuation category dropdown
+
+**User action:** Open `valuation.html` and select a Category, then Product type.
+
+**Expected result:** Customer sees the stable public taxonomy rather than raw imported catalogue categories.
+
+**Website / front end:**
+
+`valuation.html`
+→ `customer-catalog-visibility.js` applies the customer-visible catalogue guard
+→ `quote-reverse-basket-v5.js`
+→ loads active customer-visible `quote_catalog_products`
+→ `canonicalMainCategory(...)`
+→ Category dropdown
+→ Product type dropdown
+→ Manufacturer
+→ Model
+→ Package
+→ `findProduct()` resolves the selected product using the canonical public category plus the raw product identity.
+
+**Supabase:**
+
+- `quote_catalog_products`
+- relevant fields: `active`, `customer_visible`, `main_category`, `category`, `product_type`, `manufacturer`, `model`, `package_key`, `package_name`.
+
+No catalogue rows are rewritten by the customer-facing taxonomy layer.
+
+**Failure checkpoints:**
+
+1. Confirm the customer-visible query returns rows.
+2. Confirm `active=true` and `customer_visible=true`.
+3. Inspect raw `main_category/category/product_type` values.
+4. Inspect `canonicalMainCategory(...)` in `quote-reverse-basket-v5.js`.
+5. Confirm `productTypes()` and `scopedProducts()` use the same canonical category rule.
+6. Confirm `findProduct()` still resolves the exact catalogue product after grouping.
+7. If an old dropdown remains visible, confirm the cache-busted script version in `valuation.html`.
+
+### Regression rule
+
+Do not solve future customer dropdown duplication by blindly merging or renaming live catalogue records. Preserve the research/catalogue source taxonomy unless a separate controlled data-normalisation project is carried out. The public valuation taxonomy and the internal catalogue taxonomy are intentionally allowed to differ.
