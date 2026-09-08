@@ -3563,3 +3563,41 @@ The repaired receipt RPC creates a missing inventory asset at `Received`, preser
 
 ### Endless loading rule
 Do not allow a Product Workbench dependency failure to remain visually indistinguishable from a slow load. The workbench now has an error boundary and a 20-second visible timeout.
+
+## Purchasing-owned inspection / Sales read-only rule — 8 September 2026
+
+### Mandatory ownership boundary
+
+Do not treat `sales.status='inspection'` as proof that Sales may immediately issue a final offer.
+
+The authoritative physical workflow is:
+
+`sales(received) → staff_start_sale_inspection → linked inventory_assets → inventory-detail.html / inventory-workbench.js → inventory_testing + inventory state → Sales read-only summary → final offer/refusal`.
+
+### Required checks before changing this flow
+
+1. `sale_items` identifies the accepted quote item.
+2. `inventory_assets.source_sale_id` and `source_quote_item_id` identify the same physical asset.
+3. `inventory-workbench.js` owns editable inspection/testing.
+4. `Repair Required` remains owned by the controlled repair workflow.
+5. Sales may expose final-offer controls only after the linked asset has completed the Purchasing inspection.
+
+### Do not repeat the bypass
+
+The old `admin-sale-next-step.js` branch sent every `sales.status='inspection'` record directly to `admin-quote.html`. That bypassed the Product Workbench and made the Start Inspection button misleading.
+
+Current behaviour:
+
+- Start Inspection opens the linked Product Workbench in Purchasing.
+- Incomplete inspection in Sales shows a read-only progress summary plus a Purchasing link.
+- Repair Required remains editable through Purchasing/repair only.
+- Completed inspection is read-only in Sales.
+- Final-offer controls are gated by completed linked inventory status, not by sale status alone.
+
+Relevant files:
+
+- `admin-sale-next-step.js`
+- `admin-quote-final-offer-fix.js`
+- `inventory-detail.html`
+- `inventory-workbench.js`
+- `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
