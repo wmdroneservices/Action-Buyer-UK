@@ -3125,3 +3125,7 @@ Do not remove a task from the shared collector merely because it is wrong on one
 ### Incident history
 
 On 8 September 2026, the Purchasing Dashboard initially leaked `SALES` tasks after Inventory → Sales handoff. After that boundary was repaired, browser verification exposed the inverse leak: a `PURCHASING` valuation task and pre-handoff `INVENTORY` work appeared on the Sales Dashboard because Sales had no page scope. The minimal repair added an explicit Sales workspace scope without changing Supabase workflow state.
+
+### Direct owned-storefront publishing rule — Sales Workbench (8 September 2026)
+
+Treat the WEBSITE outlet differently from external marketplaces. An owned storefront does not need a copied external URL or a manual “mark uploaded” confirmation. In `sales-workbench.js`, the active WEBSITE owned-storefront outlet publishes the authoritative `resale_listings` row directly with `status='Published'` and `published_at` set by the authenticated staff workflow. The public retail storefront must continue to derive availability from that central listing and the linked unsold inventory asset. Do not create a second website stock table or weaken the central sold/delist workflow.
