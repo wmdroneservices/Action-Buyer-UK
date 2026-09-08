@@ -112,10 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label>P&amp;P<input name="shipping_cost" type="number" min="0" step="0.01" value="${esc(row.shipping_cost ?? '')}" placeholder="0.00"></label>
                   </div>
                   <label style="display:block;margin-top:.75rem">Listing description<textarea name="listing_description" rows="6" required>${esc(description)}</textarea></label>
-                  <div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1fr);gap:.75rem;margin-top:.75rem">
+                  <div style="display:${isWebsite ? 'none' : 'grid'};grid-template-columns:minmax(180px,1fr) minmax(220px,1fr);gap:.75rem;margin-top:.75rem">
                     <label>Marketplace listing reference<input name="listing_reference" value="${esc(row.listing_reference || '')}" placeholder="Optional item/listing ID"></label>
                     <label>Live listing link<input name="listing_url" type="url" value="${esc(row.listing_url || '')}" placeholder="Add after the listing is published"></label>
                   </div>
+                  ${isWebsite ? '<p class="notice" style="margin-top:.75rem"><strong>Direct website publishing:</strong> publishing this listing sends the saved title, price and description straight into the GearCashOut Retail Website data flow. No external URL is required.</p>' : ''}
                   <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.85rem">
                     <button class="btn btn-primary" type="submit" ${delistRequired ? 'disabled title="This listing must be closed because the item sold through another channel"' : ''}>${isWebsite ? (row.status === 'Published' ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (isNew ? 'SAVE DRAFT' : 'SAVE CHANGES')}</button>
                     ${!isWebsite && row.id && !delistRequired && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
