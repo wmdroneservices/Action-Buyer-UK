@@ -147,9 +147,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
     select.disabled = !(options && options.length);
   }
-  // Deduplicate customer-facing dropdown values by a normalised key.
-  // This protects the valuation wizard from case, spacing and invisible-character
-  // variations in catalogue data without changing the underlying catalogue records.
+  // Customer-facing taxonomy.
+  // The catalogue contains historical/imported source categories from several
+  // feeds (for example Drone/Drones and several overlapping lighting groups).
+  // Keep those source values intact in Supabase, but present one stable,
+  // intentionally broad taxonomy to customers.
   const categoryAliases = {
     "camera accessory": "Camera Accessories",
     "camera accessories": "Camera Accessories",
@@ -167,6 +169,48 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const optionKey = value => canonicalOption(value).toLocaleLowerCase("en-GB");
 
+  function canonicalMainCategory(rawCategory, rawProductType = "") {
+    const category = optionKey(rawCategory);
+    const productType = optionKey(rawProductType);
+    const combined = category + " " + productType;
+
+    if (combined.includes("action camera")) return "Action Cameras";
+    if (combined.includes("drone")) return "Drones";
+
+    if (
+      category.includes("audio") ||
+      category.includes("professional audio") ||
+      combined.includes("microphone")
+    ) return "Audio Equipment";
+
+    if (
+      category.includes("lens") ||
+      category.includes("optics") ||
+      category.includes("camera accessories") ||
+      category.includes("camera flash") ||
+      category.includes("power & batteries")
+    ) return "Lenses & Accessories";
+
+    if (
+      category.includes("lighting") ||
+      category.includes("studio") ||
+      category.includes("video") ||
+      category.includes("supports") ||
+      category.includes("tripod") ||
+      category.includes("camera rig") ||
+      combined.includes("gimbal") ||
+      combined.includes("stabil")
+    ) return "Video Equipment";
+
+    if (
+      category.includes("camera") ||
+      category.includes("cameras") ||
+      category.includes("phone photography")
+    ) return "Cameras";
+
+    return "Other Equipment";
+  }
+
   function uniqueOptions(values) {
     const seen = new Map();
     (values || []).forEach(raw => {
@@ -182,16 +226,25 @@ document.addEventListener("DOMContentLoaded", async function () {
   function sameOption(a,b) { return optionKey(a) === optionKey(b); }
 
   function mainCategories() {
-    return uniqueOptions(catalog.map(p => p.main_category || p.category));
+    return uniqueOptions(catalog.map(p => canonicalMainCategory(
+      p.main_category || p.category,
+      p.product_type || p.category
+    )));
   }
   function productTypes() {
     return uniqueOptions(catalog
-      .filter(p => sameOption(p.main_category || p.category, item.mainCategory))
+      .filter(p => canonicalMainCategory(
+        p.main_category || p.category,
+        p.product_type || p.category
+      ) === item.mainCategory)
       .map(p => p.product_type || p.category));
   }
   function scopedProducts() {
     return catalog.filter(p =>
-      sameOption(p.main_category || p.category, item.mainCategory) &&
+      canonicalMainCategory(
+        p.main_category || p.category,
+        p.product_type || p.category
+      ) === item.mainCategory &&
       sameOption(p.product_type || p.category, item.productType)
     );
   }
@@ -235,7 +288,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
   function findProduct() {
     const packageKey = clean(item.package) || "standard";
-    return catalog.find(p => clean(p.main_category || p.category).toLowerCase() === clean(item.mainCategory || item.category).toLowerCase() && clean(p.product_type || p.category).toLowerCase() === clean(item.productType || item.category).toLowerCase() && clean(p.manufacturer).toLowerCase() === clean(item.manufacturer).toLowerCase() && clean(p.model).toLowerCase() === clean(item.model).toLowerCase() && (clean(p.package_key) || "standard").toLowerCase() === packageKey.toLowerCase()) || null;
+    return catalog.find(p =>
+      canonicalMainCategory(
+        p.main_category || p.category,
+        p.product_type || p.category
+      ) === clean(item.mainCategory) &&
+      sameOption(p.product_type || p.category, item.productType || item.category) &&
+      sameOption(p.manufacturer, item.manufacturer) &&
+      sameOption(p.model, item.model) &&
+      sameOption(clean(p.package_key) || "standard", packageKey)
+    ) || null;
   }
   function valuation() {
     const product = findProduct();
