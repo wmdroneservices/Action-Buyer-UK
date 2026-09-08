@@ -667,3 +667,38 @@ Do not make `quote-photos` public. It contains broader customer submission media
 4. Click stock card.
 5. Confirm product detail and gallery load.
 6. Change listing away from Published or mark asset Sold and confirm the public detail/media path no longer exposes it.
+
+
+---
+
+## Purchase Catalogue → Retail Category Routing — 9 September 2026
+
+### First actual failure
+
+The Retail Storefront had a fixed 14-category JavaScript list while the live quote_catalog_products catalogue contained additional valid main-category variants. Those products were not deleted or broken, but some had no explicit category-card route.
+
+### Authoritative repair
+
+Supabase now owns the presentation bridge:
+
+quote_catalog_products source category/main category/product type
+→ canonical_storefront_category(...)
+→ stable retail category
+→ public_storefront_categories('retail').
+
+The same canonical function is used by:
+
+- public_storefront_catalog;
+- public_storefront_category_manufacturers;
+- public_storefront_models;
+- public_storefront_stock.
+
+The Retail Storefront loads its category cards dynamically from public_storefront_categories rather than maintaining another hard-coded category list.
+
+### Sales handoff invariant
+
+Any asset that reaches the Sales lifecycle must have catalog_product_id where it originated from the customer catalogue. Live audit found no Sales-stage orphan assets at the time of the repair.
+
+### Known mapping principle
+
+This is a presentation/routing layer. Do not rename, merge or destroy source catalogue categories merely to change the public retail grouping.
