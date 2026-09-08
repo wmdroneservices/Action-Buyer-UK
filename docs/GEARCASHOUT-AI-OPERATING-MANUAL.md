@@ -3239,3 +3239,20 @@ If a failure remains, inspect the first failing browser request and the exact Su
 ### Condition-note retrieval rule
 
 When a customer condition/exception note appears missing, inspect the matching original `quote_data.quoteBasket` item as well as `quote_items.item_data`, `singleItem`, top-level quote data and `inventory_assets.customer_exception_notes`. Do not assume the note exists in only one historical JSON location.
+
+
+---
+
+## Final Product Workbench operating rule — 8 September 2026
+
+Do not reintroduce a second per-item Sales Workbench or an editable inspection form after an item reaches Sales handoff.
+
+For Sales handoff statuses, the route remains `inventory-detail.html` → `inventory-workbench.js` → `inventory-sales-handoff.js` → `inventory-sales-channels.js`.
+
+The handoff must retain inspection/testing as history, show original customer condition/note and post-inspection condition, show TESTED / INSPECTED with inspector/date, show purchase price as reference-only, provide one editable master listing area, keep listing photographs on the same page, place WEBSITE first, then marketplaces, and use direct publish / submitted-live actions without restoring Draft or Ready to Upload.
+
+The shared listing fields are stored on `inventory_sales_content` as `listing_title`, `asking_price` and `postage_packing`; per-channel records remain authoritative in `resale_listings`.
+
+**Known rule:** never write `listing_title` to `inventory_assets`; that was the previous schema-mismatch failure.
+
+Verification after this change is syntax + live-schema verified. The next required step is browser save → WEBSITE → marketplace.
