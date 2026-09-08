@@ -1104,3 +1104,27 @@ A test item reached `Ready for Resale` during inspection while the linked custom
 ### Regression rule
 
 Never use physical readiness alone as the commercial handoff condition for a customer purchase.
+
+
+## Customer receipt-status synchronisation — 8 September 2026
+
+### User action
+Staff press **ITEM RECEIVED** in Purchasing / Sales & Shipping.
+
+### Required flow
+
+`admin-sales.js`
+→ direct RPC `staff_mark_item_received_and_sync_inventory(p_sale_id)`
+→ `sales.status='received'`
+→ inbound `shipments.status='delivered'`
+→ linked `inventory_assets` created/updated
+→ customer account polls the same sale
+→ customer sees **ITEM RECEIVED** or **UNDER INSPECTION**.
+
+### Failure rule
+
+If the customer still sees **PARCEL ON ITS WAY**, inspect `sales.status` and the inbound shipment row separately. After receipt, customer rendering must prioritise `sales.status` over shipment status. Do not repair this by changing only the display if the sale record itself was never updated.
+
+### Known fix
+
+The previous staff page had two competing receipt paths: the old `admin-sales.js` handler invoked the `mark-item-received` Edge Function, while a separate capture listener attempted to redirect the click to the secured RPC. The receipt action is now owned directly by `admin-sales.js`; customer account renderers were also changed to status-first logic.
