@@ -639,3 +639,8 @@ Current rule: append sales/history sections to the same product page; do not rep
 4. Channel save fails → inspect exact `resale_listings` response; do not write channel-only fields to `inventory_assets`.
 5. WEBSITE not public → verify WEBSITE outlet row and Published `resale_listings` state.
 6. Marketplace workflow shows Draft/Ready → inspect current channel script; those stages are not part of the intended normal action.
+
+
+### Customer condition-note fallback
+
+If a note is missing from the Product Workbench, inspect the matching item in `valuations.quote_data.quoteBasket` before changing the database. Older/multi-item submissions can retain the original note there even when `quote_items.item_data` is incomplete.
