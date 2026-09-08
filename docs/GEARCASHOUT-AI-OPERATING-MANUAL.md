@@ -3717,3 +3717,31 @@ When investigating or changing the customer purchase receipt flow:
 For customer accounts, do not hide an active valuation merely because an accepted item has created a linked sale. Keep the valuation visible as **in progress** while the linked purchase remains non-terminal; use the sale separately as the authority for operational progress.
 
 Known prior fault: receipt logic was previously duplicated between browser handlers. Do not reintroduce a second competing receipt handler.
+
+
+## 8 September 2026 — Final-offer flicker, duplicate customer cards and premature Sales handoff
+
+### Do not diagnose this as duplicate database data first
+
+Live Supabase inspection for the affected test item showed one sale, one linked quote item, one linked inventory asset and one current published final offer. The visible duplication came from competing presentation/workflow layers.
+
+### First actual failures
+
+1. `account-single-offer-visibility.js` independently rendered standalone final offers into `#sales`.
+2. `account-page.js` also rendered the same sale and could replace that final-offer card with the generic inspection message.
+3. `account-shipping-links.js` polled the same container and had a receipt/inspection branch that referenced an action panel before creation.
+4. `inventory-workbench.js` and `live-task-board.js` exposed Sales handoff from physical `Ready for Resale` state without mirroring the already-correct purchase-finalisation condition in `staff_send_inventory_to_sales(...)`.
+
+### Repair rule
+
+Use one authoritative customer renderer for standalone final offers: `account.html → account-page.js → sales/sale_items/quote_items/quote_offers`.
+
+A published `offer_type='final'` must outrank the generic inspection message and suppress the duplicate generic valuation card for that item.
+
+For customer-sourced inventory, mirror the database boundary in presentation: `Ready for Resale` + `sales.status='completed'` + `sales.payment_status='paid'` before Sales handoff becomes actionable.
+
+Do not remove the RPC gate. UI suppression is convenience; the database function remains the authority.
+
+### Regression test
+
+Refresh the customer account repeatedly after publishing a final offer. The final price must remain stable and exactly one authoritative card must be shown. Before purchase completion/payment, neither Product Workbench nor the Live Task Board may advertise a Sales handoff.
