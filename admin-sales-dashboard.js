@@ -126,9 +126,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const repairs=count("Repair Required");
     const inventoryRows=rows.filter(a=>inventoryStates.includes(a.status)&&a.status!=="Repair Required");
     const inventoryCount=inventoryRows.length;
-    const sent=count("Sent to Sales");
-    const listed=count("Listed");
-    const reserved=count("Reserved");
+    // Channel listing state is authoritative for "active". Publishing a WEBSITE or
+    // marketplace row must not disappear from the dashboard merely because the physical
+    // asset remains in Sent to Sales for workbench compatibility.
+    const {data:listings,error:le}=await auth.supabase
+      .from("resale_listings")
+      .select("id,asset_id,status,sales_channel,listing_url");
+    if(le){notice("Could not load sales listing counts.",false);return;}
+    const listingRows=listings||[];
+    const publishedAssetIds=new Set(listingRows.filter(x=>x.status==="Published").map(x=>x.asset_id).filter(Boolean));
+    const reservedAssetIds=new Set(listingRows.filter(x=>x.status==="Reserved").map(x=>x.asset_id).filter(Boolean));
+    const activeAssetIds=new Set([...publishedAssetIds,...reservedAssetIds]);
+    const sent=rows.filter(a=>a.status==="Sent to Sales"&&!activeAssetIds.has(a.id)).length;
+    const reserved=reservedAssetIds.size;
+    const listed=[...publishedAssetIds].filter(id=>!reservedAssetIds.has(id)).length;
     const sold=count("Sold");
     const soldShipping=count("Sold - Awaiting Shipping");
     const soldShipped=count("Sold - Shipped");
@@ -154,9 +165,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setPipelineCount("sold-count",sold);
     setPipelineCount("returned-count",returnsRequiringAction);
 
-    const {data:listings,error:le}=await auth.supabase.from("resale_listings").select("id,asset_id,status,sales_channel,listing_url");
-    if(le){notice("Could not load sales listing counts.",false);return;}
-    const listingRows=listings||[];
     const delistWarnings=listingRows.filter(x=>x.status==="Delist Required");
     const delistCount=delistWarnings.length;
     const urgent=document.getElementById("urgent-delist-actions");
