@@ -168,9 +168,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (activeSales.length) {
         salesBox.innerHTML = activeSales.map(s => {
           const shipment = (shipments || []).filter(sh => sh.sale_id === s.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+          const saleStatus = String(s.status || "");
           let message = "Your offer has been accepted. We are preparing the next steps.";
-          if (["payment_due", "payment_processing"].includes(String(s.status || ""))) {
-            message = "Your bank details have been received. Payment is now being arranged and will be made shortly.";
+          // The purchase status is authoritative once staff has recorded receipt.
+          // Shipment state is historical transport context and must not overwrite receipt/inspection progress.
+          if (["received"].includes(saleStatus)) {
+            message = "Your item has been received by GearCashOut and is awaiting inspection.";
+          } else if (["inspection"].includes(saleStatus)) {
+            message = "Your item has been received by GearCashOut and is now under inspection. We will send your final valuation when the inspection is complete.";
+          } else if (["payment_due", "payment_processing"].includes(saleStatus)) {
+            message = "Your final valuation has been accepted. Payment is now being arranged.";
           } else if (shipment?.status === "delivered") {
             message = "Your item has arrived at GearCashOut. We are now processing the inspection and final valuation.";
           } else if (shipment?.status === "in_transit") {
