@@ -96,10 +96,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   listing.innerHTML='<p class="section-kicker">LISTING DETAILS</p><h2>Create and maintain the master listing</h2><p>Save these shared details once, then use the WEBSITE and marketplace buttons below. There is no Draft or Ready to Upload stage.</p>'
     +'<form id="master-listing-form" class="auth-form">'
-    +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6">'+esc(catalog.product_description||'')+'</textarea></label>':'<div class="notice"><strong>Manufacturer / product description</strong><br>No linked catalogue description is available for this item.</div>')
-    +'<label>Our listing description<textarea name="our_description" rows="7">'+esc(item.listing_notes||asset.description||'')+'</textarea></label>'
-    +'<div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(140px,.45fr) minmax(140px,.45fr);gap:.75rem">'
+    +'<div class="notice"><strong>Listing title</strong><br>The title is pre-filled from the purchased manufacturer, model and package. Edit it here if needed.</div>'
     +'<label>Listing title<input name="listing_title" value="'+esc(item.listing_title||defaultTitle)+'" required></label>'
+    +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Pre-filled manufacturer/model information. Edit only if it needs correcting.">'+esc(catalog.product_description||'')+'</textarea></label>':'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="No catalogue description is linked. Add the product/manufacturer description needed for this item.">'+esc(asset.description||'')+'</textarea></label>')
+    +'<label>Our item description<textarea name="our_description" rows="7" placeholder="Describe this exact item for sale.">'+esc(item.listing_notes||asset.description||'')+'</textarea></label>'
+    +'<label>Detailed staff condition description<textarea name="condition_description" rows="4" placeholder="Describe the staff-assessed cosmetic and functional condition for resale.">'+esc(item.condition_description||'')+'</textarea></label>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem">'
+    +'<label>Number of batteries<input name="actual_battery_count" type="number" min="0" value="'+esc(asset.actual_battery_count??'')+'"></label>'
+    +'<label>Missing parts / items<textarea name="missing_parts" rows="3" placeholder="Record anything the buyer will not receive.">'+esc(asset.package_notes||'')+'</textarea></label>'
+    +'</div>'
+    +'<label>What the buyer receives / package contents<textarea name="final_package_contents" rows="5" placeholder="List exactly what is included with this sale.">'+esc(asset.final_package_contents||'')+'</textarea></label>'
+    +'<div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(140px,.45fr) minmax(140px,.45fr);gap:.75rem">'
     +'<label>Sale price (£)<input name="asking_price" type="number" min="0" step="0.01" value="'+esc(item.asking_price??asset.approved_resale_price??'')+'" required></label>'
     +'<label>Postage &amp; packing (£)<input name="postage_packing" type="number" min="0" step="0.01" value="'+esc(item.postage_packing??'0')+'"></label>'
     +'</div><div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">SAVE LISTING DETAILS</button><p id="master-listing-message" class="form-message" aria-live="polite"></p></div></form>'
@@ -110,15 +117,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function saveMaster(form,heroOverride){
     const fd=new FormData(form), title=String(fd.get('listing_title')||defaultTitle).trim(), description=String(fd.get('our_description')||'').trim();
+    const conditionDescription=String(fd.get('condition_description')||'').trim();
     const asking=fd.get('asking_price')===''?null:Number(fd.get('asking_price'));
     const postage=fd.get('postage_packing')===''?null:Number(fd.get('postage_packing'));
+    const batteries=fd.get('actual_battery_count')===''?null:Number(fd.get('actual_battery_count'));
     const saved=await db.from('inventory_sales_content').upsert({
-      asset_id:id,condition_description:item.condition_description||null,listing_notes:description||null,listing_title:title||null,
+      asset_id:id,condition_description:conditionDescription||null,listing_notes:description||null,listing_title:title||null,
       asking_price:Number.isFinite(asking)?asking:null,postage_packing:Number.isFinite(postage)?postage:null,
       hero_image_url:heroOverride===undefined?(item.hero_image_url||null):heroOverride,updated_by:session.user.id,updated_at:new Date().toISOString()
     },{onConflict:'asset_id'});
     if(saved.error) return saved;
-    const assetSave=await db.from('inventory_assets').update({description:description||null,approved_resale_price:Number.isFinite(asking)?asking:null,updated_at:new Date().toISOString()}).eq('id',id);
+    const assetSave=await db.from('inventory_assets').update({
+      description:description||null,
+      approved_resale_price:Number.isFinite(asking)?asking:null,
+      actual_battery_count:Number.isFinite(batteries)?batteries:null,
+      final_package_contents:String(fd.get('final_package_contents')||'').trim()||null,
+      package_notes:String(fd.get('missing_parts')||'').trim()||null,
+      updated_at:new Date().toISOString()
+    }).eq('id',id);
     if(assetSave.error) return assetSave;
     if(asset.catalog_product_id&&form.elements.manufacturer_description){
       const catalogSave=await db.from('catalog_sales_content').upsert({
