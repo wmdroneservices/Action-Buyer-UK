@@ -627,3 +627,43 @@ Sales Workbench form → authenticated Supabase client → `resale_listings` wit
 - sold-state and competing-listing delist protection remain unchanged;
 - marketplace outlets retain the existing Draft → Ready to Upload → live-link → Published workflow;
 - direct website publishing still requires the asset to have been sent to Sales.
+
+
+---
+
+## Live WEBSITE listing → public product page and secure photographs — 8 September 2026
+
+### User action
+
+Staff publish an item to the WEBSITE outlet, then a public visitor follows the stock card into the individual product page.
+
+### First verified failure
+
+The WEBSITE listing itself was correct and `public_storefront_stock` returned it, but:
+
+1. `inventory_sales_content.hero_image_url` was null while the selected photographs existed in `listing_photo_paths`;
+2. stock cards were rendered as non-clickable `article` elements;
+3. no public product-detail route existed.
+
+The selected paths were stored in private `quote-photos`, which must remain private.
+
+### Repair
+
+- Added `public_storefront_listing('retail', listing_id)` for safe public detail fields.
+- Added internal `public_storefront_listing_media_paths_internal(...)` for the Edge Function only.
+- Added `public-listing-media` Edge Function, which validates Published WEBSITE visibility and returns signed URLs only for explicitly selected listing photographs.
+- Storefront stock cards now load listing photographs and link to `product.html?listing=<listing_id>`.
+- Added `product.html` + `js/product.js` with image gallery and public listing facts.
+
+### Security rule
+
+Do not make `quote-photos` public. It contains broader customer submission media. Public listing access is restricted to media paths explicitly attached to a currently visible Published WEBSITE listing.
+
+### Test checkpoints
+
+1. Publish WEBSITE listing.
+2. Confirm `public_storefront_stock` returns the listing.
+3. Confirm stock card shows selected photograph.
+4. Click stock card.
+5. Confirm product detail and gallery load.
+6. Change listing away from Published or mark asset Sold and confirm the public detail/media path no longer exposes it.
