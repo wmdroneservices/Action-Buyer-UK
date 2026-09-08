@@ -3745,3 +3745,36 @@ Do not remove the RPC gate. UI suppression is convenience; the database function
 ### Regression test
 
 Refresh the customer account repeatedly after publishing a final offer. The final price must remain stable and exactly one authoritative card must be shown. Before purchase completion/payment, neither Product Workbench nor the Live Task Board may advertise a Sales handoff.
+
+
+---
+
+## Retail storefront: live listing photographs and product-detail route — 8 September 2026
+
+### First-failure rule
+
+If a published WEBSITE item appears in the public shop without its staff-selected photographs, do **not** make `quote-photos` public.
+
+First inspect:
+
+1. `resale_listings.status='Published'` and WEBSITE outlet;
+2. `inventory_sales_content.listing_photo_paths`;
+3. whether the paths exist in private Storage;
+4. `public_storefront_listing_media_paths_internal(...)`;
+5. `public-listing-media` Edge Function.
+
+### Correct architecture
+
+`quote-photos` remains private.
+
+The Edge Function receives a public listing ID, validates that the exact listing is still a visible Published WEBSITE listing, resolves only the explicitly selected `listing_photo_paths`, and creates short-lived signed URLs.
+
+### Public navigation
+
+Stock cards must link by authoritative `listing_id`:
+
+`shop.html → product.html?listing=<listing_id>`
+
+The product page calls `public_storefront_listing` for safe listing facts and the media function for photographs.
+
+Never expose private Storage paths, customer identifiers, purchase prices, serials, warehouse locations or internal notes through the public detail route.
