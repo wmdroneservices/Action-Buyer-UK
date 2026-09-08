@@ -141,8 +141,8 @@ begin
     v_category=coalesce(nullif(btrim(a->>'category'),''),null);
 
     select * into q
-    from public.retail_storefront_image_queue
-    where id=v_id
+    from public.retail_storefront_image_queue q0
+    where q0.id=v_id
     for update;
 
     if q.id is null then
