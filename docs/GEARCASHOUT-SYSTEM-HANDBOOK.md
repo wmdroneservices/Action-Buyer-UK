@@ -3967,3 +3967,22 @@ The final Product Workbench is the single operational listing editor. The operat
 After saving, the operator can **Send to Website** or **Add to Marketplace** from the channel list below. There is no draft workflow.
 
 When a listing is marked sold, the database function marks all other active channel records as Delist Required. The GearCashOut website automatically stops displaying its listing because the public storefront only returns Published WEBSITE listings. External marketplaces currently have no configured closure APIs, so the workbench must show a clear manual closure warning rather than claiming they were automatically closed.
+
+
+## Unified final sales page — 8 September 2026
+
+For an item already sent to Sales, the Product Workbench is the single operational listing page. Staff complete only the practical listing information:
+
+- pre-filled manufacturer/product description, editable if required;
+- staff description of the exact item;
+- detailed staff resale condition;
+- missing parts/items;
+- battery count;
+- customer photographs and staff inspection photographs, with an explicit **Use for sale listing** choice;
+- additional photographs;
+- sale price;
+- postage and packing.
+
+The workbench saves selected sale photograph paths in inventory_sales_content.listing_photo_paths. Customer valuation photographs remain historical source records and are never deleted merely because they are not selected for sale.
+
+Below the editor, the WEBSITE action publishes directly. Other active outlets appear below as Add to Marketplace actions. Marking one listing sold uses staff_mark_resale_listing_sold, which marks all other active listings Delist Required; the WEBSITE listing immediately disappears from public stock because the public storefront exposes only Published WEBSITE listings. External channels currently have no configured closure API and therefore require manual closure warnings rather than a false claim of automatic closure.
