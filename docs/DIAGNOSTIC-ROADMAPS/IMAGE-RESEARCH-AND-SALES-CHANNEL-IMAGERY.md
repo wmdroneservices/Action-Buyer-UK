@@ -135,3 +135,45 @@ The feature was rebuilt in:
 **Action-Buyer-UK → Staff Dashboard → Research & Pricing → Image Research**
 
 The public Retail Storefront remains website-only and consumes approved data rather than hosting staff operations.
+
+
+## 8 September 2026 — Manufacturer Batch Image Research
+
+### User action
+
+**Staff Dashboard → Research & Pricing → Image Research → MANUFACTURER BATCH RESEARCH**
+
+### Purpose
+
+The batch workflow is deliberately limited to entity_scope = manufacturer, which is the current priority for Category + Manufacturer coverage. Model/product imagery remains outside this batch workflow because exact product imagery is deferred until a product is actually listed for sale.
+
+### Front-end path
+
+- admin-research-pricing.html exposes the Image Research manufacturer-batch entry.
+- admin-image-research.html contains the Individual/Manufacturer Batch mode switch.
+- admin-image-research.js loads manufacturers, loads exact manufacturer-scope targets, generates the Gemma research brief and submits reviewed candidate assignments.
+
+### Supabase RPCs
+
+- staff_retail_image_research_manufacturers(...)
+- staff_retail_image_research_manufacturer_targets(...)
+- staff_retail_image_research_batch_save(...)
+
+### Deployment validation
+
+Every batch assignment is checked server-side against the exact queue record:
+
+queue_id → manufacturer match → category match → candidate save
+
+Approved imagery is protected from batch overwrite. Batch saves force research_status = candidate and approved = false.
+
+### Gemma operating brief
+
+The generated brief instructs research to use the exact **Manufacturer + Category** key, research each category separately, avoid generic cross-category reuse, prefer official sources, retain rights review and never auto-approve/publicly publish.
+
+### Failure checkpoints
+
+1. Manufacturer list missing → check staff_retail_image_research_manufacturers and staff access.
+2. Wrong categories loaded → verify entity_scope = manufacturer and exact manufacturer canonical value.
+3. Save rejected → inspect manufacturer/category mismatch validation before changing UI.
+4. Approved image overwrite attempted → expected server-side rejection/protection.
