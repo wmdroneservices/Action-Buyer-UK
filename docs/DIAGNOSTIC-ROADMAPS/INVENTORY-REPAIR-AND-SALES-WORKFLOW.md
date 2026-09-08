@@ -414,3 +414,57 @@ Two stale routes remained:
 ### Rule
 
 A completed post-sale customer return must not continue to generate legacy return or generic Product Workbench actions. The authoritative record remains `sales_customer_returns`; once terminal, it is history rather than live work.
+
+
+---
+
+## Purchasing Dashboard task-board handoff boundary — 8 September 2026
+
+### User action
+
+Staff open **Purchasing Dashboard → What Needs Doing** after inventory has been sent to pre-sale.
+
+### Front-end path
+
+`admin-purchasing.html`
+→ `live-task-board.js`
+→ reads authoritative workflow records
+→ maps `inventory_assets.status = 'Sent to Sales'` to category **SALES**
+→ page-scoped presentation filter
+→ Purchasing Dashboard task list.
+
+### Relevant Supabase state
+
+Authoritative item state remains in `public.inventory_assets`:
+
+- `status`
+- `previous_status`
+- `status_changed_at`
+- `sent_to_sales_at`
+
+No trigger, RPC or RLS policy is required for this presentation repair because the verified database transition was already correct.
+
+### First verified failure
+
+Assets with `status = 'Sent to Sales'` were correctly in the Sales workflow but still appeared as **SALES** rows in the Purchasing Dashboard's shared task board. This made the Purchasing Dashboard appear to retain work after handoff.
+
+### Minimal repair
+
+`live-task-board.js` now scopes tasks on `admin-purchasing.html` to:
+
+- **PURCHASING**
+- **PURCHASE RETURNS**
+- **INVENTORY**
+
+The shared collector still builds Sales tasks for the Sales Dashboard and other contexts. **Ready for Resale** remains visible on Purchasing because the handoff has not yet happened. **Sent to Sales** and later Sales statuses are excluded from the Purchasing presentation only.
+
+### Failure checkpoints
+
+1. Sales item still appears on Purchasing: verify the asset status first.
+2. Status is still `Ready for Resale`: this is not a task-board bug; the handoff has not completed.
+3. Status is `Sent to Sales` but appears under Purchasing: inspect page-scoped filtering in `live-task-board.js` and browser cache identity in `admin-purchasing.html`.
+4. Item disappears from Purchasing but not visible in Sales: inspect Sales Dashboard state queries separately; do not undo the Purchasing filter.
+
+### Rule
+
+**Inventory → Sales is a workflow ownership boundary.** Once an item is handed to Sales, Purchasing must not continue to present it as active purchasing work merely because the shared task collector can see it.
