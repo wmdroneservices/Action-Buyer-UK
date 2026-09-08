@@ -1075,8 +1075,48 @@ async function apply(){
  }
 }
 async function updateSource(id,status){await api({action:'update_source',source_id:id,discovery_status:status});sourceMsg(status==='approved'?'Source approved and enabled for future research.':'Source blocked from future research.');await loadSources()}
+async function loadGemmaImageManufacturers(){
+ const select=$('gemma-image-manufacturer');if(!select)return;
+ const currentValue=select.value;
+ const {data,error}=await sb.rpc('staff_image_research_manufacturers',{p_search:null,p_limit:500});
+ if(error)throw error;
+ const rows=data||[];
+ select.innerHTML='<option value="">Choose manufacturer…</option>'+rows.map(r=>{
+   const label=String(r.manufacturer||'');
+   return '<option value="'+esc(label)+'">'+esc(label)+' — '+Number(r.targets_pending||0)+' pending · '+Number(r.targets_candidate||0)+' candidate</option>';
+ }).join('');
+ if(currentValue&&rows.some(r=>String(r.manufacturer)===currentValue))select.value=currentValue;
+}
+function gemmaImageMsg(text='',error=false){const x=$('gemma-image-message');if(x){x.textContent=text;x.className='form-message '+(error?'error':'success');}}
+async function loadGemmaImageJobs(){
+ const box=$('gemma-image-jobs');if(!box)return;
+ const {data,error}=await sb.rpc('staff_image_research_manufacturer_jobs',{p_limit:20});
+ if(error)throw error;
+ const rows=data||[];
+ if(!rows.length){box.innerHTML='<div class="empty">No manufacturer image research jobs have been queued yet.</div>';return;}
+ box.innerHTML=rows.map(j=>{
+   const done=Number(j.targets_completed||0),total=Number(j.targets_total||0),candidate=Number(j.targets_with_candidate||0),none=Number(j.targets_without_candidate||0),failed=Number(j.targets_failed||0);
+   const status=String(j.status||'queued').replaceAll('_',' ').toUpperCase(),when=j.completed_at||j.started_at||j.created_at;
+   return '<article class="live-research-row"><span class="live-dot '+(j.status==='running'?'pulse':'')+'"></span><div class="live-copy"><strong>'+esc(status)+'</strong><span>'+esc(j.manufacturer)+' · '+done+'/'+total+' targets</span><small>'+candidate+' candidate · '+none+' no match · '+failed+' failed · '+esc(when?new Date(when).toLocaleString('en-GB'):'—')+'</small>'+(j.last_error?'<small>'+esc(j.last_error)+'</small>':'')+'</div><span class="live-state">'+esc(j.status||'queued').toUpperCase()+'</span></article>';
+ }).join('');
+}
+async function runGemmaImageResearch(){
+ const button=$('run-gemma-image-research'),manufacturer=clean($('gemma-image-manufacturer')?.value||''),limit=Number(clean($('gemma-image-limit')?.value||'10')),notes=clean($('gemma-image-notes')?.value||'');
+ if(!manufacturer)throw Error('Choose a manufacturer from the central image queue.');
+ if(!Number.isFinite(limit)||limit<1||limit>100)throw Error('Choose a valid image research batch size.');
+ if(button){button.disabled=true;button.textContent='QUEUING GEMMA IMAGE RESEARCH…';}
+ try{
+   gemmaImageMsg('Creating '+manufacturer+' manufacturer image batch…');
+   const {data,error}=await sb.rpc('staff_image_research_create_manufacturer_job',{p_manufacturer:manufacturer,p_limit:limit,p_notes:notes||null});
+   if(error)throw error;
+   const count=Number(data?.targets_total||0);
+   gemmaImageMsg(count===0?'No eligible pending/candidate Manufacturer + Category targets were available for '+manufacturer+'. Existing approved imagery was not touched.':'Gemma image research queued for '+manufacturer+' · '+count+' exact Manufacturer + Category target(s). The Research PC will process them as candidate imagery only.');
+   await Promise.all([loadGemmaImageJobs(),loadGemmaImageManufacturers()]);
+ }finally{if(button){button.disabled=false;button.textContent='QUEUE GEMMA IMAGE RESEARCH';}}
+}
+
 async function start(){try{await initClient();wireDeepSourceUrlControls();$('run-ai-research')?.addEventListener('click',()=>runResearch().catch(e=>msg(e.message||String(e),true)));
-$('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));$('cancel-deep-source-audit')?.addEventListener('click',()=>cancelDeepSourceAudit().catch(e=>{const x=$('deep-source-message');if(x){x.textContent=e.message||String(e);x.className='form-message error';}}));
+$('run-deep-source-audit')?.addEventListener('click',()=>runDeepSourceAudit().catch(e=>msg(e.message||String(e),true)));$('run-gemma-image-research')?.addEventListener('click',()=>runGemmaImageResearch().catch(e=>gemmaImageMsg(e.message||String(e),true)));$('refresh-gemma-image-research')?.addEventListener('click',()=>Promise.all([loadGemmaImageJobs(),loadGemmaImageManufacturers()]).then(()=>gemmaImageMsg('Image research jobs refreshed.')).catch(e=>gemmaImageMsg(e.message||String(e),true)));$('cancel-deep-source-audit')?.addEventListener('click',()=>cancelDeepSourceAudit().catch(e=>{const x=$('deep-source-message');if(x){x.textContent=e.message||String(e);x.className='form-message error';}}));
 $('clear-ai-research-queue')?.addEventListener('click',()=>{if(!confirm('Clear only WAITING products from the research queue? This does NOT stop a product already being researched. Use STOP ALL RESEARCH & WORKER if you need the worker stopped completely.'))return;clearQueuedResearch().catch(e=>msg(e.message||String(e),true));});
 $('clear-research-filters')?.addEventListener('click',()=>{['research-manufacturer','research-model','research-category','research-product-type'].forEach(id=>{if($(id))$(id).value=''});setResearchScope('all');});
 document.querySelectorAll('.ai-scope-option[data-scope]').forEach(b=>b.addEventListener('click',()=>setResearchScope(b.dataset.scope)));
@@ -1121,7 +1161,9 @@ const initialLoads=[
   ['live research',()=>loadLiveResearch()],
   ['raw discoveries',()=>loadRawDiscoveries()],
   ['Research PC controls',()=>loadResearchPcControl()],
-  ['Deep Source audit state',()=>loadDeepSourceAuditState()]
+  ['Deep Source audit state',()=>loadDeepSourceAuditState()],
+  ['Gemma image manufacturers',()=>loadGemmaImageManufacturers()],
+  ['Gemma image jobs',()=>loadGemmaImageJobs()]
 ];
 const initialResults=await Promise.allSettled(initialLoads.map(([label,fn])=>withTimeout(Promise.resolve().then(fn),12000,label)));
 const failed=initialResults.filter(r=>r.status==='rejected');
@@ -1131,5 +1173,5 @@ const ollama=$('rpc-ollama');if(ollama&&ollama.textContent==='Checking…')ollam
 const model=$('rpc-model');if(model&&model.textContent==='Checking…')model.textContent='—';
 const live=$('live-research-list');if(live&&/Loading live research activity/i.test(live.textContent))live.innerHTML='<div class="empty">Live research status is temporarily unavailable. The panel will retry automatically.</div>';
 msg(failed.length?'Research Centre loaded; some live panels will retry automatically.':'Review queue loaded.');
-setInterval(()=>{loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadDeepSourceAuditState().catch(()=>{});},5000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
+setInterval(()=>{loadLiveResearch().catch(()=>{});loadRawDiscoveries().catch(()=>{});loadDeepSourceAuditState().catch(()=>{});loadGemmaImageJobs().catch(()=>{});},5000)}catch(e){msg(e.message||String(e),true);sourceMsg(e.message||String(e),true)}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start,{once:true}):start()})();
