@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // paid, archived or otherwise closed. This prevents closed transactions
     // from reappearing in the Valuations Received section.
     const { data: linkedSaleItems } = itemIds.length
-      ? await auth.supabase.from("sale_items").select("quote_item_id").in("quote_item_id", itemIds)
+      ? await auth.supabase.from("sale_items").select("sale_id,quote_item_id").in("quote_item_id", itemIds)
       : { data: [] };
     const linkedItemIds = new Set((linkedSaleItems || []).map(row => row.quote_item_id));
     const closedValuationIds = new Set((items || []).filter(item => linkedItemIds.has(item.id)).map(item => item.valuation_id));
@@ -163,7 +163,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     if (valuationsBox) {
       if (activeValuations.length) {
-        let html = '<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>NEXT STEP</strong><p style="margin:.25rem 0 0">No action is needed from you right now. GearCashOut is processing the valuation and will contact you when the next stage is ready.</p></div>';
+        const valuationCountText = activeValuations.length === 1
+          ? "1 valuation is currently in progress."
+          : activeValuations.length + " valuations are currently in progress.";
+        let html = '<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>' + esc(valuationCountText) + '</strong><p style="margin:.25rem 0 0">No action is needed from you right now. GearCashOut is processing the valuation and will contact you when the next stage is ready.</p></div>';
         html += activeValuations.map(v => {
           const its = (items || []).filter(i => i.valuation_id === v.id);
           const date = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString("en-GB") : "";
