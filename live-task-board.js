@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const db=auth.supabase;
       const results=await Promise.all([
         db.from("valuations").select("id,quote_reference,status,manufacturer,model,submitted_at,updated_at"),
-        db.from("sales").select("id,sale_reference,status,total_amount,bank_details_confirmed_at,created_at,updated_at"),
+        db.from("sales").select("id,sale_reference,status,total_amount,payment_status,bank_details_confirmed_at,created_at,updated_at"),
         db.from("shipments").select("id,sale_id,shipment_type,status,created_at,updated_at,shipped_at,delivered_at"),
         db.from("purchase_return_cases").select("id,status,created_at,updated_at,arranged_at,dispatched_at,delivered_at,closed_at"),
         db.from("inventory_assets").select("id,asset_reference,source_sale_id,manufacturer,model,status,created_at,updated_at,status_changed_at,transaction_number"),
@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ]);
 
       const [valuations,sales,shipments,purchaseReturns,assets,listings,customerReturns]=results.map(r=>r.data||[]);
+      const saleById=new Map(sales.map(s=>[s.id,s]));
       const customerReturnAssetIds=new Set(customerReturns
         .map(r=>r.asset_id)
         .filter(Boolean));
@@ -106,6 +107,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const when=a.status_changed_at||a.updated_at||a.created_at;
         const name=itemName(a);
         const href="inventory-detail.html?id="+encodeURIComponent(a.id);
+        // Ready for Resale means the physical work is complete, not that the customer
+        // purchase is finalised. Do not show a premature Sales handoff task.
+        if(status==="Ready for Resale"&&a.source_sale_id){
+          const sourceSale=saleById.get(a.source_sale_id);
+          if(sourceSale&&!(String(sourceSale.status||"")==="completed"&&String(sourceSale.payment_status||"")==="paid")) return;
+        }
         const map={
           "Received":["Inspect item",name+" has been received and needs inspection.","INVENTORY"],
           "Inspection Required":["Complete inspection",name+" is waiting for inspection.","INVENTORY"],
