@@ -4118,3 +4118,29 @@ A row is visible to an authenticated user only when there is an active `staff_us
 An authenticated eligible sales staff context can now read the two current Published resale rows. The dashboard's existing authoritative listing-count logic can therefore receive the live rows it was already designed to count.
 
 No listing status, inventory status, storefront record or published item was changed.
+
+
+---
+
+## 8 September 2026 — Unified Sales Stream: Ready to List → Active Listings → Sold Items
+
+### Purpose
+The sales area now uses one operational stream. A physical asset may remain `Sent to Sales` while its channel record is already live, so page placement must be determined by authoritative `resale_listings` state rather than by repeatedly interpreting the physical status.
+
+### User path
+**Inventory → Ready to List → Active Listings → Sold Items → Returns**
+
+### Authoritative placement rules
+
+- **Ready to List:** `inventory_assets.status='Sent to Sales'` and no `resale_listings.status` of `Published` or `Reserved`.
+- **Active Listings:** one or more `resale_listings` rows are `Published` or `Reserved`.
+- **Sold Items:** the central sold workflow has moved the asset into a post-sale status, including `Sold - Awaiting Shipping`, `Sold - Shipped` or return handling.
+- **Delist Required:** an outstanding external closure warning can remain visible as an urgent exception without putting the product back into the normal ready-to-list queue.
+
+### Developer Diagnostic Roadmap
+See: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+### First verified failure and repair
+The Sales Dashboard had already been repaired to exclude live `Published/Reserved` assets from its ready-to-list count, but `inventory-sales.js` still treated every `Sent to Sales` asset as pre-sale work. This created the contradictory state where a product could be live in Active Listings and still appear in the listing queue.
+
+The repair keeps the existing database model and filters the queue using the same authoritative channel truth. No live listing, inventory status or storefront record was rewritten.
