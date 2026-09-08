@@ -145,20 +145,32 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const liveTasks=[...unique.values()].sort((a,b)=>a.rank-b.rank||new Date(a.when||0)-new Date(b.when||0));
 
+      // The Purchasing Dashboard is a handoff boundary: once an asset reaches
+      // Sent to Sales it belongs to the sales workflow and must no longer be
+      // presented there as purchasing work. Keep inventory preparation visible
+      // because Ready for Resale is the action that precedes that handoff.
+      const pageName=(location.pathname.split("/").pop()||"").toLowerCase();
+      const categoryScope=pageName==="admin-purchasing.html"
+        ? new Set(["PURCHASING","PURCHASE RETURNS","INVENTORY"])
+        : null;
+      const pageTasks=categoryScope
+        ? liveTasks.filter(t=>categoryScope.has(t.category))
+        : liveTasks;
+
       const counts={
-        current:liveTasks.filter(t=>t.label==="CURRENT").length,
-        overdue:liveTasks.filter(t=>t.label==="OVERDUE").length,
-        priority:liveTasks.filter(t=>t.label==="PRIORITY").length,
-        critical:liveTasks.filter(t=>t.label==="CRITICAL").length
+        current:pageTasks.filter(t=>t.label==="CURRENT").length,
+        overdue:pageTasks.filter(t=>t.label==="OVERDUE").length,
+        priority:pageTasks.filter(t=>t.label==="PRIORITY").length,
+        critical:pageTasks.filter(t=>t.label==="CRITICAL").length
       };
-      const categories=[...new Set(liveTasks.map(t=>t.category))].sort();
-      const focus=liveTasks[0];
+      const categories=[...new Set(pageTasks.map(t=>t.category))].sort();
+      const focus=pageTasks[0];
 
       let activeFilter="ALL";
       const renderList=()=>{
-        const visible=activeFilter==="ALL"?liveTasks:liveTasks.filter(t=>t.category===activeFilter);
+        const visible=activeFilter==="ALL"?pageTasks:pageTasks.filter(t=>t.category===activeFilter);
         const filterButtons=['ALL',...categories].map(category=>{
-          const count=category==="ALL"?liveTasks.length:liveTasks.filter(t=>t.category===category).length;
+          const count=category==="ALL"?pageTasks.length:pageTasks.filter(t=>t.category===category).length;
           const active=category===activeFilter?' is-active':'';
           return '<button type="button" class="live-task-filter'+active+'" data-task-filter="'+esc(category)+'">'+esc(category)+' <strong>'+count+'</strong></button>';
         }).join("");
@@ -170,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
       };
 
-      summary.innerHTML=liveTasks.length
+      summary.innerHTML=pageTasks.length
         ? '<div class="task-summary-card task-summary-green"><strong>'+counts.current+'</strong><span>Current</span></div><div class="task-summary-card task-summary-amber"><strong>'+counts.overdue+'</strong><span>Overdue</span></div><div class="task-summary-card task-summary-red"><strong>'+counts.priority+'</strong><span>Priority</span></div><div class="task-summary-card task-summary-critical"><strong>'+counts.critical+'</strong><span>Critical</span></div>'+(focus?'<a class="live-task-focus task-'+focus.tone+'" href="'+esc(focus.href)+'"><span>FOCUS NEXT</span><strong>'+esc(focus.title)+'</strong><small>'+esc(focus.detail)+'</small><b>OPEN</b></a>':'')
         : '<div class="live-task-clear"><strong>NO LIVE TASKS CURRENTLY REQUIRE STAFF ACTION</strong><span>The workflow is clear at the moment.</span></div>';
 
