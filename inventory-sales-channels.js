@@ -40,7 +40,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const panel=document.createElement('section');
   panel.id='sales-channels-unified';panel.className='valuation-card';panel.style.marginTop='1rem';
-  let html='<p class="section-kicker">SALES CHANNELS</p><h2>Website first, then marketplaces</h2><p>Save the master listing details above. Then publish directly to the GearCashOut website or record a marketplace as submitted/live with one click. There is no Draft or Ready to Upload stage.</p>';
+  const websiteOutlet=outlets.find(x=>x.outlet_code==='WEBSITE'&&x.outlet_type==='owned_storefront');
+  const websiteListing=websiteOutlet?byOutlet.get(websiteOutlet.id):null;
+  const websiteLive=websiteListing?.status==='Published';
+  let html='<p class="section-kicker">SALES CHANNELS</p><h2>Website first, then marketplaces</h2><p>Save the master listing details above. Then publish directly to the GearCashOut website or record a marketplace as submitted/live with one click. There is no Draft or Ready to Upload stage.</p>'
+    +(websiteLive?'<div class="notice" style="margin-top:.75rem;border-left:4px solid #286b45"><strong>WEBSITE STATUS: LIVE ON GEARCASHOUT</strong><br>This item has a Published WEBSITE listing. The public storefront receives published WEBSITE stock through the live storefront query.</div>':'');
   if(!canManage) html+='<p class="notice"><strong>History mode:</strong> this item is no longer open for new publishing actions.</p>';
   html+='<div style="display:grid;gap:.75rem;margin-top:1rem">';
   for(const outlet of outlets){
