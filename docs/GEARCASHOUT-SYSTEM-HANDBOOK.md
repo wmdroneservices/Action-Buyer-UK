@@ -4253,3 +4253,11 @@ The page is deliberately historical and read-only. It must show the customer's o
 **Developer Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
 
 **Security boundary:** the page queries the valuation with both the requested ID and the authenticated customer's `user_id`, with existing RLS on `valuations` and `quote_items` enforcing ownership. Do not convert this into a public unauthenticated valuation URL.
+
+## Receipt failure: UUID catalogue resolver — 2026-09-08
+
+A live receipt test showed that the button could reach the authoritative receipt RPC while every operational record remained unchanged. The first database failure was inside `resolve_quote_item_catalog_product(...)`, which used PostgreSQL `min(id)` on a UUID column. PostgreSQL has no `min(uuid)`, so the exception rolled back the entire receipt transaction before sale, shipment or inventory updates could persist.
+
+The resolver now uses `(array_agg(id))[1]` and returns that UUID only when exactly one catalogue match exists. The receipt RPC was transactionally retested successfully, then the affected live sale was repaired through the same authoritative RPC and verified as `sales.status=received → inbound shipment=delivered → inventory asset=Received`.
+
+See: [Inventory Repair, Testing and Sales Handoff Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md).
