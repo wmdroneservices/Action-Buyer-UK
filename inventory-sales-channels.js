@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       listing_data:{
         outlet_code:outlet.outlet_code,outlet_name:outlet.outlet_name,
         transaction_number:a.transaction_number,manufacturer:a.manufacturer,model:a.model,
+        // Only the staff inspection condition is carried into resale channel data.
         package_name:a.package_name,condition:a.condition_grade,
         package_contents:a.final_package_contents,serial_number:a.serial_number,
         actual_battery_count:a.actual_battery_count
