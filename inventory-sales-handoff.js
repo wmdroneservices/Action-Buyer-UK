@@ -144,14 +144,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       updated_at:new Date().toISOString()
     }).eq('id',id);
     if(assetSave.error) return assetSave;
-    if(asset.catalog_product_id&&form.elements.manufacturer_description){
-      const catalogSave=await db.from('catalog_sales_content').upsert({
-        catalog_product_id:asset.catalog_product_id,product_description:String(fd.get('manufacturer_description')||'').trim()||null,
-        hero_image_url:catalog.hero_image_url||null,manufacturer_image_url:catalog.manufacturer_image_url||null,
-        source_attribution:catalog.source_attribution||null,created_by:catalog.created_by||session.user.id,updated_at:new Date().toISOString()
-      },{onConflict:'catalog_product_id'});
-      if(catalogSave.error) return catalogSave;
-    }
+    // Manufacturer text may be pre-filled from the shared catalogue, but edits here are item-specific.
+    // Do not overwrite catalog_sales_content from an individual resale listing.
     return {error:null};
   }
 
