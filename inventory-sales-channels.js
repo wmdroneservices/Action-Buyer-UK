@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${isWebsite ? '<p class="notice"><strong>Website:</strong> click publish and this item becomes a live central resale listing for the GearCashOut Retail Website.</p>' : '<p class="notice"><strong>Marketplace:</strong> create the listing on the marketplace, then click the button below to record it as submitted/live. A URL or listing ID is optional and can be added later if useful.</p>'}
               <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
                 <button class="btn btn-primary channel-submit" type="submit" ${delistRequired ? 'disabled' : ''}>${isWebsite ? (submitted ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (submitted ? 'UPDATE MARKETPLACE RECORD' : 'ADD TO MARKETPLACE / MARK SUBMITTED')}</button>
+                ${row.id && submitted && !['Sold','Cancelled','Delist Required'].includes(row.status) ? `<button class="btn btn-secondary mark-sold" type="button" data-listing-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                 ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LISTING</a>` : ''}
                 <span class="form-message channel-message" aria-live="polite"></span>
               </div>
@@ -106,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updated_at:new Date().toISOString()
     };
     const {error}=await db.from('inventory_assets').update(payload).eq('id',id);
+    if (!error) Object.assign(asset,payload);
     message.textContent=error?error.message:'Product and listing details saved.';
     message.className='form-message'+(error?' error':' success');
     button.disabled=false;
@@ -157,5 +159,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     message.className='form-message success';
     button.disabled=false;
     setTimeout(()=>location.reload(),350);
+  }));
+
+  panel.querySelectorAll('.mark-sold').forEach(button => button.addEventListener('click', async () => {
+    const soldPrice = prompt('Actual sold price (£):');
+    if (soldPrice === null) return;
+    const price = Number(soldPrice);
+    if (!Number.isFinite(price) || price < 0) { alert('Enter a valid sold price.'); return; }
+    const fees = Number(prompt('Selling fees (£):', '0') || 0);
+    const shipping = Number(prompt('Shipping cost (£):', '0') || 0);
+    button.disabled = true;
+    const { error } = await db.rpc('staff_mark_resale_listing_sold', {
+      p_listing_id: button.dataset.listingId,
+      p_sold_price: price,
+      p_selling_fees: Number.isFinite(fees) ? fees : 0,
+      p_shipping_cost: Number.isFinite(shipping) ? shipping : 0
+    });
+    if (error) { alert(error.message); button.disabled = false; return; }
+    location.reload();
   }));
 });
