@@ -73,6 +73,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   root.querySelectorAll('section.valuation-card').forEach(s=>{
     if((s.querySelector('h2')?.textContent||'').trim()==='1. Customer quote') s.remove();
   });
+  // The base Product Workbench renders an inspection workflow strip. Sales handoff owns this page now,
+  // so remove that obsolete strip rather than leaving two competing workflow guides at the top.
+  const baseHeader=[...root.children].find(el=>
+    /PRODUCT WORKBENCH/i.test(el.querySelector('.section-kicker')?.textContent||'')
+  );
+  if(baseHeader){
+    [...baseHeader.querySelectorAll('div')].find(el=>
+      [...el.querySelectorAll('span.notice')].some(s=>/Customer quote/i.test(s.textContent||''))
+    )?.remove();
+  }
 
   const summary=document.createElement('section');
   summary.id='product-history'; summary.className='valuation-card'; summary.style.marginTop='1rem';
