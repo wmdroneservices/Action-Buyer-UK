@@ -3011,7 +3011,7 @@ The Manufacturer Batch workflow must:
 
 Exact model/product imagery remains a separate later workflow when the relevant product is actually listed for sale.
 
-The staff workspace can generate a structured Gemma Manufacturer Image Research Brief from the current live queue. This brief is a controlled research instruction; it does not bypass the existing candidate/approval boundary or convert image research into catalogue evidence research.
+The staff workspace can generate a structured Gemma Manufacturer Image Research Brief from the current live queue for controlled manual research. In parallel, the AI Research Centre has the authoritative automated Gemma manufacturer-job workflow: it queues bounded Manufacturer + Category targets to the Research PC worker, which saves candidate imagery only. Neither path bypasses the existing candidate/approval boundary or converts image research into catalogue evidence research.
 
 
 ## Gemma manufacturer batch image research — 8 September 2026
