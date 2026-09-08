@@ -1186,3 +1186,39 @@ Staff process an accepted customer purchase through **Sales & Shipping** and lat
 2. **Direct RPC bypass succeeds:** inspect `staff_mark_item_received_and_sync_inventory(uuid)` for the same inbound-label gate.
 3. **Customer says no valuations while purchase is active:** inspect `account-page.js` linked `sale_items` query and terminal sale filtering.
 4. **Customer still sees parcel on its way after receipt:** inspect `sales.status` first, then inbound `shipments.status`; do not repair only the text.
+
+
+---
+
+## Final-offer rendering and premature Sales-task regression — 8 September 2026
+
+### Symptoms
+
+A single customer item could briefly show the final offer, then revert to the generic inspection message; sometimes appear as duplicate valuation/update cards after refresh; and show **Send item to pre-sale** while the customer was still deciding the final offer.
+
+### First failures
+
+1. The customer account had two competing renderers for standalone final offers: `account-single-offer-visibility.js` and the generic `account-page.js` sale renderer. They polled independently and overwrote the same `#sales` container.
+2. `account-shipping-links.js` could also manipulate the sale card after the main renderer and contained an inspection branch that referenced `action` before creation.
+3. `inventory-workbench.js` and `live-task-board.js` treated `Ready for Resale` as immediately actionable even though the database handoff RPC correctly required the linked customer purchase to be `completed / paid`.
+
+### Current authoritative route
+
+Customer final offer:
+
+`account.html` → `account-page.js` → `sales → sale_items → quote_items → quote_offers` → published `offer_type='final'` → customer accepts/refuses through the existing secured RPC.
+
+There is now one standalone customer renderer for this state. A published final offer suppresses the generic **valuation in progress** card for that item and replaces the generic inspection update.
+
+### Sales-handoff presentation rule
+
+For customer-sourced assets, `Ready for Resale` means physical preparation is complete. It must not generate a **Send to Sales** button or Live Task Board handoff until the linked sale is `completed` and `paid`. The existing `staff_send_inventory_to_sales(...)` database gate remains authoritative.
+
+### Regression checks
+
+1. Publish one final offer for a single received/inspected item.
+2. Customer refreshes repeatedly: exactly one final-offer card remains visible and does not revert.
+3. No second generic valuation card is rendered for that same published final offer.
+4. Product Workbench shows **WAITING FOR PURCHASE FINALISATION**, not **SEND TO SALES**, before completion/payment.
+5. Purchasing Live Task Board suppresses the premature pre-sale task.
+6. After final acceptance and payment completion, the existing Sales handoff path becomes eligible.
