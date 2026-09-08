@@ -4206,3 +4206,15 @@ The Sales sale-detail page now links an incomplete inspection back to Purchasing
 The final-offer control layer also verifies the linked inventory asset has completed the Purchasing inspection before re-enabling accepted-item final-offer controls.
 
 Diagnostic Roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+## Duplicate Inspection Task Prevention — 8 September 2026
+
+A received item can have both a **sale record** and its linked **inventory asset**, but this must not create two staff actions for the same physical inspection.
+
+The unified Live Task Board now treats the linked inventory asset as the authoritative inspection task once it exists:
+
+- the sale-side “Inspect received item” task is suppressed;
+- the single Inventory Product Workbench task remains;
+- the underlying valuation, sale and asset records are not duplicated.
+
+This prevents the Purchasing Dashboard from making one physical item look like two separate valuations or inspections.
