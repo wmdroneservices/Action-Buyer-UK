@@ -136,11 +136,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    // Once a quote item has been converted into a sale, the customer should
-    // follow that item through the sale/purchase workflow rather than seeing
-    // the original valuation again. Also exclude accepted/closed items that
-    // have not yet been linked to a sale as an extra status safeguard.
-    const activeValuations = (valuations || []).filter(v => !closedValuationIds.has(v.id) && (items || []).filter(i => i.valuation_id === v.id).some(i => !["accepted", "closed"].includes(i.item_status)));
+    // Keep the customer's original valuation visible as "in progress" while an
+    // accepted item is moving through the purchasing workflow. The sale remains
+    // the authority for the operational update below, but the customer must not
+    // lose sight of what they originally submitted simply because a sale exists.
+    const saleItemsByValuation = new Map();
+    for (const item of (items || [])) {
+      const linked = linkedItemIds.has(item.id);
+      if (linked) saleItemsByValuation.set(item.valuation_id, true);
+    }
+    const activeSaleItemIds = new Set(
+      (linkedSaleItems || [])
+        .filter(row => {
+          const sale = (sales || []).find(s => s.id === row.sale_id);
+          return sale && !["paid","completed","cancelled"].includes(String(sale.status || ""));
+        })
+        .map(row => row.quote_item_id)
+    );
+    const activeValuations = (valuations || []).filter(v => {
+      if (String(v.status || "") === "cancelled") return false;
+      const valuationItems = (items || []).filter(i => i.valuation_id === v.id);
+      if (!valuationItems.length) return false;
+      if (valuationItems.some(i => activeSaleItemIds.has(i.id))) return true;
+      if (saleItemsByValuation.has(v.id)) return false;
+      return valuationItems.some(i => !["accepted", "closed"].includes(i.item_status));
+    });
     if (valuationsBox) {
       if (activeValuations.length) {
         let html = '<div style="margin-bottom:1.25rem;padding:1rem 1.2rem;background:#f3f1ec;border-left:4px solid #d88732"><strong>NEXT STEP</strong><p style="margin:.25rem 0 0">No action is needed from you right now. GearCashOut is processing the valuation and will contact you when the next stage is ready.</p></div>';
