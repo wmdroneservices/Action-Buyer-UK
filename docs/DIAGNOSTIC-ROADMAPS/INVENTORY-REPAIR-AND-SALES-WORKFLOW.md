@@ -468,3 +468,56 @@ The shared collector still builds Sales tasks for the Sales Dashboard and other 
 ### Rule
 
 **Inventory → Sales is a workflow ownership boundary.** Once an item is handed to Sales, Purchasing must not continue to present it as active purchasing work merely because the shared task collector can see it.
+
+
+---
+
+## Sales Dashboard task-board workspace boundary — 8 September 2026
+
+### User action
+
+Staff open **Sales Dashboard → What Needs Doing**.
+
+### First verified failure
+
+After the Purchasing boundary repair, browser verification showed the inverse problem on the Sales Dashboard:
+
+- valid **SALES** tasks were present;
+- a **PURCHASING** task, **Review valuation**, was also present;
+- pre-handoff **INVENTORY** work was also present.
+
+The authoritative Supabase state was not wrong. The failure was that `admin-sales-dashboard.html` had no presentation scope in the shared `live-task-board.js`.
+
+### Minimal repair
+
+The page scope map is now:
+
+- `admin-purchasing.html` → `PURCHASING`, `PURCHASE RETURNS`, `INVENTORY`
+- `admin-sales-dashboard.html` → `SALES`, `CUSTOMER RETURNS`
+
+The shared collector continues to generate all valid workflow tasks. Each dashboard filters that shared set to its own operational workspace.
+
+### Expected data flow
+
+`inventory_assets.status = 'Ready for Resale'`
+→ Purchasing / Inventory task
+
+`inventory_assets.status = 'Sent to Sales'`
+→ Sales task
+
+`valuations.status = pending review`
+→ Purchasing task only
+
+`sales_customer_returns` active
+→ Customer Returns task on Sales only
+
+### Failure checkpoints
+
+1. A Purchasing task appears on Sales: inspect `pageCategoryScopes` in `live-task-board.js`.
+2. A Sales task appears on Purchasing: inspect the same map and current browser cache identity.
+3. Task is missing from both dashboards: verify authoritative database state before changing filters.
+4. Task appears on the wrong dashboard but has correct category: repair presentation scope, not Supabase state.
+
+### Rule
+
+**The shared task collector is global; dashboard ownership is page-scoped.**
