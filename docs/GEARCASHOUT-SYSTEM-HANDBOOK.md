@@ -3764,3 +3764,34 @@ The **GearCashOut Retail Website** outlet is now a direct publishing channel. St
 The public storefront reads that published WEBSITE listing through the existing public storefront RPC path, so the same central inventory and sold-state controls remain in force. External marketplaces keep their separate Draft / Ready to Upload / live-link workflow.
 
 **Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
+
+
+## Unified Product Workbench and Sales Channels — 8 September 2026
+
+### User action
+Open an inventory asset. After it has been sent to Sales, continue using the same **Product Workbench** rather than opening a separate Sales Workbench.
+
+### Current behaviour
+The one product page now retains and manages:
+
+- customer quote history and customer evidence;
+- inspection and testing history;
+- product details and condition;
+- catalogue and physical-item sales content;
+- staff photographs and hero-image selection;
+- listing title, description, package contents and default sale price;
+- all active sales outlets from sales_outlets.
+
+The owned **WEBSITE** outlet publishes directly into the existing central resale_listings flow.
+
+External marketplaces no longer require a Draft → Ready to Upload sequence. Staff create the marketplace listing externally, then use **ADD TO MARKETPLACE / MARK SUBMITTED** to record it as live in GearCashOut. Existing central sold handling remains available from the same channel area.
+
+listing-readiness.html is retained as a compatibility route but redirects to inventory-detail.html.
+
+### Customer condition / exception notes
+Customer condition or exception notes are displayed explicitly in the Customer Quote section. They are no longer shown only underneath the damage card, which previously made condition notes easy to miss or misleadingly associated with damage.
+
+### Diagnostic roadmap
+See:
+
+docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md
