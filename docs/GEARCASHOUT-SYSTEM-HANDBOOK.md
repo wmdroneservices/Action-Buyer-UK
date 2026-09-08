@@ -4043,3 +4043,27 @@ When dashboard and storefront disagree:
 4. only then consider changing the asset lifecycle state.
 
 Do not "repair" the dashboard by changing a Published listing back to Draft or by blindly rewriting inventory status.
+
+
+## 8 September 2026 — Single listing-workbench CTA
+
+### Verified duplication
+
+The Pre-Sale / Channels cards showed both:
+
+- **OPEN SALES WORKBENCH** → `listing-readiness.html?id=<asset_id>` → compatibility redirect;
+- **PRODUCT WORKBENCH** → `inventory-detail.html?id=<asset_id>`.
+
+Both routes ultimately served the same unified Product Workbench responsibility.
+
+### Repair
+
+Pre-Sale / Channels now exposes one CTA only:
+
+**OPEN PRODUCT WORKBENCH** → `inventory-detail.html?id=<asset_id>`.
+
+The compatibility redirect remains available for old bookmarks and legacy links, but it is no longer presented as a second operational choice.
+
+### Rule
+
+One physical product has one operational listing editor and one visible listing-workbench action.
