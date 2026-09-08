@@ -3601,3 +3601,14 @@ Relevant files:
 - `inventory-detail.html`
 - `inventory-workbench.js`
 - `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
+
+## Duplicate task rule for receipt and inspection — 8 September 2026
+
+When a received sale has a linked `inventory_assets.source_sale_id`, do not present both:
+
+- a Purchasing sale task saying “Inspect received item”; and
+- an Inventory task saying “Inspect item”.
+
+They are the same physical workflow. The linked inventory task is authoritative because `inventory-detail.html` / `inventory-workbench.js` owns the editable inspection.
+
+Before diagnosing a claimed duplicate valuation, query the actual records separately. On the current test state there is one valuation, one sale and one linked inventory asset; the duplication was presentation-layer task generation, not duplicated database data.
