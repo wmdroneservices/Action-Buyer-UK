@@ -3473,3 +3473,39 @@ A row is visible to an authenticated user only when there is an active `staff_us
 An authenticated eligible sales staff context can now read the two current Published resale rows. The dashboard's existing authoritative listing-count logic can therefore receive the live rows it was already designed to count.
 
 No listing status, inventory status, storefront record or published item was changed.
+
+
+---
+
+# Current Operational Lesson — Unified Sales Stream (8 September 2026)
+
+## Verified first failure
+
+The Sales Dashboard had been corrected to use `resale_listings.status` for Active Listings, but the separate ready-to-list page still classified every `inventory_assets.status='Sent to Sales'` asset as pre-sale work. A live product could therefore appear in both places.
+
+## Current rule
+
+Use one page-placement model:
+
+`Sent to Sales + no Published/Reserved channel row → Ready to List`
+
+`Published/Reserved channel row → Active Listings`
+
+`staff_mark_resale_listing_sold(...) → Sold - Awaiting Shipping → post-sale flow`
+
+`Delist Required → urgent exception until the remaining external listing is closed`
+
+The physical inventory status is retained for lifecycle/history compatibility. The authoritative question “where does this product appear in the sales UI?” is answered by the channel state in `resale_listings`.
+
+## Files changed
+
+- `inventory-sales.js`
+- `inventory-sales.html`
+- `admin-sales-dashboard.html`
+- `admin-sales-dashboard.js`
+- `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
+- this manual and the Human/Developer System Handbook
+
+## Verification target
+
+A Published DJI Mini 5 Pro must appear in Active Listings only, not in Ready to List. The current live database shows the DJI Mini 5 Pro as `Sent to Sales` with a Published WEBSITE `resale_listings` row, so this is the regression case for browser verification.
