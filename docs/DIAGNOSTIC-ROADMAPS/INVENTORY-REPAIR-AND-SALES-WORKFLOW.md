@@ -1046,3 +1046,31 @@ When status is `Repair Required`, Sales shows the inspection as read-only and ro
 3. **Sales shows editable inspection:** inspect the sale next-step presentation boundary; Sales must be read-only.
 4. **Final offer enabled too early:** inspect `admin-quote-final-offer-fix.js` and linked asset status.
 5. **Repair Required editable from Sales:** incorrect; route editing through Purchasing only.
+
+## Duplicate inspection task checkpoint — 8 September 2026
+
+### Symptom
+
+Purchasing Dashboard showed two current actions for one received item:
+
+- **PURCHASING — Inspect received item**
+- **INVENTORY — Inspect item**
+
+### First failure
+
+The unified `live-task-board.js` generated one task from `sales.status in ('received','inspection')` and another from the linked `inventory_assets.status='Received'`. Its generic duplicate key could not collapse them because they had different categories, titles and URLs.
+
+### Repair
+
+`inventory_assets.source_sale_id` is now loaded by the task board. When a linked inventory asset exists in an active inspection state, the sale-side inspection task is suppressed and the Product Workbench inventory task is the single actionable record.
+
+### Verification
+
+Check separately:
+
+1. valuation count;
+2. sale count;
+3. linked inventory asset count;
+4. rendered task count.
+
+Do not delete database records merely because the dashboard displays duplicate actions; establish whether the duplication is data or presentation first.
