@@ -3742,3 +3742,17 @@ The shared **What Needs Doing** collector reads multiple workflow tables, but th
 The database status transition itself was already correct. The verified failure was that the shared task-board presentation showed **SALES** tasks on the Purchasing Dashboard after the handoff, making completed purchasing work appear to remain active there.
 
 The repair is deliberately client-side presentation scoping in `live-task-board.js`; it does not alter inventory status, sales status or any workflow records.
+
+
+---
+
+## Live Task Board workspace ownership — 8 September 2026
+
+The shared `live-task-board.js` collects authoritative workflow tasks centrally, but each staff dashboard must present only work owned by that workspace.
+
+- **Purchasing Dashboard:** `PURCHASING`, `PURCHASE RETURNS`, `INVENTORY`
+- **Sales Dashboard:** `SALES`, `CUSTOMER RETURNS`
+
+This prevents completed handoffs from leaking back into the previous team's dashboard. Inventory remains on Purchasing until the item reaches **Sent to Sales**.
+
+**Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
