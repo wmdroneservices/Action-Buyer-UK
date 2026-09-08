@@ -844,3 +844,28 @@ The compatibility redirect remains available for old bookmarks and legacy links,
 ### Rule
 
 One physical product has one operational listing editor and one visible listing-workbench action.
+
+
+## 8 September 2026 — Existing live listing continuity repair
+
+### First actual issue
+
+A product can already have a valid Published WEBSITE row while having no `inventory_sales_content` row. This is the case for legacy/test stock such as `TEST-ASSET-003`.
+
+Without a fallback, the unified Product Workbench could show blank listing fields and an update action could incorrectly require staff to recreate title/price information that already existed in `resale_listings`.
+
+### Repair
+
+The unified Product Workbench now treats the existing channel listing as a safe read-only fallback when item-level sales content has not yet been created:
+
+- existing listing title pre-fills the workbench identity;
+- existing asking price pre-fills the sale price;
+- existing shipping cost pre-fills postage where available;
+- existing listing description is retained as a fallback description;
+- item-level `inventory_sales_content` still becomes the preferred source after the operator saves.
+
+The same fallback is used when updating a channel listing.
+
+### Rule
+
+Do not make staff recreate a working live listing merely because it predates the unified Product Workbench. Preserve existing `resale_listings` data and allow the unified editor to adopt it safely.
