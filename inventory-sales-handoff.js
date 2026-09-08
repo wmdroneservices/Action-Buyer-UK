@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         '<div><p class="section-kicker" style="display:inline-block;color:#166534;background:#ecfdf3;border:1px solid #16a34a;padding:.4rem .7rem;border-radius:4px;font-weight:900;letter-spacing:.08em">INSPECTION COMPLETE · SENT TO SALES</p>',
         '<h2>'+esc([asset.manufacturer,asset.model].filter(Boolean).join(' ') || 'Unnamed asset')+'</h2>',
         '<p>Asset '+esc(asset.asset_reference)+' · Transaction '+esc(asset.transaction_number || 'Not recorded')+'</p>',
-        '<p>Inspection and repair/testing history are retained as the permanent receiving record. Sales content and presentation remain editable here.</p></div>',
-        '<div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="inventory.html">BACK TO INVENTORY</a><a class="btn btn-primary" href="listing-readiness.html?id='+encodeURIComponent(id)+'">OPEN SALES WORKBENCH</a></div>',
+        '<p>Inspection and repair/testing history are retained as the permanent receiving record. Product details, photographs, sales presentation and channels are managed on this one page.</p></div>',
+        '<div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="btn btn-secondary" href="inventory.html">BACK TO INVENTORY</a></div>',
       '</div>',
     '</div>',
 
