@@ -3076,3 +3076,24 @@ Current active versions are:
 
 - `quote-reverse-basket-v5.js?v=20260908-photo-persist-1`
 - `quote-submit-v4.js?v=20260908-2`
+
+
+---
+
+## Purchasing Dashboard handoff-scope rule — 8 September 2026
+
+When a report says that items already sent to pre-sale are still appearing on the Purchasing Dashboard:
+
+1. Check structured project memory and the Inventory/Sales Diagnostic Roadmap.
+2. Inspect the live `inventory_assets.status` for the reported IDs.
+3. Confirm whether the actual status transition to **Sent to Sales** already occurred.
+4. Inspect `live-task-board.js` before changing any database workflow.
+5. If the transition is correct and the failure is only the shared task-board presentation, make a page-scoped filter rather than changing authoritative statuses.
+
+Current rule for `admin-purchasing.html`:
+
+- show **PURCHASING**, **PURCHASE RETURNS** and pre-handoff **INVENTORY** task categories;
+- keep **Ready for Resale** visible because it is the action immediately before handoff;
+- suppress **SALES** tasks after `Sent to Sales` so they continue only on the Sales workflow.
+
+Do not “fix” this by changing `inventory_assets.status`, deleting assets, or duplicating workflow records. The authoritative state transition remains unchanged; this repair controls only which work area presents the task.
