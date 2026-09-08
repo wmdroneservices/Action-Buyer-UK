@@ -4289,3 +4289,31 @@ A valuation remains visible as **in progress** while its linked customer purchas
 The sale remains authoritative for receipt, inspection and payment status; the valuation view preserves visibility of what the customer originally sent.
 
 **Diagnostic roadmap:** [Inventory, Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+
+## Final offer and Sales handoff rendering boundary — 8 September 2026
+
+A published **final offer** is a customer decision state, not another generic inspection update.
+
+The customer account now has one authoritative standalone final-offer renderer in `account-page.js`. The previous competing `account-single-offer-visibility.js` include was removed because independent polling could briefly show the final price and then overwrite it with the older inspection message or duplicate cards.
+
+For a published final offer:
+
+- the customer sees the exact product and final price;
+- **ACCEPT FINAL OFFER** and **REFUSE** remain available through the existing secure offer RPCs;
+- the generic **valuation in progress** card for that same item is suppressed;
+- shipping helpers do not overwrite receipt/inspection/final-offer state.
+
+**Diagnostic roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+### Ready for Resale is not permission to enter Sales
+
+For customer-sourced inventory, **Ready for Resale** means the physical inspection/testing workflow is complete. It does not mean the purchase is commercially finalised.
+
+Before the linked customer purchase is `completed` and `paid`:
+
+- Product Workbench shows **WAITING FOR PURCHASE FINALISATION** instead of **SEND TO SALES**;
+- the Live Task Board suppresses the premature pre-sale task;
+- the database RPC remains the final enforcement boundary.
+
+This keeps the same physical asset from appearing as both **waiting for final offer** and **ready to send to Sales**.
