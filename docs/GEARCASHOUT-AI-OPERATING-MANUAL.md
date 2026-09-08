@@ -3345,3 +3345,20 @@ Sales completion behaviour is controlled by staff_mark_resale_listing_sold: the 
 
 ### Item-specific manufacturer text safeguard
 Manufacturer/product description can be pre-filled from catalog_sales_content, but saving an individual Product Workbench listing now stores the edited text only on inventory_sales_content. An item-level correction must not overwrite the shared catalogue description for every future item of that model.
+
+
+## 8 September 2026 — Published website status and duplicate workflow-strip repair
+
+### First actual findings
+
+The live Supabase record for TEST-ASSET-003 is a Published WEBSITE resale listing, and public_storefront_stock('retail', ...) returns it as live public stock. The backend publishing path was therefore not the failure.
+
+The staff page could still leave the operator uncertain because the final listing stage did not place a prominent top-level live confirmation above the channel actions. The unified channel panel now explicitly shows **WEBSITE STATUS: LIVE ON GEARCASHOUT** when the authoritative resale_listings row is Published.
+
+For sales-stage assets, the base Product Workbench's earlier inspection workflow strip was still left in the header while the final sales handoff owned the page. That produced two competing workflow guides. The obsolete inspection strip is now removed for sales handoff mode.
+
+The customer valuation page's progress indicator also used forced horizontal scrolling on desktop, leaving a scrollbar/track that could look like a second progress tree. It now wraps normally into one progress guide.
+
+### Regression rule
+
+Do not change a live WEBSITE listing back to Draft merely to repair presentation. Verify resale_listings.status, then verify public_storefront_stock before touching the publishing backend.
