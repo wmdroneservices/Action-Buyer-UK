@@ -3542,3 +3542,24 @@ The management UI now accurately calls this **Clear Operational Data** and expla
 ## Verification rule
 
 Do not execute a destructive reset merely to test the reset code. Verify the function definition, dependency order and live blocker rows first. The user performs the actual destructive reset deliberately from the management UI.
+
+
+## Receipt → Inspection continuity lesson — 8 September 2026
+
+### First verified failure after operational reset
+Do not assume an item marked received has an inventory asset. The fresh test contained a sale and quote item but **0 inventory assets** because `staff_mark_item_received_and_sync_inventory(...)` only updated an existing `Awaiting Receipt` row and falsely incremented its success count even when no row existed.
+
+### Mandatory diagnostic order
+For any receipt/inspection loading fault:
+
+1. inspect `sales` status;
+2. inspect `sale_items`;
+3. inspect linked `inventory_assets` by `source_sale_id` and `source_quote_item_id`;
+4. only then inspect Product Workbench and `inventory_testing`.
+
+Repository migration: `20260908223000_repair_received_inventory_creation.sql`.
+
+The repaired receipt RPC creates a missing inventory asset at `Received`, preserves source/customer/catalogue data, and reports created/updated/total counts separately.
+
+### Endless loading rule
+Do not allow a Product Workbench dependency failure to remain visually indistinguishable from a slow load. The workbench now has an error boundary and a 20-second visible timeout.
