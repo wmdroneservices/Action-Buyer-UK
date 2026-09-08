@@ -217,5 +217,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const send=root.querySelector('#send-sales');
     if(send) send.addEventListener('click',async()=>{const m=root.querySelector('#send-message');send.disabled=true;m.textContent='Checking the completed product and sending to Sales…';m.className='form-message';const {data,error}=await db.rpc('staff_send_inventory_to_sales',{p_asset_id:id});if(error){m.textContent=error.message;m.className='form-message error';send.disabled=false;return;}m.textContent=`Sent to Sales${data?.transaction_number?` · ${data.transaction_number}`:''}.`;m.className='form-message success';setTimeout(()=>location.href=`listing-readiness.html?id=${encodeURIComponent(id)}`,500);});
   }
-  await load();
+  let loadTimeout = null;
+  try {
+    const loadPromise = load();
+    loadTimeout = setTimeout(() => {
+      root.innerHTML = '<div class="form-message error"><strong>Product Workbench is taking longer than expected to load.</strong><br>The workflow has been stopped from appearing to load indefinitely. Check the inventory record and browser console, then refresh.</div>';
+    }, 20000);
+    await loadPromise;
+  } catch (err) {
+    console.error('Product Workbench load failed', err);
+    root.innerHTML = `<div class="form-message error"><strong>Could not load Product Workbench.</strong><br>${esc(err?.message || 'Unexpected loading error.')}</div>`;
+  } finally {
+    if (loadTimeout) clearTimeout(loadTimeout);
+  }
 });
