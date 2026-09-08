@@ -4411,3 +4411,23 @@ No catalogue rows are rewritten by the customer-facing taxonomy layer.
 ### Regression rule
 
 Do not solve future customer dropdown duplication by blindly merging or renaming live catalogue records. Preserve the research/catalogue source taxonomy unless a separate controlled data-normalisation project is carried out. The public valuation taxonomy and the internal catalogue taxonomy are intentionally allowed to differ.
+
+
+---
+
+## Purchase Catalogue → Sales / Retail Category Routing — audited 9 September 2026
+
+The buying catalogue remains authoritative. Source categories are preserved because they contain historical/imported taxonomy used by research and product identity. Public retail navigation must not require those raw variants to be manually duplicated in every website.
+
+The retail route is now:
+
+quote_catalog_products
+→ canonical_storefront_category(...)
+→ public_storefront_categories(...)
+→ public_storefront_category_manufacturers(...)
+→ public_storefront_models(...)
+→ public_storefront_stock(...).
+
+This gives every catalogue product a route into one stable retail category without renaming or merging the underlying purchase catalogue.
+
+The relevant Developer Diagnostic Roadmap is: docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md.
