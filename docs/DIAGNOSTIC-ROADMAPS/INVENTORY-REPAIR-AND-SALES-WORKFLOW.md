@@ -1000,3 +1000,49 @@ Before investigating the inspection form, query `sale → sale_items → invento
 
 ### UI resilience
 `inventory-workbench.js` now exposes load errors and replaces an indefinite loading state with a visible timeout after 20 seconds.
+
+## Receipt → Purchasing inspection → read-only Sales decision boundary — 8 September 2026
+
+### User action
+
+Staff marks an accepted item received and begins inspection.
+
+### Front-end route
+
+`admin-sale-next-step.js`
+
+**START INSPECTION** → `staff_start_sale_inspection(p_sale_id)` → locate the linked `inventory_assets` row → `inventory-detail.html?id=<asset_id>`
+
+### Editable Purchasing workflow
+
+`inventory-workbench.js` owns staff condition, serial/accessory verification, battery count and health, inspection result, flight/camera testing, damage notes, missing-item resolution, final package contents, staff photographs and Repair Required routing.
+
+### Authoritative data
+
+- `sales`
+- `sale_items`
+- `inventory_assets`
+- `inventory_testing`
+- `inventory_repairs`
+
+Join boundary: `sales.id → sale_items.sale_id → quote_item_id → inventory_assets(source_sale_id, source_quote_item_id)`.
+
+### Sales behaviour
+
+While incomplete, Sales does **not** bypass inspection to the final-offer screen. It shows inspection progress as read-only and links back to Purchasing.
+
+When `inventory_assets.status` is `Ready for Resale` (or a later sales state), the physical inspection is treated as complete for the Sales decision boundary. Sales then shows the recorded inspection/testing result as **read-only** and exposes final offer/refusal.
+
+When status is `Repair Required`, Sales shows the inspection as read-only and routes editing to the controlled Purchasing repair workflow.
+
+### Final-offer gate
+
+`admin-quote-final-offer-fix.js` must not enable final-offer controls merely because `sales.status='inspection'`. It verifies the linked inventory asset has reached a completed status before restoring accepted-item final-offer controls.
+
+### Failure checkpoints
+
+1. **Start Inspection returns to final offer:** inspect `admin-sale-next-step.js`.
+2. **No Product Workbench asset:** inspect `sale → sale_items → inventory_assets`.
+3. **Sales shows editable inspection:** inspect the sale next-step presentation boundary; Sales must be read-only.
+4. **Final offer enabled too early:** inspect `admin-quote-final-offer-fix.js` and linked asset status.
+5. **Repair Required editable from Sales:** incorrect; route editing through Purchasing only.
