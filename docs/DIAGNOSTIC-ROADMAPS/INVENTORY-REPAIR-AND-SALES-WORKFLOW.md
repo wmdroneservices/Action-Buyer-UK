@@ -644,3 +644,56 @@ Current rule: append sales/history sections to the same product page; do not rep
 ### Customer condition-note fallback
 
 If a note is missing from the Product Workbench, inspect the matching item in `valuations.quote_data.quoteBasket` before changing the database. Older/multi-item submissions can retain the original note there even when `quote_items.item_data` is incomplete.
+
+
+---
+
+## Final listing stage on the unified Product Workbench — 8 September 2026
+
+### User action
+
+Staff open an item already handed to Sales and prepare the actual listing without opening a second Sales Workbench.
+
+### Front-end route
+
+`inventory-detail.html` → base `inventory-workbench.js` → Sales-status handoff `inventory-sales-handoff.js` → channel controls `inventory-sales-channels.js`.
+
+### Expected page structure
+
+1. Read-only history: original customer condition/note, inspected condition, inspection result, TESTED / INSPECTED, inspector, date and price paid for reference.
+
+2. Master listing: manufacturer/product description, individual listing description, title, sale price and postage/packing.
+
+3. Listing photographs: view/add/remove/select hero.
+
+4. WEBSITE first: direct publish.
+
+5. Marketplaces after: one click to record submitted/live.
+
+### Supabase objects
+
+`inventory_assets`; `inventory_testing`; `staff_users.display_name` / `profiles.full_name`; `inventory_sales_content`; `catalog_sales_content`; `inventory_evidence` + `quote-photos`; `sales_outlets`; `resale_listings`.
+
+### Expected data flow
+
+Save master listing → `inventory_sales_content` + compatibility update to `inventory_assets` → WEBSITE button → `resale_listings.status='Published'` → public storefront.
+
+Marketplace path: save master listing → marketplace button → marketplace `resale_listings` row uses `Published` as the submitted/live state.
+
+### Failure checkpoints
+
+1. Editable inspection fields reappear: inspect `inventory-sales-handoff.js`; Sales handoff must remove the base inspection editor.
+
+2. Inspector name missing: inspect `inventory_testing.created_by`, then `staff_users.display_name` and `profiles.full_name`.
+
+3. Master title/price/postage missing: verify the `inventory_sales_content` columns and migration.
+
+4. Website button fails: inspect the WEBSITE outlet and resulting `resale_listings` payload.
+
+5. Marketplace fails: inspect the `sales_channel` constraint mapping; outlet names must map to an allowed central sales channel value.
+
+6. Old Draft/Ready controls return: inspect `inventory-sales-channels.js`.
+
+### Known fix history
+
+Do not restore a second per-item Sales Workbench, do not replace the Product Workbench root, do not write listing fields to nonexistent `inventory_assets` columns, and do not make price paid or inspection history editable from the final listing stage.
