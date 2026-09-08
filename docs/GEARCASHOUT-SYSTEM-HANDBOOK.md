@@ -3844,3 +3844,8 @@ Repository code syntax was checked after the correction. Live browser workflow v
 3. publishing the WEBSITE outlet;
 4. recording one external marketplace as submitted/live;
 5. confirming the public storefront and sales dashboard reflect the same central listing.
+
+
+### Condition-note fallback repair
+
+Customer condition/exception notes are now also checked against the matching item inside `valuations.quote_data.quoteBasket`. This covers older or multi-item submissions where the item-level copy is incomplete but the original valuation basket still contains the note.
