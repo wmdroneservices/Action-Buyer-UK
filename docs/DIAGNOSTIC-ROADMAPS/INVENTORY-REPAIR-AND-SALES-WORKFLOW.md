@@ -1128,3 +1128,25 @@ If the customer still sees **PARCEL ON ITS WAY**, inspect `sales.status` and the
 ### Known fix
 
 The previous staff page had two competing receipt paths: the old `admin-sales.js` handler invoked the `mark-item-received` Edge Function, while a separate capture listener attempted to redirect the click to the secured RPC. The receipt action is now owned directly by `admin-sales.js`; customer account renderers were also changed to status-first logic.
+
+## Receipt transaction rollback caused by catalogue UUID aggregate — 8 September 2026
+
+### Symptom
+
+A live receipt test left both dashboards unchanged. Supabase confirmed `shipping`, `in_transit`, and no inventory asset.
+
+### First actual failure
+
+A transactional test of `staff_mark_item_received_and_sync_inventory(p_sale_id)` reached `resolve_quote_item_catalog_product(p_quote_item_id)`, which executed `select count(*), min(id)` against UUID `id`. PostgreSQL has no `min(uuid)`, so the exception rolled back the whole receipt transaction.
+
+### Repair
+
+`supabase/migrations/20260908224500_fix_catalog_uuid_aggregate_receipt.sql` replaces `min(id)` with `(array_agg(id))[1]`; the resolver still returns a UUID only for exactly one catalogue match.
+
+### Verified result
+
+The receipt RPC dry run reported one inventory asset would be created. The affected live sale was then processed through the same authoritative RPC and verified as `received / delivered / Received asset`.
+
+### Regression rule
+
+A receipt action is not fixed because the button handler exists. Verify the full transaction through dependent database functions and confirm all three authoritative records after execution.
