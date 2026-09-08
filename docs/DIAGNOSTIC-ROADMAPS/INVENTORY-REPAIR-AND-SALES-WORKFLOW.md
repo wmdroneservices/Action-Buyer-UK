@@ -980,3 +980,23 @@ Workflow photographs are removed through the Storage API, not SQL.
 ### Known fault history
 
 The original reset omitted `sales_customer_returns` and `sales_fulfillments`. Both had restrictive foreign keys to `inventory_assets` and could prevent a clean reset when those rows existed. The reset was repaired before the destructive action was performed.
+
+
+## Receipt → Inspection handoff repair — 8 September 2026
+
+### Required path
+Customer item physically received → `staff_mark_item_received_and_sync_inventory(...)` → `sale_items` / `quote_items` → linked `inventory_assets` row exists at **Received** → Product Workbench opens that asset → inspection/testing records use the same `asset_id`.
+
+### First verified failure after operational reset
+The receipt RPC previously updated only an existing `Awaiting Receipt` asset. After **CLEAR ALL OPERATIONAL DATA**, there was no asset to update, yet the function reported success because its counter increased regardless of affected rows. The sale could therefore reach inspection with **0 inventory assets**.
+
+### Repair
+Repository migration: `supabase/migrations/20260908223000_repair_received_inventory_creation.sql`.
+
+The receipt RPC now creates the missing linked inventory asset when necessary and reports created/updated/total counts separately.
+
+### First failure checkpoint
+Before investigating the inspection form, query `sale → sale_items → inventory_assets`. If the asset does not exist, repair the receipt handoff first. Do not recreate old separate inspection routes.
+
+### UI resilience
+`inventory-workbench.js` now exposes load errors and replaces an indefinite loading state with a visible timeout after 20 seconds.
