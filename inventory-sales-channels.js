@@ -48,10 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const website=outlet.outlet_code==='WEBSITE'&&outlet.outlet_type==='owned_storefront';
     const delist=row?.status==='Delist Required';
     const reserved=row?.status==='Reserved';
+    const closureText=website
+      ?'Automatically removed from the GearCashOut website because the item sold through another channel.'
+      :'MANUAL ACTION REQUIRED: close or remove this external listing. No marketplace API closure is currently configured for this outlet.';
     const action=website?(row?'UPDATE WEBSITE LISTING':'SEND TO WEBSITE'):(row?'UPDATE MARKETPLACE RECORD':'ADD TO MARKETPLACE');
     html+='<article style="border:1px solid '+(delist?'#c92a2a':'#d7dce2')+';border-radius:10px;padding:1rem;background:#fff">'
       +'<div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap"><div><h3 style="margin:0">'+esc(outlet.outlet_name)+'</h3><small>'+esc(website?'PRIMARY WEBSITE':'MARKETPLACE / EXTERNAL CHANNEL')+'</small></div><span class="notice"><strong>'+esc(statusLabel(row,website))+'</strong></span></div>'
-      +(delist?'<p class="form-message error">This listing is marked for delisting because the item was sold through another channel.</p>':'')
+      +(delist?'<p class="form-message error">'+esc(closureText)+'</p>':'')
       +'<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">'
       +(canManage&&!delist?'<button class="btn btn-primary channel-action" type="button" data-outlet-id="'+esc(outlet.id)+'" data-website="'+(website?'true':'false')+'" data-listing-id="'+esc(row?.id||'')+'" '+(reserved?'disabled title="Reserved listings are not republished from this screen."':'')+'>'+esc(reserved?'RESERVED':action)+'</button>':'')
       +(row?.id&&['Published','Reserved'].includes(row.status)&&!delist?'<button class="btn btn-secondary mark-sold" type="button" data-listing-id="'+esc(row.id)+'">MARK SOLD</button>':'')
