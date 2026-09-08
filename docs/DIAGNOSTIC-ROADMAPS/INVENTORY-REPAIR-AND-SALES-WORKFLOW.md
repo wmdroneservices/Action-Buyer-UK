@@ -784,3 +784,39 @@ The customer valuation page's progress indicator also used forced horizontal scr
 ### Regression rule
 
 Do not change a live WEBSITE listing back to Draft merely to repair presentation. Verify resale_listings.status, then verify public_storefront_stock before touching the publishing backend.
+
+
+## 8 September 2026 — Sales Dashboard active-listing truth repair
+
+### First verified failure
+
+A WEBSITE listing can be genuinely **Published** while its physical `inventory_assets.status` remains **Sent to Sales**. This is the current state of `TEST-ASSET-003`.
+
+The public storefront and Active Sales / Listings page already read `resale_listings.status='Published'`, but the Sales Dashboard pipeline was incorrectly counting only physical assets with `status='Listed'` or `status='Reserved'`.
+
+Result: a genuinely live website listing could appear as:
+
+- 0 Listed;
+- 0 Active Listings;
+- still included in Ready for Pre-Sale.
+
+### Repair
+
+The Sales Dashboard now uses authoritative `resale_listings` state for the active pipeline:
+
+- Published channel row → active/listed;
+- Reserved channel row → reserved;
+- Sent to Sales is excluded from Ready for Pre-Sale when that asset already has a Published or Reserved channel listing.
+
+This deliberately avoids changing a working Published listing or forcing an unnecessary physical-asset status rewrite.
+
+### Verification rule
+
+When dashboard and storefront disagree:
+
+1. inspect the asset status;
+2. inspect `resale_listings` for Published/Reserved rows;
+3. count active sales from channel rows;
+4. only then consider changing the asset lifecycle state.
+
+Do not "repair" the dashboard by changing a Published listing back to Draft or by blindly rewriting inventory status.
