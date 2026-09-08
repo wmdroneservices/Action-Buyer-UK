@@ -47,7 +47,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   })||{};
   const originalCondition=asset.customer_condition||quoteData.condition||itemData.condition||single.condition||basket.condition||'Not recorded';
   const originalNote=asset.customer_exception_notes||itemData.conditionNotes||itemData.exceptionNotes||single.conditionNotes||single.exceptionNotes||basket.conditionNotes||basket.exceptionNotes||quoteData.conditionNotes||quoteData.exceptionNotes||'';
-  const inspectedCondition=inspection?.visual_condition||asset.condition_grade||technical?.visual_condition||'Not recorded';
+  // Customer-declared condition is historical reference only. Resale condition is the staff inspection condition.
+  const inspectedCondition=asset.condition_grade||inspection?.visual_condition||technical?.visual_condition||'Not recorded';
   const inspectedAt=inspection?.created_at||technical?.created_at||null;
   const tested=inspection||technical?'TESTED / INSPECTED':'NO COMPLETED RECORD';
 
