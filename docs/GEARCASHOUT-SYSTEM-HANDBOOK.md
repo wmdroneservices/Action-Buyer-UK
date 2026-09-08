@@ -3937,3 +3937,13 @@ Dedicated restore branch:
 Base commit:
 
 `9e1520baa0df3c9245e1b19c3b635e0eab950455`
+
+
+## Condition truth in Inventory and Sales — 8 September 2026
+
+Two condition records have different purposes and must never be merged:
+
+- **Customer-declared condition** (`customer_condition` and customer exception notes) is historical valuation information and is reference-only after receipt.
+- **Staff inspection condition** (`inventory_assets.condition_grade`, with inspection/testing evidence) is the authoritative resale condition.
+
+Only the staff inspection condition may be carried into Product Workbench sales presentation, `resale_listings.listing_data.condition`, the GearCashOut retail listing, or marketplace listing data. Customer-declared condition and notes remain visible only in the controlled historical/reference area.
