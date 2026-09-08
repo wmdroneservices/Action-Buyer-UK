@@ -5,7 +5,8 @@ $ErrorActionPreference = 'Stop'
 # worker directly. The supervisor remains online after STOP so the dashboard can
 # START the worker again remotely.
 
-$defaultAgentDir = 'C:\\gearcashout\\Action-Buyer-UK-main\\tools\\gear-ai-local-agent'
+$defaultAgentDir = 'C:\Users\Leanne\Documents\GitHub\Action-Buyer-UK\tools\gear-ai-local-agent'
+
 $agentDir = if ($env:GEARCASHOUT_AGENT_DIR) { $env:GEARCASHOUT_AGENT_DIR } else { $defaultAgentDir }
 
 function Write-GearLog([string]$Message) {
