@@ -4144,3 +4144,38 @@ See: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
 The Sales Dashboard had already been repaired to exclude live `Published/Reserved` assets from its ready-to-list count, but `inventory-sales.js` still treated every `Sent to Sales` asset as pre-sale work. This created the contradictory state where a product could be live in Active Listings and still appear in the listing queue.
 
 The repair keeps the existing database model and filters the queue using the same authoritative channel truth. No live listing, inventory status or storefront record was rewritten.
+
+
+---
+
+## 8 September 2026 — Operational Data Reset
+
+The management reset is the deliberate clean-start route for development workflow data.
+
+It removes all current operational workflow records, including:
+
+- valuations and quote items;
+- offers, refusals and offer events;
+- sales and sale items;
+- inventory assets and their dependent preparation/testing/repair/evidence/sales-content records;
+- resale listings and resale transactions;
+- fulfilment and sales-customer-return records;
+- customer return workflow records;
+- queued workflow emails;
+- workflow photographs in the `quote-photos` storage bucket.
+
+It deliberately preserves:
+
+- customer and staff accounts;
+- catalogue products and research evidence;
+- pricing rules and retailer data;
+- outlet configuration;
+- system configuration and project documentation.
+
+### Reset safety finding
+
+The earlier reset function already removed most workflow records, but live data contained `sales_fulfillments` and `sales_customer_returns` rows with restrictive foreign keys to `inventory_assets`. Those rows could block inventory deletion.
+
+The reset now deletes those blockers before the inventory layer, allowing the clean-start reset to complete in the correct dependency order.
+
+**Important:** the reset was repaired and documented here, but it was not executed as part of the repair.
