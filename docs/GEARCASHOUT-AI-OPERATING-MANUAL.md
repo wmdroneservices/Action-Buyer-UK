@@ -3167,3 +3167,70 @@ Before changing this workflow, inspect:
 7. staff_mark_resale_listing_sold(...) and the central sold/delist flow.
 
 Preserve the central inventory and resale-listing truth. Do not create a duplicate website stock table or a separate channel state store.
+
+
+---
+
+# Product Workbench single-page repair — 8 September 2026
+
+## Current rule
+
+Do not recreate a separate per-item Sales Workbench.
+
+The authoritative per-item route is:
+
+`inventory-detail.html?id=<asset_id>`
+
+For sales-status assets, keep the same DOM/page and append the sales-specific sections. The active modules are:
+
+1. `inventory-workbench.js` — core editable product, package, condition, price, description, inspection and testing.
+2. `inventory-sales-handoff.js` — product history, repairs, sales presentation, staff photograph management and catalogue content.
+3. `inventory-sales-channels.js` — active outlets and central channel records.
+4. `listing-readiness.html` — compatibility redirect only.
+
+## First failure found in the previous implementation
+
+Do not repeat the previous approach of storing a master `listing_title` on `inventory_assets`.
+
+Live Supabase inspection confirmed:
+
+- `inventory_assets` has `description` and `approved_resale_price`;
+- `inventory_assets` does **not** have `listing_title`;
+- `resale_listings` is the table that owns `listing_title` and `listing_description`.
+
+The previous channel save therefore failed at the schema boundary.
+
+## Second failure found
+
+`inventory-sales-handoff.js` previously replaced `#asset-detail` with a new sales-only page. That made the supposedly unified Product Workbench behave like two competing workbenches.
+
+The repair changes this to append-only behaviour and removes the legacy separate-workbench link.
+
+## Current backend truth
+
+- `inventory_assets` — physical product and master resale defaults.
+- `inventory_testing` — retained inspection/testing history.
+- `inventory_repairs` — retained repair history.
+- `inventory_evidence` + `quote-photos` — staff photographs.
+- `inventory_sales_content` — physical-item presentation.
+- `catalog_sales_content` — reusable catalogue presentation.
+- `sales_outlets` — active outlet registry.
+- `resale_listings` — authoritative per-channel listing state.
+- `staff_mark_resale_listing_sold(...)` — central sold action.
+
+## Verification sequence
+
+Before declaring this workflow complete:
+
+1. Open a real Sent to Sales item.
+2. Confirm there is no OPEN SALES WORKBENCH route.
+3. Edit/save product, package, condition, price and master description.
+4. Confirm Product History shows purchase/acquisition/inspection/repair data.
+5. Add a staff photo and verify it appears.
+6. Remove a test staff photo only if safe.
+7. Publish WEBSITE and verify the central `resale_listings` row becomes Published.
+8. Record one external marketplace as submitted/live.
+9. Confirm no Draft/Ready to Upload requirement reappears.
+10. Check public storefront and sales dashboard.
+
+If a failure remains, inspect the first failing browser request and the exact Supabase response before changing another layer.
