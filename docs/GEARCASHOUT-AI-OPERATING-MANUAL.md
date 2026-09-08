@@ -3341,3 +3341,7 @@ The minimal operator inputs are manufacturer/product description, staff item des
 Selected customer and staff photographs are stored as inventory_sales_content.listing_photo_paths. Do not delete customer source photographs when they are deselected for resale.
 
 Sales completion behaviour is controlled by staff_mark_resale_listing_sold: the sold listing becomes Sold and other active listings become Delist Required. WEBSITE removal is effective immediately because public stock reads only Published WEBSITE listings. Do not claim that eBay, Vinted, Facebook Marketplace or another external outlet is automatically closed unless a real configured API/Edge Function has been inspected and verified.
+
+
+### Item-specific manufacturer text safeguard
+Manufacturer/product description can be pre-filled from catalog_sales_content, but saving an individual Product Workbench listing now stores the edited text only on inventory_sales_content. An item-level correction must not overwrite the shared catalogue description for every future item of that model.
