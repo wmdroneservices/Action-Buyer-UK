@@ -3698,3 +3698,29 @@ The first remaining failure point for a reported **Bucket not found** error was 
 - `quote-submit-v4.js?v=20260908-1`
 
 This repair intentionally changes only browser cache identity for the active authentication and submission scripts. Do not recreate the bucket or weaken Storage RLS unless live backend checks identify a separate failure.
+
+
+---
+
+## Valuation photograph persistence repair — 8 September 2026
+
+The next investigation showed a separate client-side failure after the earlier cache repair.
+
+The valuation basket was persisted in `localStorage`, but selected browser `File` objects existed only in JavaScript memory. A navigation through login/register, refresh, or other full page reload could therefore restore the basket while leaving its photograph arrays empty. The final submit step then failed before any Supabase Storage request with **“Please add at least one actual photograph.”**
+
+The active repair stores the basket photographs in browser `IndexedDB` under the same site origin:
+
+- basket remains in `localStorage`;
+- selected photographs are persisted when an item is added;
+- photographs are restored when the valuation page loads and immediately before submission;
+- persisted photographs are removed after a successful valuation;
+- removing an item also updates the persisted photograph state.
+
+Current active references:
+
+- `quote-reverse-basket-v5.js?v=20260908-photo-persist-1`
+- `quote-submit-v4.js?v=20260908-2`
+
+This is a client-side continuity repair. It does not upload photographs before authentication and does not alter Supabase Storage or RLS.
+
+**Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
