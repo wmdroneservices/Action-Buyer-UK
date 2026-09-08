@@ -18,15 +18,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const quoteItem=asset.source_quote_item_id?(await db.from('quote_items').select('*').eq('id',asset.source_quote_item_id).maybeSingle()).data:null;
   const valuation=quoteItem?.valuation_id?(await db.from('valuations').select('*').eq('id',quoteItem.valuation_id).maybeSingle()).data:null;
-  const [tests,evidence,repairs,itemContent,catalogContent]=await Promise.all([
+  const [tests,evidence,repairs,itemContent,catalogContent,existingListingsRes]=await Promise.all([
     db.from('inventory_testing').select('*').eq('asset_id',id).order('created_at',{ascending:false}),
     db.from('inventory_evidence').select('*').eq('asset_id',id).eq('evidence_type','Photographs').order('created_at',{ascending:true}),
     db.from('inventory_repairs').select('*').eq('asset_id',id).order('repaired_at',{ascending:false}),
     db.from('inventory_sales_content').select('*').eq('asset_id',id).maybeSingle(),
-    asset.catalog_product_id?db.from('catalog_sales_content').select('*').eq('catalog_product_id',asset.catalog_product_id).maybeSingle():Promise.resolve({data:null})
+    asset.catalog_product_id?db.from('catalog_sales_content').select('*').eq('catalog_product_id',asset.catalog_product_id).maybeSingle():Promise.resolve({data:null}),
+    db.from('resale_listings').select('*').eq('asset_id',id).order('updated_at',{ascending:false})
   ]);
   const testRows=tests.data||[], photos=evidence.data||[], repairRows=repairs.data||[];
   const item=itemContent.data||{}, catalog=catalogContent.data||{};
+  const existingListings=existingListingsRes.data||[];
+  const existingWebsiteListing=existingListings.find(x=>x.status==='Published'&&String(x.sales_channel||'').toLowerCase()==='website')
+    ||existingListings.find(x=>x.status==='Published')
+    ||existingListings[0]
+    ||null;
   const inspection=testRows.find(x=>x.stage==='inspection')||null;
   const technical=testRows.find(x=>x.stage==='testing')||null;
 
@@ -100,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if(repairRows.length) summary.innerHTML+='<details style="margin-top:1rem"><summary>Repair history ('+repairRows.length+')</summary>'+repairRows.map(r=>'<div class="notice" style="margin-top:.5rem"><strong>'+esc(r.repaired_at?new Date(r.repaired_at).toLocaleString('en-GB'):'Repair recorded')+'</strong><br>Fault: '+esc(r.fault_description||'Not recorded')+'<br>Repair: '+esc(r.repair_description||'Not recorded')+'</div>').join('')+'</details>';
   root.appendChild(summary);
 
-  const defaultTitle=[asset.manufacturer,asset.model,asset.package_name].filter(Boolean).join(' ');
+  const defaultTitle=item.listing_title||existingWebsiteListing?.listing_title||[asset.manufacturer,asset.model,asset.package_name].filter(Boolean).join(' ');
   const listing=document.createElement('section');
   listing.id='sales-listing-editor'; listing.className='valuation-card'; listing.style.marginTop='1rem';
   const selectedPaths=Array.isArray(item.listing_photo_paths)?item.listing_photo_paths:[];
@@ -115,15 +121,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     +'<form id="master-listing-form" class="auth-form">'
     +'<div class="notice"><strong>Listing identity</strong><br>'+esc(defaultTitle||'Manufacturer and model not yet recorded')+'</div>'
     +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Pre-filled manufacturer/model information. Edit only if it needs correcting.">'+esc(item.manufacturer_description||catalog.product_description||'')+'</textarea></label>':'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Add the product/manufacturer description needed for this item.">'+esc(item.manufacturer_description||'')+'</textarea></label>')
-    +'<label>Our item description<textarea name="our_description" rows="7" placeholder="Describe this exact item for sale.">'+esc(item.listing_notes||asset.description||'')+'</textarea></label>'
+    +'<label>Our item description<textarea name="our_description" rows="7" placeholder="Describe this exact item for sale.">'+esc(item.listing_notes||asset.description||existingWebsiteListing?.listing_description||'')+'</textarea></label>'
     +'<label>Detailed staff condition description<textarea name="condition_description" rows="4" placeholder="Describe the staff-assessed cosmetic and functional condition for resale.">'+esc(item.condition_description||'')+'</textarea></label>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem">'
     +'<label>Number of batteries<input name="actual_battery_count" type="number" min="0" value="'+esc(asset.actual_battery_count??'')+'"></label>'
     +'<label>Missing parts / items<textarea name="missing_parts" rows="3" placeholder="Record anything the buyer will not receive.">'+esc(asset.package_notes||'')+'</textarea></label>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(140px,.45fr) minmax(140px,.45fr);gap:.75rem">'
-    +'<label>Sale price (£)<input name="asking_price" type="number" min="0" step="0.01" value="'+esc(item.asking_price??asset.approved_resale_price??'')+'" required></label>'
-    +'<label>Postage &amp; packing (£)<input name="postage_packing" type="number" min="0" step="0.01" value="'+esc(item.postage_packing??'0')+'"></label>'
+    +'<label>Sale price (£)<input name="asking_price" type="number" min="0" step="0.01" value="'+esc(item.asking_price??asset.approved_resale_price??existingWebsiteListing?.asking_price??'')+'" required></label>'
+    +'<label>Postage &amp; packing (£)<input name="postage_packing" type="number" min="0" step="0.01" value="'+esc(item.postage_packing??existingWebsiteListing?.shipping_cost??'0')+'"></label>'
     +'</div><div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">SAVE LISTING DETAILS</button><p id="master-listing-message" class="form-message" aria-live="polite"></p></div></form>'
     +'<h3 style="margin-top:1.25rem">Customer photographs</h3><p>Original photographs supplied with the valuation. Tick only the photographs you want used for sale listings.</p>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:1rem">'+customerPhotoHtml+'</div>'
