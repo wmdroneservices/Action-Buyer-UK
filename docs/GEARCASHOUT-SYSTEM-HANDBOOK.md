@@ -3724,3 +3724,21 @@ Current active references:
 This is a client-side continuity repair. It does not upload photographs before authentication and does not alter Supabase Storage or RLS.
 
 **Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
+
+
+---
+
+## Purchasing Dashboard sales-handoff boundary — 8 September 2026
+
+**Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`
+
+The shared **What Needs Doing** collector reads multiple workflow tables, but the Purchasing Dashboard now applies a presentation boundary at the Inventory → Sales handoff.
+
+- **PURCHASING**, **PURCHASE RETURNS** and pre-handoff **INVENTORY** actions remain visible.
+- **Ready for Resale** remains visible because staff still need to send the item into pre-sale.
+- Once `inventory_assets.status` becomes **Sent to Sales**, the task is categorised as **SALES** and no longer appears on the Purchasing Dashboard.
+- The Sales Dashboard remains responsible for pre-sale, listing, fulfilment and other sales actions.
+
+The database status transition itself was already correct. The verified failure was that the shared task-board presentation showed **SALES** tasks on the Purchasing Dashboard after the handoff, making completed purchasing work appear to remain active there.
+
+The repair is deliberately client-side presentation scoping in `live-task-board.js`; it does not alter inventory status, sales status or any workflow records.
