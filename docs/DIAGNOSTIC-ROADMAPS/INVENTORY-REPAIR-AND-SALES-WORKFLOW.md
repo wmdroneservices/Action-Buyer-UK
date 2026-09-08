@@ -895,3 +895,49 @@ A row is visible to an authenticated user only when there is an active `staff_us
 An authenticated eligible sales staff context can now read the two current Published resale rows. The dashboard's existing authoritative listing-count logic can therefore receive the live rows it was already designed to count.
 
 No listing status, inventory status, storefront record or published item was changed.
+
+
+---
+
+## Unified sales stream placement — 8 September 2026
+
+### User action
+Staff move from the Sales Dashboard through **Ready to List**, **Active Listings**, **Sold Items** and returns without the same product appearing as normal work in more than one stage.
+
+### Front-end route
+
+- `admin-sales-dashboard.html` → `admin-sales-dashboard.js`
+- `inventory-sales.html` → `inventory-sales.js`
+- `active-sales-listings.html` → `active-sales-listings.js`
+- `sold-items.html` → `sold-items.js`
+
+### Supabase truth
+
+- `inventory_assets` — physical lifecycle and post-sale state.
+- `resale_listings` — authoritative per-channel listing state.
+- `staff_mark_resale_listing_sold(...)` — controlled sold transition.
+- `staff_close_resale_listing(...)` — closes a `Delist Required` external listing.
+
+### Expected data flow
+
+`Ready for Resale`
+→ `staff_send_inventory_to_sales(...)`
+→ `Sent to Sales`
+→ **Ready to List only while no Published/Reserved channel row exists**
+→ `resale_listings.status='Published'/'Reserved'`
+→ **Active Listings**
+→ `staff_mark_resale_listing_sold(...)`
+→ successful row `Sold`, other open rows `Delist Required`, asset `Sold - Awaiting Shipping`
+→ **Sold Items / post-sale**
+→ shipping / returns / archive.
+
+### Failure checkpoints
+
+1. Item appears in Ready to List and Active Listings: inspect `resale_listings` first; a Published/Reserved row excludes it from Ready to List.
+2. Dashboard shows zero active while storefront is live: inspect staff visibility/RLS on `resale_listings`, then dashboard query results.
+3. Item appears sold but is still shown as ready to list: inspect the asset status, sold RPC result and any stale `Delist Required` exception separately.
+4. Multiple pages disagree: do not rewrite the physical asset status first; reconcile the channel row and the page placement filter.
+
+### Known fix history
+
+The dashboard count was repaired first, then the remaining contradiction was found in `inventory-sales.js`, which still used all `Sent to Sales` assets as the pre-sale queue. The minimal repair changed only the presentation filter and wording; it did not alter working Published listings or inventory lifecycle records.
