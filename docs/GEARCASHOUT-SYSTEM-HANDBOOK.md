@@ -4190,3 +4190,19 @@ The receipt RPC previously only updated an existing `Awaiting Receipt` asset. Af
 Diagnostic Roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
 
 The Product Workbench also now shows a visible error/timeout instead of remaining indefinitely on its loading message.
+
+## Purchasing Inspection → Read-Only Sales Boundary — 8 September 2026
+
+The physical inspection is owned by **Purchasing**.
+
+Required route:
+
+**Received** → **Start Inspection** → editable `inventory-detail.html` Product Workbench in Purchasing → inspection/testing outcome → **Repair Required** or completed physical inspection → Sales sees the inspection as **read-only** → final offer/refusal becomes available only after the physical inspection is complete.
+
+Sales must not edit inspection facts, technical test results, repair details or physical condition history. Those records remain editable only through the Purchasing/Product Workbench and the controlled Repair Required workflow.
+
+The Sales sale-detail page now links an incomplete inspection back to Purchasing rather than bypassing it to the final-offer screen. When complete, Sales shows a read-only inspection summary and then exposes the final-offer/refusal action.
+
+The final-offer control layer also verifies the linked inventory asset has completed the Purchasing inspection before re-enabling accepted-item final-offer controls.
+
+Diagnostic Roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
