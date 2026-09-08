@@ -3947,3 +3947,23 @@ Two condition records have different purposes and must never be merged:
 - **Staff inspection condition** (`inventory_assets.condition_grade`, with inspection/testing evidence) is the authoritative resale condition.
 
 Only the staff inspection condition may be carried into Product Workbench sales presentation, `resale_listings.listing_data.condition`, the GearCashOut retail listing, or marketplace listing data. Customer-declared condition and notes remain visible only in the controlled historical/reference area.
+
+
+## Final Product Workbench listing flow — 8 September 2026
+
+The final Product Workbench is the single operational listing editor. The operator should only complete or correct the resale information that matters at listing stage:
+
+- pre-filled editable listing title;
+- manufacturer/product description where catalogue data exists;
+- item-specific resale description;
+- detailed staff condition description;
+- battery quantity;
+- missing parts/items;
+- exact package contents;
+- sale price;
+- postage and packing;
+- listing photographs.
+
+After saving, the operator can **Send to Website** or **Add to Marketplace** from the channel list below. There is no draft workflow.
+
+When a listing is marked sold, the database function marks all other active channel records as Delist Required. The GearCashOut website automatically stops displaying its listing because the public storefront only returns Published WEBSITE listings. External marketplaces currently have no configured closure APIs, so the workbench must show a clear manual closure warning rather than claiming they were automatically closed.
