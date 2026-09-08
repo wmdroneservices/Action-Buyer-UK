@@ -3756,3 +3756,11 @@ The shared `live-task-board.js` collects authoritative workflow tasks centrally,
 This prevents completed handoffs from leaking back into the previous team's dashboard. Inventory remains on Purchasing until the item reaches **Sent to Sales**.
 
 **Diagnostic Roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+## Direct Website Publishing from the Sales Workbench — 8 September 2026
+
+The **GearCashOut Retail Website** outlet is now a direct publishing channel. Staff enter the title, sale price and description in the Sales Workbench and use **PUBLISH TO WEBSITE**. The authoritative WEBSITE `resale_listings` record is published directly; no external marketplace URL is required.
+
+The public storefront reads that published WEBSITE listing through the existing public storefront RPC path, so the same central inventory and sold-state controls remain in force. External marketplaces keep their separate Draft / Ready to Upload / live-link workflow.
+
+**Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md`.
