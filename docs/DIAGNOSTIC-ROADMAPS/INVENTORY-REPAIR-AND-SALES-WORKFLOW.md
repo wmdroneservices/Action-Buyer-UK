@@ -716,3 +716,28 @@ This is the authoritative resale condition and is the only condition carried int
 
 ### Failure checkpoint
 If a resale listing shows the wrong condition, inspect `inventory_assets.condition_grade` first, then the channel payload construction. Do not repair the issue by copying customer valuation condition into sales data.
+
+
+## Final listing-stage simplification — 8 September 2026
+
+**Single editor:** inventory-detail.html + inventory-sales-handoff.js
+
+Editable resale fields:
+- pre-filled listing title;
+- manufacturer/product description;
+- item-specific description;
+- detailed staff resale condition;
+- battery quantity;
+- missing items;
+- final package contents;
+- sale price;
+- postage and packing;
+- staff listing photographs.
+
+**Sales actions:** inventory-sales-channels.js
+
+- WEBSITE → Send to Website / update Website.
+- External outlets → Add to Marketplace / update marketplace record, shown as submitted/live operationally.
+- Sold event → staff_mark_resale_listing_sold marks all other channel rows Delist Required.
+- WEBSITE is effectively removed automatically from public stock because public_storefront_stock filters for Published WEBSITE rows.
+- External marketplace closure is manual until a verified outlet API is implemented; the workbench warns staff clearly.
