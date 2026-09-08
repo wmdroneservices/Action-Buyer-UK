@@ -3311,3 +3311,13 @@ Dedicated restore branch:
 Base commit:
 
 `9e1520baa0df3c9245e1b19c3b635e0eab950455`
+
+
+## 8 September 2026 — Condition source rule
+
+For Inventory → Sales investigations, treat the two condition concepts as separate sources of truth:
+
+1. Customer-declared condition and exception notes are immutable historical valuation evidence.
+2. Staff inspection condition is the authoritative resale condition.
+
+Never use a customer-declared condition as fallback resale data. Sales output, channel payloads and the retail website must use the staff inspection condition held on `inventory_assets.condition_grade` (with inspection/testing records as audit evidence). If no staff condition exists, surface the absence rather than substituting the customer declaration.
