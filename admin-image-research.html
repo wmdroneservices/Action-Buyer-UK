@@ -24,6 +24,10 @@
 .image-research-form{display:grid;gap:.75rem}.image-research-actions{display:flex;gap:.6rem;flex-wrap:wrap}
 .image-research-message{min-height:1.2em;margin:.4rem 0;color:#b42318}.image-research-summary{color:#667085;margin:.3rem 0 0}
 .image-checkbox{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:.55rem!important;font-weight:600!important}
+.image-research-mode{display:flex;gap:.5rem;flex-wrap:wrap;margin:0 0 1rem}.image-research-mode .btn.active{background:#1f3b57;color:#fff}
+.image-batch-panel{margin-top:1rem;border:1px solid #d0d5dd;border-radius:8px;background:#fff;padding:1rem}.image-batch-controls{display:grid;grid-template-columns:minmax(240px,1fr) 160px auto;gap:.75rem;align-items:end}.image-batch-controls label{display:grid;gap:.35rem;font-size:.82rem;font-weight:700}.image-batch-controls input,.image-batch-controls select,.image-batch-card input,.image-batch-card textarea{width:100%;box-sizing:border-box;padding:.65rem;border:1px solid #d0d5dd;border-radius:6px;background:#fff;font:inherit}
+.image-batch-summary{margin:.8rem 0;color:#667085}.image-batch-list{display:grid;gap:.85rem}.image-batch-card{border:1px solid #eaecf0;border-radius:8px;padding:.9rem;background:#fcfcfd}.image-batch-card.locked{opacity:.72;background:#f7f7f7}.image-batch-card-head{display:flex;justify-content:space-between;gap:1rem;align-items:start}.image-batch-card h3{margin:.15rem 0}.image-batch-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-top:.7rem}.image-batch-grid label{display:grid;gap:.3rem;font-size:.78rem;font-weight:700}.image-batch-wide{grid-column:1/-1}.image-batch-brief{width:100%;min-height:260px;box-sizing:border-box;margin-top:.8rem;font:12px/1.45 monospace;padding:.75rem;border:1px solid #d0d5dd;border-radius:6px}.image-batch-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.8rem}
+@media(max-width:700px){.image-batch-controls,.image-batch-grid{grid-template-columns:1fr}.image-batch-wide{grid-column:auto}}
 @media(max-width:980px){.image-research-grid{grid-template-columns:1fr}.image-research-editor{position:static}.image-research-filters{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.image-research-filters{grid-template-columns:1fr}.image-research-row{grid-template-columns:1fr}.image-research-row small{grid-column:auto}}
 </style>
@@ -40,6 +44,27 @@
 <label>Search<input id="image-filter-search" type="search" placeholder="DJI Mini, Nikon, Cameras…"></label>
 <button id="image-refresh" class="btn btn-secondary" type="button">REFRESH</button>
 </div>
+<div class="image-research-mode" aria-label="Image research mode">
+<button id="image-mode-individual" class="btn btn-secondary active" type="button">INDIVIDUAL RESEARCH</button>
+<button id="image-mode-batch" class="btn btn-secondary" type="button">MANUFACTURER BATCH RESEARCH</button>
+</div>
+<section id="image-batch-panel" class="image-batch-panel" hidden>
+<div class="section-heading"><p class="section-kicker">GEMMA · MANUFACTURER IMAGE RESEARCH</p><h2>Research a manufacturer in blocks</h2><p>Select a real manufacturer from the central queue. The workspace loads its exact Category + Manufacturer targets, generates a structured Gemma research brief, and deploys reviewed results only to the matching queue records.</p></div>
+<div class="image-batch-controls">
+<label>Manufacturer<select id="image-batch-manufacturer"><option value="">Loading manufacturers…</option></select></label>
+<label>Status<select id="image-batch-status"><option value="">All</option><option value="pending" selected>Pending</option><option value="candidate">Candidate</option></select></label>
+<button id="image-batch-load" class="btn btn-primary" type="button">LOAD BATCH</button>
+</div>
+<p id="image-batch-summary" class="image-batch-summary">Choose a manufacturer to begin.</p>
+<div id="image-batch-list" class="image-batch-list"></div>
+<div id="image-batch-actions" class="image-batch-actions" hidden>
+<button id="image-batch-brief" class="btn btn-secondary" type="button">GENERATE GEMMA BRIEF</button>
+<button id="image-batch-copy" class="btn btn-secondary" type="button">COPY GEMMA BRIEF</button>
+<button id="image-batch-save" class="btn btn-primary" type="button">DEPLOY BATCH CANDIDATES</button>
+</div>
+<textarea id="image-batch-brief-output" class="image-batch-brief" hidden readonly></textarea>
+<p id="image-batch-message" class="image-research-message" role="status"></p>
+</section>
 <p id="image-research-summary" class="image-research-summary">Checking staff access…</p>
 <div class="image-research-grid">
 <section class="image-research-list"><div id="image-research-list"></div><div style="padding:.8rem"><button id="image-load-more" class="btn btn-secondary" type="button" hidden>LOAD MORE</button></div></section>
