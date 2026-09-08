@@ -4229,3 +4229,10 @@ This prevents the Purchasing Dashboard from making one physical item look like t
 A customer-sourced item can be physically ready after inspection/testing but must **not** enter the Sales/listing stream until the purchase from the customer is finalised. The authoritative `staff_send_inventory_to_sales(...)` gate now requires the linked `sales` record to be `status='completed'` and `payment_status='paid'` before the asset can move from `Ready for Resale` to `Sent to Sales`.
 
 This is enforced in the database as well as the Product Workbench. “Ready for Resale” means physically ready; it does not by itself mean commercially cleared for resale.
+
+
+## Receipt status authority — 2026-09-08
+
+When staff confirm **ITEM RECEIVED**, the authoritative action is the secured Supabase RPC `staff_mark_item_received_and_sync_inventory`. It updates the purchase to `received`, marks the inbound shipment delivered and synchronises the linked inventory asset. Customer-facing pages must treat the purchase status as authoritative after receipt; a stale `shipments.status='in_transit'` must never overwrite the customer update.
+
+See: [Inventory Repair, Testing and Sales Handoff Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md).
