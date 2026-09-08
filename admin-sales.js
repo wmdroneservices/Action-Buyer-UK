@@ -65,8 +65,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     box.innerHTML=paymentDueBanner+sales.map(s=>{
       const si=(items||[]).filter(i=>i.sale_id===s.id),sh=(shipments||[]).filter(x=>x.sale_id===s.id);
-      const canReceive=!archiveView&&!returnedView&&["collecting_items","ready_for_shipping","shipping"].includes(s.status);
       const inboundShipment=sh.find(x=>x.shipment_type==="inbound");
+      const inboundLabelReady=Boolean(
+        inboundShipment
+        && ["label_created","in_transit"].includes(String(inboundShipment.status||""))
+        && Number(inboundShipment.label_count||0)>0
+        && (
+          (Array.isArray(inboundShipment.label_urls)&&inboundShipment.label_urls.length>0)
+          || (Array.isArray(inboundShipment.qr_code_urls)&&inboundShipment.qr_code_urls.length>0)
+        )
+      );
+      // Receipt is not available until a real customer → GearCashOut label/QR has
+      // been created and recorded. The database RPC enforces the same rule.
+      const canReceive=!archiveView&&!returnedView
+        && ["collecting_items","ready_for_shipping","shipping"].includes(s.status)
+        && inboundLabelReady;
       const labelRequired=!archiveView&&!returnedView&&Boolean(s.bank_details_confirmed_at)&&!inboundShipment&&!["paid","completed","cancelled"].includes(s.status);
       const shippingAction=labelRequired?`<div class="shipping-next-step" style="margin:12px 0;padding:10px 12px;border-left:4px solid #c94b2c;background:#fff7f3;font-weight:700;color:#8f321f;">NEXT STEP: CREATE CUSTOMER → US SHIPPING LABEL</div>`:"";
       const saleReceived=["received","inspection","payment_due"].includes(String(s.status||""));
