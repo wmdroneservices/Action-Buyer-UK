@@ -150,3 +150,69 @@ After deployment:
 10. confirm existing customer/admin valuation behaviour still works.
 
 If the error persists after current scripts are confirmed loaded, stop changing cache versions and inspect the first failing network request/error instead.
+
+
+## Customer read-only submission history — 8 September 2026
+
+### User action
+
+From **Valuations received** or **Valuation update**, the customer selects:
+
+**VIEW WHAT YOU SENT**
+
+### Front-end route
+
+`account.html`
+
+→ `account-valuation-view-links.js`
+
+→ `customer-valuation.html?id=<valuation-id>`
+
+→ `customer-valuation.js`.
+
+The account link module maps the current customer's operational records through:
+
+`sales` → `sale_items` → `quote_items` → `valuations`
+
+and also links directly from valuation cards by `quote_reference`.
+
+### Expected data flow
+
+`customer-valuation.js`
+
+→ authenticated session from `auth.js`
+
+→ `valuations` filtered by both requested ID and current customer `user_id`
+
+→ `quote_items`
+
+→ `quote_items.item_data`
+
+→ `quote-photos` signed URLs for the original submitted photographs.
+
+### Expected visible result
+
+The customer sees a **READ ONLY** historical copy of the original submission with:
+
+- product/manufacturer/model identity;
+- package;
+- category where supplied;
+- customer-declared condition;
+- missing-item declaration;
+- serial number where supplied;
+- exception notes;
+- submitted photographs where still available.
+
+This is not the staff inspection record and must not display the staff resale condition as if the customer originally declared it.
+
+### First failure points
+
+1. Link injection did not receive current sales/valuation rows.
+2. A sale has no linked `sale_items`.
+3. A `sale_item.quote_item_id` cannot resolve to the customer's valuation.
+4. Customer ownership/RLS blocks the requested valuation.
+5. Stored photo metadata is missing or the Storage ownership policy blocks signed URL creation.
+
+### Regression rule
+
+Do not remove the product name from customer progress simply because the operational card is keyed by a sale reference. A sale reference and a valuation reference are operational identifiers; the read-only history view must remain human-readable equipment history.
