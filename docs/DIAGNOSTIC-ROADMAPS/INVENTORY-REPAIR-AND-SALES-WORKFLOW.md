@@ -521,3 +521,50 @@ The shared collector continues to generate all valid workflow tasks. Each dashbo
 ### Rule
 
 **The shared task collector is global; dashboard ownership is page-scoped.**
+
+
+## Unified Product Workbench and channel management — 8 September 2026
+
+### User action
+Staff open one inventory item and complete or edit the product, photographs, listing content and sales channels without moving to a separate per-item Sales Workbench.
+
+### Front-end entry point
+- inventory-detail.html
+- inventory-workbench.js — receiving/inspection workflow and customer note display.
+- inventory-sales-handoff.js — post-handoff product, catalogue, physical-item and photograph editing.
+- inventory-sales-channels.js — core listing fields and active outlet controls.
+- listing-readiness.html — compatibility redirect only.
+
+### Supabase
+- inventory_assets — core physical item and default listing details.
+- inventory_testing — retained inspection/testing history.
+- inventory_evidence — staff photographs.
+- quote_items / valuations — original customer quote and condition/exception data.
+- inventory_sales_content — physical-item sales presentation.
+- catalog_sales_content — reusable catalogue presentation.
+- sales_outlets — authoritative active outlet registry.
+- resale_listings — authoritative channel listings.
+- staff_mark_resale_listing_sold(p_listing_id,p_sold_price,p_selling_fees,p_shipping_cost) — central sold action.
+
+### Expected data flow
+Product Workbench
+→ save core product/listing details to inventory_assets
+→ save sales presentation to existing sales-content tables
+→ manage staff photographs through inventory_evidence / quote-photos
+→ load active outlets from sales_outlets
+→ WEBSITE publish or marketplace submitted/live action
+→ central resale_listings
+→ public storefront / central sales state.
+
+### Failure checkpoints
+1. Customer condition note missing: inspect customer_exception_notes, item_data.exceptionNotes, and item_data.conditionNotes before changing display logic.
+2. Channel list missing: verify active sales_outlets rows and staff access.
+3. Website does not appear publicly: verify the WEBSITE resale_listings row is Published and then inspect the public storefront query/RPC.
+4. Marketplace state appears wrong: inspect the single channel row in resale_listings; do not restore the old Draft/Ready workflow without a deliberate workflow decision.
+5. Sold action fails: inspect the central sold RPC before altering channel state directly.
+6. A legacy Sales Workbench link appears: verify listing-readiness.html remains only a compatibility redirect and the Product Workbench is the active per-item route.
+
+### Known fix history
+- The previous separate Sales Workbench duplicated the per-item workflow and required Draft → Ready to Upload steps.
+- Direct WEBSITE publishing was already correctly repaired on 8 September 2026.
+- The workflow was consolidated onto the Product Workbench while retaining the same sales_outlets and resale_listings backend truth.
