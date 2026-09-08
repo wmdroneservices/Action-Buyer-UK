@@ -3795,3 +3795,52 @@ Customer condition or exception notes are displayed explicitly in the Customer Q
 See:
 
 docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md
+
+
+---
+
+## Unified Product Workbench correction — 8 September 2026
+
+### What staff use
+
+Each physical item is managed through one authoritative per-item page:
+
+`inventory-detail.html?id=<asset_id>`
+
+The page is intended to work like a single listing editor: product details, condition, package, inspection/testing, photographs, resale description, sale price, item sales presentation, catalogue content, history and all sales channels remain accessible from the same product page.
+
+A separate **Product History** link scrolls to the retained purchase, acquisition, inspection and repair record.
+
+### Sales channels
+
+- **GearCashOut Retail Website**: publish directly from the product page.
+- **External marketplaces/channels**: create the listing externally, then use one submitted/live action to record it.
+- There is no Draft → Ready to Upload requirement in the normal operational flow.
+- Central `resale_listings` remains the authoritative channel record.
+
+### Root cause corrected
+
+The first actual failure in the previous consolidation was a schema mismatch: `inventory-sales-channels.js` attempted to save `listing_title` onto `inventory_assets`, but the live `inventory_assets` table has no such column. Listing titles belong to `resale_listings`.
+
+A second issue was presentation architecture: the sales handoff script replaced the entire Product Workbench DOM for sales-status items, effectively recreating a second workbench. It now appends sales/history sections to the same page instead.
+
+### Diagnostic route
+
+User opens product
+→ `inventory-detail.html`
+→ `inventory-workbench.js` for core editable product and inspection data
+→ `inventory-sales-handoff.js` for retained history, sales presentation and staff photo management
+→ `inventory-sales-channels.js` for WEBSITE and external channel controls
+→ `inventory_assets`, `inventory_testing`, `inventory_repairs`, `inventory_evidence`, `inventory_sales_content`, `catalog_sales_content`, `sales_outlets`, `resale_listings`.
+
+**Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+### Verification state
+
+Repository code syntax was checked after the correction. Live browser workflow verification remains required for:
+
+1. editing and saving one Sent to Sales item;
+2. adding/removing/viewing staff photographs;
+3. publishing the WEBSITE outlet;
+4. recording one external marketplace as submitted/live;
+5. confirming the public storefront and sales dashboard reflect the same central listing.
