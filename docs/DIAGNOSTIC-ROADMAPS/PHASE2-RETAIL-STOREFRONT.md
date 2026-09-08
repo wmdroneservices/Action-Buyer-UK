@@ -605,3 +605,25 @@ Published `resale_listings`
 → linked unsold `inventory_assets.catalog_product_id`.
 
 No second stock truth exists.
+
+## Direct Retail Website Publishing from Sales Workbench — implemented 8 September 2026
+
+### User action
+
+Sales staff → Sales Workbench → **GearCashOut Retail Website** → enter listing title, sale price and description → **PUBLISH TO WEBSITE**.
+
+### Expected result
+
+The WEBSITE outlet is an owned storefront, not an external marketplace. Saving/publishing that outlet now writes the same authoritative `resale_listings` record directly as `Published`, sets `published_at`, and does not require an external listing URL.
+
+### Data flow
+
+Sales Workbench form → authenticated Supabase client → `resale_listings` with WEBSITE `outlet_id` → `Published` → existing public storefront RPCs (`public_storefront_stock` / catalogue availability) → GearCashOut Retail Website.
+
+### Preserved controls
+
+- one physical `inventory_assets` SKU remains authoritative;
+- no duplicate website stock table is created;
+- sold-state and competing-listing delist protection remain unchanged;
+- marketplace outlets retain the existing Draft → Ready to Upload → live-link → Published workflow;
+- direct website publishing still requires the asset to have been sent to Sales.
