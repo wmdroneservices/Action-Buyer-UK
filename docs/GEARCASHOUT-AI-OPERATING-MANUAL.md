@@ -3030,3 +3030,22 @@ Current path:
 8. Staff performs rights and visual review before approval.
 
 Do not generalise one manufacturer image across unrelated categories. Do not overwrite approved imagery. If the Research PC worker is updated in GitHub, remember that the live Research PC uses a manually extracted copy and must receive the updated `agent.mjs` before this mode can run locally.
+
+
+---
+
+## Customer valuation photo upload: cache-first diagnostic rule — 8 September 2026
+
+**Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
+
+When a customer reports `Bucket not found` during valuation photo submission:
+
+1. inspect the active `valuation.html` script references;
+2. inspect current `auth.js` and `quote-submit-v4.js`;
+3. verify the live Supabase project, `quote-photos` bucket and Storage policies;
+4. check whether recent successful objects and quote photo metadata already prove the backend path;
+5. if backend state is correct, inspect fixed browser cache-version query strings before changing Supabase.
+
+On 8 September 2026 the live bucket, policies and a successful recent quote were verified. The minimal repair was to advance only the active `auth.js` and `quote-submit-v4.js` cache identifiers in `valuation.html` to `20260908-1`.
+
+Do not repeat the earlier approach of changing storage/backend configuration when the current failure evidence points to stale client code.
