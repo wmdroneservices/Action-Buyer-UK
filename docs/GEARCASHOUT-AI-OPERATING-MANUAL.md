@@ -3630,3 +3630,10 @@ For a customer-sourced asset, `staff_send_inventory_to_sales(...)` must require:
 - `sales.payment_status='paid'`.
 
 The UI may hide or explain the action, but the RPC must remain the authoritative enforcement point. This prevents stale pages or direct RPC calls from bypassing the purchasing boundary.
+
+
+## 2026-09-08 — Receipt/customer-status synchronisation rule
+
+Do not debug the customer wording first. Trace: **staff click → `staff_mark_item_received_and_sync_inventory` → `sales.status='received'` + inbound shipment delivery → linked inventory asset → customer account render**.
+
+The purchase status is authoritative once receipt is recorded. Shipment state is transport history and must only be used as a fallback before receipt. The staff receipt button must call the secured RPC directly rather than relying on a competing legacy Edge Function handler.
