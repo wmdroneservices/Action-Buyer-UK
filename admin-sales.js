@@ -81,7 +81,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     box.querySelectorAll(".sale-action").forEach(b=>b.onclick=()=>saleAction(b.dataset.action,b.dataset.id,b.dataset.reference,b.dataset.folder));
     if(archiveView||returnedView)return;
-    box.querySelectorAll(".mark-received").forEach(b=>b.onclick=async()=>{if(!confirm("Confirm that the customer's item(s) have been received? This will update the sale and email the customer."))return;b.disabled=true;const{data,error}=await auth.supabase.functions.invoke("mark-item-received",{body:{sale_id:b.dataset.sale}});if(error||data?.error){b.disabled=false;notice(data?.error||error?.message||"Could not mark item received.",false);return;}notice(data?.email_sent?"Item marked received and customer email sent.":"Item marked received; customer email was not sent.",!data?.email_error);await load();});
+    box.querySelectorAll(".mark-received").forEach(b=>b.onclick=async()=>{
+      if(!confirm("Confirm that the customer's item(s) have been physically received? This will record receipt, update the linked inventory asset(s), and then notify the customer."))return;
+      b.disabled=true;
+      const saleId=b.dataset.sale;
+      const {data,error}=await auth.supabase.rpc("staff_mark_item_received_and_sync_inventory",{p_sale_id:saleId});
+      if(error||data?.error){
+        b.disabled=false;
+        notice(data?.error||error?.message||"Could not record item receipt.",false);
+        return;
+      }
+      let emailError=null;
+      try{
+        const email=await auth.supabase.functions.invoke("mark-item-received",{body:{sale_id:saleId}});
+        emailError=email.error||email.data?.error||null;
+      }catch(err){emailError=err?.message||"Customer email could not be sent.";}
+      const changed=Number(data?.inventory_assets_created||0)+Number(data?.inventory_assets_updated||0);
+      notice(emailError
+        ? `Item received and ${changed} linked inventory asset(s) synchronised, but the customer email could not be sent.`
+        : `Item received and ${changed} linked inventory asset(s) synchronised. Customer update sent.`,
+        !emailError);
+      await load();
+    });
     box.querySelectorAll(".new-shipment").forEach(b=>b.onclick=()=>{const f=document.getElementById("shipment-"+b.dataset.sale);f.hidden=false;f.dataset.type=b.dataset.type;const inbound=b.dataset.type==="inbound";f.querySelector(".label-urls").value=inbound?setting.inboundLabel:setting.returnLabel;f.querySelector(".qr-urls").value=inbound?setting.inboundQr:setting.returnQr;});
 box.querySelectorAll(".save-shipment").forEach(b=>b.onclick=async()=>{
 
