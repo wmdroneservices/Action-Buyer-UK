@@ -4236,3 +4236,20 @@ This is enforced in the database as well as the Product Workbench. “Ready for 
 When staff confirm **ITEM RECEIVED**, the authoritative action is the secured Supabase RPC `staff_mark_item_received_and_sync_inventory`. It updates the purchase to `received`, marks the inbound shipment delivered and synchronises the linked inventory asset. Customer-facing pages must treat the purchase status as authoritative after receipt; a stale `shipments.status='in_transit'` must never overwrite the customer update.
 
 See: [Inventory Repair, Testing and Sales Handoff Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md).
+
+
+## Customer Account — Read-only Original Valuation
+
+Customers can now open a read-only copy of what they originally submitted, including product identity, package, customer-declared condition, missing-item/exceptions information and submitted photographs where available.
+
+The customer account surfaces **VIEW WHAT YOU SENT** links from both valuation records and active valuation/purchase updates. The link opens:
+
+- `customer-valuation.html?id=<valuation-id>`
+- rendered by `customer-valuation.js`
+- link injection owned by `account-valuation-view-links.js`.
+
+The page is deliberately historical and read-only. It must show the customer's original submission rather than replacing it with staff inspection or resale information.
+
+**Developer Diagnostic Roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
+
+**Security boundary:** the page queries the valuation with both the requested ID and the authenticated customer's `user_id`, with existing RLS on `valuations` and `quote_items` enforcing ownership. Do not convert this into a public unauthenticated valuation URL.
