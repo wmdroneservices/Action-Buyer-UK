@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="display:grid;gap:1rem;margin-top:1rem">
           ${outlets.map(outlet => {
             const channel = outlet.outlet_name;
+            const isWebsite = outlet.outlet_code === 'WEBSITE' && outlet.outlet_type === 'owned_storefront';
             const row = map.get(outlet.id) || {};
             const title = row.listing_title || asset.listing_title || titleDefault;
             const description = row.listing_description || descriptionDefault;
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `
               <article class="sales-channel-block" style="border:1px solid ${delistRequired ? '#c92a2a' : '#d7dce2'};border-radius:10px;padding:1rem;background:#fff;box-shadow:${delistRequired ? '0 4px 14px rgba(166,27,27,.14)' : '0 2px 7px rgba(16,47,79,.05)'}">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
-                  <div><h3 style="margin:0">${esc(channel)}</h3><small>${safeOutletType(outlet.outlet_type)} · ${isNew ? 'Not started' : 'Listing saved'}</small></div>
+                  <div><h3 style="margin:0">${esc(channel)}</h3><small>${isWebsite ? 'DIRECT WEBSITE PUBLISHING' : safeOutletType(outlet.outlet_type)} · ${isNew ? 'Not started' : 'Listing saved'}</small></div>
                   <span style="display:inline-block;padding:.42rem .75rem;border-radius:999px;background:${statusBackground};color:${statusColor};font-size:.78rem;font-weight:900;letter-spacing:.04em"><strong>${esc(statusLabel(row.status))}</strong></span>
                 </div>
                 ${delistRequired ? `<div style="margin:0 0 1rem;padding:1rem 1.1rem;background:#fff0f0;border:3px solid #c92a2a;border-radius:8px;color:#7d1111;box-shadow:0 3px 10px rgba(166,27,27,.12)"><div style="font-size:1rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.25rem">CLOSE THIS LISTING NOW</div><div style="font-weight:800">This item has been sold through another sales channel. Remove or close this ${esc(channel)} listing immediately to prevent a duplicate sale.</div>${row.listing_url ? '<div style="margin-top:.6rem;font-weight:900">Use VIEW LIVE LISTING below to open the marketplace listing.</div>' : ''}</div>` : ''}
@@ -116,10 +117,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label>Live listing link<input name="listing_url" type="url" value="${esc(row.listing_url || '')}" placeholder="Add after the listing is published"></label>
                   </div>
                   <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:.85rem">
-                    <button class="btn btn-primary" type="submit" ${delistRequired ? 'disabled title="This listing must be closed because the item sold through another channel"' : ''}>${isNew ? 'SAVE DRAFT' : 'SAVE CHANGES'}</button>
-                    ${row.id && !delistRequired && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
-                    ${isReady ? `<button class="btn btn-secondary publish-button" type="button" data-id="${esc(row.id)}" style="background:#2d9a62;color:#fff;font-weight:900;box-shadow:0 3px 9px rgba(45,154,98,.24)" ${row.listing_url ? '' : 'disabled title="Paste the live marketplace listing link first"'}>MARK AS UPLOADED / LIVE</button>` : ''}
-                    ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LIVE LISTING</a>` : ''}
+                    <button class="btn btn-primary" type="submit" ${delistRequired ? 'disabled title="This listing must be closed because the item sold through another channel"' : ''}>${isWebsite ? (row.status === 'Published' ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (isNew ? 'SAVE DRAFT' : 'SAVE CHANGES')}</button>
+                    ${!isWebsite && row.id && !delistRequired && row.status !== 'Published' && row.status !== 'Reserved' && row.status !== 'Sold' ? `<button class="btn btn-secondary ready-button" type="button" data-id="${esc(row.id)}" style="background:#e6a23c;color:#fff;font-weight:900;box-shadow:0 3px 8px rgba(216,135,50,.22)" ${readyFields ? '' : 'disabled title="Add title, description and sale price first"'}>READY TO UPLOAD</button>` : ''}
+                    ${!isWebsite && isReady ? `<button class="btn btn-secondary publish-button" type="button" data-id="${esc(row.id)}" style="background:#2d9a62;color:#fff;font-weight:900;box-shadow:0 3px 9px rgba(45,154,98,.24)" ${row.listing_url ? '' : 'disabled title="Paste the live marketplace listing link first"'}>MARK AS UPLOADED / LIVE</button>` : ''}
+                    ${!isWebsite && row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LIVE LISTING</a>` : ''}
                     ${row.id && !delistRequired && row.status !== 'Sold' && row.status !== 'Cancelled' ? `<button class="btn btn-secondary mark-sold" type="button" data-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                     <span class="form-message channel-message" aria-live="polite"></span>
                   </div>
@@ -159,13 +160,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       message.className = 'form-message';
       const priceValue = String(fd.get('asking_price') || '').trim();
       const shippingValue = String(fd.get('shipping_cost') || '').trim();
+      const outlet = outlets.find(x => x.id === form.dataset.outletId);
+      const isWebsite = outlet?.outlet_code === 'WEBSITE' && outlet?.outlet_type === 'owned_storefront';
+      const now = new Date().toISOString();
       const payload = {
         asset_id: id,
         sales_channel: form.dataset.channel,
         outlet_id: form.dataset.outletId,
-        listing_reference: String(fd.get('listing_reference') || '').trim() || null,
-        listing_url: String(fd.get('listing_url') || '').trim() || null,
-        status: 'Draft',
+        listing_reference: isWebsite ? null : String(fd.get('listing_reference') || '').trim() || null,
+        listing_url: isWebsite ? null : String(fd.get('listing_url') || '').trim() || null,
+        status: isWebsite ? 'Published' : 'Draft',
+        ...(isWebsite ? { published_at: now } : {}),
         asking_price: priceValue === '' ? null : Number(priceValue),
         shipping_cost: shippingValue === '' ? null : Number(shippingValue),
         listing_title: String(fd.get('listing_title') || '').trim() || null,
@@ -176,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? await db.from('resale_listings').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', listingId)
         : await db.from('resale_listings').insert(payload);
       if (response.error) { message.textContent = response.error.message; message.className = 'form-message error'; button.disabled = false; return; }
-      message.textContent = 'Saved as draft.';
+      message.textContent = isWebsite ? 'Published directly to the GearCashOut Retail Website.' : 'Saved as draft.';
       message.className = 'form-message success';
       button.disabled = false;
       setTimeout(load, 350);
