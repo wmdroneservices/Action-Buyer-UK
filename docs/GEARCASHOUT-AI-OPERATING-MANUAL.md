@@ -3823,3 +3823,20 @@ Check:
 ## Non-negotiable rule
 
 Do not mass-rename or merge live catalogue categories merely to make the public dropdown look cleaner. Internal research/catalogue taxonomy and public customer taxonomy may differ deliberately. Any future database taxonomy migration must be separately audited for downstream research, evidence and storefront effects.
+
+
+---
+
+## Current Operational Rule — Shared Purchase-to-Retail Category Routing (9 September 2026)
+
+Do not copy or bulk-normalise quote_catalog_products merely to make public retail navigation tidy.
+
+The audited boundary is:
+
+- source taxonomy remains on quote_catalog_products;
+- canonical_storefront_category(...) maps every product into a stable retail group;
+- public_storefront_categories(...) is the authoritative category list for the Retail Storefront;
+- manufacturer/model/stock RPCs use the same canonical mapping;
+- inventory assets must preserve catalog_product_id through the purchase → inventory → sales handoff.
+
+The first verified failure was a hard-coded storefront category list that omitted valid source-category variants from the category-card journey. The repair removes that duplicated front-end category truth.
