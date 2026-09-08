@@ -3654,3 +3654,21 @@ A generated **Gemma Manufacturer Image Research Brief** gives the selected manuf
 Server-side batch deployment validates the exact queue ID, manufacturer and category and refuses to overwrite approved imagery.
 
 See: docs/DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md.
+
+
+## Gemma manufacturer batch image research — 8 September 2026
+
+The AI Research Centre now includes **Gemma Manufacturer Image Research** for controlled manufacturer batches. Select an existing canonical manufacturer and batch size; the job resolves only live central image-queue targets using the exact **Manufacturer + Category** key.
+
+Flow:
+
+AI Research Centre → create manufacturer job → Supabase job/items → Research PC `agent.mjs` → web discovery → Gemma validation → candidate write to `retail_storefront_image_queue` → staff rights/visual review → explicit approval → public sales-channel consumption.
+
+New backend records:
+
+- `retail_storefront_image_research_jobs`
+- `retail_storefront_image_research_job_items`
+
+Candidate research never sets `approved=true`. Existing approved imagery is not silently overwritten.
+
+**Diagnostic roadmap:** [Image Research and Sales-Channel Imagery](DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md)
