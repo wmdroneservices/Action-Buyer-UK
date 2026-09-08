@@ -3649,7 +3649,7 @@ Image Research now includes a **Manufacturer Batch Research** mode in the Resear
 
 The workflow loads only entity_scope = manufacturer targets, so it supports the current priority of manufacturer/category coverage without restarting bulk exact-product imagery research.
 
-A generated **Gemma Manufacturer Image Research Brief** gives the selected manufacturer and exact queue categories, with rules to research each category separately, avoid generic cross-category reuse, prefer official sources, preserve rights review and deploy only candidate records for later approval.
+A generated **Gemma Manufacturer Image Research Brief** supports controlled manual research from the selected manufacturer and exact queue categories. The AI Research Centre also provides the automated Gemma job path, which queues bounded Manufacturer + Category targets to the Research PC worker. Both paths preserve rights review and candidate-only deployment.
 
 Server-side batch deployment validates the exact queue ID, manufacturer and category and refuses to overwrite approved imagery.
 
