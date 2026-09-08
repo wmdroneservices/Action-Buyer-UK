@@ -3778,3 +3778,48 @@ Stock cards must link by authoritative `listing_id`:
 The product page calls `public_storefront_listing` for safe listing facts and the media function for photographs.
 
 Never expose private Storage paths, customer identifiers, purchase prices, serials, warehouse locations or internal notes through the public detail route.
+
+
+---
+
+# 14. 9 September 2026 — Customer valuation category taxonomy rule
+
+## First verified failure
+
+The valuation wizard was correctly deduplicating exact dropdown values, but the live `quote_catalog_products` table contains legitimate historical/imported source labels that overlap semantically. Exact deduplication therefore could not prevent customer choices such as:
+
+- `Drone` and `Drones`;
+- `Lighting`, `Continuous Lighting`, `Studio Lighting` and `Photography Lighting & Studio`.
+
+The first failure was presentation taxonomy, not duplicate product records.
+
+## Current repair
+
+The public wizard in `quote-reverse-basket-v5.js` now uses `canonicalMainCategory(...)` to group raw source categories into a stable customer taxonomy. The database source values are preserved.
+
+The customer flow must use the same canonical rule consistently in:
+
+1. `mainCategories()`;
+2. `productTypes()`;
+3. `scopedProducts()`;
+4. `findProduct()`.
+
+Do not add a second competing category loader or rely on the old DOM dedupe guard to solve semantic taxonomy problems.
+
+## Diagnostic order
+
+When a customer sees duplicate or overlapping valuation categories:
+
+**Project memory → handbook roadmap → current GitHub → current Supabase taxonomy → first presentation failure → minimal repair → test exact product resolution → documentation/checkpoint.**
+
+Check:
+
+- `valuation.html`;
+- `customer-catalog-visibility.js`;
+- `quote-reverse-basket-v5.js`;
+- `quote-catalog-dropdown-guard.js`;
+- `quote_catalog_products.active/customer_visible/main_category/category/product_type`.
+
+## Non-negotiable rule
+
+Do not mass-rename or merge live catalogue categories merely to make the public dropdown look cleaner. Internal research/catalogue taxonomy and public customer taxonomy may differ deliberately. Any future database taxonomy migration must be separately audited for downstream research, evidence and storefront effects.
