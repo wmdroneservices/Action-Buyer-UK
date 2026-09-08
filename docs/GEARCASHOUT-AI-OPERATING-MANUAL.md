@@ -3509,3 +3509,36 @@ The physical inventory status is retained for lifecycle/history compatibility. T
 ## Verification target
 
 A Published DJI Mini 5 Pro must appear in Active Listings only, not in Ready to List. The current live database shows the DJI Mini 5 Pro as `Sent to Sales` with a Published WEBSITE `resale_listings` row, so this is the regression case for browser verification.
+
+
+---
+
+# Operational reset repair — 8 September 2026
+
+## First actual failure found before reset
+
+The live database contained:
+
+- 1 `sales_fulfillments` row; and
+- 1 `sales_customer_returns` row.
+
+Both reference inventory assets through restrictive foreign keys. The existing `reset_test_quote_data()` function did not delete them before deleting `inventory_assets`.
+
+Therefore the reset could fail precisely when attempting to clear the operational data.
+
+## Minimal repair
+
+`reset_test_quote_data()` was retained for compatibility, but its deletion order now explicitly removes:
+
+1. `sales_customer_returns`;
+2. `sales_fulfillments`;
+3. inventory/customer return blockers;
+4. resale transactions/listings;
+5. inventory assets;
+6. remaining sales/valuation workflow records.
+
+The management UI now accurately calls this **Clear Operational Data** and explains that it starts the workflow afresh while preserving accounts, catalogue, pricing, outlets and system configuration.
+
+## Verification rule
+
+Do not execute a destructive reset merely to test the reset code. Verify the function definition, dependency order and live blocker rows first. The user performs the actual destructive reset deliberately from the management UI.
