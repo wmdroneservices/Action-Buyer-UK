@@ -84,18 +84,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const master=await getMaster();
     if(master.error){message.textContent=master.error.message;message.className='form-message error';button.disabled=false;return;}
     const a=master.asset,c=master.content;
-    const title=String(c.listing_title||[a.manufacturer,a.model,a.package_name].filter(Boolean).join(' ')).trim();
+    const existing=button.dataset.listingId?listings.find(x=>x.id===button.dataset.listingId):null;
+    // Existing Published rows are authoritative fallbacks for stock listed before the unified
+    // Product Workbench existed. Updating that listing must not require staff to recreate data.
+    const title=String(c.listing_title||existing?.listing_title||[a.manufacturer,a.model,a.package_name].filter(Boolean).join(' ')).trim();
     const manufacturerDescription=String(c.manufacturer_description||'').trim();
-    const staffDescription=String(c.listing_notes||a.description||'').trim();
+    const staffDescription=String(c.listing_notes||a.description||existing?.listing_description||'').trim();
     const conditionDescription=String(c.condition_description||'').trim();
     const description=[manufacturerDescription,staffDescription,conditionDescription].filter(Boolean).join('\n\n');
-    const price=c.asking_price??a.approved_resale_price;
-    const shipping=c.postage_packing??0;
+    const price=c.asking_price??a.approved_resale_price??existing?.asking_price;
+    const shipping=c.postage_packing??existing?.shipping_cost??0;
     if(!title||!description||price===null||price===undefined||price===''){
       message.textContent='Save the master listing title, description and sale price above before sending to a sales channel.';
       message.className='form-message error';button.disabled=false;return;
     }
-    const existing=button.dataset.listingId?listings.find(x=>x.id===button.dataset.listingId):null;
     const now=new Date().toISOString();
     const payload={
       asset_id:id,outlet_id:outlet.id,sales_channel:salesChannel(outlet),
