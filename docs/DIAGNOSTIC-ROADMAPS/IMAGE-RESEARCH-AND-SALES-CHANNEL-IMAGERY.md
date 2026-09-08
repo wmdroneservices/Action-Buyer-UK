@@ -167,9 +167,11 @@ queue_id → manufacturer match → category match → candidate save
 
 Approved imagery is protected from batch overwrite. Batch saves force research_status = candidate and approved = false.
 
-### Gemma operating brief
+### Gemma operating brief and automated path
 
 The generated brief instructs research to use the exact **Manufacturer + Category** key, research each category separately, avoid generic cross-category reuse, prefer official sources, retain rights review and never auto-approve/publicly publish.
+
+The AI Research Centre also has an automated Gemma manufacturer-job workflow using the Research PC worker and dedicated job tables. It follows the same Manufacturer + Category and candidate-only rules.
 
 ### Failure checkpoints
 
