@@ -39,7 +39,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       const inbound = (shipments || []).find(x => x.sale_id === sale.id && x.shipment_type === "inbound");
       if (!inbound) return;
 
-      const salePastShipping = ["payment_due", "payment_processing", "paid", "completed", "closed", "archived"].includes(String(sale.status || ""));
+      const saleStatus = String(sale.status || "");
+      // Once receipt has been recorded, the sale status is authoritative. Do not
+      // let a stale inbound shipment state make the customer page say "on its way".
+      if (saleStatus === "inspection") {
+        action.innerHTML = `<div class="status-badge">UNDER INSPECTION</div><p style="margin:.45rem 0 0"><strong>Your item has been received by GearCashOut and is under inspection.</strong> We will send your final valuation when the inspection is complete.</p>`;
+        card.appendChild(action);
+        return;
+      }
+      if (saleStatus === "received") {
+        action.innerHTML = `<div class="status-badge">ITEM RECEIVED</div><p style="margin:.45rem 0 0"><strong>Your item has arrived at GearCashOut.</strong> It is now awaiting inspection.</p>`;
+        card.appendChild(action);
+        return;
+      }
+      const salePastShipping = ["payment_due", "payment_processing", "paid", "completed", "closed", "archived"].includes(saleStatus);
       const shipmentStatus = String(inbound.status || "");
       if (salePastShipping) return;
 
