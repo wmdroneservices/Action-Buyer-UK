@@ -177,3 +177,37 @@ The generated brief instructs research to use the exact **Manufacturer + Categor
 2. Wrong categories loaded → verify entity_scope = manufacturer and exact manufacturer canonical value.
 3. Save rejected → inspect manufacturer/category mismatch validation before changing UI.
 4. Approved image overwrite attempted → expected server-side rejection/protection.
+
+
+## Gemma manufacturer batch research path — 8 September 2026
+
+### User action
+AI Research Centre → **Gemma Manufacturer Image Research** → choose canonical manufacturer → choose bounded batch size → queue job.
+
+### Front end
+- `admin-ai-research.html`
+- `admin-ai-research.js`
+
+### Database
+- `retail_storefront_image_queue` remains the authoritative image target queue.
+- `retail_storefront_image_research_jobs` stores manufacturer batch lifecycle.
+- `retail_storefront_image_research_job_items` stores one exact queue target per job item.
+- `staff_image_research_manufacturers(...)` supplies canonical dashboard manufacturer choices.
+- `staff_image_research_create_manufacturer_job(...)` creates bounded jobs from eligible queue rows.
+- `staff_image_research_manufacturer_jobs(...)` supplies staff-visible status.
+- `increment_image_research_job_progress(...)` finalises progress counters/status.
+
+### Research PC / Gemma
+`tools/gear-ai-local-agent/agent.mjs`
+
+Expected flow:
+
+job item → exact Manufacturer + Category web searches → source-page image extraction → Gemma candidate validation → exact queue-row revalidation → candidate save → job progress update.
+
+### Hard failure guards
+- manufacturer mismatch → fail item;
+- category mismatch → fail item;
+- already approved target → do not overwrite;
+- no sufficiently exact candidate → `no_candidate`;
+- rights are unknown → remain `candidate`, never auto-approved;
+- worker/local deployment stale → GitHub code alone is insufficient; update the Research PC extracted copy and restart through the established launcher.
