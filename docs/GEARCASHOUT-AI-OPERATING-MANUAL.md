@@ -3256,3 +3256,58 @@ The shared listing fields are stored on `inventory_sales_content` as `listing_ti
 **Known rule:** never write `listing_title` to `inventory_assets`; that was the previous schema-mismatch failure.
 
 Verification after this change is syntax + live-schema verified. The next required step is browser save → WEBSITE → marketplace.
+
+
+---
+
+# Operational Checkpoint — 8 September 2026, 19:31 BST
+
+## Operational purpose
+
+This checkpoint preserves the system immediately before the next material redesign of the sales flow.
+
+## Verified current state
+
+- Customer valuation flow has been repaired sufficiently to submit and produce a valuation reference.
+- Quote-photo handling was repaired after the browser reported missing/bucket issues; submitted photographs are now visible in staff/admin review.
+- Purchasing Dashboard leakage was corrected so sales-stage items are no longer intentionally shown as purchasing work items.
+- Sales Dashboard/Workbench has been introduced and is currently handling inventory, pre-sale/listing and sales-stage work.
+- A Product Workbench exists, creating overlap and user confusion with the Sales Workbench.
+- The current repository head is commit `9e1520baa0df3c9245e1b19c3b635e0eab950455` with message **Add final Product Workbench listing stage checkpoint**.
+- The next requested change is not a cosmetic patch: consolidate the operational listing workflow so one workbench is the clear place to edit product details, descriptions and photographs and manage website/marketplace submission.
+
+## Newly reported behaviour to inspect first
+
+1. Some items have a condition note that is not displaying.
+2. The distinction between **Sales Workbench** and **Product Workbench** is confusing and duplicates editing responsibility.
+3. The desired workflow is one operational listing page where staff can:
+   - edit all item/product details;
+   - view existing photographs;
+   - edit/remove/replace/add photographs;
+   - edit descriptions and other listing data;
+   - alter any required listing details in one place;
+   - see the sales channels below the editable product section;
+   - send directly to the new GearCashOut website without a draft-first requirement;
+   - mark/send marketplace listings directly with a simple explicit action such as **Add to Marketplace** or **Submitted**.
+
+## Intended workflow direction — do not implement blindly
+
+The next session must inspect the current code and Supabase schema before deciding which existing workbench becomes the single source of truth. The likely design goal is:
+
+**Inventory item → one unified listing/workbench editor → Save changes → Website: Send to Website → Marketplaces: Add to Marketplace / Submitted status**
+
+No duplicate draft-first workflow should be retained unless a real external integration technically requires an internal preparation state.
+
+## Required investigation order
+
+**Memory/checkpoint → relevant Diagnostic Roadmap → current GitHub → current Supabase → first actual failure → previous fixes → minimal safe redesign → test → verify → update both manuals and project-memory checkpoint.**
+
+## Git restore anchor
+
+Dedicated restore branch:
+
+`restore/sales-flow-checkpoint-2026-09-08-1931`
+
+Base commit:
+
+`9e1520baa0df3c9245e1b19c3b635e0eab950455`
