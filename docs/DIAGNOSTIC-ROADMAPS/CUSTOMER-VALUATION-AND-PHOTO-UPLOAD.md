@@ -20,13 +20,15 @@ Relevant active scripts:
 Current cache-busting references:
 
 - `auth.js?v=20260908-1`
-- `quote-submit-v4.js?v=20260908-1`
+- `quote-reverse-basket-v5.js?v=20260908-photo-persist-1`
+- `quote-submit-v4.js?v=20260908-2`
 
 ## Expected data flow
 
 `valuation.html`
 → authenticated Supabase session from `auth.js`
-→ selected files retained with basket items
+→ selected files persisted with basket items in same-origin IndexedDB
+→ files restored after login/navigation and again immediately before submit
 → `quote-submit-v4.js`
 → Storage bucket `quote-photos`
 → object path `{auth.uid()}/{quote-reference}/{safe-filename}`
@@ -66,6 +68,11 @@ Relevant tables:
 - `staff_users` for staff Storage access.
 
 ## First failure points to check
+
+0. **Photo continuity after navigation/login**
+   - The basket may survive in localStorage while File objects do not survive ordinary JavaScript memory.
+   - Check whether the customer logged in, registered, refreshed, or otherwise reloaded after adding photographs.
+   - Check IndexedDB persistence before changing Supabase.
 
 1. **Wrong/stale browser JavaScript**
    - Check `valuation.html` script cache versions.
@@ -109,6 +116,16 @@ The backend was confirmed operational and a recent quote already contained store
 
 No Storage bucket, RLS, database schema or upload logic was changed.
 
+### Later on 8 September 2026 — photograph loss after navigation
+
+A real browser submission then reached the final account step but failed locally with **“Please add at least one actual photograph.”** The submit code showed this occurred before `uploadPhotos(...)` and before any Storage request.
+
+The cause was identified as a continuity mismatch: basket metadata survived in `localStorage`, but selected browser `File` objects were held only in memory. A login/register redirect or page reload could therefore restore an item without its photographs.
+
+The minimal repair persists the multi-item photo arrays in same-origin IndexedDB when an item is added, restores them on page load and immediately before submit, updates them when an item is removed, and clears them after successful submission.
+
+No Supabase backend configuration was changed.
+
 ## External services
 
 - Supabase Auth
@@ -122,13 +139,14 @@ The Research PC/Ollama system is not part of this customer photo-upload path.
 After deployment:
 
 1. hard-refresh or open a private/incognito browser window;
-2. sign in with a customer account;
-3. create a small test valuation;
-4. attach at least one valid image;
-5. submit the valuation;
-6. confirm no **Bucket not found** error;
-7. confirm the object exists in `quote-photos`;
-8. confirm the created quote item contains photo metadata;
-9. confirm existing customer/admin valuation behaviour still works.
+2. start a new valuation and attach at least one valid image;
+3. add the item to the basket;
+4. deliberately pass through the login/account path or refresh before final submission;
+5. confirm the basket and photographs are restored;
+6. submit the valuation;
+7. confirm no local “actual photograph” loss and no **Bucket not found** error;
+8. confirm the object exists in `quote-photos`;
+9. confirm the created quote item contains photo metadata;
+10. confirm existing customer/admin valuation behaviour still works.
 
 If the error persists after current scripts are confirmed loaded, stop changing cache versions and inspect the first failing network request/error instead.
