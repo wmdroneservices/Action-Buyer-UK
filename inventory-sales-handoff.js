@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     +'<form id="master-listing-form" class="auth-form">'
     +'<div class="notice"><strong>Listing title</strong><br>The title is pre-filled from the purchased manufacturer, model and package. Edit it here if needed.</div>'
     +'<label>Listing title<input name="listing_title" value="'+esc(item.listing_title||defaultTitle)+'" required></label>'
-    +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Pre-filled manufacturer/model information. Edit only if it needs correcting.">'+esc(catalog.product_description||'')+'</textarea></label>':'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="No catalogue description is linked. Add the product/manufacturer description needed for this item.">'+esc(asset.description||'')+'</textarea></label>')
+    +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Pre-filled manufacturer/model information. Edit only if it needs correcting.">'+esc(item.manufacturer_description||catalog.product_description||'')+'</textarea></label>':'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Add the product/manufacturer description needed for this item.">'+esc(item.manufacturer_description||'')+'</textarea></label>')
     +'<label>Our item description<textarea name="our_description" rows="7" placeholder="Describe this exact item for sale.">'+esc(item.listing_notes||asset.description||'')+'</textarea></label>'
     +'<label>Detailed staff condition description<textarea name="condition_description" rows="4" placeholder="Describe the staff-assessed cosmetic and functional condition for resale.">'+esc(item.condition_description||'')+'</textarea></label>'
     +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem">'
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const postage=fd.get('postage_packing')===''?null:Number(fd.get('postage_packing'));
     const batteries=fd.get('actual_battery_count')===''?null:Number(fd.get('actual_battery_count'));
     const saved=await db.from('inventory_sales_content').upsert({
-      asset_id:id,condition_description:conditionDescription||null,listing_notes:description||null,listing_title:title||null,
+      asset_id:id,manufacturer_description:String(fd.get('manufacturer_description')||'').trim()||null,condition_description:conditionDescription||null,listing_notes:description||null,listing_title:title||null,
       asking_price:Number.isFinite(asking)?asking:null,postage_packing:Number.isFinite(postage)?postage:null,
       hero_image_url:heroOverride===undefined?(item.hero_image_url||null):heroOverride,updated_by:session.user.id,updated_at:new Date().toISOString()
     },{onConflict:'asset_id'});
