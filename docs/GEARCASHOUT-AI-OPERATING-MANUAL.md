@@ -3012,3 +3012,21 @@ The Manufacturer Batch workflow must:
 Exact model/product imagery remains a separate later workflow when the relevant product is actually listed for sale.
 
 The staff workspace can generate a structured Gemma Manufacturer Image Research Brief from the current live queue. This brief is a controlled research instruction; it does not bypass the existing candidate/approval boundary or convert image research into catalogue evidence research.
+
+
+## Gemma manufacturer batch image research — 8 September 2026
+
+Treat manufacturer image research as a separate worker mode from pricing evidence. The operating key is always **Manufacturer + Category**. Do not load this work into `quote_catalog_ai_candidates` or allow it to alter catalogue pricing/evidence.
+
+Current path:
+
+1. Staff selects a canonical manufacturer in `admin-ai-research.html`.
+2. `staff_image_research_create_manufacturer_job(...)` creates a bounded job from `retail_storefront_image_queue` pending/candidate rows only.
+3. `agent.mjs` claims image job items before ordinary pricing work.
+4. Search is performed per exact manufacturer/category target.
+5. Gemma selects at most one matching candidate from collected source/image evidence.
+6. The worker validates the queue target still has the same manufacturer/category and is not approved.
+7. The result is saved as `candidate`, `approved=false`, `licence_status='unverified'`.
+8. Staff performs rights and visual review before approval.
+
+Do not generalise one manufacturer image across unrelated categories. Do not overwrite approved imagery. If the Research PC worker is updated in GitHub, remember that the live Research PC uses a manually extracted copy and must receive the updated `agent.mjs` before this mode can run locally.
