@@ -35,7 +35,8 @@ begin
          count(*) filter(where q.research_status='candidate')::bigint as candidate_count,
          count(*) filter(where q.approved=true or q.research_status='approved')::bigint as approved_count
   from public.retail_storefront_image_queue q
-  where q.manufacturer is not null
+  where q.entity_scope='manufacturer'
+    and q.manufacturer is not null
     and btrim(q.manufacturer)<>''
     and (p_search is null or btrim(p_search)='' or q.manufacturer ilike '%'||btrim(p_search)||'%')
   group by q.manufacturer
@@ -89,7 +90,8 @@ begin
          q.image_url,q.source_url,q.source_name,q.licence_status,q.research_status,
          q.approved,q.notes,q.updated_at
   from public.retail_storefront_image_queue q
-  where q.manufacturer=p_manufacturer
+  where q.entity_scope='manufacturer'
+    and q.manufacturer=p_manufacturer
     and (p_status is null or btrim(p_status)='' or q.research_status=p_status)
   order by
     case q.research_status when 'pending' then 0 when 'candidate' then 1 when 'approved' then 2 else 3 end,
