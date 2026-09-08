@@ -2992,3 +2992,23 @@ Before adding staff tooling for any outlet, keep the repository boundary explici
 **Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md`
 
 When implementing imagery for any sales channel, do not build staff research tools into the public outlet repository. Investigate and maintain image candidates centrally in **Action-Buyer-UK → Staff Dashboard → Research & Pricing → Image Research**. The workflow uses controlled staff RPCs over the central image queue; public websites consume approved records only.
+
+
+## 8 September 2026 — Manufacturer Batch Image Research rule
+
+For central image research, the current priority is **Category + Manufacturer** coverage.
+
+The Manufacturer Batch workflow must:
+
+1. load only real entity_scope = manufacturer targets from retail_storefront_image_queue;
+2. use the exact canonical manufacturer value already stored in the queue;
+3. research each category independently using **Manufacturer + Category**;
+4. never reuse a generic manufacturer image across unrelated categories;
+5. prefer official manufacturer/source pages and retain source/rights metadata;
+6. save results as candidate with approved = false until explicit review;
+7. never overwrite approved imagery;
+8. validate queue ID + manufacturer + category server-side before batch deployment.
+
+Exact model/product imagery remains a separate later workflow when the relevant product is actually listed for sale.
+
+The staff workspace can generate a structured Gemma Manufacturer Image Research Brief from the current live queue. This brief is a controlled research instruction; it does not bypass the existing candidate/approval boundary or convert image research into catalogue evidence research.
