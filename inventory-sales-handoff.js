@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     return rows.map(x=>({...x,signedUrl:map.get(x.file_url)||''})).filter(x=>x.signedUrl);
   }
   const signedPhotos=await signed(photos);
+  const customerPaths=[...(itemData.photos||[]),...(single.photos||[]),...(basket.photos||[])].map(x=>typeof x==='string'?x:x?.path).filter(Boolean);
+  const signedCustomer=customerPaths.length?await db.storage.from('quote-photos').createSignedUrls(customerPaths,3600):{data:[]};
+  const customerMap=new Map((signedCustomer.data||[]).filter(x=>x.signedUrl).map(x=>[x.path,x.signedUrl]));
+  const customerPhotos=customerPaths.map(path=>({path,signedUrl:customerMap.get(path)||''})).filter(x=>x.signedUrl);
 
   // The final sales page is deliberately not an editable inspection page.
   root.querySelector('#product-edit-section')?.remove();
@@ -89,15 +93,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const defaultTitle=[asset.manufacturer,asset.model,asset.package_name].filter(Boolean).join(' ');
   const listing=document.createElement('section');
   listing.id='sales-listing-editor'; listing.className='valuation-card'; listing.style.marginTop='1rem';
-  const photoHtml=signedPhotos.length?signedPhotos.map(p=>{
+  const selectedPaths=Array.isArray(item.listing_photo_paths)?item.listing_photo_paths:[];
+  const selectedSet=new Set(selectedPaths);
+  const customerPhotoHtml=customerPhotos.length?customerPhotos.map(p=>'<div class="notice" style="padding:.45rem"><a href="'+esc(p.signedUrl)+'" target="_blank" rel="noopener"><img src="'+esc(p.signedUrl)+'" alt="Customer photograph" style="width:100%;height:150px;object-fit:cover;border-radius:8px"></a><label style="display:block;margin-top:.4rem"><input type="checkbox" class="listing-photo-choice" value="'+esc(p.path)+'" '+(selectedSet.has(p.path)?'checked':'')+'> USE FOR SALE LISTING</label></div>').join(''):'<p>No customer photographs available.</p>';
+  const staffPhotoHtml=signedPhotos.length?signedPhotos.map(p=>{
     const hero=item.hero_image_url===p.file_url;
-    return '<div class="notice" style="padding:.45rem"><a href="'+esc(p.signedUrl)+'" target="_blank" rel="noopener"><img src="'+esc(p.signedUrl)+'" alt="Staff photograph" style="width:100%;height:150px;object-fit:cover;border-radius:8px"></a><div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem"><button class="btn btn-secondary" type="button" data-set-hero="'+esc(p.file_url)+'">'+(hero?'ITEM HERO SELECTED':'USE AS ITEM HERO')+'</button><button class="btn btn-secondary" type="button" data-remove-photo="'+esc(p.id)+'" data-photo-path="'+esc(p.file_url)+'">REMOVE</button></div></div>';
+    return '<div class="notice" style="padding:.45rem"><a href="'+esc(p.signedUrl)+'" target="_blank" rel="noopener"><img src="'+esc(p.signedUrl)+'" alt="Staff inspection photograph" style="width:100%;height:150px;object-fit:cover;border-radius:8px"></a><label style="display:block;margin-top:.4rem"><input type="checkbox" class="listing-photo-choice" value="'+esc(p.file_url)+'" '+(selectedSet.has(p.file_url)?'checked':'')+'> USE FOR SALE LISTING</label><div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem"><button class="btn btn-secondary" type="button" data-set-hero="'+esc(p.file_url)+'">'+(hero?'ITEM HERO SELECTED':'USE AS ITEM HERO')+'</button><button class="btn btn-secondary" type="button" data-remove-photo="'+esc(p.id)+'" data-photo-path="'+esc(p.file_url)+'">REMOVE</button></div></div>';
   }).join(''):'<p>No staff photographs yet.</p>';
 
   listing.innerHTML='<p class="section-kicker">LISTING DETAILS</p><h2>Create and maintain the master listing</h2><p>Save these shared details once, then use the WEBSITE and marketplace buttons below. There is no Draft or Ready to Upload stage.</p>'
     +'<form id="master-listing-form" class="auth-form">'
-    +'<div class="notice"><strong>Listing title</strong><br>The title is pre-filled from the purchased manufacturer, model and package. Edit it here if needed.</div>'
-    +'<label>Listing title<input name="listing_title" value="'+esc(item.listing_title||defaultTitle)+'" required></label>'
+    +'<div class="notice"><strong>Listing identity</strong><br>'+esc(defaultTitle||'Manufacturer and model not yet recorded')+'</div>'
     +(asset.catalog_product_id?'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Pre-filled manufacturer/model information. Edit only if it needs correcting.">'+esc(item.manufacturer_description||catalog.product_description||'')+'</textarea></label>':'<label>Manufacturer / product description<textarea name="manufacturer_description" rows="6" placeholder="Add the product/manufacturer description needed for this item.">'+esc(item.manufacturer_description||'')+'</textarea></label>')
     +'<label>Our item description<textarea name="our_description" rows="7" placeholder="Describe this exact item for sale.">'+esc(item.listing_notes||asset.description||'')+'</textarea></label>'
     +'<label>Detailed staff condition description<textarea name="condition_description" rows="4" placeholder="Describe the staff-assessed cosmetic and functional condition for resale.">'+esc(item.condition_description||'')+'</textarea></label>'
@@ -105,13 +111,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     +'<label>Number of batteries<input name="actual_battery_count" type="number" min="0" value="'+esc(asset.actual_battery_count??'')+'"></label>'
     +'<label>Missing parts / items<textarea name="missing_parts" rows="3" placeholder="Record anything the buyer will not receive.">'+esc(asset.package_notes||'')+'</textarea></label>'
     +'</div>'
-    +'<label>What the buyer receives / package contents<textarea name="final_package_contents" rows="5" placeholder="List exactly what is included with this sale.">'+esc(asset.final_package_contents||'')+'</textarea></label>'
     +'<div style="display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(140px,.45fr) minmax(140px,.45fr);gap:.75rem">'
     +'<label>Sale price (£)<input name="asking_price" type="number" min="0" step="0.01" value="'+esc(item.asking_price??asset.approved_resale_price??'')+'" required></label>'
     +'<label>Postage &amp; packing (£)<input name="postage_packing" type="number" min="0" step="0.01" value="'+esc(item.postage_packing??'0')+'"></label>'
     +'</div><div style="display:flex;gap:.6rem;flex-wrap:wrap"><button class="btn btn-primary" type="submit">SAVE LISTING DETAILS</button><p id="master-listing-message" class="form-message" aria-live="polite"></p></div></form>'
-    +'<h3 style="margin-top:1.25rem">Listing photographs</h3><p>View, add, remove and choose the individual-item hero photograph here.</p>'
-    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:1rem">'+photoHtml+'</div>'
+    +'<h3 style="margin-top:1.25rem">Customer photographs</h3><p>Original photographs supplied with the valuation. Tick only the photographs you want used for sale listings.</p>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:1rem">'+customerPhotoHtml+'</div>'
+    +'<h3>Staff inspection photographs</h3><p>Inspection photographs can also be selected for the sale listing, removed if no longer required, or used as the item hero.</p>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:1rem">'+staffPhotoHtml+'</div>'
+    +'<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem"><button class="btn btn-secondary" type="button" id="save-photo-selection">SAVE PHOTO SELECTION</button><p id="photo-selection-message" class="form-message" aria-live="polite"></p></div>'
     +'<form id="listing-photo-form" class="auth-form"><label>Add / take photographs<input id="listing-photos" type="file" accept="image/*" capture="environment" multiple></label><button class="btn btn-secondary" type="submit">UPLOAD PHOTOGRAPHS</button><p id="listing-photo-message" class="form-message" aria-live="polite"></p></form>';
   root.appendChild(listing);
 
@@ -123,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const batteries=fd.get('actual_battery_count')===''?null:Number(fd.get('actual_battery_count'));
     const saved=await db.from('inventory_sales_content').upsert({
       asset_id:id,manufacturer_description:String(fd.get('manufacturer_description')||'').trim()||null,condition_description:conditionDescription||null,listing_notes:description||null,listing_title:title||null,
+      listing_photo_paths:[...root.querySelectorAll('.listing-photo-choice:checked')].map(x=>x.value),
       asking_price:Number.isFinite(asking)?asking:null,postage_packing:Number.isFinite(postage)?postage:null,
       hero_image_url:heroOverride===undefined?(item.hero_image_url||null):heroOverride,updated_by:session.user.id,updated_at:new Date().toISOString()
     },{onConflict:'asset_id'});
@@ -131,7 +140,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       description:description||null,
       approved_resale_price:Number.isFinite(asking)?asking:null,
       actual_battery_count:Number.isFinite(batteries)?batteries:null,
-      final_package_contents:String(fd.get('final_package_contents')||'').trim()||null,
       package_notes:String(fd.get('missing_parts')||'').trim()||null,
       updated_at:new Date().toISOString()
     }).eq('id',id);
@@ -154,6 +162,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     m.className='form-message'+(result.error?' error':' success');
     if(!result.error) document.dispatchEvent(new CustomEvent('gco:master-listing-saved',{detail:{assetId:id}}));
   });
+
+  root.querySelector('#save-photo-selection')?.addEventListener('click',async()=>{
+    const m=root.querySelector('#photo-selection-message');
+    const paths=[...root.querySelectorAll('.listing-photo-choice:checked')].map(x=>x.value);
+    m.textContent='Saving photograph selection…';m.className='form-message';
+    const r=await db.from('inventory_sales_content').upsert({asset_id:id,listing_photo_paths:paths,updated_by:session.user.id,updated_at:new Date().toISOString()},{onConflict:'asset_id'});
+    m.textContent=r.error?r.error.message:'Photograph selection saved.';m.className='form-message'+(r.error?' error':' success');
+  });
+
   root.querySelectorAll('[data-set-hero]').forEach(btn=>btn.addEventListener('click',async()=>{
     const result=await saveMaster(root.querySelector('#master-listing-form'),btn.dataset.setHero);
     if(result.error){alert(result.error.message);return;} location.reload();
