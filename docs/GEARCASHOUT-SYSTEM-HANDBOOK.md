@@ -4179,3 +4179,14 @@ The earlier reset function already removed most workflow records, but live data 
 The reset now deletes those blockers before the inventory layer, allowing the clean-start reset to complete in the correct dependency order.
 
 **Important:** the reset was repaired and documented here, but it was not executed as part of the repair.
+
+
+## Receipt to Inspection Continuity Repair — 8 September 2026
+
+A fresh operational reset exposed an important handoff dependency: physical receipt must leave behind the authoritative `inventory_assets` row that inspection, testing, photographs, repairs and Sales all use.
+
+The receipt RPC previously only updated an existing `Awaiting Receipt` asset. After a clean operational reset there could be no such asset, allowing a sale to enter inspection without inventory. The repaired receipt workflow now creates the linked asset at **Received** when it is missing and returns separate created/updated/total counts.
+
+Diagnostic Roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+The Product Workbench also now shows a visible error/timeout instead of remaining indefinitely on its loading message.
