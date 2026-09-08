@@ -3637,3 +3637,50 @@ The UI may hide or explain the action, but the RPC must remain the authoritative
 Do not debug the customer wording first. Trace: **staff click → `staff_mark_item_received_and_sync_inventory` → `sales.status='received'` + inbound shipment delivery → linked inventory asset → customer account render**.
 
 The purchase status is authoritative once receipt is recorded. Shipment state is transport history and must only be used as a fallback before receipt. The staff receipt button must call the secured RPC directly rather than relying on a competing legacy Edge Function handler.
+
+
+## 8 September 2026 — Customer read-only valuation history
+
+### Requirement
+
+A valuation update card must not become an anonymous price-only record once an item has entered the purchasing workflow. Customers need to be able to inspect what they originally sent, including the product name and the original submission details.
+
+### Implemented route
+
+`account.html`
+→ `account-valuation-view-links.js`
+→ authenticated mapping:
+
+`sales` → `sale_items` → `quote_items` → `valuations`
+
+→ **VIEW WHAT YOU SENT**
+→ `customer-valuation.html?id=<valuation-id>`
+→ `customer-valuation.js`
+
+The detail page reads:
+
+- `valuations`
+- `quote_items`
+- `quote_items.item_data`
+- customer-owned objects in the `quote-photos` Storage bucket through signed URLs.
+
+### Mandatory ownership and history rule
+
+The page is read-only and must preserve the customer's original declaration. Do not substitute:
+
+- staff inspection condition;
+- repair data;
+- resale condition;
+- later listing descriptions.
+
+For customer-sourced items, the original valuation and the later staff inspection are different historical records and must remain distinguishable.
+
+### First checks if the link/page fails
+
+1. Confirm the customer is authenticated.
+2. Confirm the valuation belongs to the current `auth.uid()`.
+3. Trace `sales → sale_items → quote_items → valuations`.
+4. Confirm `valuations` and `quote_items` customer SELECT policies.
+5. Confirm the stored `item_data.photos` paths and `quote-photos` ownership policy before changing the renderer.
+
+Do not weaken RLS or make valuation IDs publicly readable merely to make the page load.
