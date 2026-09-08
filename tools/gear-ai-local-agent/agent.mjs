@@ -2396,6 +2396,180 @@ async function processOne(){
   }
 }
 
+
+// Manufacturer/category image research is deliberately a separate workflow from
+// pricing evidence. It consumes the central image queue and only writes candidate
+// imagery after exact manufacturer + category validation.
+function extractImageCandidatesFromHtml(html,baseUrl){
+  const out=[],seen=new Set(),source=String(html||'');
+  const add=(raw,kind='page')=>{
+    if(!raw)return;
+    let url;
+    try{url=new URL(String(raw).trim(),baseUrl).href}catch{return}
+    if(!/^https?:\/\//i.test(url)||seen.has(url))return;
+    seen.add(url);out.push({image_url:url,kind});
+  };
+  const metaRe=/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|twitter:image:src)["'][^>]+content=["']([^"']+)["'][^>]*>/gi;
+  let m;while((m=metaRe.exec(source)))add(m[1],'meta');
+  const linkRe=/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["'][^>]*>/gi;
+  while((m=linkRe.exec(source)))add(m[1],'link');
+  if(out.length<6){
+    const imgRe=/<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    while((m=imgRe.exec(source))&&out.length<8)add(m[1],'img');
+  }
+  return out.slice(0,8);
+}
+
+async function gemmaChooseImageCandidate(manufacturer,category,evidence){
+  if(!evidence.length)return null;
+  const schema={type:'object',properties:{
+    evidence_id:{type:['integer','null']},
+    confidence:{type:'number'},
+    notes:{type:'string'}
+  },required:['evidence_id','confidence','notes']};
+  const prompt=`You are Gemma's controlled image-research validation layer for GearCashOut.
+
+TARGET:
+Manufacturer: ${manufacturer}
+Category: ${category}
+
+CANDIDATE SOURCE PAGES AND IMAGE ASSETS:
+${JSON.stringify(evidence)}
+
+Rules:
+- Select at most one candidate.
+- The image must fit BOTH the exact manufacturer and the exact category.
+- Do not select a generic category image that could belong to another manufacturer.
+- Do not select a manufacturer image for the wrong category.
+- Prefer official manufacturer pages and images when available.
+- Reject uncertain or unrelated candidates by returning evidence_id null.
+- This is candidate research only. Never claim that rights are cleared.
+Return JSON only.`;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),Math.max(30000,Math.min(90000,cfg.requestTimeoutMs*4)));
+  try{
+    const res=await fetch(cfg.ollamaUrl+'/api/chat',{
+      method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
+      body:JSON.stringify({model:cfg.model,messages:[{role:'user',content:prompt}],format:schema,stream:false,options:{temperature:0}})
+    });
+    if(!res.ok)throw new Error('Gemma image validation failed: '+res.status);
+    const data=await res.json();
+    const parsed=JSON.parse(data.message?.content||'{}');
+    const id=Number(parsed.evidence_id);
+    if(!Number.isInteger(id)||id<1||id>evidence.length)return null;
+    return {evidence:evidence[id-1],confidence:Math.max(0,Math.min(1,Number(parsed.confidence||0))),notes:String(parsed.notes||'').slice(0,1000)};
+  }finally{clearTimeout(timer);}
+}
+
+async function processOneImageResearchItem(){
+  const {data:item,error:claimError}=await sb
+    .from('retail_storefront_image_research_job_items')
+    .select('id,job_id,queue_id,manufacturer,category,status')
+    .eq('status','queued')
+    .order('created_at',{ascending:true})
+    .limit(1)
+    .maybeSingle();
+  if(claimError)throw claimError;
+  if(!item)return false;
+
+  const now=new Date().toISOString();
+  const {data:claimed,error:updateError}=await sb
+    .from('retail_storefront_image_research_job_items')
+    .update({status:'processing',attempts:1,started_at:now,updated_at:now})
+    .eq('id',item.id).eq('status','queued')
+    .select()
+    .maybeSingle();
+  if(updateError)throw updateError;
+  if(!claimed)return false;
+
+  await sb.from('retail_storefront_image_research_jobs')
+    .update({status:'running',started_at:now,updated_at:now})
+    .eq('id',item.job_id).eq('status','queued');
+
+  try{
+    const {data:target,error:targetError}=await sb
+      .from('retail_storefront_image_queue')
+      .select('id,manufacturer,category,approved,research_status')
+      .eq('id',item.queue_id).maybeSingle();
+    if(targetError)throw targetError;
+    if(!target)throw new Error('Image queue target no longer exists.');
+    if(target.approved)throw new Error('Target already has approved imagery and will not be overwritten.');
+    if(String(target.manufacturer||'').toLowerCase()!==String(item.manufacturer||'').toLowerCase()
+      ||String(target.category||'').toLowerCase()!==String(item.category||'').toLowerCase()){
+      throw new Error('Target manufacturer/category no longer matches the queued image-research assignment.');
+    }
+
+    const queries=[
+      String(item.manufacturer)+' official '+String(item.category)+' image',
+      String(item.manufacturer)+' '+String(item.category)+' official'
+    ];
+    const results=[];const seen=new Set();
+    for(const q of queries){
+      for(const r of await searchWeb(q)){
+        const key=String(r.url||'').split('#')[0];
+        if(!key||seen.has(key))continue;
+        seen.add(key);results.push(r);
+        if(results.length>=10)break;
+      }
+      if(results.length>=10)break;
+    }
+
+    const evidence=[];
+    for(const r of results.slice(0,10)){
+      try{
+        const {url,html}=await fetchText(r.url,Math.min(cfg.requestTimeoutMs,8000));
+        const title=extractStructuredPageData(html,url).title||r.title||'';
+        for(const img of extractImageCandidatesFromHtml(html,url)){
+          evidence.push({source_url:url,source_name:hostOf(url)||null,title,image_url:img.image_url,image_kind:img.kind});
+          if(evidence.length>=20)break;
+        }
+      }catch{}
+      if(evidence.length>=20)break;
+    }
+
+    const chosen=await gemmaChooseImageCandidate(item.manufacturer,item.category,evidence);
+    if(chosen){
+      const e=chosen.evidence;
+      const notes='Gemma manufacturer batch image research. Exact target: '+item.manufacturer+' + '+item.category+'. '+chosen.notes+' Rights/usage review still required before approval.';
+      const {error:queueError}=await sb.from('retail_storefront_image_queue').update({
+        image_url:e.image_url,
+        source_url:e.source_url,
+        source_name:e.source_name,
+        licence_status:'unverified',
+        research_status:'candidate',
+        approved:false,
+        notes,
+        updated_at:new Date().toISOString()
+      }).eq('id',item.queue_id)
+        .eq('approved',false)
+        .eq('manufacturer',target.manufacturer)
+        .eq('category',target.category);
+      if(queueError)throw queueError;
+      await sb.from('retail_storefront_image_research_job_items').update({
+        status:'completed',image_url:e.image_url,source_url:e.source_url,source_name:e.source_name,
+        licence_status:'unverified',confidence:chosen.confidence,notes:chosen.notes,
+        completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      }).eq('id',item.id);
+      await sb.rpc('increment_image_research_job_progress',{p_job_id:item.job_id,p_result:'candidate'});
+    }else{
+      await sb.from('retail_storefront_image_research_job_items').update({
+        status:'no_candidate',notes:'No sufficiently exact manufacturer + category image candidate was selected.',
+        completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      }).eq('id',item.id);
+      await sb.rpc('increment_image_research_job_progress',{p_job_id:item.job_id,p_result:'no_candidate'});
+    }
+    return true;
+  }catch(e){
+    const message=String(e?.message||e).slice(0,1000);
+    await sb.from('retail_storefront_image_research_job_items').update({
+      status:'failed',error_message:message,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    }).eq('id',item.id);
+    await sb.rpc('increment_image_research_job_progress',{p_job_id:item.job_id,p_result:'failed',p_error:message}).catch(()=>{});
+    log('Image research item failed:',message);
+    return true;
+  }
+}
+
 async function main(){
   log('Starting',cfg.agentName,'with',cfg.model);
   if(envConfig.loaded.length)log('Configuration loaded from:',envConfig.loaded.join(' + '));
@@ -2420,7 +2594,8 @@ async function main(){
   while(true){
     try{
       await monitorOpeningSoonSources();
-      const did=await processOne();
+      const didImage=await processOneImageResearchItem();
+      const did=didImage||await processOne();
       if(!did)await sleep(cfg.pollSeconds*1000);
     }catch(e){
       const message=e?.message||String(e);
