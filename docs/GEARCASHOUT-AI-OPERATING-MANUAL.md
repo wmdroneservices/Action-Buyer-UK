@@ -3612,3 +3612,21 @@ When a received sale has a linked `inventory_assets.source_sale_id`, do not pres
 They are the same physical workflow. The linked inventory task is authoritative because `inventory-detail.html` / `inventory-workbench.js` owns the editable inspection.
 
 Before diagnosing a claimed duplicate valuation, query the actual records separately. On the current test state there is one valuation, one sale and one linked inventory asset; the duplication was presentation-layer task generation, not duplicated database data.
+
+
+---
+
+## Premature Sales handoff lesson — 8 September 2026
+
+Do not treat `inventory_assets.status='Ready for Resale'` as sufficient proof that a customer-sourced item may enter Sales. That status proves the physical inspection/testing path, not that the customer purchase has been finalised.
+
+Before changing Sales eligibility, inspect the linked chain:
+
+`inventory_assets.source_sale_id → sales.status/payment_status`.
+
+For a customer-sourced asset, `staff_send_inventory_to_sales(...)` must require:
+
+- `sales.status='completed'`; and
+- `sales.payment_status='paid'`.
+
+The UI may hide or explain the action, but the RPC must remain the authoritative enforcement point. This prevents stale pages or direct RPC calls from bypassing the purchasing boundary.
