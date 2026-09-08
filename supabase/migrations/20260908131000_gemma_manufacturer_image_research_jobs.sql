@@ -71,7 +71,8 @@ begin
   insert into public.retail_storefront_image_research_job_items(job_id,queue_id,manufacturer,category,status)
   select v_job,q.id,q.manufacturer,q.category,'queued'
   from public.retail_storefront_image_queue q
-  where lower(btrim(coalesce(q.manufacturer,'')))=lower(v_manufacturer)
+  where q.entity_scope='manufacturer'
+    and lower(btrim(coalesce(q.manufacturer,'')))=lower(v_manufacturer)
     and nullif(btrim(q.category),'') is not null
     and coalesce(q.approved,false)=false
     and coalesce(q.research_status,'pending') in ('pending','candidate')
@@ -118,7 +119,8 @@ begin
          count(*) filter(where q.research_status='pending' and q.approved=false)::bigint,
          count(*) filter(where q.research_status='candidate' and q.approved=false)::bigint
   from public.retail_storefront_image_queue q
-  where nullif(btrim(q.manufacturer),'') is not null
+  where q.entity_scope='manufacturer'
+    and nullif(btrim(q.manufacturer),'') is not null
     and (p_search is null or btrim(p_search)='' or q.manufacturer ilike '%'||btrim(p_search)||'%')
   group by q.manufacturer
   order by lower(q.manufacturer)
