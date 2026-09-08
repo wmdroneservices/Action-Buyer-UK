@@ -3321,3 +3321,12 @@ For Inventory → Sales investigations, treat the two condition concepts as sepa
 2. Staff inspection condition is the authoritative resale condition.
 
 Never use a customer-declared condition as fallback resale data. Sales output, channel payloads and the retail website must use the staff inspection condition held on `inventory_assets.condition_grade` (with inspection/testing records as audit evidence). If no staff condition exists, surface the absence rather than substituting the customer declaration.
+
+
+## 8 September 2026 — Final listing-stage rule
+
+The Product Workbench is the single editing responsibility for sales-stage stock. Keep the listing stage deliberately small: edit only resale title, product/manufacturer information, item description, staff condition narrative, included/missing items, battery count, price, postage and photographs.
+
+Do not reintroduce a second Sales Workbench or draft stage.
+
+On sale, staff_mark_resale_listing_sold remains the controlled sale event. It marks other channel records Delist Required. WEBSITE closure is effective automatically through the storefront Published filter. Do not claim external marketplace listings are automatically closed unless a real API/integration has been inspected and verified.
