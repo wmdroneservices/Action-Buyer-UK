@@ -5,6 +5,104 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label=r=>[r.category,r.manufacturer,r.model].filter(Boolean).join(' → ')||'Unclassified target';
 const PAGE=100;let rows=[],selected=null,offset=0,total=0,timer=null;
+let batchManufacturers=[],batchTargets=[],batchMode=false;
+function batchMessage(text='',error=false){const el=$('image-batch-message');if(!el)return;el.textContent=text;el.style.color=error?'#b42318':'#176b36';}
+async function loadBatchManufacturers(){
+ const db=auth();if(!db)return;
+ const {data,error}=await db.rpc('staff_retail_image_research_manufacturers',{p_search:null,p_limit:500});
+ if(error){batchMessage(error.message,true);return;}
+ batchManufacturers=data||[];
+ const select=$('image-batch-manufacturer');
+ select.innerHTML='<option value="">Choose manufacturer…</option>'+batchManufacturers.map(m=>'<option value="'+esc(m.manufacturer)+'">'+esc(m.manufacturer)+' · '+Number(m.target_count||0)+' targets</option>').join('');
+}
+async function loadBatchTargets(){
+ const manufacturer=$('image-batch-manufacturer').value,status=$('image-batch-status').value||null;
+ if(!manufacturer){batchMessage('Choose a manufacturer first.',true);return;}
+ const db=auth();$('image-batch-summary').textContent='Loading '+manufacturer+' targets…';
+ const {data,error}=await db.rpc('staff_retail_image_research_manufacturer_targets',{p_manufacturer:manufacturer,p_status:status,p_limit:250});
+ if(error){batchMessage(error.message,true);return;}
+ batchTargets=data||[];
+ renderBatchTargets();
+}
+function renderBatchTargets(){
+ const manufacturer=$('image-batch-manufacturer').value,el=$('image-batch-list');
+ if(!batchTargets.length){el.innerHTML='<div class="image-research-empty">No matching targets found for this manufacturer/status.</div>';$('image-batch-actions').hidden=true;return;}
+ $('image-batch-summary').textContent=manufacturer+' · '+batchTargets.length+' exact queue target(s) loaded. Each deployment is locked to its Category + Manufacturer record.';
+ el.innerHTML=batchTargets.map((r,i)=>{
+   const locked=!!r.approved||r.research_status==='approved';
+   return '<article class="image-batch-card '+(locked?'locked':'')+'" data-batch-id="'+esc(r.id)+'">'
+    +'<div class="image-batch-card-head"><div><p class="section-kicker">'+esc(String(r.entity_scope||'target').toUpperCase())+'</p><h3>'+esc(r.category||'Uncategorised')+'</h3><p class="image-research-summary">'+esc(manufacturer)+(r.model?' · '+esc(r.model):'')+' · '+esc(r.research_status||'pending')+(locked?' · APPROVED LOCKED':'')+'</p></div></div>'
+    +(locked?'<p class="image-research-message">Approved imagery is protected and cannot be overwritten by this batch workflow.</p>':
+      '<div class="image-batch-grid">'
+      +'<label class="image-batch-wide">Direct image URL<input data-field="image_url" type="url" value="'+esc(r.image_url||'')+'" placeholder="https://…"></label>'
+      +'<label class="image-batch-wide">Source page URL<input data-field="source_url" type="url" value="'+esc(r.source_url||'')+'" placeholder="https://…"></label>'
+      +'<label>Source name<input data-field="source_name" value="'+esc(r.source_name||'')+'" placeholder="Official manufacturer / source"></label>'
+      +'<label>Licence / rights status<input data-field="licence_status" value="'+esc(r.licence_status||'unverified')+'"></label>'
+      +'<label class="image-batch-wide">Notes<textarea data-field="notes" rows="3" placeholder="Why this image matches '+esc(manufacturer)+' + '+esc(r.category||'target')+'; rights/review notes.">'+esc(r.notes||'')+'</textarea></label>'
+      +'</div>')
+    +'</article>';
+ }).join('');
+ $('image-batch-actions').hidden=false;
+ $('image-batch-brief-output').hidden=true;
+ batchMessage('');
+}
+function buildGemmaBrief(){
+ const manufacturer=$('image-batch-manufacturer').value;
+ const targets=batchTargets.filter(r=>!r.approved&&r.research_status!=='approved').map((r,i)=>({
+   n:i+1,category:r.category||'',scope:r.entity_scope||'',model:r.model||''
+ }));
+ return 'GEARCASHOUT — GEMMA MANUFACTURER IMAGE RESEARCH\n\n'
+ +'MANUFACTURER: '+manufacturer+'\n'
+ +'RESEARCH KEY: Category + Manufacturer\n\n'
+ +'RULES:\n'
+ +'1. Research each target separately using manufacturer + exact category.\n'
+ +'2. Do not use one generic manufacturer image across unrelated categories.\n'
+ +'3. Prefer official manufacturer/source pages.\n'
+ +'4. Return direct permitted image assets only when available; otherwise return the source page as a candidate for review.\n'
+ +'5. Never approve or publish automatically. Candidate status only.\n'
+ +'6. Do not assign an image to another manufacturer or category.\n'
+ +'7. Do not overwrite an approved image.\n\n'
+ +'TARGETS:\n'+targets.map(t=>'TARGET '+t.n+'\nManufacturer: '+manufacturer+'\nCategory: '+t.category+(t.model?'\nModel: '+t.model:'')+'\nSearch: '+manufacturer+' official '+t.category+' imagery\n').join('\n')
+ +'\nRETURN FORMAT FOR EACH TARGET:\n'
+ +'Category:\nDirect image URL (if permitted):\nSource page URL:\nSource name:\nLicence/rights status:\nNotes explaining exact Category + Manufacturer match:\n';
+}
+function showGemmaBrief(){
+ const out=$('image-batch-brief-output');out.value=buildGemmaBrief();out.hidden=false;out.focus();out.select();batchMessage('Gemma manufacturer batch brief generated.');
+}
+async function copyGemmaBrief(){
+ const out=$('image-batch-brief-output');if(out.hidden||!out.value)showGemmaBrief();
+ try{await navigator.clipboard.writeText(out.value);batchMessage('Gemma batch brief copied.');}
+ catch{out.focus();out.select();batchMessage('Brief selected. Copy it manually with Ctrl+C.');}
+}
+async function saveBatch(){
+ const manufacturer=$('image-batch-manufacturer').value;
+ const assignments=[];
+ document.querySelectorAll('[data-batch-id]').forEach(card=>{
+   const target=batchTargets.find(r=>String(r.id)===String(card.dataset.batchId));if(!target||target.approved||target.research_status==='approved')return;
+   const get=name=>String(card.querySelector('[data-field="'+name+'"]')?.value||'').trim();
+   const image_url=get('image_url'),source_url=get('source_url'),source_name=get('source_name'),licence_status=get('licence_status'),notes=get('notes');
+   if(image_url||source_url||source_name||notes)assignments.push({queue_id:target.id,category:target.category||null,image_url,source_url,source_name,licence_status,notes});
+ });
+ if(!assignments.length){batchMessage('Add at least one image/source candidate before deployment.',true);return;}
+ const btn=$('image-batch-save'),old=btn.textContent;btn.disabled=true;btn.textContent='DEPLOYING…';
+ try{
+   const {data,error}=await auth().rpc('staff_retail_image_research_batch_save',{p_manufacturer:manufacturer,p_assignments:assignments});
+   if(error)throw error;
+   batchMessage((data||[]).length+' candidate image record(s) deployed to exact '+manufacturer+' Category + Manufacturer targets.');
+   await loadBatchTargets();await load(true);
+ }catch(e){batchMessage(e.message||String(e),true);}
+ finally{btn.disabled=false;btn.textContent=old;}
+}
+function setResearchMode(batch){
+ batchMode=batch;$('image-batch-panel').hidden=!batch;
+ $('.image-research-grid');
+ $('image-research-summary').hidden=batch;
+ document.querySelector('.image-research-grid').hidden=batch;
+ $('image-mode-individual').classList.toggle('active',!batch);
+ $('image-mode-batch').classList.toggle('active',batch);
+ if(batch&&batchManufacturers.length===0)loadBatchManufacturers();
+}
+
 
 function message(text='',error=false){const el=$('image-research-message');el.textContent=text;el.style.color=error?'#b42318':'#176b36';}
 function editorEmpty(){ $('image-research-editor').innerHTML='<div class="image-research-empty">Select an image research target from the queue.</div>'; }
