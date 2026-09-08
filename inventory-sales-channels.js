@@ -81,7 +81,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(master.error){message.textContent=master.error.message;message.className='form-message error';button.disabled=false;return;}
     const a=master.asset,c=master.content;
     const title=String(c.listing_title||[a.manufacturer,a.model,a.package_name].filter(Boolean).join(' ')).trim();
-    const description=String(c.listing_notes||a.description||'').trim();
+    const manufacturerDescription=String(c.manufacturer_description||'').trim();
+    const staffDescription=String(c.listing_notes||a.description||'').trim();
+    const conditionDescription=String(c.condition_description||'').trim();
+    const description=[manufacturerDescription,staffDescription,conditionDescription].filter(Boolean).join('\n\n');
     const price=c.asking_price??a.approved_resale_price;
     const shipping=c.postage_packing??0;
     if(!title||!description||price===null||price===undefined||price===''){
@@ -101,8 +104,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         transaction_number:a.transaction_number,manufacturer:a.manufacturer,model:a.model,
         // Only the staff inspection condition is carried into resale channel data.
         package_name:a.package_name,condition:a.condition_grade,
+        manufacturer_description:manufacturerDescription,
+        staff_description:staffDescription,
+        condition_description:conditionDescription,
+        missing_parts:a.package_notes||null,
         package_contents:a.final_package_contents,serial_number:a.serial_number,
-        actual_battery_count:a.actual_battery_count
+        actual_battery_count:a.actual_battery_count,
+        listing_photo_paths:Array.isArray(c.listing_photo_paths)?c.listing_photo_paths:[]
       }
     };
     const result=existing
