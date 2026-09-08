@@ -3129,3 +3129,41 @@ On 8 September 2026, the Purchasing Dashboard initially leaked `SALES` tasks aft
 ### Direct owned-storefront publishing rule — Sales Workbench (8 September 2026)
 
 Treat the WEBSITE outlet differently from external marketplaces. An owned storefront does not need a copied external URL or a manual “mark uploaded” confirmation. In `sales-workbench.js`, the active WEBSITE owned-storefront outlet publishes the authoritative `resale_listings` row directly with `status='Published'` and `published_at` set by the authenticated staff workflow. The public retail storefront must continue to derive availability from that central listing and the linked unsold inventory asset. Do not create a second website stock table or weaken the central sold/delist workflow.
+
+
+---
+
+# Unified Product Workbench rule — 8 September 2026
+
+Do not recreate a second per-item Sales Workbench for normal listing work.
+
+The authoritative per-item entry point is now inventory-detail.html.
+
+For Sales handoff statuses, the same Product Workbench must expose:
+
+- retained inspection history;
+- editable sales/product presentation;
+- customer and staff photographs kept separate;
+- core product/listing details;
+- live outlet registry from sales_outlets;
+- central resale_listings records.
+
+The WEBSITE owned-storefront outlet remains a direct publish path to central Published resale listings.
+
+External marketplaces must not reintroduce the old Draft → Ready to Upload requirement. The operational action is a single submitted/live recording step after staff create the external marketplace listing.
+
+Keep listing-readiness.html only as a compatibility redirect to the Product Workbench unless a future architecture review establishes a genuine separate operational need.
+
+Customer exceptionNotes / condition notes must be rendered as their own labelled customer note, not silently attached only to a damage card.
+
+Before changing this workflow, inspect:
+
+1. the current Supabase checkpoint/project memory;
+2. docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md;
+3. inventory-workbench.js;
+4. inventory-sales-handoff.js;
+5. inventory-sales-channels.js;
+6. sales_outlets, resale_listings, inventory_assets, inventory_sales_content, catalog_sales_content;
+7. staff_mark_resale_listing_sold(...) and the central sold/delist flow.
+
+Preserve the central inventory and resale-listing truth. Do not create a duplicate website stock table or a separate channel state store.
