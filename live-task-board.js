@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
         db.from("sales").select("id,sale_reference,status,total_amount,bank_details_confirmed_at,created_at,updated_at"),
         db.from("shipments").select("id,sale_id,shipment_type,status,created_at,updated_at,shipped_at,delivered_at"),
         db.from("purchase_return_cases").select("id,status,created_at,updated_at,arranged_at,dispatched_at,delivered_at,closed_at"),
-        db.from("inventory_assets").select("id,asset_reference,manufacturer,model,status,created_at,updated_at,status_changed_at,transaction_number"),
+        db.from("inventory_assets").select("id,asset_reference,source_sale_id,manufacturer,model,status,created_at,updated_at,status_changed_at,transaction_number"),
         db.from("resale_listings").select("id,asset_id,listing_reference,listing_title,status,created_at,updated_at"),
         db.from("sales_customer_returns").select("id,return_reference,status,asset_id,created_at,updated_at,item_received_at")
       ]);
@@ -51,6 +51,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const customerReturnAssetIds=new Set(customerReturns
         .map(r=>r.asset_id)
         .filter(Boolean));
+      // One physical item must produce one actionable inspection task. Once receipt
+      // has created the linked inventory asset, the Product Workbench is the
+      // authoritative inspection entry point; do not duplicate it as a sale task.
+      const inspectionAssetSaleIds=new Set(assets
+        .filter(a=>a.source_sale_id && ["Received","Inspection Required","Testing","Repair Required"].includes(String(a.status||"")))
+        .map(a=>a.source_sale_id));
       const tasks=[];
 
       valuations.forEach(v=>{
@@ -73,7 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if(status==="payment_due"&&s.bank_details_confirmed_at){
           addTask(tasks,{category:"PURCHASING",title:"Send and record customer payment",detail:(s.sale_reference||"Purchase")+" · Bank details confirmed",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference,priority:"priority"});
         }else if(["received","inspection"].includes(status)){
-          addTask(tasks,{category:"PURCHASING",title:"Inspect received item",detail:(s.sale_reference||"Purchase")+" is ready for receipt and inspection.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
+          if(!inspectionAssetSaleIds.has(s.id)){
+            addTask(tasks,{category:"PURCHASING",title:"Inspect received item",detail:(s.sale_reference||"Purchase")+" is ready for receipt and inspection.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
+          }
         }else if(["collecting_items","ready_for_shipping","shipping"].includes(status)&&!inbound){
           addTask(tasks,{category:"PURCHASING",title:"Create and send inbound shipping label",detail:(s.sale_reference||"Purchase")+" has progressed and needs the customer shipping label.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
         }else if(inbound&&String(inbound.status||"").toLowerCase()==="delivered"&&!["received","inspection","payment_due","paid","completed","cancelled"].includes(status)){
