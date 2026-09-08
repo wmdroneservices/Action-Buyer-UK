@@ -4261,3 +4261,31 @@ A live receipt test showed that the button could reach the authoritative receipt
 The resolver now uses `(array_agg(id))[1]` and returns that UUID only when exactly one catalogue match exists. The receipt RPC was transactionally retested successfully, then the affected live sale was repaired through the same authoritative RPC and verified as `sales.status=received → inbound shipment=delivered → inventory asset=Received`.
 
 See: [Inventory Repair, Testing and Sales Handoff Diagnostic Roadmap](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md).
+## Receipt gate and customer valuation visibility — 8 September 2026
+
+### Receipt rule
+
+The **ITEM RECEIVED** action is not a generic shortcut.
+
+Required sequence:
+
+**accepted purchase → customer → GearCashOut shipping label/QR created and sent → item posted/in transit → staff marks item received → Purchasing inspection**
+
+Both layers enforce this:
+
+- `admin-sales.js` only shows **ITEM RECEIVED** when an inbound shipment has a recorded label/QR;
+- `staff_mark_item_received_and_sync_inventory(uuid)` rejects receipt if that inbound shipping evidence does not exist.
+
+This prevents an item being received before the customer has been given the shipping label.
+
+### Customer account rule
+
+A valuation remains visible as **in progress** while its linked customer purchase is still active. The customer sees:
+
+- the count of valuations currently in progress;
+- the product/reference originally submitted;
+- the separate live purchasing/valuation update.
+
+The sale remains authoritative for receipt, inspection and payment status; the valuation view preserves visibility of what the customer originally sent.
+
+**Diagnostic roadmap:** [Inventory, Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
