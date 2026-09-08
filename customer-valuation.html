@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Your Original Valuation | GearCashOut</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="premium-customer.css?v=20260829-1">
+  <style>
+    .valuation-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:1rem 0}
+    .valuation-photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:.75rem}
+    .valuation-photo-grid img{display:block;width:100%;height:180px;object-fit:cover;border-radius:8px}
+    .submission-item-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap}
+    .customer-submission-card{margin-top:1rem}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js" defer></script>
+  <script src="customer-valuation.js?v=20260908-readonly-1" defer></script>
+</head>
+<body>
+<header class="header"><div class="container header-container"><a class="logo" href="index.html">GEARCASHOUT</a><nav aria-label="Main navigation"><ul class="nav-list"><li><a href="index.html">Home</a></li><li><a href="valuation.html">Start Your Valuation</a></li><li><a href="how-it-works.html">How It Works</a></li><li><a href="faq.html">Help</a></li><li><a href="contact.html">Contact</a></li><li><a href="account.html">My Account</a></li></ul></nav></div></header>
+<main class="account-page"><div class="container" id="customer-valuation-view"><p>Loading your original valuation...</p></div></main>
+<footer class="footer"><div class="container"><div><strong>GEARCASHOUT</strong><br>A specialist route for selling your equipment.</div></div></footer>
+</body>
+</html>
