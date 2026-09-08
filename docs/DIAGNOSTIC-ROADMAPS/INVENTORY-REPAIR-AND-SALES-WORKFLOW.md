@@ -697,3 +697,22 @@ Marketplace path: save master listing → marketplace button → marketplace `re
 ### Known fix history
 
 Do not restore a second per-item Sales Workbench, do not replace the Product Workbench root, do not write listing fields to nonexistent `inventory_assets` columns, and do not make price paid or inspection history editable from the final listing stage.
+
+
+## Condition separation rule — 8 September 2026
+
+### Customer declaration
+- `inventory_assets.customer_condition`
+- `inventory_assets.customer_exception_notes`
+- valuation / quote-item fallback data
+
+These are historical valuation facts. They are reference-only and must not populate resale condition fields.
+
+### Staff inspection condition
+- `inventory_assets.condition_grade`
+- supported by `inventory_testing.visual_condition` and inspection/testing history
+
+This is the authoritative resale condition and is the only condition carried into `resale_listings.listing_data.condition`, the GearCashOut retail website and marketplace payloads.
+
+### Failure checkpoint
+If a resale listing shows the wrong condition, inspect `inventory_assets.condition_grade` first, then the channel payload construction. Do not repair the issue by copying customer valuation condition into sales data.
