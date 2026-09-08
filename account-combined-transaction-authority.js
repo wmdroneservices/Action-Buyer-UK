@@ -111,8 +111,12 @@
       const shipment=data.shipments.find(s=>s.sale_id===sale.id&&s.shipment_type==="inbound");
       const names=qi.map(i=>[i.manufacturer,i.model||i.item_name].filter(Boolean).join(" ")).filter(Boolean);
       const itemList=qi.map((i,index)=>`<div style="display:flex;justify-content:space-between;gap:1rem;padding:.55rem 0;border-bottom:1px solid #ddd"><span>${esc(names[index]||"Equipment")}</span><strong>${money(sis.find(si=>si.quote_item_id===i.id)?.amount)}</strong></div>`).join("");
+      const saleStatus=String(sale.status||"");
       let message="Your accepted items are being processed as one transaction. We will send your shipping instructions next.";
-      if(shipment?.status==="label_created")message="Your shipping label is ready. Please follow the shipping instructions provided.";
+      // Purchase workflow status outranks transport history after receipt.
+      if(saleStatus==="received")message="Your items have been received by GearCashOut and are awaiting inspection.";
+      else if(saleStatus==="inspection")message="Your items have been received by GearCashOut and are now under inspection. We will update you when the final valuation is ready.";
+      else if(shipment?.status==="label_created")message="Your shipping label is ready. Please follow the shipping instructions provided.";
       else if(shipment?.status==="in_transit")message="Your parcel is on its way to GearCashOut.";
       cards.push(`<article class="valuation-card combined-authority-sale" style="display:grid;gap:1rem;margin-bottom:1.5rem"><div><span class="valuation-ref">${esc(sale.sale_reference||"")}</span><p class="section-kicker">COMBINED TRANSACTION</p><h3>Accepted items</h3><div>${itemList}</div><div style="display:flex;justify-content:space-between;padding-top:.8rem;border-top:2px solid #102f4f"><strong>TRANSACTION TOTAL</strong><strong>${money(sale.total_amount)}</strong></div><p>${esc(message)}</p></div></article>`);
     }
