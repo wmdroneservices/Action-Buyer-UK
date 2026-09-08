@@ -4092,3 +4092,29 @@ The same fallback is used when updating a channel listing.
 ### Rule
 
 Do not make staff recreate a working live listing merely because it predates the unified Product Workbench. Preserve existing `resale_listings` data and allow the unified editor to adopt it safely.
+
+
+## 8 September 2026 — Active Sales visibility RLS repair
+
+### First actual failure
+
+The Sales Dashboard JavaScript had already been corrected to count authoritative `resale_listings.status='Published'` rows.
+
+However, `resale_listings` had Row Level Security enabled with no staff SELECT policy. The database therefore returned no listing rows to an authenticated staff browser, even though privileged database inspection and the public storefront could see the Published listing.
+
+This explains why the dashboard could still show **0 Listed / No Active Listings** after the JavaScript counting repair.
+
+### Minimal repair
+
+Added the `resale_listings_sales_staff_select` RLS policy.
+
+A row is visible to an authenticated user only when there is an active `staff_users` record and the user has either:
+
+- `can_access_sales = true`; or
+- `can_manage_staff = true`.
+
+### Verified result
+
+An authenticated eligible sales staff context can now read the two current Published resale rows. The dashboard's existing authoritative listing-count logic can therefore receive the live rows it was already designed to count.
+
+No listing status, inventory status, storefront record or published item was changed.
