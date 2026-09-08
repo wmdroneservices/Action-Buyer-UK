@@ -741,3 +741,25 @@ Editable resale fields:
 - Sold event → staff_mark_resale_listing_sold marks all other channel rows Delist Required.
 - WEBSITE is effectively removed automatically from public stock because public_storefront_stock filters for Published WEBSITE rows.
 - External marketplace closure is manual until a verified outlet API is implemented; the workbench warns staff clearly.
+
+
+## Unified final listing editor — 8 September 2026
+
+### Operator action
+Item reaches Sent to Sales → open Product Workbench → complete/edit minimal resale details → select customer/staff photographs → save → Send to Website → Add to Marketplace as required → mark sold on the successful outlet.
+
+### Listing truth
+- manufacturer description: inventory_sales_content.manufacturer_description
+- staff item description: inventory_sales_content.listing_notes
+- detailed staff condition: inventory_sales_content.condition_description
+- staff condition grade: inventory_assets.condition_grade
+- missing parts: inventory_assets.package_notes
+- battery count: inventory_assets.actual_battery_count
+- selected listing photographs: inventory_sales_content.listing_photo_paths
+- price/postage: inventory_sales_content.asking_price / postage_packing
+
+### Sale collision / closure path
+staff_mark_resale_listing_sold marks the successful listing sold and changes other open records for the same asset to Delist Required.
+
+- WEBSITE: effectively removed automatically because public storefront queries only Published WEBSITE records.
+- External marketplaces: currently manual closure unless a verified integration is added. The workbench must show a closure warning rather than imply automatic API closure.
