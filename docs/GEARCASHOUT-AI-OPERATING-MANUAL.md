@@ -3704,3 +3704,16 @@ The resolver now uses `(array_agg(id))[1]` and returns an ID only when exactly o
 ### Verification rule
 
 Before declaring receipt fixed, verify all three authoritative transitions: `sales.status='received'`, inbound `shipments.status='delivered'`, and a linked `inventory_assets.status='Received'`. If any fail, inspect the first failing database statement before changing dashboard rendering.
+# Receipt Gate Regression Rule — 8 September 2026
+
+When investigating or changing the customer purchase receipt flow:
+
+1. inspect the live `sales` row;
+2. inspect the linked inbound `shipments` row;
+3. do not allow **ITEM RECEIVED** before a real customer → GearCashOut label/QR exists;
+4. enforce the rule in both browser presentation and the authoritative RPC;
+5. after receipt, customer rendering must prioritise `sales.status` over historical shipment wording.
+
+For customer accounts, do not hide an active valuation merely because an accepted item has created a linked sale. Keep the valuation visible as **in progress** while the linked purchase remains non-terminal; use the sale separately as the authority for operational progress.
+
+Known prior fault: receipt logic was previously duplicated between browser handlers. Do not reintroduce a second competing receipt handler.
