@@ -32,7 +32,76 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!Array.isArray(window.__gcoMultiItemFiles)) window.__gcoMultiItemFiles = [];
     return window.__gcoMultiItemFiles;
   }
-  window.gearCashOutReverseBasket = {readBasket, writeBasket, filesStore};
+
+  // File objects disappear from JavaScript memory after navigation. The basket
+  // already survives login redirects in localStorage, so persist its photographs
+  // in IndexedDB and restore them before submission.
+  const photoDbName = "GearCashOutValuationPhotos";
+  const photoStoreName = "files";
+  const photoStateKey = "current";
+
+  function openPhotoDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(photoDbName, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(photoStoreName)) db.createObjectStore(photoStoreName, { keyPath: "key" });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function persistFiles() {
+    try {
+      const db = await openPhotoDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(photoStoreName, "readwrite");
+        tx.objectStore(photoStoreName).put({ key: photoStateKey, files: filesStore() });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+      db.close();
+    } catch (error) {
+      console.warn("GearCashOut photo persistence failed", error);
+    }
+  }
+
+  async function restoreFiles() {
+    try {
+      const db = await openPhotoDb();
+      const record = await new Promise((resolve, reject) => {
+        const request = db.transaction(photoStoreName, "readonly").objectStore(photoStoreName).get(photoStateKey);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+      db.close();
+      if (Array.isArray(record?.files)) window.__gcoMultiItemFiles = record.files;
+    } catch (error) {
+      console.warn("GearCashOut photo restore failed", error);
+    }
+    return filesStore();
+  }
+
+  async function clearPersistedFiles() {
+    try {
+      const db = await openPhotoDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(photoStoreName, "readwrite");
+        tx.objectStore(photoStoreName).delete(photoStateKey);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+      db.close();
+    } catch (error) {
+      console.warn("GearCashOut photo cleanup failed", error);
+    }
+    window.__gcoMultiItemFiles = [];
+  }
+
+  window.gearCashOutReverseBasket = {readBasket, writeBasket, filesStore, persistFiles, restoreFiles, clearPersistedFiles};
   window.gearCashOutGetMultiItemBasket = readBasket;
   window.gearCashOutGetMultiItemFiles = filesStore;
   window.gearCashOutResetForNewItem = resetItem;
@@ -201,7 +270,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const basket = readBasket();
     const duplicate = basket.some(x => clean(x.category).toLowerCase() === clean(entry.category).toLowerCase() && clean(x.manufacturer).toLowerCase() === clean(entry.manufacturer).toLowerCase() && clean(x.model).toLowerCase() === clean(entry.model).toLowerCase() && clean(x.package).toLowerCase() === clean(entry.package).toLowerCase());
-    if (!duplicate) { basket.push(entry); filesStore().push([...currentItemFiles]); }
+    if (!duplicate) {
+      basket.push(entry);
+      filesStore().push([...currentItemFiles]);
+      await persistFiles();
+    }
     writeBasket(basket);
     renderBasket();
     show(8);
@@ -235,6 +308,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     alert("We could not load the equipment catalogue. Please refresh and try again.");
     return;
   }
+
+  await restoreFiles();
 
   setSelect(el("gear-category"),mainCategories(),"-- Select category --");
   setSelect(el("gear-product-type"),[],"-- Select product type --");
@@ -281,7 +356,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     if(!button || !section) return;
     const step=Number(section.dataset.step);
     if(button.classList.contains("btn-remove-photo")){event.preventDefault();currentItemFiles.splice(Number(button.dataset.photoIndex),1);renderPhotoList();return;}
-    if(button.classList.contains("btn-remove-item")){event.preventDefault();const basket=readBasket(),i=Number(button.dataset.index);basket.splice(i,1);writeBasket(basket);filesStore().splice(i,1);renderBasket();return;}
+    if(button.classList.contains("btn-remove-item")){
+      event.preventDefault();
+      const basket=readBasket(),i=Number(button.dataset.index);
+      basket.splice(i,1);
+      writeBasket(basket);
+      filesStore().splice(i,1);
+      await persistFiles();
+      renderBasket();
+      return;
+    }
     if(button.classList.contains("btn-back")){event.preventDefault();previousStep();return;}
     if(button.classList.contains("btn-add-another")){event.preventDefault();resetItem();show(1);return;}
     if(button.classList.contains("btn-next")){event.preventDefault();if(!validateStep(step))return;if(step===7){try{await addCurrentItem();}catch(error){console.error(error);alert(error?.message || "We could not add this item. Please try again.");}return;}if(step===8){show(9);return;}if(step===9)return;nextStep();}
