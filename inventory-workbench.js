@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customerCondition=asset.customer_condition || quoteData.condition || itemData.condition || single.condition || 'Not recorded';
     const customerPackage=asset.customer_package_name || quoteItem?.package || itemData.packageName || 'Not recorded';
     const customerMissing=Boolean(asset.customer_missing_items || itemData.missingItems || single.missingItems);
-    const customerMissingDetails=asset.customer_missing_items_details || itemData.exceptionNotes || single.exceptionNotes || '';
+    const customerMissingDetails=asset.customer_missing_items_details || itemData.missingItemsDetails || itemData.exceptionNotes || single.missingItemsDetails || single.exceptionNotes || quoteData.missingItemsDetails || quoteData.exceptionNotes || '';
     const customerDamage=Boolean(asset.customer_damage || itemData.damage || single.damage);
-    const customerConditionNote=asset.customer_exception_notes || itemData.conditionNotes || itemData.exceptionNotes || single.conditionNotes || single.exceptionNotes || '';
+    const customerConditionNote=asset.customer_exception_notes || itemData.conditionNotes || itemData.exceptionNotes || single.conditionNotes || single.exceptionNotes || quoteData.conditionNotes || quoteData.exceptionNotes || '';
     const customerDescription=first(itemData,['description','itemDescription']) || first(single,['description','itemDescription']) || '';
     const customerPhotos=await signed([...(itemData.photos||[]),...(single.photos||[])].map(x=>typeof x==='string'?x:x?.path));
     const staffPhotos=await signed(evidenceRows.map(x=>x.file_url));
