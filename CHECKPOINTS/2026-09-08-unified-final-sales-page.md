@@ -52,3 +52,7 @@ No external marketplace closure API was found in the inspected current system. T
 - Do not use customer condition as resale condition.
 - Do not delete customer source photographs merely because they are not selected for sale.
 - Do not claim automatic marketplace closure without a verified integration.
+
+
+### Item-specific manufacturer text safeguard
+Manufacturer/product description can be pre-filled from catalog_sales_content, but saving an individual Product Workbench listing now stores the edited text only on inventory_sales_content. An item-level correction must not overwrite the shared catalogue description for every future item of that model.
