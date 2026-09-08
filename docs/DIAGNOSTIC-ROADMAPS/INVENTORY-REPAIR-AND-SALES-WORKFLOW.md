@@ -1150,3 +1150,39 @@ The receipt RPC dry run reported one inventory asset would be created. The affec
 ### Regression rule
 
 A receipt action is not fixed because the button handler exists. Verify the full transaction through dependent database functions and confirm all three authoritative records after execution.
+## Receipt gate and customer valuation continuity — 8 September 2026
+
+### User action
+
+Staff process an accepted customer purchase through **Sales & Shipping** and later mark the item physically received.
+
+### Actual route
+
+`admin-purchasing.html`
+→ `admin-sales.js`
+→ inbound `shipments` row
+→ `staff_mark_item_received_and_sync_inventory(p_sale_id)`
+→ `sales.status='received'`
+→ linked `inventory_assets.status='Received'`
+→ Purchasing/Product Workbench inspection.
+
+### Mandatory receipt gate
+
+**ITEM RECEIVED** must not appear, and the RPC must reject the action, until an inbound customer → GearCashOut shipment has:
+
+- status `label_created` or `in_transit`;
+- at least one label recorded;
+- at least one label URL or QR URL recorded.
+
+### Customer rendering
+
+`account-page.js` keeps the original valuation visible as **in progress** while the linked sale remains active.
+
+`account-sales.js` and `account-combined-transaction-authority.js` use `sales.status` as the operational authority after receipt.
+
+### Failure checkpoints
+
+1. **ITEM RECEIVED visible before label:** inspect `admin-sales.js` gate and cache version in `admin-purchasing.html`.
+2. **Direct RPC bypass succeeds:** inspect `staff_mark_item_received_and_sync_inventory(uuid)` for the same inbound-label gate.
+3. **Customer says no valuations while purchase is active:** inspect `account-page.js` linked `sale_items` query and terminal sale filtering.
+4. **Customer still sees parcel on its way after receipt:** inspect `sales.status` first, then inbound `shipments.status`; do not repair only the text.
