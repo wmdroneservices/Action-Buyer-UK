@@ -763,3 +763,7 @@ staff_mark_resale_listing_sold marks the successful listing sold and changes oth
 
 - WEBSITE: effectively removed automatically because public storefront queries only Published WEBSITE records.
 - External marketplaces: currently manual closure unless a verified integration is added. The workbench must show a closure warning rather than imply automatic API closure.
+
+
+### Item-specific manufacturer text safeguard
+Manufacturer/product description can be pre-filled from catalog_sales_content, but saving an individual Product Workbench listing now stores the edited text only on inventory_sales_content. An item-level correction must not overwrite the shared catalogue description for every future item of that model.
