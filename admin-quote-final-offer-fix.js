@@ -1,11 +1,13 @@
 /*
  * Final inspection decision UI fix.
  *
- * Customer acceptance changes quote_items.item_status to "accepted". That
- * must not disable the FINAL INSPECTION OFFER controls once the linked sale
- * has reached inspection. The base admin quote renderer currently treats
- * accepted items as closed, so this layer continuously re-enables the final
- * inspection controls for accepted items that are genuinely in inspection.
+ * Customer acceptance changes quote_items.item_status to "accepted". The base
+ * admin quote renderer treats accepted items as closed, so this layer restores
+ * final-offer controls only when the linked sale is in inspection AND the
+ * linked physical inventory asset has completed the Purchasing inspection.
+ *
+ * Sales never edits the inspection record. Repair and inspection corrections
+ * remain in Purchasing; Sales receives the completed inspection as read-only.
  */
 (() => {
   "use strict";
@@ -66,15 +68,36 @@
           .map(sale => sale.id)
       );
 
+      const inspectionPairs = saleItems.filter(row => inspectionSaleIds.has(row.sale_id));
+      if (!inspectionPairs.length) {
+        inspectionItemIds = new Set();
+        loadedValuationId = valuationId;
+        applyControls();
+        return;
+      }
+
+      const { data: assets, error: assetError } = await auth.supabase
+        .from("inventory_assets")
+        .select("source_sale_id,source_quote_item_id,status")
+        .in("source_sale_id", [...new Set(inspectionPairs.map(row => row.sale_id))]);
+      if (assetError) throw assetError;
+
+      const completedStatuses = new Set(["Ready for Resale", "Sent to Sales", "Listed", "Reserved", "Sold"]);
+      const completedPairKeys = new Set(
+        (assets || [])
+          .filter(asset => completedStatuses.has(String(asset.status || "")))
+          .map(asset => String(asset.source_sale_id) + ":" + String(asset.source_quote_item_id))
+      );
+
       inspectionItemIds = new Set(
-        saleItems
-          .filter(row => inspectionSaleIds.has(row.sale_id))
+        inspectionPairs
+          .filter(row => completedPairKeys.has(String(row.sale_id) + ":" + String(row.quote_item_id)))
           .map(row => row.quote_item_id)
       );
       loadedValuationId = valuationId;
       applyControls();
     } catch (error) {
-      console.warn("Final inspection control check failed", error);
+      console.warn("Final inspection completion check failed", error);
     } finally {
       running = false;
     }
