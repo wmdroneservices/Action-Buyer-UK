@@ -3986,3 +3986,7 @@ For an item already sent to Sales, the Product Workbench is the single operation
 The workbench saves selected sale photograph paths in inventory_sales_content.listing_photo_paths. Customer valuation photographs remain historical source records and are never deleted merely because they are not selected for sale.
 
 Below the editor, the WEBSITE action publishes directly. Other active outlets appear below as Add to Marketplace actions. Marking one listing sold uses staff_mark_resale_listing_sold, which marks all other active listings Delist Required; the WEBSITE listing immediately disappears from public stock because the public storefront exposes only Published WEBSITE listings. External channels currently have no configured closure API and therefore require manual closure warnings rather than a false claim of automatic closure.
+
+
+### Item-specific manufacturer text safeguard
+Manufacturer/product description can be pre-filled from catalog_sales_content, but saving an individual Product Workbench listing now stores the edited text only on inventory_sales_content. An item-level correction must not overwrite the shared catalogue description for every future item of that model.
