@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const map = new Map(listings.map(row => [row.outlet_id || row.sales_channel,row]));
   const titleDefault = asset.listing_title || [asset.manufacturer,asset.model].filter(Boolean).join(' ');
   const descriptionDefault = asset.description || '';
+  const canManageChannels = ['Sent to Sales','Listed','Reserved'].includes(asset.status);
 
   const panel = document.createElement('section');
   panel.className = 'valuation-card';
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     <p class="section-kicker">SALES CHANNELS</p>
     <h2>List this item from one workspace</h2>
     <p>Edit the product and listing information above, then use the buttons below. The GearCashOut Retail Website publishes directly. External marketplaces are recorded with one submitted/live action; there is no Draft or Ready to Upload stage.</p>
+    ${!canManageChannels ? '<p class="notice"><strong>Sales history mode:</strong> this item is in a terminal or post-sale status, so channel publishing is locked while history remains visible.</p>' : ''}
     <form id="unified-product-listing-form" class="auth-form" style="margin-top:1rem">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem">
         <label>Manufacturer<input name="manufacturer" value="${esc(asset.manufacturer || '')}"></label>
@@ -79,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <label>Listing description<textarea name="listing_description" rows="6" required>${esc(description)}</textarea></label>
               ${isWebsite ? '<p class="notice"><strong>Website:</strong> click publish and this item becomes a live central resale listing for the GearCashOut Retail Website.</p>' : '<p class="notice"><strong>Marketplace:</strong> create the listing on the marketplace, then click the button below to record it as submitted/live. A URL or listing ID is optional and can be added later if useful.</p>'}
               <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-                <button class="btn btn-primary channel-submit" type="submit" ${delistRequired ? 'disabled' : ''}>${isWebsite ? (submitted ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (submitted ? 'UPDATE MARKETPLACE RECORD' : 'ADD TO MARKETPLACE / MARK SUBMITTED')}</button>
+                <button class="btn btn-primary channel-submit" type="submit" ${delistRequired || !canManageChannels ? 'disabled' : ''}>${isWebsite ? (submitted ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (submitted ? 'UPDATE MARKETPLACE RECORD' : 'ADD TO MARKETPLACE / MARK SUBMITTED')}</button>
                 ${row.id && submitted && !['Sold','Cancelled','Delist Required'].includes(row.status) ? `<button class="btn btn-secondary mark-sold" type="button" data-listing-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                 ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LISTING</a>` : ''}
                 <span class="form-message channel-message" aria-live="polite"></span>
@@ -115,6 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   panel.querySelectorAll('.unified-channel-form').forEach(form => form.addEventListener('submit', async e => {
     e.preventDefault();
+    if (!canManageChannels) return;
     const fd=new FormData(form);
     const message=form.querySelector('.channel-message');
     const button=form.querySelector('.channel-submit');
