@@ -42,17 +42,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       const saleStatus = String(sale.status || "");
       // Once receipt has been recorded, the sale status is authoritative. Do not
       // let a stale inbound shipment state make the customer page say "on its way".
-      if (saleStatus === "inspection") {
-        action.innerHTML = `<div class="status-badge">UNDER INSPECTION</div><p style="margin:.45rem 0 0"><strong>Your item has been received by GearCashOut and is under inspection.</strong> We will send your final valuation when the inspection is complete.</p>`;
-        card.appendChild(action);
-        return;
-      }
-      if (saleStatus === "received") {
-        action.innerHTML = `<div class="status-badge">ITEM RECEIVED</div><p style="margin:.45rem 0 0"><strong>Your item has arrived at GearCashOut.</strong> It is now awaiting inspection.</p>`;
-        card.appendChild(action);
-        return;
-      }
-      const salePastShipping = ["payment_due", "payment_processing", "paid", "completed", "closed", "archived"].includes(saleStatus);
+      // Receipt, inspection and final-offer state are rendered by account-page.js.
+      // This helper only adds shipping controls before receipt so it cannot overwrite
+      // a newly published final offer (and never references an action panel before creation).
+      if (["received", "inspection", "payment_due", "payment_processing", "paid", "completed", "closed", "archived"].includes(saleStatus)) return;
+      const salePastShipping = false;
       const shipmentStatus = String(inbound.status || "");
       if (salePastShipping) return;
 
