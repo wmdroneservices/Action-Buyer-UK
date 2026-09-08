@@ -3330,3 +3330,14 @@ The Product Workbench is the single editing responsibility for sales-stage stock
 Do not reintroduce a second Sales Workbench or draft stage.
 
 On sale, staff_mark_resale_listing_sold remains the controlled sale event. It marks other channel records Delist Required. WEBSITE closure is effective automatically through the storefront Published filter. Do not claim external marketplace listings are automatically closed unless a real API/integration has been inspected and verified.
+
+
+## Unified final sales page rule — 8 September 2026
+
+The final sales-stage Product Workbench must not reintroduce the earlier inspection workflow. It is a listing editor only.
+
+The minimal operator inputs are manufacturer/product description, staff item description, staff condition description, missing parts, battery count, photograph selection/addition, sale price and postage/packing. Listing title is generated from the asset identity unless existing listing data supplies one.
+
+Selected customer and staff photographs are stored as inventory_sales_content.listing_photo_paths. Do not delete customer source photographs when they are deselected for resale.
+
+Sales completion behaviour is controlled by staff_mark_resale_listing_sold: the sold listing becomes Sold and other active listings become Delist Required. WEBSITE removal is effective immediately because public stock reads only Published WEBSITE listings. Do not claim that eBay, Vinted, Facebook Marketplace or another external outlet is automatically closed unless a real configured API/Edge Function has been inspected and verified.
