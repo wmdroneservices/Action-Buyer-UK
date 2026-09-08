@@ -3672,3 +3672,29 @@ New backend records:
 Candidate research never sets `approved=true`. Existing approved imagery is not silently overwritten.
 
 **Diagnostic roadmap:** [Image Research and Sales-Channel Imagery](DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md)
+
+
+---
+
+## Valuation photo upload cache repair — 8 September 2026
+
+**Diagnostic roadmap:** `docs/DIAGNOSTIC-ROADMAPS/CUSTOMER-VALUATION-AND-PHOTO-UPLOAD.md`
+
+A customer valuation can require one or more photographs. The active upload path is:
+
+`valuation.html`
+→ `auth.js`
+→ `quote-reverse-basket-v5.js`
+→ `quote-submit-v4.js`
+→ Supabase Storage bucket `quote-photos`
+→ `create_customer_quotes(...)`
+→ `valuations` + `quote_items.item_data.photos`.
+
+The live Supabase bucket and RLS policies were verified on 8 September 2026, and a successful recent valuation already contained a stored photo. The backend was therefore not changed.
+
+The first remaining failure point for a reported **Bucket not found** error was stale browser delivery of fixed-version JavaScript. `valuation.html` now requests:
+
+- `auth.js?v=20260908-1`
+- `quote-submit-v4.js?v=20260908-1`
+
+This repair intentionally changes only browser cache identity for the active authentication and submission scripts. Do not recreate the bucket or weaken Storage RLS unless live backend checks identify a separate failure.
