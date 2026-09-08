@@ -568,3 +568,74 @@ Product Workbench
 - The previous separate Sales Workbench duplicated the per-item workflow and required Draft → Ready to Upload steps.
 - Direct WEBSITE publishing was already correctly repaired on 8 September 2026.
 - The workflow was consolidated onto the Product Workbench while retaining the same sales_outlets and resale_listings backend truth.
+
+
+---
+
+## Unified Product Workbench correction — 8 September 2026
+
+### User action
+
+Staff click one product from Inventory or Sales and manage everything for that physical item from:
+
+`inventory-detail.html?id=<asset_id>`
+
+### Front-end route
+
+1. `inventory-detail.html`
+2. `inventory-workbench.js`
+   - core product fields;
+   - package;
+   - condition;
+   - serial;
+   - default sale price;
+   - master description;
+   - inspection/testing.
+3. `inventory-sales-handoff.js`
+   - appends Product History;
+   - purchase/acquisition information;
+   - repair history;
+   - sales presentation;
+   - view/add/remove/select staff photographs;
+   - catalogue content.
+4. `inventory-sales-channels.js`
+   - active outlets;
+   - WEBSITE direct publishing;
+   - external submitted/live confirmation;
+   - central sold action.
+
+### Supabase route
+
+`inventory_assets`
+→ `inventory_testing` / `inventory_repairs`
+→ `inventory_evidence` + Storage `quote-photos`
+→ `inventory_sales_content` / `catalog_sales_content`
+→ `sales_outlets`
+→ `resale_listings`
+→ public storefront / central sales state.
+
+### First failure corrected
+
+The previous unified channel code attempted to update `inventory_assets.listing_title`.
+
+**Live schema check:** that column does not exist.
+
+The correct ownership is:
+
+- master physical defaults: `inventory_assets`;
+- per-channel title/description: `resale_listings.listing_title` and `resale_listings.listing_description`.
+
+### Second failure corrected
+
+The sales handoff script previously replaced the whole Product Workbench DOM, creating a de facto second workbench.
+
+Current rule: append sales/history sections to the same product page; do not replace the root workbench.
+
+### Failure checkpoints
+
+1. Product page missing sales sections → check script load/cache identifiers and `#workbench-form`.
+2. History missing → check sales-status gate and `inventory_assets`/repair rows.
+3. Photograph failure → inspect the first Storage response against `quote-photos` before changing RLS or bucket configuration.
+4. Channel save fails → inspect exact `resale_listings` response; do not write channel-only fields to `inventory_assets`.
+5. WEBSITE not public → verify WEBSITE outlet row and Published `resale_listings` state.
+6. Marketplace workflow shows Draft/Ready → inspect current channel script; those stages are not part of the intended normal action.
