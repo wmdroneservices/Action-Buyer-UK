@@ -4317,3 +4317,25 @@ Before the linked customer purchase is `completed` and `paid`:
 - the database RPC remains the final enforcement boundary.
 
 This keeps the same physical asset from appearing as both **waiting for final offer** and **ready to send to Sales**.
+
+
+---
+
+## Live retail product page and photographs — 8 September 2026
+
+**Developer roadmap:** [Phase 2 Retail Storefront](DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md)
+
+A published WEBSITE listing now has a public product-detail route and can show the photographs explicitly selected for that listing.
+
+### Flow
+
+`Product Workbench → inventory_sales_content.listing_photo_paths → resale_listings (WEBSITE, Published) → public_storefront_stock → GearOutlet stock card → product.html?listing=<listing_id>`
+
+The original `quote-photos` bucket remains private. It must not be made public because it also contains customer submission material. The public website therefore requests only the paths already selected for a published WEBSITE listing through the secure `public-listing-media` Edge Function, which validates the listing state and returns short-lived signed image URLs.
+
+Public detail data comes from:
+
+- `public_storefront_listing('retail', listing_id)`
+- `public-listing-media` Edge Function
+
+The public detail route exposes listing presentation only and does not expose purchase cost, serial number, storage location, customer details or internal notes.
