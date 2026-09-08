@@ -3234,3 +3234,8 @@ Before declaring this workflow complete:
 10. Check public storefront and sales dashboard.
 
 If a failure remains, inspect the first failing browser request and the exact Supabase response before changing another layer.
+
+
+### Condition-note retrieval rule
+
+When a customer condition/exception note appears missing, inspect the matching original `quote_data.quoteBasket` item as well as `quote_items.item_data`, `singleItem`, top-level quote data and `inventory_assets.customer_exception_notes`. Do not assume the note exists in only one historical JSON location.
