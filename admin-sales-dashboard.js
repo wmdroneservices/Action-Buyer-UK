@@ -187,7 +187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if(readyToSend) inventoryParts.push(`${readyToSend} READY TO SEND TO PRE-SALE`);
     setStepNotice("inventory-step-notice", inventoryParts.length ? inventoryParts.join(" &nbsp;·&nbsp; ") : "NO INVENTORY ACTIONS CURRENTLY REQUIRED", inventoryParts.length ? (repairs ? "warning" : "action") : "success");
 
-    setStepNotice("presale-step-notice", sent ? `${sent} ${sent===1?"PRODUCT":"PRODUCTS"} READY TO LIST FOR SALE — OPEN PRE-SALE` : "NO PRODUCTS CURRENTLY READY TO LIST", sent ? "action" : "success");
+    setStepNotice("presale-step-notice", sent ? `${sent} ${sent===1?"PRODUCT":"PRODUCTS"} READY TO LIST FOR SALE — OPEN READY TO LIST` : "NO PRODUCTS CURRENTLY READY TO LIST", sent ? "action" : "success");
 
     const activeTotal=listed+reserved;
     const activeParts=[];
