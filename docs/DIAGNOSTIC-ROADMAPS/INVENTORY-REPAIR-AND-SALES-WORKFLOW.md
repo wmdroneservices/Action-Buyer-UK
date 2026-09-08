@@ -941,3 +941,42 @@ Staff move from the Sales Dashboard through **Ready to List**, **Active Listings
 ### Known fix history
 
 The dashboard count was repaired first, then the remaining contradiction was found in `inventory-sales.js`, which still used all `Sent to Sales` assets as the pre-sale queue. The minimal repair changed only the presentation filter and wording; it did not alter working Published listings or inventory lifecycle records.
+
+
+---
+
+## Operational clean-start reset — 8 September 2026
+
+### User action
+
+Management deliberately chooses **Clear All Operational Data** to remove all current workflow history and restart valuation → purchasing → inventory → listing → sales from an empty operational state.
+
+### Entry points
+
+- `admin.html` management danger zone;
+- `admin-reset.html` standalone reset page;
+- `admin-test-reset.js`;
+- Supabase RPC `reset_test_quote_data()` (legacy-compatible function name).
+
+### Preserved reference/system data
+
+- auth/customer/staff accounts;
+- `quote_catalog_products` and research/pricing data;
+- outlets;
+- system configuration.
+
+### Dependency order
+
+`sales_customer_returns`
+→ `sales_fulfillments`
+→ inventory/customer return blockers
+→ `resale_transactions`
+→ `resale_listings`
+→ `inventory_assets` and cascading dependent records
+→ sales/quote workflow records.
+
+Workflow photographs are removed through the Storage API, not SQL.
+
+### Known fault history
+
+The original reset omitted `sales_customer_returns` and `sales_fulfillments`. Both had restrictive foreign keys to `inventory_assets` and could prevent a clean reset when those rows existed. The reset was repaired before the destructive action was performed.
