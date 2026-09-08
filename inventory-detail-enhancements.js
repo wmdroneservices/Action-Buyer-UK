@@ -41,6 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
     ]);
     if (error || !asset) return;
 
+    // A customer-owned asset must not enter the Sales stream until the purchase
+    // transaction is actually complete and paid. The RPC remains authoritative;
+    // this UI check prevents presenting an invalid action.
+    let sourceSale = null;
+    if (asset.source_sale_id) {
+      const { data } = await db.from('sales')
+        .select('id,status,payment_status,sale_reference')
+        .eq('id', asset.source_sale_id)
+        .maybeSingle();
+      sourceSale = data || null;
+    }
+    const purchaseFinalised = !asset.source_sale_id ||
+      (sourceSale?.status === 'completed' && sourceSale?.payment_status === 'paid');
+
     const expenseRows = expenses || [];
     const expenseTotal = expenseRows.reduce((s,x)=>s+Number(x.amount||0),0);
     const expenseHtml = expenseRows.length
@@ -51,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.id = 'inventory-comparison-panel';
     panel.className = 'valuation-card';
     panel.style.marginTop = '1rem';
-    const canSend = asset.status === 'Ready for Resale';
+    const canSend = asset.status === 'Ready for Resale' && purchaseFinalised;
     panel.innerHTML = `
       <h3>Customer Condition &amp; Package Comparison</h3>
       <p>The customer condition is a purchase record and is not editable by staff. Staff condition is recorded during inspection. Package changes, repairs and replacement items are recorded separately.</p>
@@ -78,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div class="valuation-card" style="margin-top:1rem">
         <h3>Send to Sales</h3>
-        ${canSend ? `<p><strong>Ready for the Sales workflow.</strong> This action removes the item from Purchase Inventory and makes it available to the Sales Channels workspace.</p><div class="notice"><strong>Gate checks</strong><ul><li>Inspection and technical testing must have passed.</li><li>Staff condition must be recorded during inspection.</li><li>Customer-reported missing items must be resolved.</li></ul></div><button id="send-to-sales-button" class="btn btn-primary" type="button">SEND TO SALES</button>` : `<p>Current status: <strong>${esc(asset.status)}</strong></p><p>${asset.status === 'Sent to Sales' || ['Listed','Reserved'].includes(asset.status) ? 'This item has already left Purchase Inventory and is in the Sales workflow.' : 'Complete the inspection/testing workflow before sending this item to Sales.'}</p>`}
+        ${canSend ? `<p><strong>Ready for the Sales workflow.</strong> This action removes the item from Purchase Inventory and makes it available to the Sales Channels workspace.</p><div class="notice"><strong>Gate checks</strong><ul><li>The customer purchase must be finalised and payment recorded.</li><li>Inspection and technical testing must have passed.</li><li>Staff condition must be recorded during inspection.</li><li>Customer-reported missing items must be resolved.</li></ul></div><button id="send-to-sales-button" class="btn btn-primary" type="button">SEND TO SALES</button>` : `<p>Current status: <strong>${esc(asset.status)}</strong></p><p>${asset.status === 'Sent to Sales' || ['Listed','Reserved'].includes(asset.status) ? 'This item has already left Purchase Inventory and is in the Sales workflow.' : (!purchaseFinalised && asset.source_sale_id ? `The customer purchase ${esc(sourceSale?.sale_reference || '')} is not finalised. Complete the final offer/payment workflow before this item can enter Sales.` : 'Complete the inspection/testing workflow before sending this item to Sales.')}</p>`}
         <p id="send-to-sales-message" class="form-message" aria-live="polite"></p>
       </div>
 
