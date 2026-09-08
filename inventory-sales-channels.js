@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
   const moneyInput = v => v === null || v === undefined ? '' : esc(v);
   const statusLabel = status => ({Published:'LIVE',Reserved:'RESERVED',Sold:'SOLD',Cancelled:'CANCELLED','Delist Required':'DELIST REQUIRED'}[status] || status || 'NOT SUBMITTED');
+  const outletTypeLabel = type => ({marketplace:'MARKETPLACE',auction:'AUCTION',other:'OTHER CHANNEL',owned_storefront:'OWNED WEBSITE'}[type] || 'CHANNEL');
 
   for (let i = 0; i < 60 && !root.querySelector('#handoff-photo-form'); i++) await new Promise(resolve => setTimeout(resolve, 100));
   if (!root.querySelector('#handoff-photo-form')) return;
@@ -68,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `
           <article class="sales-channel-block" style="border:1px solid ${delistRequired ? '#c92a2a' : '#d7dce2'};border-radius:10px;padding:1rem;background:#fff">
             <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
-              <div><h3 style="margin:0">${esc(outlet.outlet_name)}</h3><small>${isWebsite ? 'DIRECT WEBSITE PUBLISHING' : 'MARKETPLACE'}</small></div>
+              <div><h3 style="margin:0">${esc(outlet.outlet_name)}</h3><small>${isWebsite ? 'DIRECT WEBSITE PUBLISHING' : outletTypeLabel(outlet.outlet_type)}</small></div>
               <span class="notice"><strong>${esc(statusLabel(row.status))}</strong></span>
             </div>
             ${delistRequired ? '<p class="form-message error">This listing must be closed because the item has been sold through another channel.</p>' : ''}
@@ -79,9 +80,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <label>P&amp;P (£)<input name="shipping_cost" type="number" min="0" step="0.01" value="${moneyInput(row.shipping_cost ?? '')}"></label>
               </div>
               <label>Listing description<textarea name="listing_description" rows="6" required>${esc(description)}</textarea></label>
-              ${isWebsite ? '<p class="notice"><strong>Website:</strong> click publish and this item becomes a live central resale listing for the GearCashOut Retail Website.</p>' : '<p class="notice"><strong>Marketplace:</strong> create the listing on the marketplace, then click the button below to record it as submitted/live. A URL or listing ID is optional and can be added later if useful.</p>'}
+              ${isWebsite ? '<p class="notice"><strong>Website:</strong> click publish and this item becomes a live central resale listing for the GearCashOut Retail Website.</p>' : '<p class="notice"><strong>External channel:</strong> create the listing externally, then click the button below to record it as submitted/live. A URL or listing ID is optional and can be added later if useful.</p>'}
               <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-                <button class="btn btn-primary channel-submit" type="submit" ${delistRequired || !canManageChannels ? 'disabled' : ''}>${isWebsite ? (submitted ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (submitted ? 'UPDATE MARKETPLACE RECORD' : 'ADD TO MARKETPLACE / MARK SUBMITTED')}</button>
+                <button class="btn btn-primary channel-submit" type="submit" ${delistRequired || !canManageChannels ? 'disabled' : ''}>${isWebsite ? (submitted ? 'UPDATE WEBSITE LISTING' : 'PUBLISH TO WEBSITE') : (submitted ? 'UPDATE CHANNEL RECORD' : (outlet.outlet_type === 'marketplace' ? 'ADD TO MARKETPLACE / MARK SUBMITTED' : 'MARK CHANNEL SUBMITTED / LIVE'))}</button>
                 ${row.id && submitted && !['Sold','Cancelled','Delist Required'].includes(row.status) ? `<button class="btn btn-secondary mark-sold" type="button" data-listing-id="${esc(row.id)}">MARK SOLD</button>` : ''}
                 ${row.listing_url ? `<a class="btn btn-secondary" href="${esc(row.listing_url)}" target="_blank" rel="noopener">VIEW LISTING</a>` : ''}
                 <span class="form-message channel-message" aria-live="polite"></span>
