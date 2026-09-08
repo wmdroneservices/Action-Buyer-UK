@@ -1074,3 +1074,33 @@ Check separately:
 4. rendered task count.
 
 Do not delete database records merely because the dashboard displays duplicate actions; establish whether the duplication is data or presentation first.
+
+
+---
+
+## Purchase-finalisation boundary before Sales — 8 September 2026
+
+### Required gate
+
+For customer-sourced inventory:
+
+`Ready for Resale` + linked `sales.status='completed'` + linked `sales.payment_status='paid'`
+→ `staff_send_inventory_to_sales(...)`
+→ `Sent to Sales`.
+
+### Investigation points
+
+1. `inventory_assets.source_sale_id`
+2. linked `sales.status`
+3. linked `sales.payment_status`
+4. current `inventory_assets.status`
+5. latest inspection/testing records
+6. `staff_send_inventory_to_sales(...)` live definition
+
+### Known fault history
+
+A test item reached `Ready for Resale` during inspection while the linked customer sale remained `inspection / awaiting_final_quote`. The old Sales RPC checked only physical readiness and allowed the item into Sales prematurely. The repair added the purchase-finalisation check to the RPC and mirrored it in `inventory-detail-enhancements.js`.
+
+### Regression rule
+
+Never use physical readiness alone as the commercial handoff condition for a customer purchase.
