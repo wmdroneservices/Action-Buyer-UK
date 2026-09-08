@@ -3639,3 +3639,18 @@ Image research is a staff operation and belongs inside the Action-Buyer-UK Staff
 **Diagnostic roadmap:** [Image Research and Sales-Channel Imagery](DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md)
 
 Image research is a central staff operation. Use **Staff Dashboard → Research & Pricing → Image Research** in the `Action-Buyer-UK` repository to research and approve imagery for categories, manufacturers, models and exact catalogue products. Public outlet repositories remain website-only and consume approved results.
+
+
+### 8 September 2026 — Manufacturer Batch Image Research
+
+Image Research now includes a **Manufacturer Batch Research** mode in the Research & Pricing dashboard. The batch is intentionally based on the current authoritative key:
+
+**Category + Manufacturer**
+
+The workflow loads only entity_scope = manufacturer targets, so it supports the current priority of manufacturer/category coverage without restarting bulk exact-product imagery research.
+
+A generated **Gemma Manufacturer Image Research Brief** gives the selected manufacturer and exact queue categories, with rules to research each category separately, avoid generic cross-category reuse, prefer official sources, preserve rights review and deploy only candidate records for later approval.
+
+Server-side batch deployment validates the exact queue ID, manufacturer and category and refuses to overwrite approved imagery.
+
+See: docs/DIAGNOSTIC-ROADMAPS/IMAGE-RESEARCH-AND-SALES-CHANNEL-IMAGERY.md.
