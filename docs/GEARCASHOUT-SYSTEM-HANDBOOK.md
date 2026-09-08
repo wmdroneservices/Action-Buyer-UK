@@ -4218,3 +4218,14 @@ The unified Live Task Board now treats the linked inventory asset as the authori
 - the underlying valuation, sale and asset records are not duplicated.
 
 This prevents the Purchasing Dashboard from making one physical item look like two separate valuations or inspections.
+
+
+---
+
+## Customer purchase finalisation gate before Sales — 8 September 2026
+
+**Diagnostic roadmap:** [Inventory Repair and Sales Workflow](DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md)
+
+A customer-sourced item can be physically ready after inspection/testing but must **not** enter the Sales/listing stream until the purchase from the customer is finalised. The authoritative `staff_send_inventory_to_sales(...)` gate now requires the linked `sales` record to be `status='completed'` and `payment_status='paid'` before the asset can move from `Ready for Resale` to `Sent to Sales`.
+
+This is enforced in the database as well as the Product Workbench. “Ready for Resale” means physically ready; it does not by itself mean commercially cleared for resale.
