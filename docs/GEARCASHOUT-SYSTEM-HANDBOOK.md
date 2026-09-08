@@ -3849,3 +3849,36 @@ Repository code syntax was checked after the correction. Live browser workflow v
 ### Condition-note fallback repair
 
 Customer condition/exception notes are now also checked against the matching item inside `valuations.quote_data.quoteBasket`. This covers older or multi-item submissions where the item-level copy is incomplete but the original valuation basket still contains the note.
+
+
+---
+
+## Final Product Workbench listing stage — 8 September 2026
+
+For an asset in a Sales handoff status, `inventory-detail.html` remains the single per-item workspace, but the page changes from inspection work into a concise final-listing stage.
+
+### Read-only history
+
+The final listing stage shows original customer condition and note, condition after inspection, inspection result, **TESTED / INSPECTED** when a recorded inspection/testing row exists, the staff member and date recorded against the inspection/testing record, and price paid marked **reference only**.
+
+The active inspection/testing form is removed from the Sales handoff presentation. `inventory_testing` remains the historical source and is not rewritten by listing work.
+
+### Master listing details
+
+Staff save one shared set of listing details: manufacturer/product description from `catalog_sales_content.product_description` where available, editable individual listing description, listing title, sale price and postage/packing.
+
+The shared title, price and postage/packing are stored on `inventory_sales_content`; existing asset description and approved resale price remain synchronised for compatibility.
+
+### Photographs and channels
+
+Staff can view, add, remove and choose the individual-item hero photograph on the same page. Customer evidence remains separate from staff listing photographs.
+
+**WEBSITE is first** and publishes directly through the existing `Published` `resale_listings` path. Marketplaces follow underneath with a single **ADD TO MARKETPLACE** action that records the channel as submitted/live. There is no normal Draft or Ready to Upload step.
+
+### Diagnostic route
+
+`inventory-detail.html` → `inventory-workbench.js` → `inventory-sales-handoff.js` → `inventory_sales_content` / `catalog_sales_content` / `inventory_evidence` → `inventory-sales-channels.js` → `sales_outlets` / `resale_listings` → public storefront.
+
+### Verification state
+
+Current scripts were syntax-checked and the live Supabase schema was verified after migration. Real browser end-to-end verification remains required.
