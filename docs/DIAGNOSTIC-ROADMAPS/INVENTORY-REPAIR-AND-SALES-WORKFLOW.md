@@ -1333,3 +1333,25 @@ No database state, RPC, trigger or RLS policy was changed.
 Do not route staff workflow logos to the public `index.html`. Also do not use a generic `admin.html` route where a workflow-specific dashboard is available.
 
 The shared control point is `staff-navigation.js`. Check its `groups`, `dashboards` and logo assignment before changing individual headers. Static staff pages that do not load the shared navigation must be checked separately.
+
+
+### Purchasing inbound label → confirmation boundary — 9 September 2026
+
+**User action:** save and email Customer → GearCashOut shipping label.
+
+**Front-end:** `admin-purchasing.html` → shared `admin-sales.js` shipment handler.
+
+**Expected flow:**
+
+`Save inbound shipment`
+→ shipment row recorded
+→ `send-shipping-email`
+→ customer receives label/QR
+→ **Label sent to customer**
+→ **Return to Purchasing Dashboard**
+→ await delivery
+→ **Item Received**.
+
+**Do not route to Inventory immediately after sending a label.** The item is not yet physically received and must remain in the Purchasing/receipt workflow.
+
+**Failure checkpoint:** if the email fails, do not show the success confirmation merely because the shipment row was saved.
