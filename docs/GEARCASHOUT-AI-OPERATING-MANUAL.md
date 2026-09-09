@@ -3965,3 +3965,23 @@ If Purchasing shows a completed item after it has been sent to Sales:
 Do not assume an empty Active Purchases list means all Purchasing counts are correct. The list and pipeline counters have separate query paths.
 
 A sale whose linked asset is **Sent to Sales** or has `sent_to_sales_at` must be excluded from all Purchasing pipeline counters. Preserve the distinction that a completed purchase can remain counted before handover, but not after the Sales handover.
+
+
+## Completed purchase navigation boundary — 9 September 2026
+
+Do not treat a completed customer payment as the same event as a Sales handover.
+
+After payment confirmation:
+
+`sales.status/payment_status = completed/paid`
+
+the linked inventory asset can still be `Ready for Resale`.
+
+The completed sale page must therefore present the minimal operational choices:
+
+- open the linked inventory record for **VIEW & SEND TO SALES**;
+- **RETURN TO PURCHASING DASHBOARD**.
+
+Do not leave generic Sales Dashboard or Sales & Shipping links on this completion page, because they bypass the explicit Inventory handover boundary.
+
+Verify the linked asset by `inventory_assets.source_sale_id = sales.id`.
