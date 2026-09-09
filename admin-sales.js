@@ -237,6 +237,19 @@ box.querySelectorAll(".save-shipment").forEach(b=>b.onclick=async()=>{
 
   const email = await emailShipment(shipment.id);
 
+  if (purchasingPage && type === "inbound" && email.ok) {
+    box.innerHTML = `
+      <div class="account-panel" style="margin:1rem 0;border-left:5px solid #18794e;">
+        <p class="section-kicker">LABEL SENT</p>
+        <h3>Label sent to customer</h3>
+        <p>The customer has been emailed their Customer → GearCashOut shipping label / QR code. The next purchasing action is to wait for delivery and then record the item as received.</p>
+        <p><a class="btn btn-primary" href="admin-purchasing.html">RETURN TO PURCHASING DASHBOARD</a></p>
+      </div>`;
+    notice("Label sent to customer.", true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
   notice(
     email.ok
       ? "Shipment saved and customer emailed with the label / QR code."
