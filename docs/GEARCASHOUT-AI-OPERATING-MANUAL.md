@@ -3910,3 +3910,15 @@ The customer account UI can be stale after a first successful acceptance. The da
 
 For the Purchasing Dashboard, terminal purchase statuses (`paid`, `completed`, `cancelled`) are history. Do not show them under ACTIVE PURCHASES merely because `archived_at` is null. The Sales archive fields are not the authority for whether a purchase is still active.
 
+
+
+## Staff header logo rule
+
+When changing or adding a staff page:
+
+1. determine its workflow owner: Research, Purchasing, Sales, Customers, or Main Administration;
+2. make the top-bar GearCashOut logo return to that workflow's main dashboard;
+3. prefer the shared `staff-navigation.js` routing where the page participates in shared navigation;
+4. for static/special pages, set the logo href explicitly;
+5. do not route staff logos to the public homepage;
+6. after changing shared navigation, refresh the cache version on affected staff pages and test representative pages from every workflow group.
