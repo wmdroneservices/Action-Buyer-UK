@@ -4505,21 +4505,21 @@ The database handoff was already correct. The defect was presentation/query filt
 No database state, RPC, trigger or RLS policy was changed.
 
 
-## Staff top-bar GearCashOut logo routing — 9 September 2026
+## Staff top-bar GearCashOut logo routing — corrected 9 September 2026
 
-The GearCashOut logo in a staff workflow header is a workflow return control, not a link to the public homepage.
+The GearCashOut logo on every **staff** page returns to the central **Staff Dashboard**:
 
-Routing is now aligned to the relevant main staff dashboard:
+`admin.html`
 
-- Research & Pricing pages → **Research & Pricing Dashboard**
-- Purchasing pages → **Purchasing Dashboard**
-- Sales and inventory/sales workflow pages → **Sales Dashboard**
-- Customer pages → **Customer Dashboard**
-- Main administration/staff tools → **Main Staff Dashboard**
+This is intentional because the Staff Dashboard reads the signed-in staff member's permissions from `staff_users` and shows only the dashboards and management areas that staff member is authorised to access.
 
-The shared `staff-navigation.js` determines the dashboard from the current workflow group and rewrites the header logo accordingly. Its cache version was refreshed across the staff pages that use the shared navigation.
+The logo must therefore **not guess a workflow dashboard** from the current page. For example, a staff member working in Inventory must not automatically be sent to Sales if their authorised dashboard access is different.
 
-Special static pages without the shared navigation were checked separately, including the Product Workbench and Customer Details.
+- shared staff-navigation pages → logo forced to `admin.html`;
+- static/special staff pages → logo explicitly points to `admin.html`;
+- public customer pages remain separate and are not changed by this rule.
+
+The shared control point is `staff-navigation.js`, and its cache version must be refreshed on pages that load it.
 
 
 ## Purchasing inbound-label confirmation — 9 September 2026
@@ -4552,3 +4552,15 @@ The confirmation is shown only for:
 - successful shipping email.
 
 If the shipment is saved but the customer email fails, the normal error state remains visible and staff are not told that the label was successfully sent.
+
+
+## Completed inspection → customer final offer — 9 September 2026
+
+When the Product Workbench successfully completes the final inspection and technical testing, and the linked customer purchase is awaiting its final offer:
+
+1. the asset reaches **Ready for Resale**;
+2. the inspection submit control changes to **INSPECTION COMPLETE**;
+3. the next workflow action is **MAKE FINAL OFFER**;
+4. the final-offer action opens the linked customer valuation in `admin-quote.html`;
+5. staff can return to the Purchasing Dashboard while awaiting the customer/payment outcome;
+6. the item must not be sent to Sales until the final offer is accepted and payment is completed.
