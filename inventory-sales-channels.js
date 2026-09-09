@@ -18,13 +18,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     AMAZON:'Amazon',VINTED:'Vinted',MARKETPLACE:'Marketplace',CENTRAL:'Central',
     GUMTREE:'Other',OTHER:'Other'
   })[outlet.outlet_code]||'Other';
+  const websiteUrl=(row,outlet)=>{
+    if(!row?.id) return null;
+    if(row.listing_url) return row.listing_url;
+    const base=String(outlet?.public_base_url||'').trim().replace(/\/+$/,'');
+    return base?`${base}/product.html?listing=${encodeURIComponent(row.id)}`:null;
+  };
 
   for(let i=0;i<140&&!root.querySelector('#sales-listing-editor');i++) await new Promise(r=>setTimeout(r,75));
   if(!root.querySelector('#sales-listing-editor')) return;
 
   const [assetRes,outletRes,listingRes]=await Promise.all([
     db.from('inventory_assets').select('*').eq('id',id).maybeSingle(),
-    db.from('sales_outlets').select('id,outlet_code,outlet_name,outlet_type,active').eq('active',true),
+    db.from('sales_outlets').select('id,outlet_code,outlet_name,outlet_type,active,public_base_url').eq('active',true),
     db.from('resale_listings').select('*').eq('asset_id',id)
   ]);
   const asset=assetRes.data;
@@ -59,8 +65,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     html+='<article style="border:1px solid '+(delist?'#c92a2a':'#d7dce2')+';border-radius:10px;padding:1rem;background:#fff">'
       +'<div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap"><div><h3 style="margin:0">'+esc(outlet.outlet_name)+'</h3><small>'+esc(website?'PRIMARY WEBSITE':'MARKETPLACE / EXTERNAL CHANNEL')+'</small></div><span class="notice"><strong>'+esc(statusLabel(row,website))+'</strong></span></div>'
       +(delist?'<p class="form-message error">'+esc(closureText)+'</p>':'')
+      +(!website?'<label style="display:block;margin-top:.75rem"><strong>LIVE LISTING LINK</strong><input class="channel-listing-url" type="url" value="'+esc(row?.listing_url||'')+'" placeholder="Paste the live marketplace URL after publishing"></label>':'')
       +'<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">'
       +(canManage&&!delist?'<button class="btn btn-primary channel-action" type="button" data-outlet-id="'+esc(outlet.id)+'" data-website="'+(website?'true':'false')+'" data-listing-id="'+esc(row?.id||'')+'" '+(reserved?'disabled title="Reserved listings are not republished from this screen."':'')+'>'+esc(reserved?'RESERVED':action)+'</button>':'')
+      +(website&&websiteUrl(row,outlet)?'<a class="btn btn-secondary" href="'+esc(websiteUrl(row,outlet))+'" target="_blank" rel="noopener">VIEW ON WEBSITE</a>':'')
+      +(!website&&row?.listing_url?'<a class="btn btn-secondary" href="'+esc(row.listing_url)+'" target="_blank" rel="noopener">VIEW ON '+esc(outlet.outlet_name.toUpperCase())+'</a>':'')
       +(row?.id&&['Published','Reserved'].includes(row.status)&&!delist?'<button class="btn btn-secondary mark-sold" type="button" data-listing-id="'+esc(row.id)+'">MARK SOLD</button>':'')
       +'</div><p class="form-message channel-message" aria-live="polite"></p></article>';
   }
@@ -98,12 +107,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       message.textContent='Save the master listing title, description and sale price above before sending to a sales channel.';
       message.className='form-message error';button.disabled=false;return;
     }
+    const liveUrl=button.closest('article').querySelector('.channel-listing-url')?.value.trim()||null;
     const now=new Date().toISOString();
     const payload={
       asset_id:id,outlet_id:outlet.id,sales_channel:salesChannel(outlet),
       status:existing?.status==='Reserved'?'Reserved':'Published',
       asking_price:Number(price),shipping_cost:Number(shipping)||0,
       listing_title:title,listing_description:description,
+      listing_url:button.dataset.website==='true'?(existing?.listing_url||null):liveUrl,
       published_at:existing?.published_at||now,updated_at:now,
       listing_data:{
         outlet_code:outlet.outlet_code,outlet_name:outlet.outlet_name,
