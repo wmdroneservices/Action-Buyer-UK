@@ -4476,3 +4476,30 @@ A final-offer button is not shown merely because an asset is **Ready for Resale*
 A live database audit found that the repository already contained the idempotent customer-offer acceptance migration, but the production Supabase migration history did not include it. The live `accept_quote_offer` function was therefore still rejecting a second request for an offer that had already been accepted with **Offer is not available for acceptance**.
 
 The live function has now been brought into line with the intended migration. Repeating acceptance of the same customer-owned offer now returns a successful `already_accepted` result rather than an error. Genuine unavailable offers remain protected.
+
+
+## Completed purchase → Sales handoff boundary — 9 September 2026
+
+**Live incident:** a DJI Mini 5 Pro had completed inspection, the customer had been paid, and the asset had been successfully moved to `Sent to Sales`, but the completed purchase still appeared under **ACTIVE PURCHASES** with **NO ACTION REQUIRED**.
+
+**First actual failure:** `admin-purchasing.html` reuses `admin-sales.js`, and that shared controller loaded every unarchived sale. It did not distinguish a completed purchasing record from an active purchasing workflow record.
+
+**Live state verified:**
+
+- asset: `GCO-AEAA94E839`;
+- asset status: `Sent to Sales`;
+- previous status: `Ready for Resale`;
+- `sent_to_sales_at` populated;
+- linked purchase status: `completed`;
+- payment status: `paid`.
+
+The database handoff was already correct. The defect was presentation/query filtering.
+
+**Repair:** on the Purchasing Dashboard, `admin-sales.js` now treats `paid`, `completed` and `cancelled` as terminal purchase states:
+
+- **ACTIVE PURCHASES** shows only unfinished purchases;
+- **PURCHASE ARCHIVE** shows terminal purchase history;
+- terminal purchases are not given Sales archive/restore/delete controls from the Purchasing page;
+- Purchasing navigation remains on Purchasing URLs rather than being rewritten to Sales URLs.
+
+No database state, RPC, trigger or RLS policy was changed.
