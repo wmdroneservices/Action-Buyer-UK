@@ -1,0 +1,98 @@
+# Customer Account — Purchasing and Sales Diagnostic Roadmap
+
+## Purpose
+
+The GearCashOut customer account must show both sides of the customer relationship without mixing them:
+
+1. **Selling to GearCashOut** — valuations, offers, accepted sell-to-us transactions and payment history.
+2. **Buying from GearCashOut** — retail purchases, fulfilment/delivery status and customer return status where recorded.
+
+The customer account is customer-facing at `account.html`. The staff-side customer record is `admin-customer-details.html`.
+
+## Current front-end flow
+
+### Customer-facing account
+
+User action → `account.html` → `auth.js` (`window.actionBuyerAuth`) → existing account scripts → `account-retail-purchases.js` → `customer_retail_purchase_history()`.
+
+The existing sell-to-us workflow remains in the existing account scripts and tables. The new retail section is deliberately separate so existing valuation/payment behaviour is not rewritten.
+
+### Staff customer account
+
+Staff action → `admin-customers.html` → `admin-customer-details.html?user_id=...` → `admin-customer-details.js` → `staff_customer_profile(p_user_id)` → `admin-customer-retail-purchases.js`.
+
+## Data sources
+
+### Customer identity
+
+- `auth.users.id` is the canonical authenticated customer identity.
+- `profiles.id` is the customer profile identity.
+- `sales.user_id` links the existing sell-to-us transaction flow to the customer.
+
+### Retail purchase identity
+
+- `resale_transactions.buyer_user_id` is the canonical authenticated buyer identity added for the retail side.
+- `resale_transactions.asset_id` identifies the physical inventory item.
+- `resale_transactions.listing_id` identifies the resale listing where available.
+- `resale_listings` supplies listing title/reference/URL.
+- `inventory_assets` supplies SKU/manufacturer/model.
+- `sales_fulfillments` supplies fulfilment/tracking state for the physical asset/listing.
+- `sales_customer_returns` supplies the latest customer return case for the physical asset.
+
+## Customer-facing RPC
+
+`public.customer_retail_purchase_history()` is `SECURITY DEFINER` and returns only rows where `resale_transactions.buyer_user_id = auth.uid()`.
+
+The function is executable by authenticated users and returns safe purchase/fulfilment/return fields for the account page. It does not expose another customer's retail transactions.
+
+## Staff RPC
+
+`public.staff_customer_profile(p_user_id)` now includes a `retail_purchases` array in addition to the existing `customer`, `valuations` and `sales` data.
+
+Staff access remains restricted by the function's existing staff-user check.
+
+## Stage / display rules
+
+### Selling to GearCashOut
+
+Use the existing valuation and `sales` workflow as the authoritative customer sell-to-us history. Do not duplicate or migrate those records into `resale_transactions`.
+
+### Buying from GearCashOut
+
+A retail purchase is displayed when a `resale_transactions` row is linked to the customer's `buyer_user_id`.
+
+A purchase may additionally display:
+
+- product/listing identity;
+- sale date and sale price;
+- sales channel;
+- fulfilment/tracking status;
+- latest return case and refund/replacement information.
+
+If no retail purchase exists, the customer account shows a clear empty state rather than an error.
+
+## Failure checkpoints
+
+1. Customer account does not load: verify `auth.js`, authenticated session and `account-retail-purchases.js`.
+2. Sell-to-us history missing: inspect existing `account-page.js`, `account-sales.js`, `valuations`, `sales` and existing RPC/data paths; do not replace them with retail logic.
+3. Retail history missing: inspect `customer_retail_purchase_history()` and `resale_transactions.buyer_user_id`.
+4. Retail data appears for the wrong customer: stop and inspect the RPC predicate `buyer_user_id = auth.uid()` before changing front-end code.
+5. Fulfilment missing: inspect `sales_fulfillments.asset_id` and `listing_id` linkage.
+6. Return status missing: inspect `sales_customer_returns.asset_id` and latest-case ordering.
+7. Staff customer account missing retail data: inspect `staff_customer_profile()` and `admin-customer-retail-purchases.js`.
+
+## Known current state
+
+- No existing `resale_transactions` rows are currently linked to a customer through `buyer_user_id` at the time of this change.
+- The account therefore currently shows the new retail section with an empty state until retail checkout starts creating buyer-linked transactions.
+- No storefront checkout implementation was invented or changed by this repair.
+
+## Verification required
+
+Browser verification should cover:
+
+1. Customer account with no retail purchase: sell-to-us history still works and retail section shows the empty state.
+2. Authenticated customer with a buyer-linked retail transaction: only that customer's purchase is shown.
+3. Staff customer detail page: retail purchase section appears without disturbing existing customer/valuation/sell-to-us information.
+4. Existing sell-to-us valuation, offer, payment and return behaviour remains unchanged.
+5. Future retail checkout must write both the buyer's authenticated user ID (`buyer_user_id`) and the existing customer snapshot fields used by the transaction record.
