@@ -4577,3 +4577,19 @@ Authoritative route:
 `sales.id → inventory_assets.source_sale_id → inventory_assets.status / sent_to_sales_at`
 
 See the **Inventory Repair and Sales Workflow Diagnostic Roadmap** for the investigation path.
+
+
+## Completed customer purchase page — payment-to-Sales handover
+
+After staff confirm that payment has been sent, the completed purchase record is not another dashboard. The completion state presents only the two relevant choices:
+
+1. **VIEW & SEND TO SALES** — opens the linked inventory record for the explicit Sales handover.
+2. **RETURN TO PURCHASING DASHBOARD** — exits the completed transaction back to the main Purchasing Dashboard.
+
+The old Sales Dashboard and Sales & Shipping navigation is intentionally removed from this completed-purchase page to avoid suggesting that payment completion itself has already moved the asset into Sales.
+
+The handover route is:
+
+`sales.id → inventory_assets.source_sale_id → inventory-detail.html?id=<asset>`
+
+The asset must still be explicitly sent to Sales from Inventory.
