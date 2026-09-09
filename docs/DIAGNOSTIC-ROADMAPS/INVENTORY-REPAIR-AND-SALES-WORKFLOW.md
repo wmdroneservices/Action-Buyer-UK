@@ -1277,3 +1277,20 @@ Do not treat `Ready for Resale` as a Sales handoff. It confirms physical inspect
 The final-offer CTA is shown only while the linked purchase is actually awaiting the final offer. A later state such as `payment_due` or `bank_details_received` must not reopen the final-offer action.
 
 For `Ready for Resale` assets with an unfinished but already-accepted purchase, the Product Workbench shows **Complete customer purchase** as the next workflow stage and leaves payment handling to the existing Purchasing/Sale workflow.
+
+
+### Customer acceptance popup: live migration parity failure — 9 September 2026
+
+**Symptom:** customer account showed a final offer, but clicking acceptance returned **Offer is not available for acceptance**.
+
+**First actual cause:** the offer had already been accepted, but production was still running the non-idempotent `accept_quote_offer` function. The intended idempotent migration existed in GitHub but was absent from Supabase migration history.
+
+**Live state verified:**
+
+- final offer status: `accepted`;
+- quote item status: `accepted`;
+- linked sale: completed/paid.
+
+**Repair:** applied the idempotent acceptance function to Supabase and verified that repeated acceptance of an already accepted customer-owned offer returns `already_accepted=true`.
+
+**Failure boundary:** do not weaken ownership or published-offer checks. Only a repeat request for the same customer-owned accepted offer is a harmless no-op.
