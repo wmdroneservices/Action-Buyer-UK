@@ -191,8 +191,11 @@
 
     const logo = container.querySelector('.logo');
     if (logo) {
-      logo.href = dashboards[section];
-      logo.setAttribute('aria-label', 'GearCashOut ' + section + ' dashboard');
+      // The staff home dashboard applies the signed-in staff member's permissions.
+      // The top-bar logo therefore always returns to that authorised dashboard,
+      // rather than assuming the current workflow is the correct destination.
+      logo.href = 'admin.html';
+      logo.setAttribute('aria-label', 'GearCashOut staff dashboard');
     }
 
     cleanHeaderNavigation(section, current);
