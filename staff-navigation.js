@@ -43,7 +43,10 @@
       'inventory-finance.html',
       'listing-readiness.html',
       'sales-workbench.html',
-      'sales-pricing-guide.html'
+      'sales-pricing-guide.html',
+      'sales-archive.html',
+      'delist-actions.html',
+      'sales-customer-returns.html'
     ]),
     customers: new Set([
       'admin-customers.html',
@@ -188,8 +191,8 @@
 
     const logo = container.querySelector('.logo');
     if (logo) {
-      logo.href = 'admin.html';
-      logo.setAttribute('aria-label', 'GearCashOut main staff dashboard');
+      logo.href = dashboards[section];
+      logo.setAttribute('aria-label', 'GearCashOut ' + section + ' dashboard');
     }
 
     cleanHeaderNavigation(section, current);
