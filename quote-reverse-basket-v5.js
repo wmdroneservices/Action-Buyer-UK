@@ -169,6 +169,38 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   const optionKey = value => canonicalOption(value).toLocaleLowerCase("en-GB");
 
+  // Product-type presentation aliases are intentionally narrower than the
+  // catalogue taxonomy. They merge only customer-facing semantic duplicates
+  // while leaving distinct equipment families separate internally.
+  const productTypeAliases = {
+    "drone": "Camera Drones",
+    "drones": "Camera Drones",
+    "camera drone": "Camera Drones",
+    "camera drones": "Camera Drones",
+    "drone controller": "Drone Controllers",
+    "drone controllers": "Drone Controllers",
+    "drone remote controller": "Drone Controllers",
+    "drone remote controllers": "Drone Controllers",
+    "remote controller": "Drone Controllers",
+    "remote controllers": "Drone Controllers",
+    "continuous lighting": "Lighting",
+    "photography lighting": "Lighting",
+    "studio lighting": "Lighting",
+    "flexible rgb light": "Lighting",
+    "rgb tube light": "Lighting",
+    "streaming light": "Lighting"
+  };
+
+  function canonicalProductType(value, mainCategory) {
+    const cleaned = canonicalOption(value);
+    const key = optionKey(cleaned);
+    const mainKey = optionKey(mainCategory);
+    if ((mainKey === "drones" || mainKey === "video equipment") && productTypeAliases[key]) {
+      return productTypeAliases[key];
+    }
+    return cleaned;
+  }
+
   function canonicalMainCategory(rawCategory, rawProductType = "") {
     const category = optionKey(rawCategory);
     const productType = optionKey(rawProductType);
@@ -237,16 +269,23 @@ document.addEventListener("DOMContentLoaded", async function () {
         p.main_category || p.category,
         p.product_type || p.category
       ) === item.mainCategory)
-      .map(p => p.product_type || p.category));
+      .map(p => canonicalProductType(
+        p.product_type || p.category,
+        canonicalMainCategory(p.main_category || p.category, p.product_type || p.category)
+      )));
   }
   function scopedProducts() {
-    return catalog.filter(p =>
-      canonicalMainCategory(
+    return catalog.filter(p => {
+      const mainCategory = canonicalMainCategory(
         p.main_category || p.category,
         p.product_type || p.category
-      ) === item.mainCategory &&
-      sameOption(p.product_type || p.category, item.productType)
-    );
+      );
+      return mainCategory === item.mainCategory &&
+        sameOption(
+          canonicalProductType(p.product_type || p.category, mainCategory),
+          canonicalProductType(item.productType, item.mainCategory)
+        );
+    });
   }
   function manufacturers() {
     return uniqueOptions(scopedProducts().map(p => p.manufacturer));
@@ -293,7 +332,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         p.main_category || p.category,
         p.product_type || p.category
       ) === clean(item.mainCategory) &&
-      sameOption(p.product_type || p.category, item.productType || item.category) &&
+      sameOption(
+        canonicalProductType(
+          p.product_type || p.category,
+          canonicalMainCategory(p.main_category || p.category, p.product_type || p.category)
+        ),
+        canonicalProductType(item.productType || item.category, item.mainCategory)
+      ) &&
       sameOption(p.manufacturer, item.manufacturer) &&
       sameOption(p.model, item.model) &&
       sameOption(clean(p.package_key) || "standard", packageKey)
