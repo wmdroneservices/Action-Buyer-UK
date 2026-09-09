@@ -3885,3 +3885,20 @@ Relevant diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALE
 
 
 Additional guard: `Ready for Resale` alone is not sufficient to display the final-offer CTA. Inspect the linked `sales.status` and `sales.payment_status`. Show the CTA only while the purchase is awaiting the final offer; do not reopen it for payment or later states.
+
+
+## Migration parity rule: customer offer acceptance — 9 September 2026
+
+Do not assume that a migration present in GitHub has been applied to production. During a live acceptance fault, GitHub contained `20260828181000_make_customer_offer_acceptance_idempotent.sql`, but Supabase migration history and `pg_get_functiondef(public.accept_quote_offer)` proved the live function was still the older non-idempotent version.
+
+Investigation order for this fault class:
+
+1. inspect the customer-visible error;
+2. inspect the live offer/item/sale state;
+3. inspect the live function definition;
+4. inspect Supabase migration history;
+5. compare against the intended repository migration;
+6. apply the smallest migration needed to restore parity;
+7. verify the live function definition and migration history.
+
+The customer account UI can be stale after a first successful acceptance. The database must therefore be safe for a repeated request as well as the UI refreshing correctly.
