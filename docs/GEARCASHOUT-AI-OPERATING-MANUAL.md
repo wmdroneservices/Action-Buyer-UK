@@ -3922,3 +3922,16 @@ When changing or adding a staff page:
 4. for static/special pages, set the logo href explicitly;
 5. do not route staff logos to the public homepage;
 6. after changing shared navigation, refresh the cache version on affected staff pages and test representative pages from every workflow group.
+
+
+## Purchasing label completion UI rule
+
+For an inbound customer shipping label, distinguish **shipment saved** from **label successfully sent to customer**.
+
+Only show the terminal confirmation card when:
+
+1. the page is in Purchasing context;
+2. the shipment type is `inbound`;
+3. the shipping-email function succeeds.
+
+The next destination after success is `admin-purchasing.html`, not Inventory. Inventory becomes relevant only after the physical receipt workflow creates/synchronises the asset.
