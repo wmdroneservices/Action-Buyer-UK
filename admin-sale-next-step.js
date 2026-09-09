@@ -295,10 +295,42 @@
       }
 
       if (status === 'paid' || status === 'completed') {
+        // Payment completion ends the Purchasing transaction. The only remaining
+        // operational choice is to return to Purchasing or open the linked asset
+        // for the explicit Sales handover.
+        const { data: completedAssets, error: completedAssetError } = await auth.supabase
+          .from('inventory_assets')
+          .select('id,status,asset_reference')
+          .eq('source_sale_id', saleId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (completedAssetError) {
+          console.error('Completed sale inventory lookup failed', completedAssetError);
+        }
+
+        const completedAsset = completedAssets?.[0] || null;
+        const handoverReady = completedAsset
+          && !['Sent to Sales', 'Listed', 'Reserved', 'Sold'].includes(String(completedAsset.status || ''));
+
         container.innerHTML = `
           <section class="account-panel workflow-next-step sale-next-step-panel">
-            ${notice('Payment has been completed. Check the inventory record and complete any remaining administration.')}
-            <div class="section-heading"><p class="section-kicker">COMPLETED</p><h2>Sale completed</h2><p>The payment workflow is complete.</p></div>
+            <div class="section-heading">
+              <p class="section-kicker">COMPLETED</p>
+              <h2>Purchase completed</h2>
+              <p>Payment has been sent to the customer and the Purchasing workflow is complete.</p>
+            </div>
+            <div class="valuation-card sale-next-step-action">
+              <strong>NEXT OPTIONS</strong>
+              <div class="navigation-buttons" style="margin-top:.8rem">
+                ${handoverReady
+                  ? `<a class="btn btn-primary" href="inventory-detail.html?id=${encodeURIComponent(completedAsset.id)}">VIEW &amp; SEND TO SALES</a>`
+                  : completedAsset
+                    ? `<a class="btn btn-primary" href="inventory-detail.html?id=${encodeURIComponent(completedAsset.id)}">VIEW INVENTORY RECORD</a>`
+                    : ''}
+                <a class="btn btn-secondary" href="admin-purchasing.html">RETURN TO PURCHASING DASHBOARD</a>
+              </div>
+            </div>
           </section>`;
         return true;
       }
