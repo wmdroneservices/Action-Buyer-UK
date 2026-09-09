@@ -3902,3 +3902,11 @@ Investigation order for this fault class:
 7. verify the live function definition and migration history.
 
 The customer account UI can be stale after a first successful acceptance. The database must therefore be safe for a repeated request as well as the UI refreshing correctly.
+
+
+## Shared controller context rule — Purchasing vs Sales
+
+`admin-sales.js` is loaded by both Sales and Purchasing pages. Before changing its filtering or navigation, identify the page context explicitly. A completed purchase can remain an authoritative `sales` row while no longer being active purchasing work.
+
+For the Purchasing Dashboard, terminal purchase statuses (`paid`, `completed`, `cancelled`) are history. Do not show them under ACTIVE PURCHASES merely because `archived_at` is null. The Sales archive fields are not the authority for whether a purchase is still active.
+
