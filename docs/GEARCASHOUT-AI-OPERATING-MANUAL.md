@@ -3914,14 +3914,17 @@ For the Purchasing Dashboard, terminal purchase statuses (`paid`, `completed`, `
 
 ## Staff header logo rule
 
-When changing or adding a staff page:
+For every staff page:
 
-1. determine its workflow owner: Research, Purchasing, Sales, Customers, or Main Administration;
-2. make the top-bar GearCashOut logo return to that workflow's main dashboard;
-3. prefer the shared `staff-navigation.js` routing where the page participates in shared navigation;
-4. for static/special pages, set the logo href explicitly;
-5. do not route staff logos to the public homepage;
-6. after changing shared navigation, refresh the cache version on affected staff pages and test representative pages from every workflow group.
+1. the top-bar GearCashOut logo returns to `admin.html`;
+2. `admin.html` is the permission-filtered Staff Dashboard and reads the signed-in staff member's authorised areas from `staff_users`;
+3. do not route the logo to a guessed workflow dashboard such as Sales or Purchasing;
+4. shared-navigation pages use the central `staff-navigation.js` rule;
+5. static/special pages must explicitly use `admin.html`;
+6. do not route staff logos to the public homepage;
+7. after changing shared navigation, refresh the cache version and test with representative staff permissions.
+
+This is different from ordinary workflow navigation buttons, which may still return to their specific workflow dashboard.
 
 
 ## Purchasing label completion UI rule
@@ -3935,3 +3938,16 @@ Only show the terminal confirmation card when:
 3. the shipping-email function succeeds.
 
 The next destination after success is `admin-purchasing.html`, not Inventory. Inventory becomes relevant only after the physical receipt workflow creates/synchronises the asset.
+
+
+## Completed inspection next-action rule
+
+For Product Workbench inspection completion, inspect the live asset status and linked purchase state before changing the UI.
+
+When the physical inspection transitions the asset to `Ready for Resale` and the linked purchase is awaiting a final offer:
+
+- replace the active inspection submit state with **INSPECTION COMPLETE**;
+- present **MAKE FINAL OFFER** as the next action;
+- route that action through the linked valuation to `admin-quote.html`;
+- do not present **SEND TO SALES** or an Inventory return as the primary next action;
+- preserve the purchase-finalisation gate before Sales handoff.
