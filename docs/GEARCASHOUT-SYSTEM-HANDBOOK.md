@@ -4452,3 +4452,17 @@ Exact catalogue resolution is preserved because the same canonical product-type 
 `valuation.html` → `quote-reverse-basket-v5.js` → public taxonomy aliasing → scoped catalogue rows → manufacturer/model/package → exact catalogue product.
 
 The database taxonomy was not rewritten for this repair.
+
+
+## Product Workbench: completed inspection next action — 9 September 2026
+
+After a customer-owned item has been received and its physical inspection/testing is complete, the Product Workbench now keeps staff in the Purchasing workflow.
+
+The navigation is contextual:
+
+- **PURCHASING DASHBOARD** is the normal return route.
+- When the item is **Ready for Resale** but the linked customer purchase is still awaiting its final offer, the page shows **OPEN CUSTOMER FINAL OFFER**.
+- The workflow step is shown as **Final offer & payment**, not **Send to Sales**.
+- The existing Sales handoff remains available only after the customer has accepted the final offer and payment has been completed.
+
+This prevents staff from being sent into the Sales area while the item is still part of an unfinished customer purchase.
