@@ -3861,3 +3861,24 @@ Repair rule:
 Current expected Drones product types after aliasing:
 
 `Camera Drones`, `Drone Accessories`, `Drone Controllers`, `Drone Filters`, `Drone Goggles`, `Drone Payloads`, `FPV Equipment`, `Underwater Drones`, `Water Drones`.
+
+
+## Product Workbench completed-inspection navigation rule — 9 September 2026
+
+When investigating or changing the Product Workbench, distinguish the physical inspection state from the customer purchase completion state.
+
+Required check:
+
+`inventory_assets.status` + linked `sales.status/payment_status` + `quote_items.valuation_id`.
+
+If an asset is `Ready for Resale` but the linked sale is not completed and paid, the next operational action is the customer final-offer/refusal workflow, not Sales handoff.
+
+Navigation rule:
+
+1. Keep **PURCHASING DASHBOARD** as the neutral return route.
+2. Resolve the original valuation through `source_quote_item_id → quote_items.valuation_id`.
+3. Show **OPEN CUSTOMER FINAL OFFER** only when the physical inspection is complete and the valuation link exists.
+4. Do not expose generic Sales/Sold Items navigation as the Product Workbench next action for an unfinished customer purchase.
+5. Do not weaken the existing `staff_send_inventory_to_sales` completed-and-paid gate.
+
+Relevant diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
