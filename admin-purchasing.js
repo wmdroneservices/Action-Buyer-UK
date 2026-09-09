@@ -44,18 +44,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       : {data:[],error:null};
     if(she){notice("Could not load shipping counts.",false);return;}
 
+    // A completed customer purchase remains visible in Purchasing until its linked
+    // inventory asset is actually handed over. Once that asset is Sent to Sales,
+    // the purchase has left the Purchasing workflow and must not inflate any
+    // Purchasing pipeline count or notice.
+    const {data:assets,error:ae}=saleIds.length
+      ? await auth.supabase.from("inventory_assets").select("source_sale_id,status,sent_to_sales_at").in("source_sale_id",saleIds)
+      : {data:[],error:null};
+    if(ae){notice("Could not load inventory handover status.",false);return;}
+    const sentToSalesSaleIds=new Set((assets||[])
+      .filter(a=>a.source_sale_id&&(String(a.status||"")==="Sent to Sales"||Boolean(a.sent_to_sales_at)))
+      .map(a=>a.source_sale_id));
+    const purchasingSales=activeSales.filter(s=>!sentToSalesSaleIds.has(s.id));
+
     const inbound=new Map();
     (shipments||[]).filter(s=>s.shipment_type==="inbound").forEach(s=>{
       if(!inbound.has(s.sale_id)) inbound.set(s.sale_id,s);
     });
 
     const terminal=new Set(["paid","completed","cancelled"]);
-    const shippingLabelRequired=activeSales.filter(s=>{
+    const shippingLabelRequired=purchasingSales.filter(s=>{
       if(terminal.has(String(s.status||""))) return false;
       const x=inbound.get(s.id);
       return !x || ["awaiting_label","label_required"].includes(String(x.status||""));
     });
-    const awaitingDelivery=activeSales.filter(s=>{
+    const awaitingDelivery=purchasingSales.filter(s=>{
       if(terminal.has(String(s.status||""))) return false;
       const x=inbound.get(s.id);
       return x && ["label_created","in_transit"].includes(String(x.status||"")) && !x.delivered_at;
@@ -63,11 +76,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setCount("shipping-label-count", shippingLabelRequired.length);
     setCount("delivery-count", awaitingDelivery.length);
-    setCount("inspection-count", activeSales.filter(s=>s.status==="received").length);
-    setCount("final-offer-count", activeSales.filter(s=>s.status==="inspection").length);
-    setCount("payment-due-count", activeSales.filter(s=>s.status==="payment_due").length);
-    setCount("payment-processing-count", activeSales.filter(s=>s.payment_status==="payment_processing").length);
-    setCount("paid-count", activeSales.filter(s=>s.status==="completed"||s.status==="paid"||s.payment_status==="paid").length);
+    setCount("inspection-count", purchasingSales.filter(s=>s.status==="received").length);
+    setCount("final-offer-count", purchasingSales.filter(s=>s.status==="inspection").length);
+    setCount("payment-due-count", purchasingSales.filter(s=>s.status==="payment_due").length);
+    setCount("payment-processing-count", purchasingSales.filter(s=>s.payment_status==="payment_processing").length);
+    setCount("paid-count", purchasingSales.filter(s=>s.status==="completed"||s.status==="paid"||s.payment_status==="paid").length);
 
     const shippingCta=document.getElementById("shipping-label-cta");
     if(shippingCta) shippingCta.hidden=shippingLabelRequired.length===0;
