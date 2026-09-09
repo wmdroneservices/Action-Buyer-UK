@@ -58,6 +58,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const inspectionAssetSaleIds=new Set(assets
         .filter(a=>a.source_sale_id && ["Received","Inspection Required","Testing","Repair Required"].includes(String(a.status||"")))
         .map(a=>a.source_sale_id));
+      // A Published or Reserved resale listing means the sales-listing action for
+      // that physical SKU is already complete. Listing status is authoritative for
+      // this decision; the inventory asset may intentionally remain Sent to Sales
+      // for compatibility with the central physical-stock state model.
+      const activeListingAssetIds=new Set(listings
+        .filter(l=>["Published","Reserved"].includes(String(l.status||"")))
+        .map(l=>l.asset_id)
+        .filter(Boolean));
       const tasks=[];
 
       valuations.forEach(v=>{
@@ -126,6 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
           "Returned":customerReturnAssetIds.has(a.id)?null:["Review returned item",name+" has been returned and needs assessment.","SALES"],
           "Dispatched":["Confirm delivery and completion",name+" has been dispatched and should be followed through.","SALES"]
         };
+        // Do not recreate the sales preparation task when a live listing already
+        // exists for this physical SKU. This is deliberately independent of the
+        // inventory asset status because Sent to Sales remains the central handoff
+        // state for multi-channel stock.
+        if(status==="Sent to Sales"&&activeListingAssetIds.has(a.id)) return;
         if(map[status]){
           const [title,detail,category,priority="auto"]=map[status];
           addTask(tasks,{category,title,detail,href,when,reference:a.asset_reference,priority});
@@ -160,10 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const liveTasks=[...unique.values()].sort((a,b)=>a.rank-b.rank||new Date(a.when||0)-new Date(b.when||0));
 
-      // The Purchasing Dashboard is a handoff boundary: once an asset reaches
-      // Sent to Sales it belongs to the sales workflow and must no longer be
-      // presented there as purchasing work. Keep inventory preparation visible
-      // because Ready for Resale is the action that precedes that handoff.
       const pageName=(location.pathname.split("/").pop()||"").toLowerCase();
       const pageCategoryScopes={
         "admin-purchasing.html":new Set(["PURCHASING","PURCHASE RETURNS","INVENTORY"]),
