@@ -3882,3 +3882,6 @@ Navigation rule:
 5. Do not weaken the existing `staff_send_inventory_to_sales` completed-and-paid gate.
 
 Relevant diagnostic roadmap: `docs/DIAGNOSTIC-ROADMAPS/INVENTORY-REPAIR-AND-SALES-WORKFLOW.md`.
+
+
+Additional guard: `Ready for Resale` alone is not sufficient to display the final-offer CTA. Inspect the linked `sales.status` and `sales.payment_status`. Show the CTA only while the purchase is awaiting the final offer; do not reopen it for payment or later states.
