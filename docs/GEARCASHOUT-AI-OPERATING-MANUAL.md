@@ -3951,3 +3951,17 @@ When the physical inspection transitions the asset to `Ready for Resale` and the
 - route that action through the linked valuation to `admin-quote.html`;
 - do not present **SEND TO SALES** or an Inventory return as the primary next action;
 - preserve the purchase-finalisation gate before Sales handoff.
+
+
+## Purchasing count vs Sales handover diagnostic rule — 9 September 2026
+
+If Purchasing shows a completed item after it has been sent to Sales:
+
+1. Check `sales.status` and `sales.payment_status`.
+2. Check the linked `inventory_assets.source_sale_id`.
+3. Check `inventory_assets.status` and `sent_to_sales_at`.
+4. Check the Active Purchases renderer separately from the Purchasing pipeline counters.
+
+Do not assume an empty Active Purchases list means all Purchasing counts are correct. The list and pipeline counters have separate query paths.
+
+A sale whose linked asset is **Sent to Sales** or has `sent_to_sales_at` must be excluded from all Purchasing pipeline counters. Preserve the distinction that a completed purchase can remain counted before handover, but not after the Sales handover.
