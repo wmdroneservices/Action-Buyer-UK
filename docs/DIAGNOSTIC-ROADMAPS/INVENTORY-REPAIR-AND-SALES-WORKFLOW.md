@@ -1294,3 +1294,30 @@ For `Ready for Resale` assets with an unfinished but already-accepted purchase, 
 **Repair:** applied the idempotent acceptance function to Supabase and verified that repeated acceptance of an already accepted customer-owned offer returns `already_accepted=true`.
 
 **Failure boundary:** do not weaken ownership or published-offer checks. Only a repeat request for the same customer-owned accepted offer is a harmless no-op.
+
+
+## Completed purchase → Sales handoff boundary — 9 September 2026
+
+**Live incident:** a DJI Mini 5 Pro had completed inspection, the customer had been paid, and the asset had been successfully moved to `Sent to Sales`, but the completed purchase still appeared under **ACTIVE PURCHASES** with **NO ACTION REQUIRED**.
+
+**First actual failure:** `admin-purchasing.html` reuses `admin-sales.js`, and that shared controller loaded every unarchived sale. It did not distinguish a completed purchasing record from an active purchasing workflow record.
+
+**Live state verified:**
+
+- asset: `GCO-AEAA94E839`;
+- asset status: `Sent to Sales`;
+- previous status: `Ready for Resale`;
+- `sent_to_sales_at` populated;
+- linked purchase status: `completed`;
+- payment status: `paid`.
+
+The database handoff was already correct. The defect was presentation/query filtering.
+
+**Repair:** on the Purchasing Dashboard, `admin-sales.js` now treats `paid`, `completed` and `cancelled` as terminal purchase states:
+
+- **ACTIVE PURCHASES** shows only unfinished purchases;
+- **PURCHASE ARCHIVE** shows terminal purchase history;
+- terminal purchases are not given Sales archive/restore/delete controls from the Purchasing page;
+- Purchasing navigation remains on Purchasing URLs rather than being rewritten to Sales URLs.
+
+No database state, RPC, trigger or RLS policy was changed.
