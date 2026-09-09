@@ -4593,3 +4593,19 @@ The handover route is:
 `sales.id → inventory_assets.source_sale_id → inventory-detail.html?id=<asset>`
 
 The asset must still be explicitly sent to Sales from Inventory.
+
+## Viewing live sales listings from staff dashboards — 9 September 2026
+
+Each active `resale_listings` record can now provide a direct staff-facing destination:
+
+- **Website** — the URL is derived automatically from the WEBSITE outlet's configured `public_base_url` and the authoritative listing ID using `product.html?listing=<listing_id>`, unless an explicit listing URL is already stored.
+- **External marketplaces** — staff paste the actual live marketplace URL into `resale_listings.listing_url`.
+- **Active Sales / Listings** displays the relevant **VIEW ON WEBSITE** or **VIEW ON <CHANNEL>** action whenever a valid destination is available.
+
+The authoritative relationship remains:
+
+`inventory_assets → resale_listings → sales_outlets`
+
+No duplicate stock record is created merely to support navigation.
+
+**Current configuration note:** the live WEBSITE outlet currently has no `public_base_url`, so the automatic public website button will appear as soon as the actual retail storefront base URL is configured. The listing and public-detail backend already use the authoritative listing ID.
