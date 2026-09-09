@@ -4520,3 +4520,35 @@ Routing is now aligned to the relevant main staff dashboard:
 The shared `staff-navigation.js` determines the dashboard from the current workflow group and rewrites the header logo accordingly. Its cache version was refreshed across the staff pages that use the shared navigation.
 
 Special static pages without the shared navigation were checked separately, including the Product Workbench and Customer Details.
+
+
+## Purchasing inbound-label confirmation — 9 September 2026
+
+### User action
+
+Staff create and email the **Customer → GearCashOut** shipping label.
+
+### Required outcome
+
+After a successful inbound label save **and successful customer email**, Purchasing must not present Inventory as the next destination.
+
+The confirmation now shows:
+
+- **LABEL SENT**
+- **Label sent to customer**
+- a short explanation that the next operational event is delivery/receipt;
+- **RETURN TO PURCHASING DASHBOARD**
+
+This keeps the workflow boundary clear:
+
+`Customer response → Send label → Await delivery → Item received → Inspection`
+
+### Failure boundary
+
+The confirmation is shown only for:
+
+- Purchasing page context;
+- inbound shipment (`Customer → GearCashOut`);
+- successful shipping email.
+
+If the shipment is saved but the customer email fails, the normal error state remains visible and staff are not told that the label was successfully sent.
