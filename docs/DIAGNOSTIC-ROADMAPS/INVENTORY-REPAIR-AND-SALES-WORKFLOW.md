@@ -1270,3 +1270,10 @@ The Product Workbench used generic Inventory/Sales/Sold Items navigation and con
 ### Do not regress
 
 Do not treat `Ready for Resale` as a Sales handoff. It confirms physical inspection readiness only. The customer final-offer decision must happen before payment and before the existing Sales handoff gate.
+
+
+### Payment-state follow-up
+
+The final-offer CTA is shown only while the linked purchase is actually awaiting the final offer. A later state such as `payment_due` or `bank_details_received` must not reopen the final-offer action.
+
+For `Ready for Resale` assets with an unfinished but already-accepted purchase, the Product Workbench shows **Complete customer purchase** as the next workflow stage and leaves payment handling to the existing Purchasing/Sale workflow.
