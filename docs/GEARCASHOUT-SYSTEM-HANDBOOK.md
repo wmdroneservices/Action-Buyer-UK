@@ -4503,3 +4503,20 @@ The database handoff was already correct. The defect was presentation/query filt
 - Purchasing navigation remains on Purchasing URLs rather than being rewritten to Sales URLs.
 
 No database state, RPC, trigger or RLS policy was changed.
+
+
+## Staff top-bar GearCashOut logo routing — 9 September 2026
+
+The GearCashOut logo in a staff workflow header is a workflow return control, not a link to the public homepage.
+
+Routing is now aligned to the relevant main staff dashboard:
+
+- Research & Pricing pages → **Research & Pricing Dashboard**
+- Purchasing pages → **Purchasing Dashboard**
+- Sales and inventory/sales workflow pages → **Sales Dashboard**
+- Customer pages → **Customer Dashboard**
+- Main administration/staff tools → **Main Staff Dashboard**
+
+The shared `staff-navigation.js` determines the dashboard from the current workflow group and rewrites the header logo accordingly. Its cache version was refreshed across the staff pages that use the shared navigation.
+
+Special static pages without the shared navigation were checked separately, including the Product Workbench and Customer Details.
