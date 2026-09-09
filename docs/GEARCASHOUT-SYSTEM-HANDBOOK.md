@@ -4371,6 +4371,8 @@ This preserves catalogue/research history while preventing customers from having
 
 Product types remain derived from the selected public category and are deduplicated by normalised display identity.
 
+**Known fault history (9 September 2026):** normalised display identity alone did not merge semantic variants such as `Drone`/ `Camera Drones` and `Drone Controllers`/ `Drone Remote Controllers`. The repair is the context-aware product-type alias layer in `quote-reverse-basket-v5.js`, and that same canonical identity must be used by both the dropdown and exact product lookup.
+
 ### Developer Diagnostic Roadmap — Start Your Valuation category dropdown
 
 **User action:** Open `valuation.html` and select a Category, then Product type.
