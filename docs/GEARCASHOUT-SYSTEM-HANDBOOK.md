@@ -4564,3 +4564,16 @@ When the Product Workbench successfully completes the final inspection and techn
 4. the final-offer action opens the linked customer valuation in `admin-quote.html`;
 5. staff can return to the Purchasing Dashboard while awaiting the customer/payment outcome;
 6. the item must not be sent to Sales until the final offer is accepted and payment is completed.
+
+
+## Purchasing pipeline count after Sales handover — 9 September 2026
+
+A customer purchase can be commercially complete before its inventory asset is handed over. The Purchasing Dashboard may show it as completed until the actual handover occurs.
+
+Once the linked `inventory_assets` record is **Sent to Sales** (or has `sent_to_sales_at`), that sale has left Purchasing and must be excluded from every Purchasing pipeline count and notice.
+
+Authoritative route:
+
+`sales.id → inventory_assets.source_sale_id → inventory_assets.status / sent_to_sales_at`
+
+See the **Inventory Repair and Sales Workflow Diagnostic Roadmap** for the investigation path.
