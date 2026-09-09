@@ -1418,3 +1418,44 @@ All Purchasing shipping, receipt, inspection, final-offer, payment and completed
 The Purchasing list and Purchasing pipeline counters are separate presentation paths. Test both after every handover change.
 
 A completed purchase may remain in Purchasing before the physical Sales handover. After `Sent to Sales`, it must disappear from both the active list and all Purchasing counts.
+
+
+---
+
+## Payment completed → explicit Sales handover navigation — 9 September 2026
+
+### User action
+
+Staff confirms **PAYMENT SENT TO CUSTOMER**.
+
+### Current data state
+
+The payment RPC completes the customer purchase and creates/retains the linked inventory asset.
+
+Typical state after payment:
+
+- `sales.status = completed`
+- `sales.payment_status = paid`
+- `inventory_assets.status = Ready for Resale`
+
+This does **not** mean the asset has already entered Sales.
+
+### Page path
+
+`admin-sale.html?id=<sale>`
+→ `admin-sale-next-step.js`
+→ lookup `inventory_assets` using `source_sale_id`
+→ completed-purchase action panel.
+
+### Visible options
+
+1. **VIEW & SEND TO SALES** → `inventory-detail.html?id=<asset>`
+2. **RETURN TO PURCHASING DASHBOARD** → `admin-purchasing.html`
+
+### Boundary rule
+
+Payment completion and Sales handover are separate events. The asset enters Sales only after the explicit Inventory handover updates its status to **Sent to Sales** and records `sent_to_sales_at`.
+
+### Known fix history
+
+The previous completed-sale panel only said that payment was complete and left unrelated Sales navigation in the page header. On 9 September 2026 this was simplified to the two workflow-relevant choices above.
