@@ -1383,3 +1383,38 @@ Do not infer the destination from the current workflow. The shared control point
 → only then **SEND TO SALES**.
 
 **Failure checkpoint:** a physical Ready for Resale state does not itself authorise Sales handoff when the customer purchase is still awaiting its final offer.
+
+
+---
+
+## Purchasing pipeline count after actual Sales handover — 9 September 2026
+
+### Symptom
+
+**ACTIVE PURCHASES** was empty after an item was sent to Sales, but the Purchasing pipeline still showed **1 completed purchase** and the Payment & Completion notice showed **1 COMPLETED**.
+
+### First actual failure
+
+The earlier Active Purchases repair corrected the list in `admin-sales.js`, but `admin-purchasing.js` had a separate pipeline-count query that loaded all unarchived sales and counted terminal purchases without checking whether the linked inventory asset had already been handed over.
+
+### Required data flow
+
+`sales`
+→ `inventory_assets.source_sale_id`
+→ `inventory_assets.status='Sent to Sales'` or `sent_to_sales_at`
+→ exclude the sale from **all Purchasing pipeline counts**.
+
+### Repair
+
+`admin-purchasing.js` now loads linked inventory handover state and derives `purchasingSales` by excluding any sale whose linked asset is already:
+
+- `Sent to Sales`, or
+- has `sent_to_sales_at`.
+
+All Purchasing shipping, receipt, inspection, final-offer, payment and completed counters now use that filtered set.
+
+### Regression rule
+
+The Purchasing list and Purchasing pipeline counters are separate presentation paths. Test both after every handover change.
+
+A completed purchase may remain in Purchasing before the physical Sales handover. After `Sent to Sales`, it must disappear from both the active list and all Purchasing counts.
