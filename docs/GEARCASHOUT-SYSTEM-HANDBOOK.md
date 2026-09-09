@@ -4431,3 +4431,22 @@ quote_catalog_products
 This gives every catalogue product a route into one stable retail category without renaming or merging the underlying purchase catalogue.
 
 The relevant Developer Diagnostic Roadmap is: docs/DIAGNOSTIC-ROADMAPS/PHASE2-RETAIL-STOREFRONT.md.
+
+
+## Customer Valuation Taxonomy — semantic duplicate repair (9 September 2026)
+
+The public valuation wizard must not expose semantically duplicated catalogue labels merely because historical/imported source taxonomy differs.
+
+The customer-facing alias layer in `quote-reverse-basket-v5.js` now merges, within the relevant public group:
+
+- `Drone` / `Drones` / `Camera Drone(s)` → **Camera Drones**
+- `Drone Controller(s)` / `Drone Remote Controller(s)` / legacy `Remote Controller(s)` → **Drone Controllers**
+- overlapping broad lighting labels including `Continuous Lighting`, `Photography Lighting`, `Studio Lighting`, `Flexible RGB Light`, `RGB Tube Light` and `Streaming Light` → **Lighting**
+
+Exact catalogue resolution is preserved because the same canonical product-type identity is used when filtering products and finding the selected product.
+
+### Verification route
+
+`valuation.html` → `quote-reverse-basket-v5.js` → public taxonomy aliasing → scoped catalogue rows → manufacturer/model/package → exact catalogue product.
+
+The database taxonomy was not rewritten for this repair.
