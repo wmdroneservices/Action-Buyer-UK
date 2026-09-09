@@ -4466,3 +4466,6 @@ The navigation is contextual:
 - The existing Sales handoff remains available only after the customer has accepted the final offer and payment has been completed.
 
 This prevents staff from being sent into the Sales area while the item is still part of an unfinished customer purchase.
+
+
+A final-offer button is not shown merely because an asset is **Ready for Resale**. The linked purchase must actually be awaiting the final offer. Once the offer has been accepted and the workflow has moved to payment, the Product Workbench no longer reopens the final-offer action.
