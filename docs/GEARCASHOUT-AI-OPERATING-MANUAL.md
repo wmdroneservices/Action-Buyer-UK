@@ -3985,3 +3985,13 @@ The completed sale page must therefore present the minimal operational choices:
 Do not leave generic Sales Dashboard or Sales & Shipping links on this completion page, because they bypass the explicit Inventory handover boundary.
 
 Verify the linked asset by `inventory_assets.source_sale_id = sales.id`.
+
+## Live channel navigation — 9 September 2026
+
+When staff need to inspect a published listing, navigation must come from the authoritative `resale_listings` record.
+
+- External marketplace URL: `resale_listings.listing_url`, entered by staff after publication.
+- Owned WEBSITE URL: derive from `sales_outlets.public_base_url + /product.html?listing=<resale_listings.id>` unless an explicit URL is stored.
+- Do not generate URLs from product names or guessed slugs; the listing UUID is authoritative.
+
+Current live database finding: the WEBSITE outlet exists and is active, but `public_base_url` is still NULL. Therefore do not invent a public domain. Configure the real retail storefront base URL first; the staff view-link logic is already prepared for it.
