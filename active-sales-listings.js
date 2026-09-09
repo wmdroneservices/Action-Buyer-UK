@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (l.listing_url) return l.listing_url;
       const outlet = outletMap.get(l.outlet_id);
       const website = outlet?.outlet_code === "WEBSITE" && outlet?.outlet_type === "owned_storefront";
-      const base = String(outlet?.public_base_url || "").trim().replace(/\\/+$/, "");
+      const base = String(outlet?.public_base_url || "").trim().replace(/\/+$/, "");
       return website && base ? `${base}/product.html?listing=${encodeURIComponent(l.id)}` : null;
     };
     const rows = (listings || []).map(l => ({ listing: l, asset: assetMap.get(l.asset_id) })).filter(x => x.asset);
