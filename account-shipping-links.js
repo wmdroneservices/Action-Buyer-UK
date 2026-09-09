@@ -66,7 +66,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      if (!Array.isArray(inbound.label_urls) || !inbound.label_urls.some(Boolean)) return;
+      const hasLabel = Array.isArray(inbound.label_urls) && inbound.label_urls.some(Boolean);
+      const hasQr = Array.isArray(inbound.qr_code_urls) && inbound.qr_code_urls.some(Boolean);
+      if (!hasLabel && !hasQr) return;
 
       const labelLinks = (inbound.label_urls || []).map((url, i) => {
         const safe = safeUrl(url);
@@ -76,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const safe = safeUrl(url);
         return safe ? `<a class="btn btn-secondary" href="${esc(safe)}" target="_blank" rel="noopener">VIEW QR CODE${inbound.qr_code_urls.length > 1 ? ` ${i + 1}` : ""}</a>` : "";
       }).join(" ");
-      const showPostAction = ["awaiting_label", "label_created"].includes(shipmentStatus);
+      const showPostAction = shipmentStatus === "label_created";
 
       action.innerHTML = `
         <p style="margin:0 0 .5rem"><strong>YOUR SHIPPING LABEL IS READY</strong></p>
