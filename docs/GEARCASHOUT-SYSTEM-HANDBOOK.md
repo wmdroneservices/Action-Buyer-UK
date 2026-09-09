@@ -4469,3 +4469,10 @@ This prevents staff from being sent into the Sales area while the item is still 
 
 
 A final-offer button is not shown merely because an asset is **Ready for Resale**. The linked purchase must actually be awaiting the final offer. Once the offer has been accepted and the workflow has moved to payment, the Product Workbench no longer reopens the final-offer action.
+
+
+## Customer offer acceptance idempotency — 9 September 2026
+
+A live database audit found that the repository already contained the idempotent customer-offer acceptance migration, but the production Supabase migration history did not include it. The live `accept_quote_offer` function was therefore still rejecting a second request for an offer that had already been accepted with **Offer is not available for acceptance**.
+
+The live function has now been brought into line with the intended migration. Repeating acceptance of the same customer-owned offer now returns a successful `already_accepted` result rather than an error. Genuine unavailable offers remain protected.
