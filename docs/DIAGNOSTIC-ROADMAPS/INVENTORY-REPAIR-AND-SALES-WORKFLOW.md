@@ -1222,3 +1222,51 @@ For customer-sourced assets, `Ready for Resale` means physical preparation is co
 4. Product Workbench shows **WAITING FOR PURCHASE FINALISATION**, not **SEND TO SALES**, before completion/payment.
 5. Purchasing Live Task Board suppresses the premature pre-sale task.
 6. After final acceptance and payment completion, the existing Sales handoff path becomes eligible.
+
+
+---
+
+## Product Workbench navigation after completed inspection — 9 September 2026
+
+### User action
+
+Staff receive a customer item, complete the physical inspection and technical testing, and the asset reaches `Ready for Resale` while the linked customer purchase is still awaiting the final offer.
+
+### Correct workflow boundary
+
+`Received → Start Inspection → Product Workbench → Inspection/testing complete → Ready for Resale → Customer final offer/refusal → Customer acceptance → Payment → Send to Sales`
+
+`Ready for Resale` is an inspection-complete state, not permission to enter the Sales workspace before the customer purchase is completed and paid.
+
+### Front-end entry point
+
+- `inventory-detail.html`
+- `inventory-workbench.js`
+
+### Relevant records
+
+- `inventory_assets.status`
+- `inventory_assets.source_sale_id`
+- `sales.status`
+- `sales.payment_status`
+- `quote_items.valuation_id`
+- `valuations.id`
+
+### Navigation rule
+
+The Product Workbench must not present generic Sales or Sold Items navigation while staff are completing a customer purchase inspection.
+
+After inspection is complete:
+
+- **PURCHASING DASHBOARD** remains the neutral return route.
+- If the asset is `Ready for Resale`, the linked sale is not completed/paid, and the original valuation exists, show **OPEN CUSTOMER FINAL OFFER** → `admin-quote.html?id=<valuation_id>`.
+- The progress label becomes **Final offer & payment** rather than **Send to Sales** until the customer purchase has completed.
+- **SEND TO SALES** remains gated by the existing completed-and-paid backend and UI checks.
+
+### First verified failure
+
+The Product Workbench used generic Inventory/Sales/Sold Items navigation and continued to label the next stage as **Send to Sales** even when the live purchase was still in `inspection` with `payment_status='awaiting_final_quote'`.
+
+### Do not regress
+
+Do not treat `Ready for Resale` as a Sales handoff. It confirms physical inspection readiness only. The customer final-offer decision must happen before payment and before the existing Sales handoff gate.
