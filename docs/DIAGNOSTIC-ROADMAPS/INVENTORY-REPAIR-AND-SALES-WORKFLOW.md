@@ -1323,16 +1323,22 @@ The database handoff was already correct. The defect was presentation/query filt
 No database state, RPC, trigger or RLS policy was changed.
 
 
-### Staff top-bar logo routing — 9 September 2026
+### Staff top-bar logo routing — corrected 9 September 2026
 
-**Rule:** the header GearCashOut logo must return to the main dashboard for the workflow currently being worked in.
+**Rule:** every staff top-bar GearCashOut logo returns to `admin.html`, the central permission-filtered Staff Dashboard.
 
-- Purchasing/Product Workbench context → `admin-purchasing.html`
-- Sales/inventory and listing context → `admin-sales-dashboard.html`
+The Staff Dashboard reads the signed-in staff member's authorised access from `staff_users`:
 
-Do not route staff workflow logos to the public `index.html`. Also do not use a generic `admin.html` route where a workflow-specific dashboard is available.
+- `can_access_research`
+- `can_access_purchasing`
+- `can_access_sales`
+- `can_access_customers`
+- `can_manage_staff`
+- `can_access_mail`
 
-The shared control point is `staff-navigation.js`. Check its `groups`, `dashboards` and logo assignment before changing individual headers. Static staff pages that do not load the shared navigation must be checked separately.
+Do not infer the destination from the current workflow. The shared control point is `staff-navigation.js`; static pages without it must explicitly point their logo to `admin.html`.
+
+**Failure checkpoint:** if every workflow logo appears to go to Sales, inspect the shared logo assignment and its cache version before changing individual page navigation.
 
 
 ### Purchasing inbound label → confirmation boundary — 9 September 2026
@@ -1355,3 +1361,25 @@ The shared control point is `staff-navigation.js`. Check its `groups`, `dashboar
 **Do not route to Inventory immediately after sending a label.** The item is not yet physically received and must remain in the Purchasing/receipt workflow.
 
 **Failure checkpoint:** if the email fails, do not show the success confirmation merely because the shipment row was saved.
+
+
+### Final inspection → customer final offer — 9 September 2026
+
+**User action:** staff complete the final inspection and technical testing in `inventory-detail.html`.
+
+**Front-end:** `inventory-detail.html` → `inventory-workbench.js`.
+
+**Expected flow:**
+
+`Save final inspection/testing`
+→ inspection/testing records saved
+→ asset state reaches **Ready for Resale**
+→ submit state becomes **INSPECTION COMPLETE**
+→ linked purchase checked
+→ if awaiting final offer: **MAKE FINAL OFFER**
+→ `admin-quote.html?id=<valuation>`
+→ customer acceptance/payment
+→ purchase completion gate
+→ only then **SEND TO SALES**.
+
+**Failure checkpoint:** a physical Ready for Resale state does not itself authorise Sales handoff when the customer purchase is still awaiting its final offer.
