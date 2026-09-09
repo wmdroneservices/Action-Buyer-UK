@@ -7,13 +7,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!staff) { box.innerHTML = "<p>You do not have permission to access sales.</p>"; return; }
 
   const params = new URLSearchParams(location.search);
+  const purchasingPage = location.pathname.endsWith("/admin-purchasing.html") || location.pathname.endsWith("admin-purchasing.html");
   const archiveView = params.get("archive") === "1";
   const returnedView = params.get("returned") === "1";
+  const purchaseTerminalStatuses = new Set(["paid","completed","cancelled"]);
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(Number(n || 0));
   const esc = v => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const notice = (t, ok = true) => { msg.textContent = t; msg.className = "form-message " + (ok ? "success" : "error"); };
   const setting = { inboundLabel: "", inboundQr: "", returnLabel: "", returnQr: "" };
-  const viewTitle = () => returnedView ? "Returned Items" : archiveView ? "Sales Archive" : "Sales & Shipping";
+  const viewTitle = () => {
+    if (purchasingPage) return returnedView ? "Returned Purchase Archive" : archiveView ? "Purchase Archive" : "Active Purchases";
+    return returnedView ? "Returned Items" : archiveView ? "Sales Archive" : "Sales & Shipping";
+  };
 
   async function loadSettings() {
     const { data } = await auth.supabase.from("shipping_settings").select("inbound_label_url,inbound_qr_code_url,return_label_url,return_qr_code_url").eq("id", true).maybeSingle();
@@ -48,12 +53,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function load() {
-    const query=auth.supabase.from("sales").select("id,sale_reference,status,total_amount,user_id,created_at,accepted_at,bank_details_confirmed_at,archived_at,archive_folder").order(archiveView||returnedView?"archived_at":"created_at",{ascending:false});
-    if(archiveView||returnedView)query.not("archived_at","is",null);else query.is("archived_at",null);
-    if(returnedView)query.eq("archive_folder","returned");else if(archiveView)query.eq("archive_folder","sales");
-    const {data:sales,error}=await query;
+    const query=auth.supabase.from("sales").select("id,sale_reference,status,total_amount,user_id,created_at,accepted_at,bank_details_confirmed_at,archived_at,archive_folder").order(purchasingPage?"created_at":(archiveView||returnedView?"archived_at":"created_at"),{ascending:false});
+
+    if (purchasingPage && !returnedView) {
+      // Purchasing owns only unfinished customer purchases. Once payment is complete,
+      // the asset handoff is authoritative in inventory_assets and the purchase becomes
+      // history, not an active purchasing work item.
+    } else {
+      if(archiveView||returnedView)query.not("archived_at","is",null);else query.is("archived_at",null);
+      if(returnedView)query.eq("archive_folder","returned");else if(archiveView)query.eq("archive_folder","sales");
+    }
+
+    const {data:loadedSales,error}=await query;
     if(error){box.innerHTML="<p>Could not load sales.</p>";return;}
-    if(!sales?.length){box.innerHTML=`<div class="empty-account"><h3>${esc(viewTitle())}</h3><p>${returnedView?"No returned sales have been filed yet.":archiveView?"No completed sales have been archived yet.":"No active sales yet."}</p></div>`;return;}
+
+    const sales=(loadedSales||[]).filter(sale=>{
+      if (!purchasingPage || returnedView) return true;
+      const terminal=purchaseTerminalStatuses.has(String(sale.status||"").toLowerCase());
+      return archiveView ? terminal : !terminal;
+    });
+
+    if(!sales.length){
+      const emptyText=purchasingPage
+        ? (archiveView ? "No completed purchases are currently in the purchase archive." : "No active purchases require purchasing workflow.")
+        : (returnedView ? "No returned sales have been filed yet." : archiveView ? "No completed sales have been archived yet." : "No active sales yet.");
+      box.innerHTML=`<div class="empty-account"><h3>${esc(viewTitle())}</h3><p>${emptyText}</p></div>`;return;
+    }
     const ids=sales.map(s=>s.id);
     const {data:items}=await auth.supabase.from("sale_items").select("id,sale_id,quote_item_id,accepted_offer_id,amount").in("sale_id",ids);
     const qids=(items||[]).map(i=>i.quote_item_id);
@@ -87,7 +112,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       const unpaid=!["paid","completed","cancelled"].includes(String(s.status||""));
       const paymentDue=!archiveView&&!returnedView&&saleReceived&&unpaid&&(String(s.status||"")==="payment_due"||Boolean(s.bank_details_confirmed_at));
       const paymentAction=paymentDue?`<div class="payment-due-alert" style="margin:12px 0;padding:10px 12px;border-left:4px solid #c94b2c;background:#fff3ee;font-weight:700;color:#8f321f;">PAYMENT DUE: CUSTOMER HAS ACCEPTED THE OFFER — PAY ${money(s.total_amount)}</div>`:"";
-      const actions=archiveView||returnedView?`<button class="btn btn-secondary sale-action" data-action="restore" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">RESTORE</button><button class="btn quote-delete sale-action" data-action="delete" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">DELETE</button>`:`<button class="btn btn-secondary sale-action" data-action="archive" data-folder="sales" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">ARCHIVE SALE</button><button class="btn btn-secondary sale-action" data-action="archive" data-folder="returned" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">MOVE TO RETURNED</button><button class="btn quote-delete sale-action" data-action="delete" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">DELETE</button>`;
+      const actions=purchasingPage
+        ? ""
+        : (archiveView||returnedView
+          ? `<button class="btn btn-secondary sale-action" data-action="restore" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">RESTORE</button><button class="btn quote-delete sale-action" data-action="delete" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">DELETE</button>`
+          : `<button class="btn btn-secondary sale-action" data-action="archive" data-folder="sales" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">ARCHIVE SALE</button><button class="btn btn-secondary sale-action" data-action="archive" data-folder="returned" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">MOVE TO RETURNED</button><button class="btn quote-delete sale-action" data-action="delete" data-id="${esc(s.id)}" data-reference="${esc(s.sale_reference)}">DELETE</button>`);
       const shipmentHtml=sh.length?sh.map(x=>`<p><strong>${esc(x.shipment_type==="inbound"?"CUSTOMER → US":"US → CUSTOMER")}</strong> — ${esc(x.status)} — ${esc(x.label_count)} label(s), ${esc(x.parcel_count)} parcel(s)${x.tracking_number?` — ${esc(x.tracking_number)}`:""}${x.shipped_at?` — Posted ${new Date(x.shipped_at).toLocaleDateString("en-GB")}`:""}</p>`).join(""):"<p>No shipment created yet.</p>";
       const shipmentControls=archiveView||returnedView?"":`${canReceive?`<button class="btn btn-primary mark-received" data-sale="${esc(s.id)}" type="button">ITEM RECEIVED</button>`:(["received","inspection","payment_due","paid","completed"].includes(s.status)?`<p class="status-badge">ITEM RECEIVED</p>`:"")}<div class="navigation-buttons"><button class="btn btn-primary new-shipment" data-sale="${esc(s.id)}" data-type="inbound">CUSTOMER → US</button><button class="btn btn-secondary new-shipment" data-sale="${esc(s.id)}" data-type="return">US → CUSTOMER</button></div><div class="shipment-form" id="shipment-${esc(s.id)}" hidden><label>Labels <select class="label-count"><option value="1">1 label</option><option value="2">2 labels</option><option value="3">3 labels</option><option value="4">4 labels</option><option value="5">5 labels</option></select></label><label>Parcels <input class="parcel-count" type="number" min="1" value="1"></label><label>Carrier <input class="carrier" type="text"></label><label>Tracking number <input class="tracking" type="text"></label><label>Date posted <input class="posted-date" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Label URL(s), one per line <textarea class="label-urls" rows="3"></textarea></label><label>QR code URL(s), one per line <textarea class="qr-urls" rows="3"></textarea></label><label>Notes <textarea class="notes" rows="2"></textarea></label><button class="btn btn-primary save-shipment" data-sale="${esc(s.id)}">SAVE SHIPMENT &amp; EMAIL CUSTOMER</button></div>`;
       return `<article class="valuation-card"><div><a class="valuation-ref" href="admin-sale.html?id=${encodeURIComponent(s.id)}" style="text-decoration:underline;">${esc(s.sale_reference)}</a><p class="section-kicker">${esc(String(s.status||"").replaceAll("_"," "))}${s.archive_folder?` · ${esc(s.archive_folder==="returned"?"RETURNED":"SALES ARCHIVE")}`:""}</p><h3>${money(s.total_amount)}</h3><p>${si.map(i=>{const q=(qitems||[]).find(x=>x.id===i.quote_item_id);return esc(q?.model||q?.item_name||"Item")+" — "+money(i.amount);}).join("<br>")}</p><a class="btn btn-primary" href="admin-sale.html?id=${encodeURIComponent(s.id)}">VIEW FULL SALE</a></div><div class="valuation-meta"><h4>Shipments</h4>${shippingAction}${paymentAction}${shipmentHtml}${shipmentControls}<div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem;">${actions}</div></div></article>`;
@@ -220,7 +249,13 @@ box.querySelectorAll(".save-shipment").forEach(b=>b.onclick=async()=>{
 });  }
 
   const nav=document.getElementById("sales-view-nav");
-  if(nav)nav.innerHTML=`<a class="btn ${!archiveView&&!returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html">ACTIVE SALES</a><a class="btn ${archiveView?"btn-primary":"btn-secondary"}" href="admin-sales.html?archive=1">SALES ARCHIVE</a><a class="btn ${returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html?returned=1">RETURNED</a><button class="btn btn-secondary" id="refresh-sales" type="button">REFRESH</button>`;
+  if(nav){
+    if(purchasingPage){
+      nav.innerHTML=`<a class="btn ${!archiveView&&!returnedView?"btn-primary":"btn-secondary"}" href="admin-purchasing.html">ACTIVE PURCHASES</a><a class="btn ${archiveView?"btn-primary":"btn-secondary"}" href="admin-purchasing.html?archive=1">PURCHASE ARCHIVE</a><a class="btn ${returnedView?"btn-primary":"btn-secondary"}" href="admin-purchasing.html?returned=1">RETURNED ARCHIVE</a><button class="btn btn-secondary" id="refresh-sales" type="button">REFRESH</button>`;
+    }else{
+      nav.innerHTML=`<a class="btn ${!archiveView&&!returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html">ACTIVE SALES</a><a class="btn ${archiveView?"btn-primary":"btn-secondary"}" href="admin-sales.html?archive=1">SALES ARCHIVE</a><a class="btn ${returnedView?"btn-primary":"btn-secondary"}" href="admin-sales.html?returned=1">RETURNED</a><button class="btn btn-secondary" id="refresh-sales" type="button">REFRESH</button>`;
+    }
+  }
   document.getElementById("refresh-sales")?.addEventListener("click",load);
   document.title=viewTitle()+" | GearCashOut";
   await loadSettings(); await load();
