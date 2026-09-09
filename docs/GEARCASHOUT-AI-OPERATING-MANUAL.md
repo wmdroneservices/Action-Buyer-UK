@@ -3840,3 +3840,24 @@ The audited boundary is:
 - inventory assets must preserve catalog_product_id through the purchase → inventory → sales handoff.
 
 The first verified failure was a hard-coded storefront category list that omitted valid source-category variants from the category-card journey. The repair removes that duplicated front-end category truth.
+
+
+### Customer valuation semantic duplicate repair — 9 September 2026
+
+A prior taxonomy normalisation checkpoint correctly identified the first failure as customer presentation, not duplicate catalogue rows. A follow-up live database audit showed remaining semantic duplicates in the selected product-type list, including:
+
+- `Drone` versus `Camera Drones`;
+- `Drone Controllers` versus `Drone Remote Controllers`;
+- overlapping lighting labels.
+
+Repair rule:
+
+1. Do not rewrite historical catalogue source categories for a presentation-only defect.
+2. Canonicalise the customer-visible product type by selected public main category.
+3. Use the same canonical identity in both dropdown generation and `scopedProducts()` / `findProduct()`; otherwise the UI can look fixed while exact product resolution breaks.
+4. Cache-bust the wizard script after deployment.
+5. Verify the live Supabase taxonomy before and after the code change, then update the handbook, this manual, the valuation roadmap/checkpoint and structured project memory.
+
+Current expected Drones product types after aliasing:
+
+`Camera Drones`, `Drone Accessories`, `Drone Controllers`, `Drone Filters`, `Drone Goggles`, `Drone Payloads`, `FPV Equipment`, `Underwater Drones`, `Water Drones`.
