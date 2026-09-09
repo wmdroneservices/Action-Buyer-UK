@@ -1459,3 +1459,61 @@ Payment completion and Sales handover are separate events. The asset enters Sale
 ### Known fix history
 
 The previous completed-sale panel only said that payment was complete and left unrelated Sales navigation in the page header. On 9 September 2026 this was simplified to the two workflow-relevant choices above.
+
+---
+
+## Live Website / Marketplace view links — 9 September 2026
+
+### User action
+
+Staff publishes or records a product as live, then needs to open the exact public listing from Sales.
+
+### Front-end entry points
+
+- `inventory-detail.html`
+- `inventory-sales-channels.js`
+- `active-sales-listings.html`
+- `active-sales-listings.js`
+
+### Authoritative data flow
+
+`inventory_assets`
+→ `resale_listings`
+→ `sales_outlets`
+→ live destination.
+
+### URL rules
+
+**External marketplace**
+
+Staff enters the exact live URL into:
+
+`resale_listings.listing_url`
+
+The Product Workbench and Active Listings page expose **VIEW ON <CHANNEL>**.
+
+**Owned WEBSITE**
+
+Use the authoritative listing ID and configured outlet base URL:
+
+`sales_outlets.public_base_url + /product.html?listing=<resale_listings.id>`
+
+This aligns with the public storefront detail contract:
+
+`public_storefront_listing('retail', listing_id)`
+
+### First configuration dependency
+
+The WEBSITE outlet's `public_base_url` was found to be NULL during the 9 September 2026 audit. The code must not guess a public domain. Configure the real storefront URL and then verify the generated link against a published WEBSITE listing.
+
+### Failure points
+
+1. marketplace listing has no `listing_url`;
+2. WEBSITE outlet has no `public_base_url`;
+3. listing is not Published/Reserved;
+4. wrong outlet is associated with the listing;
+5. public storefront does not resolve the authoritative listing ID.
+
+### Preserved rule
+
+View links are navigation only. They do not create, duplicate or alter stock truth.
