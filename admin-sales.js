@@ -80,7 +80,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const canReceive=!archiveView&&!returnedView
         && ["collecting_items","ready_for_shipping","shipping"].includes(s.status)
         && inboundLabelReady;
-      const labelRequired=!archiveView&&!returnedView&&Boolean(s.bank_details_confirmed_at)&&!inboundShipment&&!["paid","completed","cancelled"].includes(s.status);
+      const inboundNeedsLabel=!inboundShipment||["awaiting_label","label_required"].includes(String(inboundShipment.status||""));
+      const labelRequired=!archiveView&&!returnedView&&inboundNeedsLabel&&!["paid","completed","cancelled"].includes(s.status);
       const shippingAction=labelRequired?`<div class="shipping-next-step" style="margin:12px 0;padding:10px 12px;border-left:4px solid #c94b2c;background:#fff7f3;font-weight:700;color:#8f321f;">NEXT STEP: CREATE CUSTOMER → US SHIPPING LABEL</div>`:"";
       const saleReceived=["received","inspection","payment_due"].includes(String(s.status||""));
       const unpaid=!["paid","completed","cancelled"].includes(String(s.status||""));
