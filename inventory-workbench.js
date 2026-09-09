@@ -73,11 +73,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const testsPass=testing && ['Passed','Not Applicable'].includes(testing.flight_test||'') && ['Passed','Not Applicable'].includes(testing.camera_test||'') && ['Good','Not Applicable'].includes(testing.battery_health||'');
     const purchaseFinalised=!sourceSale || (sourceSale.status==='completed' && sourceSale.payment_status==='paid');
     const canSend=status==='Ready for Resale' && purchaseFinalised && Boolean(asset.condition_grade) && missingResolved && Boolean(asset.package_name || asset.final_package_contents) && Boolean(testsPass);
-    // Ready for Resale means the physical inspection is complete. Before the
-    // customer purchase is completed, the next action is the final offer/refusal
-    // decision rather than a Sales handoff.
-    const finalOfferReady=status==='Ready for Resale' && Boolean(sourceSale?.id) && !purchaseFinalised && Boolean(valuation?.id);
-    const nextWorkflowLabel=finalOfferReady ? 'Final offer & payment' : 'Send to Sales';
+    // Ready for Resale means the physical inspection is complete. The exact
+    // next action depends on the linked customer-purchase state.
+    const saleWorkflowStatus=String(sourceSale?.status||'').toLowerCase();
+    const paymentWorkflowStatus=String(sourceSale?.payment_status||'').toLowerCase();
+    const awaitingFinalOffer=saleWorkflowStatus==='inspection' || paymentWorkflowStatus==='awaiting_final_quote';
+    const awaitingPurchaseCompletion=Boolean(sourceSale?.id) && !purchaseFinalised;
+    const finalOfferReady=status==='Ready for Resale' && awaitingFinalOffer && Boolean(valuation?.id);
+    const nextWorkflowLabel=finalOfferReady
+      ? 'Final offer & payment'
+      : (status==='Ready for Resale' && awaitingPurchaseCompletion ? 'Complete customer purchase' : 'Send to Sales');
     const repairFault=latestRepair?.fault_description || [
       asset.status_change_reason, testing?.damage_notes, testing?.notes, inspection?.damage_notes, inspection?.notes
     ].filter(Boolean).join(' · ') || 'Record the exact fault or defect that requires repair.';
