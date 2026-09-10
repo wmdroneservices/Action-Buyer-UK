@@ -1,8 +1,8 @@
-# 2026-09-10 — Live Website Staff Access
+# 2026-09-10 — Live Website Staff Access and Status Colours
 
 ## Requirement
 
-Provide the retail WEBSITE visibility dashboard from the main staff dashboard so Sales and Purchasing staff can access it, while keeping visibility changes under Management control.
+Provide the retail WEBSITE visibility dashboard from the main staff dashboard so Sales and Purchasing staff can access it, while keeping visibility changes under Management control. Make the visibility state immediately understandable using red, green and yellow status colours.
 
 ## Investigation
 
@@ -18,7 +18,12 @@ The existing staff permission model provides `can_access_purchasing`, `can_acces
 - Management staff retain the existing manufacturer/category/product controls.
 - Sales and Purchasing staff see the current visibility state but cannot save changes; visibility RPCs remain Management-only.
 - Added an explicit read-only notice to `admin-live-website.html`.
-- Added cache-busting to the dashboard JavaScript reference.
+- Added status colours to manufacturer, category and product controls:
+  - **RED = NOT LISTED** (`HIDE`)
+  - **GREEN = LISTED** (`SHOW`)
+  - **YELLOW = AUTO** (`AUTO`)
+- Product controls use the same labels in the selector.
+- Added cache-busting so the colour-coded JavaScript is loaded after deployment.
 
 ## Security boundary
 
@@ -35,16 +40,7 @@ This means Sales/Purchasing access is observational only, while Management remai
 
 ## Verification status
 
-Code changes committed to the default branch. Supabase schema/RLS and existing visibility overrides were rechecked; `sales_catalog_visibility` remains at zero overrides.
-
-Browser verification remains required for:
-
-1. Management sees the LIVE WEBSITE card and can edit visibility.
-2. Sales staff sees the LIVE WEBSITE card and receives read-only access.
-3. Purchasing staff sees the LIVE WEBSITE card and receives read-only access.
-4. Sales/Purchasing cannot change manufacturer/category/product visibility.
-5. Management changes continue to propagate through the existing public storefront RPCs.
-6. Existing Sales, Purchasing and Research permissions remain unchanged.
+Code changes committed to the default branch. Supabase visibility override count remains zero. Browser verification remains required after hard refresh.
 
 ## Related roadmap
 
