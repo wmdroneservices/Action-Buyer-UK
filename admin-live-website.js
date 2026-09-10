@@ -5,113 +5,79 @@ document.addEventListener('DOMContentLoaded', async () => {
   const {data:staff,error:staffError}=await auth.supabase.from('staff_users').select('active,can_access_purchasing,can_access_sales,can_manage_staff').eq('user_id',session.user.id).maybeSingle();
   if(staffError||!staff?.active||(!staff.can_access_purchasing&&!staff.can_access_sales&&!staff.can_manage_staff)){location.href='admin.html';return;}
   const canEdit=!!staff.can_manage_staff;
-  const db=auth.supabase;
-  const msg=document.getElementById('live-message');
-  const manufacturerList=document.getElementById('manufacturer-list');
-  const categoryList=document.getElementById('category-list');
-  const productList=document.getElementById('product-list');
-  const productSearch=document.getElementById('product-search');
-  const productCount=document.getElementById('product-count');
+  const db=auth.supabase, tree=document.getElementById('visibility-tree'), search=document.getElementById('tree-search'), count=document.getElementById('tree-count'), msg=document.getElementById('live-message');
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-  const state={manufacturers:new Map(),categories:new Map(),products:new Map()};
+  const style={hide:'background:#fde8e8;border-color:#e7a6a6',show:'background:#e8f5e9;border-color:#9ac7a0',auto:'background:#fff8cc;border-color:#e3d27a'};
+  const label=mode=>mode==='hide'?'NOT LISTED':mode==='show'?'LISTED':'AUTO';
+  const modeClass=mode=>'visibility-'+(mode||'auto');
   let rows=[];
+
   const setMsg=(text,error=false)=>{msg.textContent=text;msg.className='form-message'+(error?' error':'');};
-  const modeLabel=mode=>mode==='hide'?'NOT LISTED':mode==='show'?'LISTED':'AUTO';
-  const modeClass=mode=>mode==='hide'?'visibility-hide':mode==='show'?'visibility-show':'visibility-auto';
-  const colourStyle={
-    hide:'background:#fde8e8;border-color:#e7a6a6',
-    show:'background:#e8f5e9;border-color:#9ac7a0',
-    auto:'background:#fff8cc;border-color:#e3d27a'
-  };
-  const applyAccess=()=>{
-    document.querySelectorAll('#show-selected-manufacturers,#reset-manufacturers,#show-selected-categories,#reset-categories').forEach(el=>el.hidden=!canEdit);
-    document.querySelectorAll('.manufacturer-check,.category-check,.product-mode').forEach(el=>el.disabled=!canEdit);
-    const panel=document.getElementById('visibility-edit-notice');
-    if(panel) panel.hidden=canEdit;
-  };
+  const applyAccess=()=>{tree.querySelectorAll('.tree-control').forEach(el=>el.disabled=!canEdit);const notice=document.getElementById('visibility-edit-notice');if(notice)notice.hidden=canEdit;};
+
   async function load(){
-    setMsg('Loading live website controls…');
-    const {data,error}=await db.rpc('staff_storefront_visibility_catalog',{p_store_key:'retail'});
+    setMsg('Loading website visibility…');
+    const {data,error}=await db.rpc('staff_storefront_visibility_tree',{p_store_key:'retail'});
     if(error){setMsg(error.message,true);return;}
-    rows=data||[];
-    state.manufacturers.clear();state.categories.clear();state.products.clear();
+    rows=data||[];render();setMsg(canEdit?`Loaded ${rows.length.toLocaleString('en-GB')} catalogue products.`:`Loaded ${rows.length.toLocaleString('en-GB')} catalogue products. Read-only access.`);
+  }
+
+  function groups(){
+    const manufacturers=new Map();
     rows.forEach(r=>{
-      state.manufacturers.set(r.manufacturer,r.manufacturer_mode||'auto');
-      state.categories.set(r.category,r.category_mode||'auto');
-      state.products.set(r.product_id,r.product_mode||'auto');
+      if(!r.manufacturer)return;
+      if(!manufacturers.has(r.manufacturer))manufacturers.set(r.manufacturer,{name:r.manufacturer,mode:r.manufacturer_mode||'auto',categories:new Map()});
+      const m=manufacturers.get(r.manufacturer);
+      const category=r.category||'Uncategorised';
+      if(!m.categories.has(category))m.categories.set(category,{name:category,mode:r.manufacturer_category_mode||'auto',globalMode:r.category_mode||'auto',products:[]});
+      m.categories.get(category).products.push(r);
     });
-    renderManufacturers();renderCategories();renderProducts();applyAccess();
-    setMsg(canEdit?`Loaded ${rows.length.toLocaleString('en-GB')} catalogue products.`:`Loaded ${rows.length.toLocaleString('en-GB')} catalogue products. Read-only access.`);
+    return [...manufacturers.values()].sort((a,b)=>a.name.localeCompare(b.name));
   }
-  function renderManufacturers(){
-    const names=[...state.manufacturers.keys()].filter(Boolean).sort((a,b)=>a.localeCompare(b));
-    manufacturerList.innerHTML=names.map(name=>{
-      const mode=state.manufacturers.get(name)||'auto';
-      return `<label class="visibility-card ${modeClass(mode)}" style="${colourStyle[mode]};display:flex;align-items:center;gap:.7rem;padding:.75rem .85rem;border:1px solid;border-radius:8px;cursor:pointer"><input class="manufacturer-check" type="checkbox" data-key="${esc(name)}" ${mode!=='hide'?'checked':''}><span style="flex:1"><strong>${esc(name)}</strong><small style="display:block;color:#667085;margin-top:.2rem">${rows.filter(r=>r.manufacturer===name).length} catalogue products · <b>${modeLabel(mode)}</b></small></span></label>`;
-    }).join('')||'<p>No manufacturers found.</p>';
+
+  function control(scope,key,mode,extra=''){
+    const options=scope==='product'?`<option value="auto" ${mode==='auto'?'selected':''}>AUTO</option><option value="show" ${mode==='show'?'selected':''}>LISTED</option><option value="hide" ${mode==='hide'?'selected':''}>NOT LISTED</option>`:`<option value="auto" ${mode==='auto'?'selected':''}>AUTO</option><option value="show" ${mode==='show'?'selected':''}>LISTED</option><option value="hide" ${mode==='hide'?'selected':''}>NOT LISTED</option>`;
+    return `<select class="tree-control" data-scope="${scope}" data-key="${esc(key)}" ${extra}>${options}</select>`;
   }
-  function renderCategories(){
-    const categories=[...state.categories.keys()].filter(Boolean).sort((a,b)=>a.localeCompare(b));
-    categoryList.innerHTML=categories.map(category=>{
-      const mode=state.categories.get(category)||'auto';
-      return `<label class="visibility-card ${modeClass(mode)}" style="${colourStyle[mode]};display:flex;align-items:center;gap:.7rem;padding:.75rem .85rem;border:1px solid;border-radius:8px;cursor:pointer"><input class="category-check" type="checkbox" data-key="${esc(category)}" ${mode!=='hide'?'checked':''}><span style="flex:1"><strong>${esc(category)}</strong><small style="display:block;color:#667085;margin-top:.2rem">${rows.filter(r=>r.category===category).length} catalogue products · <b>${modeLabel(mode)}</b></small></span></label>`;
-    }).join('')||'<p>No categories found.</p>';
+
+  function render(){
+    const q=(search.value||'').trim().toLowerCase();
+    let visibleManufacturers=0,visibleCategories=0,visibleProducts=0;
+    const html=groups().map((m,mi)=>{
+      const cats=[...m.categories.values()].map(c=>({...c,products:c.products.filter(p=>!q||`${m.name} ${c.name} ${p.model||''} ${p.package_name||''}`.toLowerCase().includes(q))})).filter(c=>!q||c.products.length);
+      if(q&&!cats.length)return '';
+      visibleManufacturers++;
+      const manufacturerEffective=m.mode!=='hide';
+      const categoryHtml=cats.map((c,ci)=>{
+        visibleCategories++;
+        const categoryEffective=manufacturerEffective&&c.mode!=='hide'&&c.globalMode!=='hide';
+        const productHtml=c.products.map(p=>{
+          visibleProducts++;
+          const effective=categoryEffective&&(p.product_mode||'auto')!=='hide';
+          const pm=p.product_mode||'auto';
+          return `<div class="tree-child ${modeClass(pm)}" style="${style[pm]}"><div class="tree-row-head"><span class="tree-name tree-product"><strong>${esc(p.model||'Unnamed product')}</strong><span class="tree-count">${esc(p.package_name||'Standard Package')} · ${effective?'LISTED ON WEBSITE':'NOT LISTED ON WEBSITE'}</span></span>${control('product',p.product_id,pm)}</div></div>`;
+        }).join('');
+        const ck=`${m.name}::${c.name}`;
+        return `<div class="tree-child ${modeClass(c.mode)}" style="${style[c.mode]}"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="false">+</button><span class="tree-name"><strong>${esc(c.name)}</strong><span class="tree-count">${c.products.length} products · ${label(c.mode)}${c.globalMode!=='auto'?` · GLOBAL CATEGORY ${label(c.globalMode)}`:''}</span></span>${control('manufacturer_category',ck,c.mode)}</div><div class="tree-children">${productHtml||'<div class="tree-note">No matching products.</div>'}</div></div>`;
+      }).join('');
+      const open=q?' open':'';
+      return `<div class="tree-row${open}" data-manufacturer="${esc(m.name)}" style="${style[m.mode]}"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="${q?'true':'false'}">${q?'−':'+'}</button><span class="tree-name"><strong>${esc(m.name)}</strong><span class="tree-count">${m.categories.size} categories · ${m.categoriesSize||m.categories.size} branches · ${label(m.mode)}</span></span>${control('manufacturer',m.name,m.mode)}</div><div class="tree-children">${categoryHtml}</div></div>`;
+    }).join('');
+    tree.innerHTML=html||'<p>No matching manufacturers, categories or products.</p>';
+    count.textContent=`Showing ${visibleManufacturers.toLocaleString('en-GB')} manufacturers · ${visibleCategories.toLocaleString('en-GB')} categories · ${visibleProducts.toLocaleString('en-GB')} products.`;
+    applyAccess();
   }
-  function renderProducts(){
-    const q=productSearch.value.trim().toLowerCase();
-    const filtered=rows.filter(r=>!q||`${r.manufacturer} ${r.model} ${r.package_name} ${r.category}`.toLowerCase().includes(q));
-    productCount.textContent=`Showing ${filtered.length.toLocaleString('en-GB')} of ${rows.length.toLocaleString('en-GB')} products.`;
-    productList.innerHTML=filtered.slice(0,500).map(r=>{
-      const mode=state.products.get(r.product_id)||'auto';
-      const effective=r.manufacturer_mode!=='hide'&&r.category_mode!=='hide'&&mode!=='hide';
-      return `<article class="visibility-card ${modeClass(mode)}" style="${colourStyle[mode]};display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(100px,.35fr);gap:.75rem;align-items:center;border:1px solid;border-radius:8px;padding:.7rem .85rem"><div><strong>${esc(r.manufacturer)} ${esc(r.model)}</strong><small style="display:block;color:#667085;margin-top:.2rem">${esc(r.package_name||'Standard Package')} · ${esc(r.category)} · ${effective?'LISTED ON WEBSITE':'NOT LISTED ON WEBSITE'}</small></div><select class="product-mode" data-key="${esc(r.product_id)}"><option value="auto" ${mode==='auto'?'selected':''}>AUTO</option><option value="show" ${mode==='show'?'selected':''}>LISTED</option><option value="hide" ${mode==='hide'?'selected':''}>NOT LISTED</option></select><span class="notice ${modeClass(mode)}" style="margin:0;text-align:center;background:transparent;border:0;font-weight:700">${modeLabel(mode)}</span></article>`;
-    }).join('')||'<p>No matching products.</p>';
-    if(filtered.length>500) productCount.textContent+=` Showing the first 500 matches; search further to manage additional products.`;
-  }
-  async function setVisibility(scope,key,mode){
-    if(!canEdit)return false;
+
+  async function save(scope,key,mode){
+    if(!canEdit)return;
     const {error}=await db.rpc('staff_set_storefront_visibility',{p_store_key:'retail',p_scope_type:scope,p_scope_key:key,p_visibility_mode:mode});
-    if(error){setMsg(error.message,true);return false;}
-    return true;
+    if(error){setMsg(error.message,true);await load();return;}
+    await load();
+    setMsg(`${scope==='manufacturer'?'Manufacturer':scope==='manufacturer_category'?'Manufacturer category':'Product'} visibility saved.`);
   }
-  document.getElementById('show-selected-manufacturers').addEventListener('click',async()=>{
-    if(!canEdit)return;
-    const selected=[...manufacturerList.querySelectorAll('.manufacturer-check:checked')].map(x=>x.dataset.key);
-    if(!selected.length){setMsg('Select at least one manufacturer before using SHOW ONLY SELECTED MANUFACTURERS.',true);return;}
-    setMsg('Applying manufacturer selection…');
-    const {error}=await db.rpc('staff_set_storefront_scope_mode',{p_store_key:'retail',p_scope_type:'manufacturer',p_selected_keys:selected,p_mode:'show_only'});
-    if(error){setMsg(error.message,true);return;} await load();setMsg(`Website manufacturer visibility set to ${selected.length} selected manufacturer${selected.length===1?'':'s'}.`);
-  });
-  document.getElementById('reset-manufacturers').addEventListener('click',async()=>{
-    if(!canEdit)return;
-    if(!confirm('Reset all manufacturer visibility overrides to AUTO?')) return;
-    setMsg('Resetting manufacturers…');
-    const {error}=await db.rpc('staff_set_storefront_scope_mode',{p_store_key:'retail',p_scope_type:'manufacturer',p_selected_keys:[],p_mode:'reset_auto'});
-    if(error){setMsg(error.message,true);return;} await load();
-  });
-  document.getElementById('show-selected-categories').addEventListener('click',async()=>{
-    if(!canEdit)return;
-    const selected=[...categoryList.querySelectorAll('.category-check:checked')].map(x=>x.dataset.key);
-    if(!selected.length){setMsg('Select at least one category before using SHOW ONLY SELECTED CATEGORIES.',true);return;}
-    setMsg('Applying category selection…');
-    const {error}=await db.rpc('staff_set_storefront_scope_mode',{p_store_key:'retail',p_scope_type:'category',p_selected_keys:selected,p_mode:'show_only'});
-    if(error){setMsg(error.message,true);return;} await load();setMsg(`Website category visibility set to ${selected.length} selected categor${selected.length===1?'y':'ies'}.`);
-  });
-  document.getElementById('reset-categories').addEventListener('click',async()=>{
-    if(!canEdit)return;
-    if(!confirm('Reset all category visibility overrides to AUTO?')) return;
-    setMsg('Resetting categories…');
-    const {error}=await db.rpc('staff_set_storefront_scope_mode',{p_store_key:'retail',p_scope_type:'category',p_selected_keys:[],p_mode:'reset_auto'});
-    if(error){setMsg(error.message,true);return;} await load();
-  });
-  manufacturerList.addEventListener('change',e=>{if(canEdit&&e.target.matches('.manufacturer-check')){state.manufacturers.set(e.target.dataset.key,e.target.checked?'show':'hide');renderManufacturers();applyAccess();}});
-  categoryList.addEventListener('change',e=>{if(canEdit&&e.target.matches('.category-check')){state.categories.set(e.target.dataset.key,e.target.checked?'show':'hide');renderCategories();applyAccess();}});
-  productList.addEventListener('change',async e=>{
-    if(!canEdit||!e.target.matches('.product-mode')) return;
-    const mode=e.target.value,key=e.target.dataset.key;e.target.disabled=true;setMsg('Saving product visibility…');
-    if(await setVisibility('product',key,mode)){state.products.set(key,mode);renderProducts();applyAccess();setMsg('Product visibility saved.');}
-    e.target.disabled=false;
-  });
-  productSearch.addEventListener('input',renderProducts);
+
+  tree.addEventListener('click',e=>{const btn=e.target.closest('.tree-toggle');if(!btn)return;const row=btn.closest('.tree-row,.tree-child');if(!row)return;const open=row.classList.toggle('open');btn.textContent=open?'−':'+';btn.setAttribute('aria-expanded',open?'true':'false');});
+  tree.addEventListener('change',e=>{if(!e.target.matches('.tree-control')||!canEdit)return;const select=e.target;select.disabled=true;save(select.dataset.scope,select.dataset.key,select.value);});
+  search.addEventListener('input',render);
   await load();
 });
