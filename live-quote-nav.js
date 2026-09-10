@@ -3,6 +3,7 @@
   "use strict";
   const BASKET_KEY = "gearCashOutQuoteBasket";
   const NAV_ID = "live-quote-nav";
+  const RETAIL_SITE_URL = "https://wmdroneservices.github.io/GearCashOut-Retail-Storefront/";
 
   function clean(value) { return String(value || "").trim().toLowerCase(); }
   function isPlaceholder(value) { const text = clean(value); return !text || /^[-–—]/.test(text) || /\bselect\b.*\b(model|package|accessory|manufacturer)\b/.test(text); }
@@ -25,6 +26,18 @@
   }
   function isValuationPage() { return /(^|\/)valuation\.html$/i.test(window.location.pathname); }
   function removeNavigation() { document.getElementById(NAV_ID)?.remove(); }
+  function addHomepageSisterSiteLink() {
+    if (!document.body.classList.contains("home")) return;
+    const navList = document.querySelector("header .nav-list, header nav ul");
+    if (!navList || navList.querySelector('[data-sister-site-link="retail"]')) return;
+    const item = document.createElement("li");
+    item.setAttribute("data-sister-site-link", "retail");
+    const link = document.createElement("a");
+    link.href = RETAIL_SITE_URL;
+    link.textContent = "Shop Gear";
+    item.appendChild(link);
+    navList.appendChild(item);
+  }
   async function isStaff() {
     try {
       const auth = window.actionBuyerAuth;
@@ -216,6 +229,7 @@
   }
   async function init() {
     removeNavigation();
+    addHomepageSisterSiteLink();
     if (await isStaff()) return;
     loadCustomerTheme();
     watchSubmission();
