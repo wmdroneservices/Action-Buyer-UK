@@ -50,18 +50,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       const categoryHtml=cats.map(c=>{
         visibleCategories++;
         const categoryEffective=manufacturerEffective&&c.mode!=='hide'&&c.globalMode!=='hide';
-        const productHtml=c.products.map(p=>{visibleProducts++;const effective=categoryEffective&&(p.product_mode||'auto')!=='hide';const pm=p.product_mode||'auto';return `<div class="tree-child ${modeClass(pm)}" style="${style[pm]}"><div class="tree-row-head"><span class="tree-name tree-product"><strong>${esc(p.model||'Unnamed product')}</strong><span class="tree-count">${esc(p.package_name||'Standard Package')} · ${effective?'LISTED ON WEBSITE':'NOT LISTED ON WEBSITE'}</span></span>${control('product',p.product_id,pm)}</div></div>`;}).join('');
+        const productHtml=c.products.map(p=>{visibleProducts++;const effective=categoryEffective&&(p.product_mode||'auto')!=='hide';const pm=p.product_mode||'auto';return `<div class="tree-child ${modeClass(pm)} tree-product-row" style="${style[pm]}"><div class="tree-row-head"><span class="tree-name tree-product"><strong>${esc(p.model||'Unnamed product')}</strong><span class="tree-count">${esc(p.package_name||'Standard Package')} · ${effective?'LISTED ON WEBSITE':'NOT LISTED ON WEBSITE'}</span></span>${control('product',p.product_id,pm)}</div></div>`;}).join('');
         const ck=`${m.name}::${c.name}`;
-        return `<div class="tree-child ${modeClass(c.mode)}" style="${style[c.mode]}"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="false">+</button><span class="tree-name"><strong>${esc(c.name)}</strong><span class="tree-count">${c.products.length} products · ${label(c.mode)}${c.globalMode!=='auto'?` · GLOBAL CATEGORY ${label(c.globalMode)}`:''}</span></span>${control('manufacturer_category',ck,c.mode)}</div><div class="tree-children">${productHtml||'<div class="tree-note">No matching products.</div>'}</div></div>`;
+        return `<div class="tree-child ${modeClass(c.mode)} tree-category-row"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="false">+</button><span class="tree-name"><strong>${esc(c.name)}</strong><span class="tree-count">${c.products.length} products · ${label(c.mode)}${c.globalMode!=='auto'?` · GLOBAL CATEGORY ${label(c.globalMode)}`:''}</span></span>${control('manufacturer_category',ck,c.mode)}</div><div class="tree-children" hidden>${productHtml||'<div class="tree-note">No matching products.</div>'}</div></div>`;
       }).join('');
-      const open=q?' open':'';
-      return `<div class="tree-row${open}" data-manufacturer="${esc(m.name)}" style="${style[m.mode]}"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="${q?'true':'false'}">${q?'−':'+'}</button><span class="tree-name"><strong>${esc(m.name)}</strong><span class="tree-count">${m.categories.size} branches · ${label(m.mode)}</span></span>${control('manufacturer',m.name,m.mode)}</div><div class="tree-children">${categoryHtml}</div></div>`;
+      return `<div class="tree-row" data-manufacturer="${esc(m.name)}"><div class="tree-row-head"><button class="tree-toggle" type="button" aria-expanded="false">+</button><span class="tree-name"><strong>${esc(m.name)}</strong><span class="tree-count">${m.categories.size} branches · ${label(m.mode)}</span></span>${control('manufacturer',m.name,m.mode)}</div><div class="tree-children" hidden>${categoryHtml}</div></div>`;
     }).join('');
     tree.innerHTML=html||'<p>No matching manufacturers, categories or products.</p>';
     count.textContent=`Showing ${visibleManufacturers.toLocaleString('en-GB')} manufacturers · ${visibleCategories.toLocaleString('en-GB')} categories · ${visibleProducts.toLocaleString('en-GB')} products.`;applyAccess();
+    if(q){tree.querySelectorAll('.tree-row').forEach(row=>setExpanded(row,true));tree.querySelectorAll('.tree-category-row').forEach(row=>setExpanded(row,true));}
+  }
+  function setExpanded(row,open){
+    if(!row)return;
+    row.classList.toggle('open',open);
+    const btn=row.querySelector(':scope > .tree-row-head > .tree-toggle');
+    const children=row.querySelector(':scope > .tree-children');
+    if(btn){btn.textContent=open?'−':'+';btn.setAttribute('aria-expanded',open?'true':'false');}
+    if(children)children.hidden=!open;
   }
   async function save(scope,key,mode){if(!canEdit)return;const {error}=await db.rpc('staff_set_storefront_visibility',{p_store_key:'retail',p_scope_type:scope,p_scope_key:key,p_visibility_mode:mode});if(error){setMsg(error.message,true);await load();return;}await load();setMsg(`${scope==='manufacturer'?'Manufacturer':scope==='manufacturer_category'?'Manufacturer category':'Product'} visibility saved.`);}
-  tree.addEventListener('click',e=>{const btn=e.target.closest('.tree-toggle');if(!btn)return;const row=btn.closest('.tree-row,.tree-child');if(!row)return;const open=row.classList.toggle('open');btn.textContent=open?'−':'+';btn.setAttribute('aria-expanded',open?'true':'false');});
+  tree.addEventListener('click',e=>{const btn=e.target.closest('.tree-toggle');if(!btn)return;const row=btn.closest('.tree-row,.tree-category-row');if(!row)return;setExpanded(row,!row.classList.contains('open'));});
   tree.addEventListener('change',e=>{if(!e.target.matches('.tree-control')||!canEdit)return;const select=e.target;select.disabled=true;save(select.dataset.scope,select.dataset.key,select.value);});
   search.addEventListener('input',render);
   await load();
