@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sales Fulfilment | GearCashOut</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .fulfilment-card{margin:1rem 0}
+    .fulfilment-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.8rem}
+    .fulfilment-status{padding:1rem;border:2px solid #b06b00;background:#fff8e8;color:#6f4500}
+    .fulfilment-status.good{border-color:#18794e;background:#f1fbf5;color:#14633f}
+    .fulfilment-status.bad{border-color:#b42318;background:#fff1f1;color:#7f1d1d}
+    .fulfilment-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem;margin:1rem 0}
+    .fulfilment-meta div{padding:.8rem;border:1px solid #d5dde5;background:#f7f9fb}
+    .fulfilment-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+  </style>
+</head>
+<body>
+<header class="header">
+  <div class="container header-container">
+    <a class="logo" href="admin.html">GEARCASHOUT</a>
+    <nav aria-label="Dashboard sections"><ul class="nav-list"><li><a href="admin-sales-dashboard.html">SALES</a></li><li><a href="sales-stock-workflow.html">LIVE STOCK</a></li></ul></nav>
+  </div>
+</header>
+<main class="account-page">
+  <div class="container">
+    <div class="account-header">
+      <div><p class="section-kicker">POST-SALE FULFILMENT</p><h1>Shipping &amp; Tracking</h1><p>Record the shipping method, carrier, tracking and label information before the sold item is collected and moved to Sold - Shipped.</p></div>
+      <a class="btn btn-secondary" href="sales-stock-workflow.html">BACK TO LIVE STOCK</a>
+    </div>
+    <div id="fulfilment-message" class="form-message" aria-live="polite"></div>
+    <div id="fulfilment-root"><p>Loading fulfilment...</p></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script src="staff-navigation.js?v=20260909-permission-dashboard-logo-1"></script>
+<script src="sales-fulfilment.js?v=20260910-shipping-1"></script>
+</body>
+</html>
