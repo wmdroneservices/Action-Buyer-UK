@@ -17,12 +17,22 @@ The visibility hierarchy is:
 5. Sales/Purchasing staff can inspect these states read-only.
 6. Open **VIEW ONLY LIVE WEBSITE PRODUCTS** to inspect the current published website stock.
 
+## Status colour coding
+
+The control dashboard uses a simple traffic-light convention:
+
+- **RED = NOT LISTED** — `HIDE` override; the item is excluded by this scope.
+- **GREEN = LISTED** — `SHOW` override; the item is explicitly allowed by this scope.
+- **YELLOW = AUTO** — no explicit override; the normal storefront rule decides visibility.
+
+The same colour/status convention is used for manufacturers, categories and individual products. Parent-level hiding can still make an individual product effectively not listed even when that product itself is set to `AUTO` or `SHOW`; the product row reports that effective state separately.
+
 ## Front-end entry points
 
 - `admin.html` — main staff dashboard; LIVE WEBSITE card is available to active Management, Sales and Purchasing staff.
 - `admin-dashboard.js` — maps Sales/Purchasing/Management permissions to the storefront card.
 - `admin-live-website.html` — storefront visibility controls/read-only view.
-- `admin-live-website.js` — staff access guard, read-only state and management controls.
+- `admin-live-website.js` — staff access guard, status colour rendering and management controls.
 - `admin-live-website-products.html` — read-only live stock view.
 - `admin-live-website-products.js` — current published WEBSITE listing view.
 - `admin-outlet-management.html` — outlet configuration and live WEBSITE outlet URL.
@@ -84,14 +94,15 @@ The central outlet registry is also authoritative for Sales Workbench channel co
 
 1. LIVE WEBSITE card missing for Sales/Purchasing → inspect `admin-dashboard.js` staff permission mapping and `staff_users` flags.
 2. Sales/Purchasing can edit controls → inspect `admin-live-website.js` and immediately verify the management-only database RPC guards; do not weaken those guards.
-3. Hidden manufacturer still appears → inspect `sales_catalog_visibility` manufacturer row and `public_storefront_manufacturers()`.
-4. Hidden category still appears on homepage → inspect `public_storefront_categories()` and the retail `index.html` category rendering.
-5. Hidden category still appears in Shop → inspect `public_storefront_categories()` / `public_storefront_catalog()` and `shop.js`.
-6. Individual product remains visible → inspect product-level visibility row and `public_storefront_catalog()` / `public_storefront_stock()`.
-7. Product disappears from valuations → stop; visibility must not be implemented by changing `quote_catalog_products.active`.
-8. Live website control page cannot save → verify active management staff and the `sales_catalog_visibility` management policy/RPC.
-9. Outlet edits fail → inspect `staff_update_sales_outlet()` and `sales_outlets` management policy.
-10. Live-only view differs from public stock → compare `staff_live_storefront_products()` with `public_storefront_stock()`.
+3. Status colour incorrect → inspect `modeLabel`, `modeClass`, `colourStyle` and the `*_mode` values returned by `staff_storefront_visibility_catalog()`.
+4. Hidden manufacturer still appears → inspect `sales_catalog_visibility` manufacturer row and `public_storefront_manufacturers()`.
+5. Hidden category still appears on homepage → inspect `public_storefront_categories()` and the retail `index.html` category rendering.
+6. Hidden category still appears in Shop → inspect `public_storefront_categories()` / `public_storefront_catalog()` and `shop.js`.
+7. Individual product remains visible → inspect product-level visibility row and `public_storefront_catalog()` / `public_storefront_stock()`.
+8. Product disappears from valuations → stop; visibility must not be implemented by changing `quote_catalog_products.active`.
+9. Live website control page cannot save → verify active management staff and the `sales_catalog_visibility` management policy/RPC.
+10. Outlet edits fail → inspect `staff_update_sales_outlet()` and `sales_outlets` management policy.
+11. Live-only view differs from public stock → compare `staff_live_storefront_products()` with `public_storefront_stock()`.
 
 ## Current verified state
 
@@ -100,4 +111,4 @@ The central outlet registry is also authoritative for Sales Workbench channel co
 - Existing public category data currently contains 14 canonical retail categories.
 - Existing published WEBSITE stock remains authoritative and unchanged.
 - Management-only write policies/RPC guards remain in force.
-- Browser verification of the new main-dashboard entry and role-specific read-only behaviour remains required.
+- Browser verification of the staff entry, role-specific read-only behaviour and the new colour coding remains required.
