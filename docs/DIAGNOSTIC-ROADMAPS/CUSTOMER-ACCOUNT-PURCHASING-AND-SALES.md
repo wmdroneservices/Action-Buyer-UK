@@ -17,6 +17,12 @@ User action → `account.html` → `auth.js` (`window.actionBuyerAuth`) → exis
 
 The existing sell-to-us workflow remains in the existing account scripts and tables. The new retail section is deliberately separate so existing valuation/payment behaviour is not rewritten.
 
+### Customer-facing brand/navigation
+
+Customer account logo click → `account.html` header brand link → `index.html` → current GearCashOut homepage brand asset `images/gearcashout-brand.svg`.
+
+The account header must use the same current brand asset as the homepage. Do not restore the legacy text-only `.logo` header or any retired GearCashOut logo SVG. The header reserves the image dimensions and preloads the SVG so the legacy logo cannot appear during navigation.
+
 ### Staff customer account
 
 Staff action → `admin-customers.html` → `admin-customer-details.html?user_id=...` → `admin-customer-details.js` → `staff_customer_profile(p_user_id)` → `admin-customer-retail-purchases.js`.
@@ -71,6 +77,14 @@ A purchase may additionally display:
 
 If no retail purchase exists, the customer account shows a clear empty state rather than an error.
 
+## Branding / navigation failure checkpoints
+
+1. Customer account header briefly shows a legacy GearCashOut logo: inspect `account.html` header markup and ensure it uses `images/gearcashout-brand.svg` rather than the legacy `.logo` text.
+2. Current homepage and account logos differ: inspect the account image source and customer footer branding asset; the current approved public brand is `images/gearcashout-brand.svg`.
+3. Logo flashes during navigation: verify the account header reserves fixed image dimensions and preloads the SVG; do not add JavaScript logo swapping.
+4. A retired logo asset is referenced: search GitHub for the filename before deleting anything and confirm the current asset has replaced every live reference.
+5. Customer footer shows an older brand: inspect `customer-footer.css`; it must reference the current `images/gearcashout-brand.svg`.
+
 ## Failure checkpoints
 
 1. Customer account does not load: verify `auth.js`, authenticated session and `account-retail-purchases.js`.
@@ -86,6 +100,9 @@ If no retail purchase exists, the customer account shows a clear empty state rat
 - No existing `resale_transactions` rows are currently linked to a customer through `buyer_user_id` at the time of this change.
 - The account therefore currently shows the new retail section with an empty state until retail checkout starts creating buyer-linked transactions.
 - No storefront checkout implementation was invented or changed by this repair.
+- The customer account header now uses the current GearCashOut compass/wordmark asset and no longer uses the retired text-only `.logo` header.
+- The shared customer footer CSS now uses the same current brand asset.
+- Retired standalone GearCashOut logo SVG variants that had no live references were removed from the repository.
 
 ## Verification required
 
@@ -96,3 +113,5 @@ Browser verification should cover:
 3. Staff customer detail page: retail purchase section appears without disturbing existing customer/valuation/sell-to-us information.
 4. Existing sell-to-us valuation, offer, payment and return behaviour remains unchanged.
 5. Future retail checkout must write both the buyer's authenticated user ID (`buyer_user_id`) and the existing customer snapshot fields used by the transaction record.
+6. Customer account header shows the current GearCashOut logo immediately with no legacy logo flash; clicking it lands on the current branded homepage.
+7. Customer footer and homepage use the same current `images/gearcashout-brand.svg` asset.
