@@ -17,9 +17,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     return row.status.toUpperCase();
   };
   const salesChannel=outlet=>({WEBSITE:'Website',EBAY:'eBay',FACEBOOK_MARKETPLACE:'Facebook Marketplace',AMAZON:'Amazon',VINTED:'Vinted',MARKETPLACE:'Marketplace',CENTRAL:'Central',GUMTREE:'Other',OTHER:'Other'})[outlet.outlet_code]||'Other';
+  const normaliseUrl=value=>{
+    const raw=String(value||'').trim();
+    if(!raw) return '';
+    return /^https?:\/\//i.test(raw)?raw:'https://'+raw;
+  };
+  const safeUrl=value=>{
+    const url=normaliseUrl(value);
+    try{const parsed=new URL(url);return ['http:','https:'].includes(parsed.protocol)?url:'';}catch(_){return '';}
+  };
   const websiteUrl=(row,outlet)=>{
     if(!row?.id) return null;
-    if(row.listing_url) return row.listing_url;
+    if(row.listing_url) return safeUrl(row.listing_url)||row.listing_url;
     const base=String(outlet?.public_base_url||'').trim().replace(/\/+$/,'');
     return base?`${base}/product.html?listing=${encodeURIComponent(row.id)}`:null;
   };
@@ -60,19 +69,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sold=row?.status==='Sold';
     const closureText=website?'Automatically removed from the GearCashOut website because the item sold through another channel.':'MANUAL ACTION REQUIRED: close or remove this external listing. No marketplace API closure is currently configured for this outlet.';
     const action=website?(row?'UPDATE WEBSITE LISTING':'SEND TO WEBSITE'):(row?'UPDATE MARKETPLACE RECORD':'ADD TO MARKETPLACE');
+    const existingUrl=!website&&row?.listing_url?safeUrl(row.listing_url):'';
     html+='<article style="border:1px solid '+(delist?'#c92a2a':'#d7dce2')+';border-radius:10px;padding:1rem;background:#fff">'
       +'<div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap"><div><h3 style="margin:0">'+esc(outlet.outlet_name)+'</h3><small>'+esc(website?'PRIMARY WEBSITE':'MARKETPLACE / EXTERNAL CHANNEL')+'</small></div><span class="notice"><strong>'+esc(statusLabel(row,website))+'</strong></span></div>'
       +(delist?'<p class="form-message error">'+esc(closureText)+'</p>':'')
-      +(!website?'<label style="display:block;margin-top:.75rem"><strong>LIVE LISTING LINK</strong><input class="channel-listing-url" type="url" value="'+esc(row?.listing_url||'')+'" placeholder="Paste the live marketplace URL after publishing"></label>':'')
+      +(!website?'<label style="display:block;margin-top:.75rem"><strong>LIVE LISTING LINK</strong><input class="channel-listing-url" type="url" value="'+esc(row?.listing_url||'')+'" placeholder="Paste the live marketplace URL after publishing"><span class="channel-link-preview" style="display:block;margin-top:.4rem"></span></label>':'')
       +(sold?'<div style="margin-top:.85rem;padding:.85rem 1rem;background:#fff8e8;border:1px solid #e3b24f;border-radius:8px"><strong>ACTUAL SOLD PRICE</strong><div style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;margin-top:.45rem"><label style="min-width:180px;max-width:240px">eBay sale price (£)<input class="sold-price-input" type="number" min="0.01" step="0.01" value="'+esc(row.sold_price??'')+'" data-listing-id="'+esc(row.id)+'"></label><button class="btn btn-secondary update-sold-price" type="button" data-listing-id="'+esc(row.id)+'">SAVE SOLD PRICE</button><span class="form-message sold-price-message" aria-live="polite"></span></div><small>Changing this updates the authoritative sold price on the listing and the physical inventory record. It does not reopen the listing.</small></div>':'')
       +'<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">'
       +(canManage&&!delist?'<button class="btn btn-primary channel-action" type="button" data-outlet-id="'+esc(outlet.id)+'" data-website="'+(website?'true':'false')+'" data-listing-id="'+esc(row?.id||'')+'" '+(reserved?'disabled title="Reserved listings are not republished from this screen."':'')+'>'+esc(reserved?'RESERVED':action)+'</button>':'')
       +(website&&websiteUrl(row,outlet)?'<a class="btn btn-secondary" href="'+esc(websiteUrl(row,outlet))+'" target="_blank" rel="noopener">VIEW ON WEBSITE</a>':'')
-      +(!website&&row?.listing_url?'<a class="btn btn-secondary" href="'+esc(row.listing_url)+'" target="_blank" rel="noopener">VIEW ON '+esc(outlet.outlet_name.toUpperCase())+'</a>':'')
+      +(!website&&row?.listing_url&&safeUrl(row.listing_url)?'<a class="btn btn-secondary external-view-link" href="'+esc(safeUrl(row.listing_url))+'" target="_blank" rel="noopener">VIEW ON '+esc(outlet.outlet_name.toUpperCase())+'</a>':'')
       +(row?.id&&['Published','Reserved'].includes(row.status)&&!delist?'<button class="btn btn-secondary mark-sold" type="button" data-listing-id="'+esc(row.id)+'">MARK SOLD</button>':'')
       +'</div><p class="form-message channel-message" aria-live="polite"></p></article>';
   }
   html+='</div>';panel.innerHTML=html;root.appendChild(panel);
+
+  const bindLinkPreview=article=>{
+    const input=article.querySelector('.channel-listing-url');
+    const preview=article.querySelector('.channel-link-preview');
+    if(!input||!preview)return;
+    const render=()=>{
+      const url=safeUrl(input.value);
+      preview.innerHTML=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener">OPEN LIVE LISTING ↗</a>':'';
+    };
+    input.addEventListener('input',render);
+    input.addEventListener('change',render);
+    render();
+  };
+  panel.querySelectorAll('article').forEach(bindLinkPreview);
 
   async function getMaster(){
     const [contentRes,assetRes]=await Promise.all([
@@ -104,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       message.textContent='Save the master listing title, description and sale price above before sending to a sales channel.';
       message.className='form-message error';button.disabled=false;return;
     }
-    const liveUrl=button.closest('article').querySelector('.channel-listing-url')?.value.trim()||null;
+    const liveUrl=safeUrl(button.closest('article').querySelector('.channel-listing-url')?.value||'')||null;
     const now=new Date().toISOString();
     const payload={asset_id:id,outlet_id:outlet.id,sales_channel:salesChannel(outlet),status:existing?.status==='Reserved'?'Reserved':'Published',asking_price:Number(price),shipping_cost:Number(shipping)||0,listing_title:title,listing_description:description,listing_url:button.dataset.website==='true'?(existing?.listing_url||null):liveUrl,published_at:existing?.published_at||now,updated_at:now,listing_data:{outlet_code:outlet.outlet_code,outlet_name:outlet.outlet_name,transaction_number:a.transaction_number,manufacturer:a.manufacturer,model:a.model,package_name:a.package_name,condition:a.condition_grade,manufacturer_description:manufacturerDescription,staff_description:staffDescription,condition_description:conditionDescription,missing_parts:a.package_notes||null,package_contents:a.final_package_contents,serial_number:a.serial_number,actual_battery_count:a.actual_battery_count,listing_photo_paths:Array.isArray(c.listing_photo_paths)?c.listing_photo_paths:[]}};
     const result=existing?await db.from('resale_listings').update(payload).eq('id',existing.id):await db.from('resale_listings').insert(payload);
