@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const auth=window.actionBuyerAuth,root=document.getElementById('asset-detail');
   if(!auth||!root) return;
+  const removePurchasingLink=()=>root.querySelectorAll('a[href="admin-purchasing.html"]').forEach(link=>link.remove());
+  removePurchasingLink();
+  new MutationObserver(removePurchasingLink).observe(root,{childList:true,subtree:true});
   const session=await auth.getSession(); if(!session) return;
   const db=auth.supabase;
   const staff=(await db.from('staff_users').select('user_id,active').eq('user_id',session.user.id).maybeSingle()).data;
