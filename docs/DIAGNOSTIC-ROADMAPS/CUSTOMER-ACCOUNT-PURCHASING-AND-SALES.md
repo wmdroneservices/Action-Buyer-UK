@@ -23,6 +23,19 @@ Customer account logo click → `account.html` header brand link → `index.html
 
 The account header must use the same current brand asset as the homepage. Do not restore the legacy text-only `.logo` header or any retired GearCashOut logo SVG. The header reserves the image dimensions and preloads the SVG so the legacy logo cannot appear during navigation.
 
+### Cross-site customer navigation
+
+The customer-facing account header now exposes both sides of the connected platform:
+
+- **Sell Your Gear** → the GearCashOut purchasing/valuation homepage (`index.html` on the Action-Buyer-UK site).
+- **Shop Gear** → the temporary GitHub Pages Gear1 Outpost retail site: `https://wmdroneservices.github.io/GearCashOut-Retail-Storefront/`.
+
+The GearCashOut homepage also exposes **Shop Gear** to the Gear1 Outpost retail site. This is currently injected by the existing `live-quote-nav.js` homepage navigation layer so the link remains part of the current homepage navigation without replacing the existing homepage markup.
+
+The Gear1 Outpost homepage exposes **Sell Your Gear** back to the live GearCashOut purchasing site at `https://gearcashout.co.uk/`.
+
+The temporary retail GitHub Pages URL is authoritative until the Gear1 Outpost domain is purchased. Do not invent or substitute a future retail domain before it is configured and verified.
+
 ### Staff customer account
 
 Staff action → `admin-customers.html` → `admin-customer-details.html?user_id=...` → `admin-customer-details.js` → `staff_customer_profile(p_user_id)` → `admin-customer-retail-purchases.js`.
@@ -84,6 +97,10 @@ If no retail purchase exists, the customer account shows a clear empty state rat
 3. Logo flashes during navigation: verify the account header reserves fixed image dimensions and preloads the SVG; do not add JavaScript logo swapping.
 4. A retired logo asset is referenced: search GitHub for the filename before deleting anything and confirm the current asset has replaced every live reference.
 5. Customer footer shows an older brand: inspect `customer-footer.css`; it must reference the current `images/gearcashout-brand.svg`.
+6. Customer account does not show the sister retail link: inspect the static account header in `account.html` and confirm `Shop Gear` points to the temporary GitHub Pages Gear1 Outpost URL.
+7. GearCashOut homepage does not show the sister retail link: inspect `live-quote-nav.js` and confirm `addHomepageSisterSiteLink()` runs before the staff early return and only targets `.home` pages.
+8. Gear1 Outpost homepage does not link back: inspect `GearCashOut-Retail-Storefront/index.html` and confirm `Sell Your Gear` points to `https://gearcashout.co.uk/`.
+9. The retail domain changes: update all three current navigation locations together and verify the new public URL before retiring the GitHub Pages URL.
 
 ## Failure checkpoints
 
@@ -103,6 +120,8 @@ If no retail purchase exists, the customer account shows a clear empty state rat
 - The customer account header now uses the current GearCashOut compass/wordmark asset and no longer uses the retired text-only `.logo` header.
 - The shared customer footer CSS now uses the same current brand asset.
 - Retired standalone GearCashOut logo SVG variants that had no live references were removed from the repository.
+- The temporary Gear1 Outpost public URL is `https://wmdroneservices.github.io/GearCashOut-Retail-Storefront/` until a dedicated domain is purchased and configured.
+- No Supabase schema, RPC, RLS or data was changed for cross-site navigation; the `sales_outlets.WEBSITE.public_base_url` remains unconfigured, so the front-end uses the explicitly verified GitHub Pages URL rather than inventing a database-derived URL.
 
 ## Verification required
 
@@ -115,3 +134,6 @@ Browser verification should cover:
 5. Future retail checkout must write both the buyer's authenticated user ID (`buyer_user_id`) and the existing customer snapshot fields used by the transaction record.
 6. Customer account header shows the current GearCashOut logo immediately with no legacy logo flash; clicking it lands on the current branded homepage.
 7. Customer footer and homepage use the same current `images/gearcashout-brand.svg` asset.
+8. Customer account top bar visibly contains both `Sell Your Gear` and `Shop Gear`, with `Shop Gear` opening the temporary Gear1 Outpost GitHub Pages site.
+9. GearCashOut homepage visibly contains `Shop Gear` and opens the same temporary Gear1 Outpost URL.
+10. Gear1 Outpost homepage visibly contains `Sell Your Gear` and returns to `https://gearcashout.co.uk/`.
