@@ -101,30 +101,49 @@ Purchasing now has its own catalogue activation control inside the Purchasing Da
 - The controller loads the full catalogue in 1,000-row pages, so all 73 current manufacturers and all 3,845 current catalogue products are reachable rather than stopping at the first 1,000 rows.
 - The purchasing writer requires an active Purchasing or Management staff account.
 
-## Visibility propagation
-
-All public read functions used by the retail catalogue now consider `manufacturer_category` in addition to manufacturer, category and product overrides. Published stock is also protected by the same hierarchy, so hiding a manufacturer branch cannot leave its physical listings visible through the stock view.
-
-## Important safety boundary
-
-Do **not** use `quote_catalog_products.active` to control retail website visibility. That field is part of the master catalogue and affects purchasing/valuation catalogue availability. Retail storefront visibility is controlled through `sales_catalog_visibility`.
-
-Likewise, do **not** use `customer_visible` to control purchasing availability. Customer presentation and purchasing/valuation catalogue activation are separate controls.
-
 ## Failure checkpoints
 
 1. Manufacturer cannot be expanded → inspect `staff_storefront_visibility_tree()` and `admin-live-website.js` grouping/pagination.
 2. Only the first manufacturers appear → inspect the 1,000-row paging loop in `admin-live-website.js` and the `p_limit`/`p_offset` parameters.
-3. Branch toggle affects the same category under every manufacturer → inspect `manufacturer_category` key construction and the public functions; do not replace it with a global `category` scope.
-4. Individual product remains visible → inspect product-level visibility and `public_storefront_catalog()` / `public_storefront_stock()`.
-5. Hidden branch remains visible in public Shop → inspect `public_storefront_catalog()`, `public_storefront_models()` and `public_storefront_stock()` for the `manufacturer_category` condition.
-6. Public filter shows manufacturers unrelated to the selected category → inspect `public_storefront_category_manufacturers()` and `shop.js`.
-7. Selecting a manufacturer and category loses one of the filters → inspect `navigateAfterFilterChange()` and dependent option loading.
-8. Purchasing product cannot be activated/deactivated → inspect `admin-purchasing-catalog-control.js`, `staff_set_purchasing_catalog_visibility()` and `staff_users.can_access_purchasing`.
-9. Purchasing branch changes another manufacturer's products → inspect the `<manufacturer>::<category>` key and do not substitute a global category update.
-10. Product disappears from valuations unexpectedly → inspect `quote_catalog_products.active` history before changing anything else; this is a purchasing/valuation control, not a public storefront control.
-11. Sales/Purchasing can edit public storefront visibility → inspect `admin-live-website.js` and the Management-only database guard in `staff_set_storefront_visibility()`.
-12. Visibility control fails to save → verify active Management staff and `sales_catalog_visibility` write RPC.
+3. **Category expands but individual products do not appear** → inspect `admin-live-website.html` CSS for both `.tree-row.open>.tree-children` and `.tree-child.open>.tree-children`. The category nodes are `.tree-child`, so a selector targeting only `.tree-row.open` prevents the product controls from becoming visible even though `admin-live-website.js` renders them.
+4. Branch toggle affects the same category under every manufacturer → inspect `manufacturer_category` key construction and the public functions; do not replace it with a global `category` scope.
+5. Individual product remains visible → inspect product-level visibility and `public_storefront_catalog()` / `public_storefront_stock()`.
+6. Hidden branch remains visible in public Shop → inspect `public_storefront_catalog()`, `public_storefront_models()` and `public_storefront_stock()` for the `manufacturer_category` condition.
+7. Public filter shows manufacturers unrelated to the selected category → inspect `public_storefront_category_manufacturers()` and `shop.js`.
+8. Selecting a manufacturer and category loses one of the filters → inspect `navigateAfterFilterChange()` and dependent option loading.
+9. Purchasing product cannot be activated/deactivated → inspect `admin-purchasing-catalog-control.js`, `staff_set_purchasing_catalog_visibility()` and `staff_users.can_access_purchasing`.
+10. Purchasing branch changes another manufacturer's products → inspect the `<manufacturer>::<category>` key and do not substitute a global category update.
+11. Product disappears from valuations unexpectedly → inspect `quote_catalog_products.active` history before changing anything else; this is a purchasing/valuation control, not a public storefront control.
+12. Sales/Purchasing can edit public storefront visibility → inspect `admin-live-website.js` and the Management-only database guard in `staff_set_storefront_visibility()`.
+13. Visibility control fails to save → verify active Management staff and `sales_catalog_visibility` write RPC.
+
+## Repair checkpoint — individual product controls not visible — 10 September 2026
+
+### User action
+
+Management opened the Live Website Control hierarchy and could see manufacturer/category rows and their `AUTO` controls, but opening a category did not reveal the individual products underneath it. This made the product-level LISTED / NOT LISTED / AUTO control unusable from the interface.
+
+### First actual failure
+
+`admin-live-website.js` correctly rendered each product as a `.tree-child` containing its own `.tree-control` select. The click handler also correctly toggled the category `.tree-child` between open and closed. The failure was the CSS selector in `admin-live-website.html`: it only displayed children for `.tree-row.open`, while category nodes are `.tree-child`. Therefore the generated product controls were present in the DOM but remained `display:none`.
+
+### Minimal repair
+
+Changed the category expansion selector from a manufacturer-only rule to:
+
+` .tree-row.open>.tree-children,.tree-child.open>.tree-children `
+
+and advanced the script cache-bust to `admin-live-website.js?v=20260910-hierarchy-2`.
+
+No visibility records, catalogue products, inventory, listings, sales or valuations were modified.
+
+### Verification performed
+
+- Current GitHub `admin-live-website.js` inspected: product-level `control('product', p.product_id, pm)` rendering and change/save path already existed.
+- Current GitHub `admin-live-website.html` inspected after repair: `.tree-child.open>.tree-children` selector is present.
+- Supabase catalogue state inspected: 3,845 products across 73 manufacturers.
+- The existing `staff_set_storefront_visibility()` path remains the product-level writer.
+- Browser hard-refresh verification remains required: open a manufacturer, open a category such as DJI → Drones, confirm individual products and their controls appear, then test one product control without committing an unwanted visibility change.
 
 ## Current verified state
 
