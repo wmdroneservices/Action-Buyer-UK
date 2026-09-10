@@ -52,16 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const customerReturnAssetIds=new Set(customerReturns
         .map(r=>r.asset_id)
         .filter(Boolean));
-      // One physical item must produce one actionable inspection task. Once receipt
-      // has created the linked inventory asset, the Product Workbench is the
-      // authoritative inspection entry point; do not duplicate it as a sale task.
       const inspectionAssetSaleIds=new Set(assets
         .filter(a=>a.source_sale_id && ["Received","Inspection Required","Testing","Repair Required"].includes(String(a.status||"")))
         .map(a=>a.source_sale_id));
-      // A Published or Reserved resale listing means the sales-listing action for
-      // that physical SKU is already complete. Listing status is authoritative for
-      // this decision; the inventory asset may intentionally remain Sent to Sales
-      // for compatibility with the central physical-stock state model.
       const activeListingAssetIds=new Set(listings
         .filter(l=>["Published","Reserved"].includes(String(l.status||"")))
         .map(l=>l.asset_id)
@@ -91,6 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if(!inspectionAssetSaleIds.has(s.id)){
             addTask(tasks,{category:"PURCHASING",title:"Inspect received item",detail:(s.sale_reference||"Purchase")+" is ready for receipt and inspection.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
           }
+        }else if(inbound&&["awaiting_label","label_required"].includes(String(inbound.status||"").toLowerCase())&&!["received","inspection","payment_due","paid","completed","cancelled"].includes(status)){
+          addTask(tasks,{category:"PURCHASING",title:"Create and send inbound shipping label",detail:(s.sale_reference||"Purchase")+" requires the customer shipping label before the item can be sent.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when:inbound.updated_at||inbound.created_at||when,reference:s.sale_reference});
         }else if(["collecting_items","ready_for_shipping","shipping"].includes(status)&&!inbound){
           addTask(tasks,{category:"PURCHASING",title:"Create and send inbound shipping label",detail:(s.sale_reference||"Purchase")+" has progressed and needs the customer shipping label.",href:"admin-sale.html?id="+encodeURIComponent(s.id),when,reference:s.sale_reference});
         }else if(inbound&&String(inbound.status||"").toLowerCase()==="delivered"&&!["received","inspection","payment_due","paid","completed","cancelled"].includes(status)){
@@ -115,8 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const when=a.status_changed_at||a.updated_at||a.created_at;
         const name=itemName(a);
         const href="inventory-detail.html?id="+encodeURIComponent(a.id);
-        // Ready for Resale means the physical work is complete, not that the customer
-        // purchase is finalised. Do not show a premature Sales handoff task.
         if(status==="Ready for Resale"&&a.source_sale_id){
           const sourceSale=saleById.get(a.source_sale_id);
           if(sourceSale&&!(String(sourceSale.status||"")==="completed"&&String(sourceSale.payment_status||"")==="paid")) return;
@@ -134,10 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
           "Returned":customerReturnAssetIds.has(a.id)?null:["Review returned item",name+" has been returned and needs assessment.","SALES"],
           "Dispatched":["Confirm delivery and completion",name+" has been dispatched and should be followed through.","SALES"]
         };
-        // Do not recreate the sales preparation task when a live listing already
-        // exists for this physical SKU. This is deliberately independent of the
-        // inventory asset status because Sent to Sales remains the central handoff
-        // state for multi-channel stock.
         if(status==="Sent to Sales"&&activeListingAssetIds.has(a.id)) return;
         if(map[status]){
           const [title,detail,category,priority="auto"]=map[status];
@@ -165,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Collapse accidental duplicates while keeping separate genuinely different actions.
       const unique=new Map();
       tasks.forEach(t=>{
         const existing=unique.get(t.key);
@@ -179,9 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "admin-sales-dashboard.html":new Set(["SALES","CUSTOMER RETURNS"])
       };
       const categoryScope=pageCategoryScopes[pageName]||null;
-      const pageTasks=categoryScope
-        ? liveTasks.filter(t=>categoryScope.has(t.category))
-        : liveTasks;
+      const pageTasks=categoryScope?liveTasks.filter(t=>categoryScope.has(t.category)):liveTasks;
 
       const counts={
         current:pageTasks.filter(t=>t.label==="CURRENT").length,
