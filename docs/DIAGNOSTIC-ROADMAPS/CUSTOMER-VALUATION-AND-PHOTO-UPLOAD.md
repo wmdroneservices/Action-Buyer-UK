@@ -1,6 +1,6 @@
 # Developer Diagnostic Roadmap — Customer Valuation and Photo Upload
 
-**Status:** Audited against current GitHub and live Supabase on 8 September 2026.
+**Status:** Audited against current GitHub and live Supabase on 10 September 2026.
 
 ## User action
 
@@ -216,3 +216,64 @@ This is not the staff inspection record and must not display the staff resale co
 ### Regression rule
 
 Do not remove the product name from customer progress simply because the operational card is keyed by a sale reference. A sale reference and a valuation reference are operational identifiers; the read-only history view must remain human-readable equipment history.
+
+## Single-item customer offer visibility — 10 September 2026
+
+### User action
+
+A staff member publishes a customer offer for a single-item valuation. The customer returns to **My Account** and should see the offer as an actionable **NEW QUOTE**, not as **VALUATION IN PROGRESS**.
+
+### Front-end route
+
+`account.html`
+→ `account-page.js`
+→ existing `#new-quotes-section` / `#valuations`
+→ `account-single-offer-visibility.js` for standalone single-item offer presentation.
+
+### Live state observed
+
+Test valuation `WBA-2026-687100` had:
+
+- valuation status `customer_review`;
+- quote item `Osmo Action 6 / Standard Combo`;
+- item status `under_assessment`;
+- published offer amount £32.00;
+- offer type `manual`;
+- no linked sale.
+
+The database state therefore represented a published customer-facing offer, not a valuation still awaiting an offer.
+
+### First actual failure
+
+`account-page.js` only excluded a valuation from the generic **VALUATION IN PROGRESS** section when a published offer had `offer_type === 'final'`.
+
+The live offer was a published **manual** offer. Therefore the customer account renderer continued to classify the valuation as in progress even though the customer had a response-ready offer.
+
+### Repair
+
+The existing `account-single-offer-visibility.js` controller was restored to the active `account.html` script list and strengthened so it:
+
+- recognises published manual, automatic and final offers for standalone single-item submissions;
+- renders the existing **NEW QUOTE** presentation;
+- renders existing final-offer presentation when a single item is already linked to an active sale;
+- removes the corresponding generic valuation card when a published standalone offer is present;
+- continues polling while the customer account is open.
+
+No valuation, quote item, offer, sale, RPC, schema or RLS data was changed.
+
+### Regression rule
+
+`published` is the customer-response gate; `offer_type` identifies how the offer was produced. A published `manual` offer must not be treated as still being an unpriced valuation merely because it is not labelled `final`.
+
+### Verification
+
+After deployment/cache refresh:
+
+1. hard-refresh `account.html`;
+2. confirm the published £32.00 offer is presented under **New quotes** with ACCEPT/REFUSE;
+3. confirm the matching **VALUATION IN PROGRESS** card is absent;
+4. confirm **VIEW WHAT YOU SENT** remains available;
+5. accept the offer only after this presentation is confirmed;
+6. verify the existing acceptance RPC and subsequent Purchasing workflow remain unchanged.
+
+If the customer still sees the old valuation card after a hard refresh, inspect the browser's loaded script version and the first account-rendering DOM mutation before changing Supabase data.
