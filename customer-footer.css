@@ -1,4 +1,4 @@
-/* Shared customer-facing footer — matches the GearCashOut header branding. */
+/* Shared customer-facing footer — matches the current GearCashOut header branding. */
 .footer,
 .home .footer{
   background:#f4efe5 !important;
@@ -21,7 +21,7 @@
   padding:0;
   font-size:0;
   line-height:0;
-  background:url('images/gearcashout-brand-pro.svg') left center/contain no-repeat;
+  background:url('images/gearcashout-brand.svg') left center/contain no-repeat;
 }
 .footer .footer-container > div:first-child br{display:none}
 .footer .footer-container > div:first-child{
@@ -60,7 +60,7 @@
   width:224px;
   height:56px;
   margin:0 0 .75rem;
-  background:url('images/gearcashout-brand-pro.svg') left center/contain no-repeat;
+  background:url('images/gearcashout-brand.svg') left center/contain no-repeat;
 }
 .home .footer p,
 .home .footer-bottom{
