@@ -2,23 +2,13 @@
 <html lang="en-GB">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <title>Staff Dashboard | GearCashOut</title><link rel="stylesheet" href="style.css?v=20260906-task-intelligence-1"><style>body.staff-permissions-loading [data-permission]{visibility:hidden!important}body.staff-permissions-ready [data-permission][hidden]{display:none!important}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260903-dashboard-todo-2" defer></script><script src="live-task-board.js?v=20260908-inspection-task-dedupe-1" defer></script><script src="admin-test-reset.js?v=20260908-operational-reset-1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth.js?v=20260903-staff-audit-1" defer></script><script src="admin-dashboard.js?v=20260910-live-website-access-1" defer></script><script src="live-task-board.js?v=20260908-inspection-task-dedupe-1" defer></script><script src="admin-test-reset.js?v=20260908-operational-reset-1" defer></script>
 </head>
 <body class="staff-permissions-loading">
 <header class="header"><div class="container header-container"><a class="logo" href="admin.html">GEARCASHOUT</a><nav aria-label="Dashboard sections"><ul class="nav-list">
-<li data-permission="research"><a href="admin-research-pricing.html">RESEARCH &amp; PRICING</a></li>
-<li data-permission="purchasing"><a href="admin-purchasing.html">PURCHASING</a></li>
-<li data-permission="sales"><a href="admin-sales-dashboard.html">SALES</a></li>
-<li data-permission="customers"><a href="admin-customers.html">CUSTOMERS</a></li>
-<li data-permission="manage_staff"><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li>
-<li data-permission="manage_staff"><a href="admin-outlet-management.html">OUTLET MANAGEMENT</a></li>
-<li data-permission="manage_staff"><a href="admin-stock-strategy.html">STOCK STRATEGY</a></li>
-<li data-permission="mail"><a href="admin-mail.html">MAIL</a></li>
-<li><a href="admin-messenger.html">MESSENGER</a></li>
+<li data-permission="research"><a href="admin-research-pricing.html">RESEARCH &amp; PRICING</a></li><li data-permission="purchasing"><a href="admin-purchasing.html">PURCHASING</a></li><li data-permission="sales"><a href="admin-sales-dashboard.html">SALES</a></li><li data-permission="customers"><a href="admin-customers.html">CUSTOMERS</a></li><li data-permission="manage_staff"><a href="admin-staff-management.html">STAFF MANAGEMENT</a></li><li data-permission="manage_staff"><a href="admin-outlet-management.html">OUTLET MANAGEMENT</a></li><li data-permission="manage_staff"><a href="admin-stock-strategy.html">STOCK STRATEGY</a></li><li data-permission="mail"><a href="admin-mail.html">MAIL</a></li><li><a href="admin-messenger.html">MESSENGER</a></li>
 </ul></nav></div></header>
 <main class="account-page"><div class="container">
 <div class="account-header"><div><p class="section-kicker">STAFF</p><h1>GearCashOut Dashboard</h1><p id="staff-welcome">Loading your dashboard…</p></div><button id="staff-sign-out" class="btn btn-secondary" type="button">SIGN OUT</button></div>
@@ -28,6 +18,7 @@
 <a data-permission="purchasing" href="admin-purchasing.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">PURCHASING DASHBOARD</strong><span class="btn btn-primary dashboard-cta">OPEN PURCHASING</span></a>
 <a data-permission="sales" href="admin-sales-dashboard.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">SALES DASHBOARD</strong><span class="btn btn-primary dashboard-cta">OPEN SALES</span></a>
 <a data-permission="customers" href="admin-customers.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">CUSTOMER DASHBOARD</strong><span class="btn btn-primary dashboard-cta">OPEN CUSTOMERS</span></a>
+<a data-permission="storefront" href="admin-live-website.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">LIVE WEBSITE</strong><span style="color:#667085;display:block;margin:.5rem 0 1rem">Control and inspect what customers can see on the retail website. Management can edit; Sales and Purchasing can view.</span><span class="btn btn-primary dashboard-cta">OPEN LIVE WEBSITE</span></a>
 <a data-permission="manage_staff" href="admin-staff-management.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">STAFF MANAGEMENT</strong><span class="btn btn-primary dashboard-cta">MANAGE STAFF</span></a>
 <a data-permission="manage_staff" href="admin-outlet-management.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">OUTLET MANAGEMENT</strong><span style="color:#667085;display:block;margin:.5rem 0 1rem">Manage websites, marketplaces and future auction outlets.</span><span class="btn btn-primary dashboard-cta">MANAGE OUTLETS</span></a>
 <a data-permission="manage_staff" href="admin-stock-strategy.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">SLOW-MOVING STOCK</strong><span style="color:#667085;display:block;margin:.5rem 0 1rem">Review stock age, listing coverage and recommended outlet strategy.</span><span class="btn btn-primary dashboard-cta">OPEN STOCK STRATEGY</span></a>
@@ -35,61 +26,9 @@
 <a href="admin-messenger.html" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">STAFF MESSENGER</strong><span class="btn btn-primary dashboard-cta">OPEN MESSENGER</span></a>
 <a data-permission="manage_staff" href="docs/GEARCASHOUT-SYSTEM-HANDBOOK.md" target="_blank" rel="noopener" class="dashboard-link-card" style="text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:150px"><strong class="dashboard-count" style="font-size:1.35rem;color:#102f4f">SYSTEM HANDBOOK</strong><span style="color:#667085;display:block;margin:.5rem 0 1rem">Human guide and living reference for how GearCashOut works.</span><span class="btn btn-primary dashboard-cta">OPEN HANDBOOK</span></a>
 </div></section>
-
-<section id="catalogue-summary-panel" class="account-panel" hidden>
-  <div class="section-heading">
-    <p class="section-kicker">LIVE CATALOGUE OVERVIEW</p>
-    <h2>Quote Catalogue</h2>
-    <p>Live counts and breakdowns from Catalogue Control. This summary refreshes automatically while the dashboard is open.</p>
-  </div>
-  <div id="catalogue-summary-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0 1.25rem">
-    <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
-      <div class="section-kicker">TOTAL PRODUCTS</div>
-      <strong id="catalogue-total-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">All products currently in Catalogue Control</span>
-    </div>
-    <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
-      <div class="section-kicker">ACTIVE PRODUCTS</div>
-      <strong id="catalogue-active-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">Products currently marked active</span>
-    </div>
-    <div class="dashboard-link-card" style="min-height:auto;padding:1rem">
-      <div class="section-kicker">INACTIVE PRODUCTS</div>
-      <strong id="catalogue-inactive-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong>
-      <span style="font-size:.78rem;color:#5f6b78">Products currently marked inactive</span>
-    </div>
-  </div>
-  <section id="live-task-board" class="account-panel live-task-board" style="margin-top:1rem" aria-live="polite">
-      <div class="section-heading live-task-heading">
-        <p class="section-kicker">LIVE TASKS</p>
-        <h2>What Needs Doing</h2>
-        <p>One live list of staff actions across Purchasing, Inventory and Sales. Tasks automatically update as work moves through the workflow.</p>
-      </div>
-      <div class="task-board-legend" aria-label="Task urgency guide">
-        <span class="task-legend task-legend-green"><b>GREEN</b> Within the normal action window</span>
-        <span class="task-legend task-legend-amber"><b>AMBER</b> Overdue — should now be completed</span>
-        <span class="task-legend task-legend-red"><b>RED</b> Significantly overdue — prioritise this task</span>
-      </div>
-      <div id="live-task-summary" class="live-task-summary">Checking live tasks...</div>
-      <div id="live-task-list" class="live-task-list"><p>Checking the workflow for actions...</p></div>
-      <p id="live-task-updated" class="live-task-updated"></p>
-    </section>
-  </div>
-  <div id="catalogue-summary-message" class="form-message" role="status" aria-live="polite"></div>
-</section>
-
-<section id="management-danger-zone" class="account-panel management-danger-zone" data-permission="manage_staff" hidden>
-  <div class="section-heading">
-    <p class="section-kicker">MANAGEMENT ONLY · DANGER ZONE</p>
-    <h2>Clear Operational Data</h2>
-    <p>Permanently remove all valuation, purchasing, inventory, listing, resale, fulfilment, return and sales workflow records so development can start afresh. Customer and staff accounts, catalogue products, pricing, outlets and system configuration are preserved.</p>
-  </div>
-  <div class="management-danger-warning">
-    <strong>WARNING: THIS ACTION CANNOT BE UNDONE.</strong>
-    <span>Use only when deliberately clearing all operational workflow data and starting the workflow afresh.</span>
-  </div>
-  <button id="test-reset-button" class="btn btn-danger management-reset-button" type="button">CLEAR ALL OPERATIONAL DATA</button>
-  <div id="test-reset-message" class="form-message" role="status" aria-live="polite"></div>
-</section>
+<section id="catalogue-summary-panel" class="account-panel" hidden><div class="section-heading"><p class="section-kicker">LIVE CATALOGUE OVERVIEW</p><h2>Quote Catalogue</h2><p>Live counts and breakdowns from Catalogue Control. This summary refreshes automatically while the dashboard is open.</p></div>
+<div id="catalogue-summary-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0 1.25rem"><div class="dashboard-link-card" style="min-height:auto;padding:1rem"><div class="section-kicker">TOTAL PRODUCTS</div><strong id="catalogue-total-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong><span style="font-size:.78rem;color:#5f6b78">All products currently in Catalogue Control</span></div><div class="dashboard-link-card" style="min-height:auto;padding:1rem"><div class="section-kicker">ACTIVE PRODUCTS</div><strong id="catalogue-active-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong><span style="font-size:.78rem;color:#5f6b78">Products currently marked active</span></div><div class="dashboard-link-card" style="min-height:auto;padding:1rem"><div class="section-kicker">INACTIVE PRODUCTS</div><strong id="catalogue-inactive-count" class="dashboard-count" style="display:block;font-size:2rem;color:#102f4f;margin-top:.35rem">—</strong><span style="font-size:.78rem;color:#5f6b78">Products currently marked inactive</span></div></div>
+<section id="live-task-board" class="account-panel live-task-board" style="margin-top:1rem" aria-live="polite"><div class="section-heading live-task-heading"><p class="section-kicker">LIVE TASKS</p><h2>What Needs Doing</h2><p>One live list of staff actions across Purchasing, Inventory and Sales. Tasks automatically update as work moves through the workflow.</p></div><div class="task-board-legend" aria-label="Task urgency guide"><span class="task-legend task-legend-green"><b>GREEN</b> Within the normal action window</span><span class="task-legend task-legend-amber"><b>AMBER</b> Overdue — should now be completed</span><span class="task-legend task-legend-red"><b>RED</b> Significantly overdue — prioritise this task</span></div><div id="live-task-summary" class="live-task-summary">Checking live tasks...</div><div id="live-task-list" class="live-task-list"><p>Checking the workflow for actions...</p></div><p id="live-task-updated" class="live-task-updated"></p></section></div><div id="catalogue-summary-message" class="form-message" role="status" aria-live="polite"></div></section>
+<section id="management-danger-zone" class="account-panel management-danger-zone" data-permission="manage_staff" hidden><div class="section-heading"><p class="section-kicker">MANAGEMENT ONLY · DANGER ZONE</p><h2>Clear Operational Data</h2><p>Permanently remove all valuation, purchasing, inventory, listing, resale, fulfilment, return and sales workflow records so development can start afresh. Customer and staff accounts, catalogue products, pricing, outlets and system configuration are preserved.</p></div><div class="management-danger-warning"><strong>WARNING: THIS ACTION CANNOT BE UNDONE.</strong><span>Use only when deliberately clearing all operational workflow data and starting the workflow afresh.</span></div><button id="test-reset-button" class="btn btn-danger management-reset-button" type="button">CLEAR ALL OPERATIONAL DATA</button><div id="test-reset-message" class="form-message" role="status" aria-live="polite"></div></section>
 </div></main><footer class="footer"><div class="container footer-container"><div><strong>GEARCASHOUT STAFF</strong><br>Research &amp; Pricing · Purchasing · Sales · Customers.</div></div></footer>
 </body></html>
